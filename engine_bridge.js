@@ -80,6 +80,40 @@
     };
   }
 
+  // Bullet vs targetable entity hit test. Returns array of {bullet, target}
+  // pairs that hit this tick. Caller decides what damage flow to run.
+  // Removes hit bullets from the input array in-place.
+  function tickBullets(world, bullets, dt) {
+    const hits = [];
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      // advance position
+      b.position.u += b.velocity.u * b.speed * dt;
+      b.position.v += b.velocity.v * b.speed * dt;
+      b.traveled += b.speed * dt;
+      // hit any targetable in the bullet's lane?
+      let hit = null;
+      for (const [id, e] of world.entities) {
+        if (id === b.ownerId) continue;
+        if (!e.targetable) continue;
+        if (e.health && e.health.dead) continue;
+        if (!e.position) continue;
+        const du = e.position.u - b.position.u;
+        const dv = e.position.v - b.position.v;
+        const r2 = du * du + dv * dv;
+        const radius = (e.hitbox && e.hitbox.w) ? e.hitbox.w * 0.6 : 0.5;
+        if (r2 <= radius * radius) { hit = { id, entity: e }; break; }
+      }
+      if (hit) {
+        hits.push({ bullet: b, target: hit });
+        bullets.splice(i, 1);
+        continue;
+      }
+      if (b.traveled >= b.range) bullets.splice(i, 1);
+    }
+    return hits;
+  }
+
   // Wander step for an NPC: small random heading change, advance forward.
   // Returns the new heading. Pure function on top of Math.random by default;
   // pass a deterministic rng for headless tests.
@@ -201,6 +235,7 @@
     collectPickup,
     dayNightPhase,
     walkCyclePhase,
-    VERSION: "0.11.0-iter13",
+    tickBullets,
+    VERSION: "0.13.0-iter15",
   };
 });

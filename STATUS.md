@@ -20,15 +20,17 @@
 | 11   | 7 gun types as data + bullet entity facet                      | 56    | iter11  |
 | 12   | Slot inventory + 4 ammo types + 7 gun items + parts            | 34    | iter12  |
 | 13   | Inventory popup UI (I to toggle), HUD shows hp/ammo            | (visual) | iter13 |
+| 14   | AI enemies (FSM: idle→seek→attack→dead) + patrol               | 19    | iter14  |
+| 15   | tickBullets (bullet→target hits) + loot drop on death          | 16    | iter15  |
 
-**Total: 226/226 tests passing.**
+**Total: 261/261 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 14** — AI enemies (state machine: idle/seek/attack).
-- **iter 15** — Damage flow: bullets → enemies → drop loot.
 - **iter 16** — Car parts as facets (engine/body/wheel combine).
 - **iter 17** — Workbench: combine parts → craft new entity.
+- **iter 18** — Planes (3rd vehicle type, same `vehicle` facet).
+- **iter 19** — Shop entity — buy/sell vehicles for in-game currency.
 
 ## Wakeup checklist
 
