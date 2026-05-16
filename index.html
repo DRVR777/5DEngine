@@ -396,6 +396,8 @@
   &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag arrow=move · yellow ring=rotY · Del remove · arrows nudge · Tab=library · 1-9 hotbar · F spawn · G group</i>
 </div>
 
+<script src="./game_config.js"></script>
+<script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
 <script src="./engine_bridge.js"></script>
 <script src="./physics.js"></script>
@@ -449,6 +451,7 @@ const Inv    = window.GTAInventory;
 const Guns   = window.GTAGuns;
 const Health = window.GTAHealth;
 const HERO_HITBOX = { w: 0.8, d: 0.8, h: 1.8 };
+const CFG = window.GameConfig || {};
 
 // Hero inventory + health (iter 10-13 integration)
 const heroInv = Inv.makeInventory(24);
@@ -460,52 +463,50 @@ const heroHealth = Health.makeHealth(100, { regenRate: 5, regenDelay: 5 });
 const world = new WorldState(1);
 world.setPlayer("hero", 0, 0, 0, 0, 0);
 
-// Build blockers (AABB hitboxes) from the same building rects so collision
-// uses the exact footprint as rendering. Stored as plain objects: physics
-// reads {u, v, hitbox:{w,d}}; the LayerBoundary still drives layer transitions.
+// World data — loaded from world_data.js (edit that file to change the layout)
+const WD = window.WorldData || {};
+
+// Buildings — built from WorldData schema; each gets a LayerBoundary for
+// zone transitions and an AABB blocker for collision.
+function _buildFromSchema(def, layerIdx) {
+  return {
+    id: def.id, color: def.color,
+    b: new LayerBoundary(layerIdx, "rect", { u0: def.u0, v0: def.v0, u1: def.u1, v1: def.v1 }),
+  };
+}
+const buildings = (WD.buildings || []).map((def, i) => _buildFromSchema(def, i + 2));
+
 function rectToBlocker(building) {
   const { u0, v0, u1, v1 } = building.b.params;
   return { u: (u0+u1)/2, v: (v0+v1)/2, hitbox: { w: Math.abs(u1-u0), d: Math.abs(v1-v0), h: 6 }, y: 0 };
 }
-
-// Some buildings as layer boundaries (rect in u-v plane). 8 buildings = small downtown.
-const buildings = [
-  { id: "shop",    color: 0xff6b6b, b: new LayerBoundary(2, "rect", { u0:  10, v0: -4, u1: 16, v1:  4 }) },
-  { id: "tower",   color: 0x4ecdc4, b: new LayerBoundary(3, "rect", { u0: -16, v0:  6, u1:-10, v1: 12 }) },
-  { id: "house",   color: 0xffe66d, b: new LayerBoundary(4, "rect", { u0:  -6, v0:-14, u1:  0, v1:-8 }) },
-  { id: "garage",  color: 0xa8dadc, b: new LayerBoundary(5, "rect", { u0:   6, v0: 10, u1: 12, v1: 16 }) },
-  { id: "diner",   color: 0xff9f1c, b: new LayerBoundary(6, "rect", { u0: -22, v0:-12, u1:-16, v1:-6 }) },
-  { id: "bank",    color: 0x9b5de5, b: new LayerBoundary(7, "rect", { u0:  18, v0: 12, u1: 24, v1: 18 }) },
-  { id: "park",    color: 0x80ed99, b: new LayerBoundary(8, "rect", { u0: -10, v0: 18, u1:  -2, v1: 26 }) },
-  { id: "studio",  color: 0xf72585, b: new LayerBoundary(9, "rect", { u0:  20, v0:-22, u1: 26, v1:-14 }) },
-];
-
-// NPC roster — wander randomly inside a 50-half arena.
-const NPC_DEFS = [
-  { id: "npc_red",   color: 0xe63946, u:  4, v:  4, heading: 1.2 },
-  { id: "npc_blue",  color: 0x457b9d, u: -8, v:  2, heading: 3.0 },
-  { id: "npc_green", color: 0x52b788, u:  2, v: -6, heading: 0.5 },
-  { id: "npc_white", color: 0xeeeeee, u: -3, v:-10, heading: 4.7 },
-];
-for (const n of NPC_DEFS) world.setPlayer(n.id, 0, 0, 0, n.u, n.v);
-
-// Pre-built blocker list for collision (recomputed never — buildings are static)
 const buildingBlockers = buildings.map(rectToBlocker);
 
-// Car — also a player in the engine
-world.setPlayer("car", 0, 0, 0, 4, 6);
-const carState = { speed: 0, heading: 0 };
-let inCar = false;
+// NPCs — from WorldData schema
+const NPC_DEFS = WD.npcs || [];
+for (const n of NPC_DEFS) world.setPlayer(n.id, 0, 0, 0, n.u, n.v);
 
-// AI enemy: a hostile NPC that seeks the hero (uses the iter 14 ai.js logic
-// inlined here so the demo doesn't need a require — browser keeps it simple)
-const enemy = {
-  id: "enemy1", color: 0xff0044, u: 14, v: -14, heading: 0,
-  hp: 80, maxHp: 80, sightRange: 10, attackRange: 1.6, moveSpeed: 2.4,
-  damage: 6, lastAttackT: -Infinity, dead: false,
-};
+// Vehicles — all vehicle defs from WorldData; each gets a world slot and state
+const VEHICLE_DEFS = WD.vehicles || [
+  { id: "sedan", type: "sedan", color: 0x4488ff, u: 4, v: 6,
+    maxSpeed: 24, acceleration: 8, braking: 18, handling: 1.0, mass: 1400,
+    hitbox: { w: 2, d: 4 }, animations: [] },
+];
+const vehicleStates = new Map();
+for (const v of VEHICLE_DEFS) {
+  world.setPlayer(v.id, 0, 0, 0, v.u, v.v);
+  vehicleStates.set(v.id, { speed: 0, heading: 0, gear: 0, gearName: "N" });
+}
+let inCar = false;
+let activeVehicleId = null;
+// carState always mirrors the active vehicle's state (backwards-compat reads)
+const carState = { speed: 0, heading: 0, gear: 0, gearName: "N" };
+
+// AI enemy — cloned from WorldData template
+const _enemyTpl = WD.enemyTemplate || { id: "enemy1", color: 0xff0044, u: 14, v: -14, heading: 0, hp: 80, maxHp: 80, sightRange: 10, attackRange: 1.6, moveSpeed: 2.4, damage: 6 };
+const enemy = Object.assign({ lastAttackT: -Infinity, dead: false }, _enemyTpl);
 let enemyRespawnT = -Infinity;
-const ENEMY_RESPAWN_DELAY = 8;  // seconds
+const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
 let enemyKills = 0;
 let hitMarkerUntil = 0;  // show hit-marker crosshair flash until this time
 world.setPlayer(enemy.id, 0, 0, 0, enemy.u, enemy.v);
@@ -513,24 +514,41 @@ world.setPlayer(enemy.id, 0, 0, 0, enemy.u, enemy.v);
 // In-game computer entity (iter 28). Walk near + press E to "use" (we
 // just toast a banner — full sit/screen takeover is iter 28 logic ready
 // to wire in iter 38+).
-const computerEntity = { id: "pc1", u: -4, v: 4, y: 0, color: 0x666666 };
+const computerEntity = Object.assign(
+  { y: 0, color: 0x666666 },
+  (WD.entities && WD.entities.computer) || { id: "pc1", u: -4, v: 4 }
+);
 
 // Hero hp (iter 10) — visible bar in HUD
-let heroHp = 100; const HERO_MAX_HP = 100;
-let heroLastDamageT = -Infinity; const HERO_REGEN_DELAY = 5; const HERO_REGEN_RATE = 4;
+const HERO_MAX_HP    = CFG.heroMaxHp    || 100;
+const HERO_REGEN_DELAY = CFG.heroRegenDelay || 5;
+const HERO_REGEN_RATE  = CFG.heroRegenRate  || 4;
+let heroHp = HERO_MAX_HP;
+let heroLastDamageT = -Infinity;
 
 // Computer prompt state
 let nearComputer = false;
 let computerOpen = false;
 
+// Weapon registry — look up active weapon from CFG.weapons by id
+let currentWeaponId = "pistol";
+function getWeapon() {
+  const weps = CFG.weapons || [];
+  return weps.find(w => w.id === currentWeaponId) || {
+    id: "pistol", ammoItem: "pistol_9mm", fireRate: 5, damage: 20,
+    range: 30, speed: 80, magCap: 12, bulletRadius: 0.04, reloadDuration: 1200,
+    pellets: 1, spread: 0, automatic: false,
+  };
+}
+// Per-weapon magazine ammo tracker; undefined = full mag on first read
+const weaponAmmo = new Map();
+function getAmmo()  { const w = getWeapon(); return weaponAmmo.has(w.id) ? weaponAmmo.get(w.id) : w.magCap; }
+function setAmmo(n) { weaponAmmo.set(currentWeaponId, n); }
+
 // Shooting state
-const bullets3D = [];       // [{ mesh, posU, posV, posY, dirU, dirV, speed, traveled, range, damage }]
-let pistolAmmo = 12;
+const bullets3D = [];
+let pistolAmmo = 12;       // keep for backwards-compat ammoHud render; mirrors getAmmo()
 let pistolCooldown = 0;
-const PISTOL_FIRE_RATE = 5; // shots/sec
-const PISTOL_DAMAGE = 20;
-const PISTOL_RANGE = 30;
-const PISTOL_SPEED = 80;
 const bulletGeo = new THREE.SphereGeometry(0.04, 6, 4);
 const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffee55 });
 
@@ -546,16 +564,8 @@ function flashDamage() {
 // all of which are declared further down).
 
 // Pickups (coins) — 8 scattered around the world, the objective is to collect them all.
-const pickups = [
-  { id: "coin1", u:  4, v:  -8, collected: false },
-  { id: "coin2", u: -8, v:  10, collected: false },
-  { id: "coin3", u: 18, v:   2, collected: false },
-  { id: "coin4", u:-20, v:   0, collected: false },
-  { id: "coin5", u:  0, v: -22, collected: false },
-  { id: "coin6", u: 12, v:  20, collected: false },
-  { id: "coin7", u:-12, v: -18, collected: false },
-  { id: "coin8", u: 22, v: -10, collected: false },
-];
+// Pickups — from WorldData schema (collected flag added at runtime)
+const pickups = (WD.pickups || []).map(p => Object.assign({ collected: false }, p));
 let score = 0;
 
 // ---- three.js scene ----
@@ -702,46 +712,66 @@ armR.add(gunGroup);
 scene.add(heroGroup);
 const walkState = { t: 0 };
 
-// Car mesh — body + 4 wheels
-const carGroup = new THREE.Group();
-const carBody = new THREE.Mesh(
-  new THREE.BoxGeometry(2.0, 0.7, 4.0),
-  new THREE.MeshStandardMaterial({ color: 0xc1121f, metalness: 0.3, roughness: 0.4 })
-);
-carBody.position.y = 0.7;
-carBody.castShadow = true;
-carGroup.add(carBody);
-const carRoof = new THREE.Mesh(
-  new THREE.BoxGeometry(1.7, 0.6, 2.0),
-  new THREE.MeshStandardMaterial({ color: 0x780000 })
-);
-carRoof.position.set(0, 1.35, -0.2);
-carRoof.castShadow = true;
-carGroup.add(carRoof);
-for (const wx of [-0.9, 0.9]) for (const wz of [-1.4, 1.4]) {
-  const w = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16),
-    new THREE.MeshStandardMaterial({ color: 0x111111 })
+// Vehicle meshes — one group per VEHICLE_DEFS entry, built from the def's params
+function _makeVehicleMesh(vDef) {
+  const w = (vDef.hitbox && vDef.hitbox.w) || 2;
+  const d = (vDef.hitbox && vDef.hitbox.d) || 4;
+  const col = vDef.color || 0xc1121f;
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(w, 0.7, d),
+    new THREE.MeshStandardMaterial({ color: col, metalness: 0.3, roughness: 0.4 })
   );
-  w.rotation.z = Math.PI / 2;
-  w.position.set(wx, 0.35, wz);
-  w.castShadow = true;
-  carGroup.add(w);
+  body.position.y = 0.7; body.castShadow = true;
+  group.add(body);
+  // Roof (not for motorcycles)
+  if (vDef.type !== "motorcycle") {
+    const roofDark = new THREE.Color(col).multiplyScalar(0.6);
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(w * 0.85, 0.6, d * 0.5),
+      new THREE.MeshStandardMaterial({ color: roofDark })
+    );
+    roof.position.set(0, 1.35, -d * 0.05); roof.castShadow = true;
+    group.add(roof);
+  }
+  // Wheels
+  const wheelW = w * 0.5, wheelD = d * 0.35;
+  for (const wx of [-wheelW, wheelW]) for (const wz of [-wheelD, wheelD]) {
+    const wh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35, 0.35, 0.3, 12),
+      new THREE.MeshStandardMaterial({ color: 0x111111 })
+    );
+    wh.rotation.z = Math.PI / 2;
+    wh.position.set(wx, 0.35, wz); wh.castShadow = true;
+    group.add(wh);
+  }
+  group._bodyMesh = body;  // reference for AssetLoader replacement
+  return group;
 }
-scene.add(carGroup);
+
+const vehicleMeshes = new Map();
+for (const vDef of VEHICLE_DEFS) {
+  const grp = _makeVehicleMesh(vDef);
+  vehicleMeshes.set(vDef.id, grp);
+  scene.add(grp);
+}
+// Keep carGroup/carBody pointing to the first vehicle for AssetLoader compat
+const carGroup = vehicleMeshes.get(VEHICLE_DEFS[0].id) || new THREE.Group();
+const carBody   = carGroup._bodyMesh || carGroup;
 
 // Ammo pickups dropped by killed enemies
 const ammoPickups = [];  // [{ mesh, u, v, qty, collected }]
 const ammoPickupGeo = new THREE.BoxGeometry(0.18, 0.08, 0.28);
 const ammoPickupMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.5, roughness: 0.4 });
 
-function _spawnAmmoPickup(u, v, qty) {
-  qty = qty || 12;
+function _spawnAmmoPickup(u, v, qty, ammoItem) {
+  qty = qty || CFG.ammoDropQty || 12;
+  ammoItem = ammoItem || getWeapon().ammoItem || "pistol_9mm";
   const mesh = new THREE.Mesh(ammoPickupGeo, ammoPickupMat);
   mesh.position.set(u, 0.4, v);
   mesh.castShadow = true;
   scene.add(mesh);
-  ammoPickups.push({ mesh, u, v, qty, collected: false });
+  ammoPickups.push({ mesh, u, v, qty, ammoItem, collected: false });
 }
 
 // Pickup meshes
@@ -839,12 +869,23 @@ let jumbotronScreen = null;
 let skyScreen = null;
 
 if (deviceBus) {
-  const PC_POS  = { u: computerEntity.u, v: computerEntity.v, y: 1.1 };
-  const MON_POS = { u: computerEntity.u, v: computerEntity.v - 0.0, y: 1.6 };  // on top of the desk
-  const SPK_POS = { u: computerEntity.u + 1.0, v: computerEntity.v - 0.2, y: 0.8 };
-  const USB_POS = { u: computerEntity.u - 0.4, v: computerEntity.v + 0.1, y: 1.0 };
-  const RADIO_A = { u: computerEntity.u + 0.3, v: computerEntity.v - 0.2, y: 1.4 };
-  const RADIO_B = { u: 10, v: 8, y: 1.0 };
+  // Device positions from WorldData.devices — du/dv/dy are relative to the computer entity
+  const _devs = WD.devices || {};
+  function _devPos(key, fallbackDu, fallbackDv, fallbackDy) {
+    const d = _devs[key] || {};
+    if (d.u !== undefined) return { u: d.u, v: d.v, y: d.dy !== undefined ? d.dy : fallbackDy };
+    return {
+      u: computerEntity.u + (d.du !== undefined ? d.du : fallbackDu),
+      v: computerEntity.v + (d.dv !== undefined ? d.dv : fallbackDv),
+      y: d.dy !== undefined ? d.dy : fallbackDy,
+    };
+  }
+  const PC_POS  = _devPos("pc",     0,     0,    1.1);
+  const MON_POS = _devPos("mon",    0,     0,    1.6);
+  const SPK_POS = _devPos("spk",    1.0,  -0.2,  0.8);
+  const USB_POS = _devPos("usb",   -0.4,   0.1,  1.0);
+  const RADIO_A = _devPos("radioA", 0.3,  -0.2,  1.4);
+  const RADIO_B = _devPos("radioB", 14.0,  4.0,  1.0);
 
   deviceBus.makeComputer({ id: "pc1", position: PC_POS,
     files: { "/boot.txt": "DWRLD OS v0.1", "/readme": "wire stuff together!" } });
@@ -1111,6 +1152,8 @@ setTimeout(() => {
 
   function _hotbarSlotEl(i) { return document.querySelector('.hb-slot[data-slot="' + i + '"]'); }
 
+  const PRIM_ICONS = { cube:"🟦", sphere:"🔵", cylinder:"🔶", plane:"🟩", light:"💡" };
+
   function _refreshHotbar() {
     for (let i = 0; i < 9; i++) {
       const el = _hotbarSlotEl(i);
@@ -1119,12 +1162,10 @@ setTimeout(() => {
       const iconEl = el.querySelector(".hb-icon");
       const nameEl = el.querySelector(".hb-name");
       if (slot) {
-        iconEl.textContent = slot.primitive ? ["🟦","🔵","🔶","🟩","💡"]["cube","sphere","cylinder","plane","light"].indexOf(slot.primitive) >= 0
-            ? ["🟦","🔵","🔶","🟩","💡"][["cube","sphere","cylinder","plane","light"].indexOf(slot.primitive)]
-            : "📦" : "📦";
+        iconEl.textContent = slot.primitive ? (PRIM_ICONS[slot.primitive] || "📦") : "📂";
         nameEl.textContent = slot.primitive || (slot.name ? slot.name.replace(/\.\w+$/, "").slice(0, 12) : "?");
       } else {
-        iconEl.textContent = "📦";
+        iconEl.textContent = "➕";
         nameEl.textContent = "empty";
       }
       el.classList.toggle("active", i === hotbarActive);
@@ -1478,11 +1519,9 @@ if (window.ScreenMesh) {
   });
   const jumboMesh = SM.bindToThree(THREE, jumbotronScreen, { doubleSided: true });
   if (jumboMesh) {
-    // Place out in open space (was clipping inside a building before) —
-    // 30m east + 25m north of spawn, raised so its bottom edge sits 1m
-    // off the ground, facing toward player spawn.
-    jumboMesh.position.set(30, jumbotronScreen.heightM / 2 + 1, 25);
-    jumboMesh.rotation.y = Math.PI;   // face -z (toward spawn at origin)
+    const _jscr = (WD.screens && WD.screens.jumbotron) || { u: 30, v: 25, y_offset: 1, rotY: Math.PI };
+    jumboMesh.position.set(_jscr.u, jumbotronScreen.heightM / 2 + (_jscr.y_offset || 1), _jscr.v);
+    jumboMesh.rotation.y = _jscr.rotY !== undefined ? _jscr.rotY : Math.PI;
     scene.add(jumboMesh);
     worldScreens.set(jumbotronScreen.id, { screen: jumbotronScreen, mesh: jumboMesh });
   }
@@ -1675,40 +1714,50 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // R reloads pistol — starts animated reload circle, ammo added after delay
+  // R reloads current weapon — starts animated reload circle, ammo added after delay
   if (e.code === "KeyR") {
-    if (_reloading) { e.preventDefault(); return; }  // already reloading
-    const need = PISTOL_MAG_CAP - pistolAmmo;
+    if (_reloading) { e.preventDefault(); return; }
+    const wep = getWeapon();
+    const need = PISTOL_MAG_CAP() - pistolAmmo;
     if (need <= 0) {
       reloadMsg = "already full"; reloadMsgUntil = performance.now() + 1200;
       e.preventDefault(); return;
     }
-    const invAmmo = Inv.countItem(heroInv, "pistol_9mm");
+    const invAmmo = Inv.countItem(heroInv, wep.ammoItem || "pistol_9mm");
     if (invAmmo <= 0) {
       playSfx("noise", 0.2);
-      reloadMsg = "no 9mm — pick some up";
+      reloadMsg = "no ammo — pick some up";
       reloadMsgUntil = performance.now() + 1500;
       e.preventDefault(); return;
     }
-    // Start reload animation
     _reloading = true;
     _reloadStart = performance.now();
     playSfx("tone:200:120:square", 0.5); playSfx("click", 0.5);
-    reloadMsg = "reloading…"; reloadMsgUntil = performance.now() + RELOAD_DUR;
+    reloadMsg = "reloading…"; reloadMsgUntil = performance.now() + RELOAD_DUR();
     e.preventDefault();
     return;
   }
-  // E toggles enter/exit when near the car
+  // E toggles enter/exit nearest vehicle, or uses computer
   if (e.code === "KeyE") {
-    const d = Bridge.uvDist(world, "hero", "car");
-    if (!inCar && d < 2.5) inCar = true;
-    else if (inCar) {
+    const VDIST = CFG.vehicleInteractDist || 3.0;
+    let nearestVeh = null, nearestDist = Infinity;
+    for (const v of VEHICLE_DEFS) {
+      const d = Bridge.uvDist(world, "hero", v.id);
+      if (d < nearestDist) { nearestDist = d; nearestVeh = v; }
+    }
+    if (!inCar && nearestVeh && nearestDist < VDIST) {
+      inCar = true; activeVehicleId = nearestVeh.id;
+    } else if (inCar && activeVehicleId) {
       inCar = false;
-      // Drop hero next to the car
-      const cp = world.players.get("car");
-      const off = { u: cp.u + 1.5 * Math.cos(carState.heading), v: cp.v - 1.5 * Math.sin(carState.heading) };
+      const vst = vehicleStates.get(activeVehicleId);
+      const cp = world.players.get(activeVehicleId);
+      const off = {
+        u: cp.u + 1.5 * Math.cos(vst.heading),
+        v: cp.v - 1.5 * Math.sin(vst.heading),
+      };
       const h = world.players.get("hero");
       world.setPlayer("hero", h.x, 0, h.z, off.u, off.v);
+      activeVehicleId = null;
     }
   }
 });
@@ -1839,15 +1888,15 @@ addEventListener("mousemove", (e) => {
 
 // ---- physics-lite ----
 let velocityY = 0;
-const GRAVITY = -25;
-const JUMP_V  = 13;
-const WALK    = 5;
-const SPRINT  = 9;
+const GRAVITY = CFG.gravity      || -25;
+const JUMP_V  = CFG.jumpVelocity || 13;
+const WALK    = CFG.walkSpeed    || 5;
+const SPRINT  = CFG.sprintSpeed  || 9;
 
 // ---- main loop ----
 const hud = document.getElementById("hud");
 const mini = document.getElementById("minimap").getContext("2d");
-const MINI_HALF = 35; // engine units shown half-extent
+const MINI_HALF = CFG.miniMapHalfExtent || 35;
 
 function drawMinimap() {
   const W = 180, H = 180;
@@ -1872,10 +1921,12 @@ function drawMinimap() {
     mini.fillStyle = "#" + n.color.toString(16).padStart(6, "0");
     mini.beginPath(); mini.arc(u2x(np.u), v2y(np.v), 3, 0, Math.PI*2); mini.fill();
   }
-  // Car
-  const cp = world.players.get("car");
-  mini.fillStyle = "#c1121f";
-  mini.fillRect(u2x(cp.u) - 3, v2y(cp.v) - 4, 6, 8);
+  // Vehicles — draw each one in its own color
+  for (const v of VEHICLE_DEFS) {
+    const vp = world.players.get(v.id);
+    mini.fillStyle = "#" + (v.color || 0xc1121f).toString(16).padStart(6, "0");
+    mini.fillRect(u2x(vp.u) - 3, v2y(vp.v) - 4, 6, 8);
+  }
   // Pickups
   for (const pk of pickups) {
     if (pk.collected) continue;
@@ -1929,10 +1980,20 @@ renderer.domElement.addEventListener("mousedown", (e) => {
     // Regular pick: raycast against ALL scene objects (buildings, car, spawned meshes)
     const picked = worldBuilder.pickAt(ndc, { allScene: true });
     const wasSelected = worldBuilder.getSelected();
-    if (picked && picked === wasSelected) {
+    if (e.shiftKey && picked) {
+      // Shift-click: add to multi-select list for grouping
+      if (window._builderMultiList) {
+        if (!window._builderMultiList.includes(picked)) {
+          window._builderMultiList.push(picked);
+          playSfx("blip", 0.2);
+        }
+      }
+      worldBuilder.select(picked);
+    } else if (picked && picked === wasSelected) {
       worldBuilder.dragStart();
     } else {
       worldBuilder.select(picked);   // may be null (deselect)
+      if (!e.shiftKey) window._builderMultiList && (window._builderMultiList.length = 0);
       playSfx("click", 0.3);
     }
     e.preventDefault();
@@ -1952,9 +2013,11 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   if (!pointerLocked) return;   // only shoot when looking around
   if (invDiv.classList.contains("open")) return;
   if (_reloading) return;   // can't shoot while reloading
+  const wep = getWeapon();
   if (pistolCooldown > 0 || pistolAmmo <= 0) return;
-  pistolCooldown = 1 / PISTOL_FIRE_RATE;
+  pistolCooldown = 1 / wep.fireRate;
   pistolAmmo--;
+  setAmmo(pistolAmmo);
   playSfx("tone:1200:60:square", 0.25);  // gunshot pop
   const hp = world.players.get("hero");
   // Aim where the CROSSHAIR points (raycast from camera through screen
@@ -1980,16 +2043,17 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   scene.add(mesh);
   bullets3D.push({
     mesh, posU: hp.u, posV: hp.v, posY: 1.5,
-    dirU, dirV, speed: PISTOL_SPEED, traveled: 0,
-    range: PISTOL_RANGE, damage: PISTOL_DAMAGE,
+    dirU, dirV, speed: wep.speed, traveled: 0,
+    range: wep.range, damage: wep.damage,
   });
 });
 
 let lastT = performance.now();
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 let _reloading = false, _reloadStart = 0;
-const RELOAD_DUR = 1200;  // ms
-const PISTOL_MAG_CAP = 12;
+// These resolve per-weapon dynamically at call sites
+const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
+const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
 
 function tick() {
   const now = performance.now();
@@ -2006,10 +2070,11 @@ function tick() {
   const fpsEl = document.getElementById("fpsCounter");
   if (fpsEl) fpsEl.textContent = _fpsDisplay + " FPS";
 
-  // Ammo HUD
+  // Ammo HUD — shows current weapon mag / reserve
   const ammoEl = document.getElementById("ammoHud");
   if (ammoEl) {
-    const reserve = Inv.countItem(heroInv, "pistol_9mm");
+    const _wep = getWeapon();
+    const reserve = Inv.countItem(heroInv, _wep.ammoItem || "pistol_9mm");
     ammoEl.textContent = pistolAmmo + " / " + reserve;
     ammoEl.style.color = pistolAmmo === 0 ? "#ff5d5d" : "#ffd166";
   }
@@ -2017,18 +2082,19 @@ function tick() {
   // Reload circle: show while _reloading, hide when done
   const reloadCircleEl = document.getElementById("reloadCircle");
   if (reloadCircleEl) {
-    if (_reloading && now < _reloadStart + RELOAD_DUR) {
+    if (_reloading && now < _reloadStart + RELOAD_DUR()) {
       reloadCircleEl.style.display = "block";
     } else {
-      if (_reloading && now >= _reloadStart + RELOAD_DUR) {
+      if (_reloading && now >= _reloadStart + RELOAD_DUR()) {
         _reloading = false;
-        // Finish the reload
-        const need = PISTOL_MAG_CAP - pistolAmmo;
-        const invAmmo = Inv.countItem(heroInv, "pistol_9mm");
+        const rwep = getWeapon();
+        const need = PISTOL_MAG_CAP() - pistolAmmo;
+        const invAmmo = Inv.countItem(heroInv, rwep.ammoItem || "pistol_9mm");
         const take = Math.min(need, invAmmo);
         if (take > 0) {
-          Inv.removeItem(heroInv, "pistol_9mm", take);
+          Inv.removeItem(heroInv, rwep.ammoItem || "pistol_9mm", take);
           pistolAmmo += take;
+          setAmmo(pistolAmmo);
           pistolCooldown = 0;
         }
       }
@@ -2088,29 +2154,38 @@ function tick() {
   const inputR = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
   const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
 
-  if (inCar) {
-    // Car physics: W/S throttle, A/D steer, SPACE handbrake
-    const throttle = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-    const steerIn  = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
+  if (inCar && activeVehicleId) {
+    // Per-vehicle physics — all params come from the vehicle def
+    const vDef = VEHICLE_DEFS.find(v => v.id === activeVehicleId);
+    const vSt  = vehicleStates.get(activeVehicleId);
+    const throttle  = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+    const steerIn   = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
     const handbrake = !!keys["Space"];
-    const next = Bridge.carPhysicsStep(world, "car", carState, throttle, steerIn, dt, {
-      blockers: buildingBlockers,
-      carHitbox: { w: 2, d: 4 },
+    const next = Bridge.carPhysicsStep(world, activeVehicleId, vSt, throttle, steerIn, dt, {
+      blockers:     buildingBlockers,
+      carHitbox:    vDef ? vDef.hitbox    : { w: 2, d: 4 },
       handbrake,
+      maxSpeed:     vDef ? vDef.maxSpeed  : 24,
+      acceleration: vDef ? vDef.acceleration : 8,
+      braking:      vDef ? vDef.braking   : 18,
+      handling:     vDef ? vDef.handling  : 1.0,
     });
-    carState.speed = next.speed; carState.heading = next.heading;
-    carState.gear = next.gear; carState.gearName = next.gearName;
-    // Hero rides in the car
-    const cp = world.players.get("car");
+    vSt.speed = next.speed; vSt.heading = next.heading;
+    vSt.gear  = next.gear;  vSt.gearName = next.gearName;
+    // Mirror to carState for any legacy reads
+    Object.assign(carState, vSt);
+    const cp = world.players.get(activeVehicleId);
     world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
   } else {
-    // Add the car as a dynamic blocker so the hero can't walk through it.
-    const cp = world.players.get("car");
-    const carBlocker = { u: cp.u, v: cp.v, y: 0,
-                         hitbox: { w: 2, d: 4, h: 1.4 } };
+    // All parked vehicles become dynamic blockers
+    const vehicleBlockers = VEHICLE_DEFS.map(v => {
+      const vp = world.players.get(v.id);
+      const hb = v.hitbox || { w: 2, d: 4 };
+      return { u: vp.u, v: vp.v, y: 0, hitbox: { w: hb.w, d: hb.d, h: 1.4 } };
+    });
     Bridge.applyCameraRelativeMove(
       world, "hero", inputF, inputR, forward, right, speed, dt,
-      { blockers: buildingBlockers.concat([carBlocker]), heroHitbox: HERO_HITBOX }
+      { blockers: buildingBlockers.concat(vehicleBlockers), heroHitbox: HERO_HITBOX }
     );
   }
 
@@ -2225,13 +2300,18 @@ function tick() {
   // gets clamped to the highest platform whose XZ footprint contains
   // them (otherwise: ground at y=0). Inspired by Dreamworld §5.2.1.
   // Each platform: { u, v, w, d, topY, label }.
-  const carP = world.players.get("car");
-  // Car: hood (lower) and roof (upper). Footprint approximated as
-  // axis-aligned for v1; heading-rotated bounds is a v2 follow-up.
-  const platforms = [
-    { u: carP.u, v: carP.v - 0.8, w: 1.6, d: 2.0, topY: 0.9, label: "car_hood" },
-    { u: carP.u, v: carP.v + 0.4, w: 1.8, d: 1.6, topY: 1.4, label: "car_roof" },
-  ];
+  // Platforms — one hood + roof pair per vehicle, generated from VEHICLE_DEFS
+  const platforms = [];
+  for (const vDef of VEHICLE_DEFS) {
+    const vp = world.players.get(vDef.id);
+    if (!vp) continue;
+    const vw = (vDef.hitbox && vDef.hitbox.w) || 2;
+    const vd = (vDef.hitbox && vDef.hitbox.d) || 4;
+    platforms.push(
+      { u: vp.u, v: vp.v - vd * 0.2, w: vw * 0.8, d: vd * 0.5, topY: 0.9, label: vDef.id + "_hood" },
+      { u: vp.u, v: vp.v + vd * 0.1, w: vw * 0.9, d: vd * 0.4, topY: 1.4, label: vDef.id + "_roof" }
+    );
+  }
   function _platformUnder(u, v, currentY) {
     // Return highest top whose XZ contains (u,v) AND whose top is at or below currentY.
     // The "at or below" condition prevents teleporting up through a ceiling.
@@ -2267,11 +2347,18 @@ function tick() {
   }
 
   // --- render ---
-  // Car render
-  const cp = world.players.get("car");
-  const cpRender = Bridge.engineToRenderPos(cp);
-  carGroup.position.set(cpRender.x, cpRender.y, cpRender.z);
-  carGroup.rotation.y = carState.heading;
+  // Vehicle renders — one group per definition
+  for (const vDef of VEHICLE_DEFS) {
+    const vp   = world.players.get(vDef.id);
+    const vst  = vehicleStates.get(vDef.id);
+    const vGrp = vehicleMeshes.get(vDef.id);
+    if (!vGrp || !vp) continue;
+    const vpRender = Bridge.engineToRenderPos(vp);
+    vGrp.position.set(vpRender.x, vpRender.y, vpRender.z);
+    vGrp.rotation.y = vst ? vst.heading : 0;
+    // Hide the vehicle the hero is riding (hero mesh is in same spot)
+    vGrp.visible = !(inCar && activeVehicleId === vDef.id);
+  }
 
   const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
   // hero visibility is set below after firstPerson is computed
@@ -2355,15 +2442,23 @@ function tick() {
     camera.lookAt(aimTarget);
   }
 
-  const dToCar = Bridge.uvDist(world, "hero", "car");
+  // Find nearest vehicle for proximity prompt
+  let _nearVehDist = Infinity, _nearVehDef = null;
+  for (const v of VEHICLE_DEFS) {
+    const d = Bridge.uvDist(world, "hero", v.id);
+    if (d < _nearVehDist) { _nearVehDist = d; _nearVehDef = v; }
+  }
   const bldgName = (id) => ({2:"shop",3:"tower",4:"house",5:"garage",6:"diner",7:"bank",8:"park",9:"studio"}[id] || `L${id}`);
   hud.innerHTML =
     `pos <b>(${heroPos.x.toFixed(1)}, ${heroPos.y.toFixed(1)}, ${heroPos.z.toFixed(1)})</b>` +
     `<br>engine.uv <b>(${hero.u.toFixed(2)}, ${hero.v.toFixed(2)})</b>` +
     `<br>layer <b>${world.layerId}</b>` +
     (insideNow ? `<br>inside <b>${bldgName(insideNow.targetLayerId)}</b>` : "") +
-    (inCar ? `<br><b>IN CAR</b> speed=${carState.speed.toFixed(1)} m/s` :
-             (dToCar < 2.5 ? `<br>press <b>E</b> to enter car` : ""));
+    (inCar && activeVehicleId
+      ? `<br><b>IN ${(VEHICLE_DEFS.find(v=>v.id===activeVehicleId)||{type:"vehicle"}).type.toUpperCase()}</b> speed=${carState.speed.toFixed(1)} m/s`
+      : (_nearVehDist < (CFG.vehicleInteractDist || 3.0)
+          ? `<br>press <b>E</b> to enter ${(_nearVehDef||{type:"vehicle"}).type}`
+          : ""));
 
   // Storage media pickups (CDs / USBs) — auto-pickup at 1.5m
   if (worldMedia.length > 0) {
@@ -2390,7 +2485,7 @@ function tick() {
     if (d < 1.2) {
       ap.collected = true;
       scene.remove(ap.mesh);
-      Inv.addItem(heroInv, "pistol_9mm", ap.qty);
+      Inv.addItem(heroInv, ap.ammoItem || getWeapon().ammoItem || "pistol_9mm", ap.qty);
       playSfx("blip", 0.5);
     } else {
       ap.mesh.rotation.y += dt * 2.5;
@@ -2607,8 +2702,8 @@ nearComp:  ${nearComputer}</pre>`,
     title: "🏆 Achievements",
     body: () => `<pre>${score > 0 ? "✓" : "·"} First Coin (collect 1 coin)
 ${score >= 8 ? "✓" : "·"} Coin Hoarder (collect all 8)
-${inCar ? "✓" : "·"} Behind the Wheel (drive the car)
-${pistolAmmo < 12 ? "✓" : "·"} Pulled the Trigger (fire pistol)</pre>`,
+${inCar ? "✓" : "·"} Behind the Wheel (drive any vehicle)
+${pistolAmmo < getWeapon().magCap ? "✓" : "·"} Pulled the Trigger (fire weapon)</pre>`,
   },
   map: {
     title: "🗺️ Map",
@@ -2618,7 +2713,7 @@ ${pistolAmmo < 12 ? "✓" : "·"} Pulled the Trigger (fire pistol)</pre>`,
 buildings:
 ${buildingList}
 computer: (${computerEntity.u}, ${computerEntity.v})
-car: (${world.players.get("car").u.toFixed(1)}, ${world.players.get("car").v.toFixed(1)})</pre>`;
+${VEHICLE_DEFS.map(v=>{ const p=world.players.get(v.id); return `${v.id}: (${p.u.toFixed(1)}, ${p.v.toFixed(1)})`; }).join("\n")}</pre>`;
     },
   },
   market: {
