@@ -66,14 +66,16 @@
 | 57   | fog_of_war.js: visible/explored grid + waypoints + TTL         | 44    | iter57  |
 | 58   | minigames.js: hub + tic-tac-toe + coin-flip + RPS register     | 34    | iter58  |
 | 59   | leaderboard.js: per-stat boards + Hub broadcast + ts dedup     | 46    | iter59  |
+| 60   | anticheat.js: 5 validators + strikes/throttle/ban + audit log  | 37    | iter60  |
+| 61   | economy.js: per-world currencies + rates + tax + cross-convert | 52    | iter61  |
 
-**Total: 1614/1614 tests passing.**
+**Total: 1703/1703 tests passing.**
 
 ## Up next
 
-- **iter 60** — Anti-cheat (server-authoritative validation).
-- **iter 61** — Economy/currency conversion across worlds.
 - **iter 62** — NPC schedules (work/sleep cycle).
+- **iter 63** — Trade between players (offer/accept/escrow).
+- **iter 64** — Reputation system with factions.
 
 ## Wakeup checklist
 
