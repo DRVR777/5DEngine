@@ -23,14 +23,42 @@
     background: rgba(0,0,0,0.55);
     border: 1px solid #666; border-radius: 6px;
   }
+  #inventory {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.65); z-index: 1000;
+  }
+  #inventory.open { display: flex; }
+  #inventory .panel {
+    background: #1a1a1a; color: #eee; padding: 16px 18px; border-radius: 10px;
+    border: 1px solid #444; min-width: 480px;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px;
+  }
+  #inventory h3 { margin: 0 0 10px 0; font-weight: 500; color: #ffd166; }
+  #inventory .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  #inventory .slot {
+    background: #2a2a2a; border: 1px solid #444; border-radius: 4px;
+    height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 10px; padding: 4px;
+  }
+  #inventory .slot.active { border-color: #ffd166; }
+  #inventory .slot.hotbar { background: #2f2a1a; }
+  #inventory .slot .qty { color: #aaa; }
+  #inventory .empty { color: #555; }
 </style>
 </head>
 <body>
 <div id="hud">loading…</div>
 <canvas id="minimap" width="180" height="180"></canvas>
+<div id="inventory">
+  <div class="panel">
+    <h3>Inventory <span style="color:#888;font-weight:normal;">— press I or Esc to close</span></h3>
+    <div class="grid" id="invGrid"></div>
+    <div style="margin-top:10px;color:#888;">Weight: <span id="invWeight">0</span> kg</div>
+  </div>
+</div>
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump
-  &nbsp;·&nbsp; <b>E</b> enter/exit car &nbsp;·&nbsp; <b>click</b> for freelook
+  &nbsp;·&nbsp; <b>E</b> car &nbsp;·&nbsp; <b>I</b> inventory &nbsp;·&nbsp; <b>click</b> freelook
 </div>
 
 <script src="./engine_browser.js"></script>
@@ -38,6 +66,9 @@
 <script src="./physics.js"></script>
 <script src="./entity.js"></script>
 <script src="./registry.js"></script>
+<script src="./inventory.js"></script>
+<script src="./guns.js"></script>
+<script src="./health.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.161.0/build/three.module.js" } }
 </script>
@@ -50,7 +81,17 @@ const Bridge = window.GTABridge;
 const Phys   = window.GTAPhysics;
 const Entity = window.GTAEntity;
 const Reg    = window.GTARegistry.createRegistry();
+const Inv    = window.GTAInventory;
+const Guns   = window.GTAGuns;
+const Health = window.GTAHealth;
 const HERO_HITBOX = { w: 0.8, d: 0.8, h: 1.8 };
+
+// Hero inventory + health (iter 10-13 integration)
+const heroInv = Inv.makeInventory(24);
+Inv.addItem(heroInv, "gun_pistol", 1);
+Inv.addItem(heroInv, "pistol_9mm", 60);
+Inv.addItem(heroInv, "medkit", 2);
+const heroHealth = Health.makeHealth(100, { regenRate: 5, regenDelay: 5 });
 
 const world = new WorldState(1);
 world.setPlayer("hero", 0, 0, 0, 0, 0);
@@ -289,8 +330,31 @@ for (const n of NPC_DEFS) {
 
 // ---- input ----
 const keys = Object.create(null);
+const invDiv = document.getElementById("inventory");
+function renderInventory() {
+  const grid = document.getElementById("invGrid");
+  grid.innerHTML = "";
+  for (const r of Inv.toRows(heroInv)) {
+    const div = document.createElement("div");
+    div.className = "slot" + (r.hotbar ? " hotbar" : "") + (r.active ? " active" : "");
+    if (r.type) {
+      div.innerHTML = `<div>${r.type}</div><div class="qty">×${r.qty}</div>`;
+    } else {
+      div.innerHTML = `<div class="empty">—</div>`;
+    }
+    grid.appendChild(div);
+  }
+  document.getElementById("invWeight").textContent = Inv.totalWeight(heroInv).toFixed(1);
+}
 addEventListener("keydown", (e) => {
   keys[e.code] = true;
+  // I toggles inventory
+  if (e.code === "KeyI" || (e.code === "Escape" && invDiv.classList.contains("open"))) {
+    invDiv.classList.toggle("open", !invDiv.classList.contains("open"));
+    if (invDiv.classList.contains("open")) renderInventory();
+    e.preventDefault();
+    return;
+  }
   // E toggles enter/exit when near the car
   if (e.code === "KeyE") {
     const d = Bridge.uvDist(world, "hero", "car");
@@ -531,7 +595,9 @@ function tick() {
 
   // append objective + score to HUD
   hud.innerHTML += `<br>coins <b>${score}/${pickups.length}</b>` +
-    (score === pickups.length ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "");
+    (score === pickups.length ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "") +
+    `<br>hp <b>${heroHealth.current.toFixed(0)}/${heroHealth.max}</b>` +
+    `<br>9mm <b>${Inv.countItem(heroInv, "pistol_9mm")}</b>`;
 
   // mini-map (top-right)
   drawMinimap();

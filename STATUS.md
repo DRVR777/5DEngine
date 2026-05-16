@@ -18,15 +18,17 @@
 | 9    | Per-world physics profile (earth/moon/underwater/dreamworld)   | 20    | iter9   |
 | 10   | Health facet + damage/heal/regen/death events                  | 24    | iter10  |
 | 11   | 7 gun types as data + bullet entity facet                      | 56    | iter11  |
+| 12   | Slot inventory + 4 ammo types + 7 gun items + parts            | 34    | iter12  |
+| 13   | Inventory popup UI (I to toggle), HUD shows hp/ammo            | (visual) | iter13 |
 
-**Total: 192/192 tests passing.**
+**Total: 226/226 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 12** — 4 ammo types as facets; pickup→inventory.
-- **iter 13** — Inventory popup UI.
-- **iter 14** — AI enemies (state machine).
-- **iter 15** — Damage/death/respawn integration.
+- **iter 14** — AI enemies (state machine: idle/seek/attack).
+- **iter 15** — Damage flow: bullets → enemies → drop loot.
+- **iter 16** — Car parts as facets (engine/body/wheel combine).
+- **iter 17** — Workbench: combine parts → craft new entity.
 
 ## Wakeup checklist
 

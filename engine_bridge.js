@@ -201,6 +201,6 @@
     collectPickup,
     dayNightPhase,
     walkCyclePhase,
-    VERSION: "0.10.0-iter11",
+    VERSION: "0.11.0-iter13",
   };
 });
