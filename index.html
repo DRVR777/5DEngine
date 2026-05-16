@@ -791,6 +791,59 @@ armR.add(gunGroup);
 scene.add(heroGroup);
 const walkState = { t: 0 };
 
+// ---- Lightweight particle system -------------------------------------------
+// Pooled sphere particles for muzzle flash, bullet impact, enemy death.
+const _particles   = [];
+const _pPool       = [];
+const _pGeo        = new THREE.SphereGeometry(0.06, 4, 4);
+const _pMatYellow  = new THREE.MeshBasicMaterial({ color: 0xffee00 });
+const _pMatOrange  = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+const _pMatRed     = new THREE.MeshBasicMaterial({ color: 0xff2244 });
+const _pMatCyan    = new THREE.MeshBasicMaterial({ color: 0x00ccff });
+const _pMatWhite   = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const _pMatsMap    = { yellow:_pMatYellow, orange:_pMatOrange, red:_pMatRed, cyan:_pMatCyan, white:_pMatWhite };
+
+function _spawnParticles(x, y, z, count, colorKey, speed, lifetime) {
+  const mat = _pMatsMap[colorKey] || _pMatYellow;
+  for (let i = 0; i < count; i++) {
+    const mesh = _pPool.length ? _pPool.pop() : new THREE.Mesh(_pGeo, mat);
+    mesh.material = mat;
+    mesh.position.set(x, y, z);
+    mesh.scale.setScalar(1);
+    mesh.visible = true;
+    scene.add(mesh);
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const spd   = speed * (0.4 + Math.random() * 0.6);
+    _particles.push({
+      mesh,
+      vx: Math.sin(phi) * Math.cos(theta) * spd,
+      vy: (Math.random() * 0.5 + 0.5) * spd,
+      vz: Math.sin(phi) * Math.sin(theta) * spd,
+      life: lifetime, maxLife: lifetime,
+    });
+  }
+}
+
+function _tickParticles(dt) {
+  for (let i = _particles.length - 1; i >= 0; i--) {
+    const p = _particles[i];
+    p.life -= dt;
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      _pPool.push(p.mesh);
+      _particles.splice(i, 1);
+      continue;
+    }
+    p.vx *= 0.88; p.vz *= 0.88;
+    p.vy -= 22 * dt;
+    p.mesh.position.x += p.vx * dt;
+    p.mesh.position.y += p.vy * dt;
+    p.mesh.position.z += p.vz * dt;
+    p.mesh.scale.setScalar(p.life / p.maxLife);
+  }
+}
+
 // ---- Hero animation system (AnimationMixer) --------------------------------
 // heroMixer is null until a GLB is dropped. When a GLB is loaded it replaces
 // the primitive mesh and its clips are available via _heroClips.
@@ -893,8 +946,9 @@ function _makeVehicleMesh(vDef) {
     roof.position.set(0, 1.35, -d * 0.05); roof.castShadow = true;
     group.add(roof);
   }
-  // Wheels
+  // Wheels — stored in group._wheels for spin animation
   const wheelW = w * 0.5, wheelD = d * 0.35;
+  group._wheels = [];
   for (const wx of [-wheelW, wheelW]) for (const wz of [-wheelD, wheelD]) {
     const wh = new THREE.Mesh(
       new THREE.CylinderGeometry(0.35, 0.35, 0.3, 12),
@@ -903,6 +957,7 @@ function _makeVehicleMesh(vDef) {
     wh.rotation.z = Math.PI / 2;
     wh.position.set(wx, 0.35, wz); wh.castShadow = true;
     group.add(wh);
+    group._wheels.push(wh);
   }
   group._bodyMesh = body;  // reference for AssetLoader replacement
   return group;
@@ -2277,11 +2332,17 @@ function _tryShoot() {
     scene.add(mesh);
     bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: 1.5, dirU, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
   }
+  // Muzzle flash particles at gun tip
+  _spawnParticles(hp.u + Math.sin(baseAngle) * 0.5, 1.5, hp.v + Math.cos(baseAngle) * 0.5,
+    wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
+  // Camera kick — brief upward pitch jolt that decays via spring
+  _recoilPitch = -(wep.pellets > 1 ? 0.06 : 0.025);
 }
 
 let lastT = performance.now();
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 let _reloading = false, _reloadStart = 0;
+let _recoilPitch = 0;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
@@ -2440,6 +2501,16 @@ function tick() {
     );
   }
 
+  // Recoil spring — decays back to 0, applies kick to camPitch
+  if (_recoilPitch !== 0) {
+    camPitch += _recoilPitch;
+    _recoilPitch *= Math.pow(0.001, dt);   // exponential decay to ~0 within ~0.15s
+    if (Math.abs(_recoilPitch) < 0.0001) _recoilPitch = 0;
+  }
+
+  // Tick particles
+  _tickParticles(dt);
+
   // Tick bullets (substep dt to avoid tunneling past enemy)
   pistolCooldown = Math.max(0, pistolCooldown - dt);
   const substeps = 5;
@@ -2459,11 +2530,13 @@ function tick() {
           en.hp = Math.max(0, en.hp - b.damage);
           hitMarkerUntil = now + 120;
           playSfx("blip", 0.2);
+          _spawnParticles(b.posU, b.posY, b.posV, 5, "red", 4, 0.25);
           if (en.hp === 0) {
             en.dead = true;
             en.respawnT = now / 1000;
             enemyKills++;
             _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
+            _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
             playSfx("tone:880:80:sine", 0.4);
           }
           hitEnemy = true; break;
@@ -2479,6 +2552,7 @@ function tick() {
           hitSolid = true; break;
         }
       }
+      if (hitSolid) { _spawnParticles(b.posU, b.posY, b.posV, 4, "white", 3, 0.2); }
       if (hitSolid || b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       b.mesh.position.set(b.posU, b.posY, b.posV);
     }
@@ -2609,6 +2683,12 @@ function tick() {
     const vpRender = Bridge.engineToRenderPos(vp);
     vGrp.position.set(vpRender.x, vpRender.y, vpRender.z);
     vGrp.rotation.y = vst ? vst.heading : 0;
+    // Spin wheels proportional to speed (wheels rotate around their local X axis)
+    if (vGrp._wheels && vst && vst.speed !== 0) {
+      const wheelRadius = 0.35;
+      const spinDelta = (vst.speed / wheelRadius) * dt;
+      for (const wh of vGrp._wheels) wh.rotation.y += spinDelta;
+    }
     // Hide the vehicle the hero is riding (hero mesh is in same spot)
     vGrp.visible = !(inCar && activeVehicleId === vDef.id);
   }
