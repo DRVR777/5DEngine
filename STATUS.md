@@ -119,6 +119,8 @@
 | 109  | reputation.js: 7 tiers + ally/enemy cascades + decay + clamps   | 53   | iter109 |
 | 110  | caravan.js: NPC convoys + 6-state machine + ambush + escort     | 50   | iter110 |
 | 111  | env_hazards.js: fire/flood/shock/gas + spread + extinguish      | 37   | iter111 |
+| 112  | weather_music_bridge.js: forecast→radio + hysteresis switching | 36   | iter112 |
+| 113  | npc_routine.js: schedule windows + transitions + census + atLoc | 51   | iter113 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -129,12 +131,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 112** — Weather-mood music driver (radio + weather wire).
-- **iter 113** — NPC schedule system (daily work/eat/sleep cycles).
 - **iter 114** — Crime/police response (bounty + heat + chase).
 - **iter 115** — Vendor restock cycle (inventory + dynamic pricing).
 - **iter 116** — Banking system (deposit + interest + loans).
 - **iter 117** — Housing/real estate (player-buyable properties).
+- **iter 118** — Fishing minigame (cast + reel + catch + bait).
+- **iter 119** — Cooking system (recipes + ingredients + buffs).
 
 ## Wakeup checklist
 
