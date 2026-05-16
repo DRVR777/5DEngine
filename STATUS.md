@@ -28,15 +28,18 @@
 | 19   | shop.js: buy/sell + buyback rate + restock + currency          | 29    | iter19  |
 | 20   | net.js: CWP v1.0 envelope + vector clocks + room hub           | 36    | iter20  |
 | 21   | multiplayer.js: server tick, client snapshot apply, room iso   | 16    | iter21  |
+| 22   | identity.js: profiles + friends list (req/accept/block) + persist | 25 | iter22  |
+| 23   | world_graph.js: worlds-as-nodes, portals, merge, traverse      | 26    | iter23  |
+| 24   | custom_objects.js: OBJ parser + AABB + auto-register type      | 33    | iter24  |
 
-**Total: 404/404 tests passing.**
+**Total: 488/488 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 22** — Friends list (sidecar identity stub).
-- **iter 23** — World merging on proximity (per `conviction.pdf`).
-- **iter 24** — OBJ/GLB/GLTF upload + auto-AABB hitbox.
 - **iter 25** — Custom worlds (JSON manifest hot-load).
+- **iter 26** — Nested impossible interiors per conviction.pdf.
+- **iter 27** — Character customization.
+- **iter 28-30** — In-game computer + apps.
 
 ## Wakeup checklist
 
