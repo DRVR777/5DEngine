@@ -68,14 +68,16 @@
 | 59   | leaderboard.js: per-stat boards + Hub broadcast + ts dedup     | 46    | iter59  |
 | 60   | anticheat.js: 5 validators + strikes/throttle/ban + audit log  | 37    | iter60  |
 | 61   | economy.js: per-world currencies + rates + tax + cross-convert | 52    | iter61  |
+| 62   | npc_schedule.js: 3 templates + activityAt + day/night routines | 45    | iter62  |
+| 63   | trade.js: P2P escrow + counter + lock + atomic swap + timeout  | 45    | iter63  |
 
-**Total: 1703/1703 tests passing.**
+**Total: 1793/1793 tests passing.**
 
 ## Up next
 
-- **iter 62** — NPC schedules (work/sleep cycle).
-- **iter 63** — Trade between players (offer/accept/escrow).
-- **iter 64** — Reputation system with factions.
+- **iter 64** — Reputation/factions (per-faction rep + tiers + relations).
+- **iter 65** — Player chat with @ mentions and rooms.
+- **iter 66** — Mod marketplace (paid mods + revenue split).
 
 ## Wakeup checklist
 
