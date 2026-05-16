@@ -13,31 +13,31 @@
     {
       id: "pistol",
       name: "Pistol",
-      ammoItem: "pistol_9mm",     // inventory item id for ammo
+      ammoItem: "pistol_9mm",
       fireRate: 5,                // shots / second
       damage: 20,
-      range: 30,                  // m
-      speed: 80,                  // m/s (projectile)
+      range: 50,                  // m
+      speed: 120,                 // m/s — fast enough to see tracers in flight
       magCap: 12,
-      bulletRadius: 0.04,         // m
+      bulletRadius: 0.025,
       reloadDuration: 1200,       // ms
-      pellets: 1,                 // 1 = hitscan single; >1 = shotgun spread
-      spread: 0,                  // radians of random spread per shot
+      pellets: 1,
+      spread: 0,
       automatic: false,
     },
     {
       id: "rifle",
       name: "Assault Rifle",
       ammoItem: "rifle_556",
-      fireRate: 10,
-      damage: 28,
+      fireRate: 12,               // 12 rps auto-fire = clearly visible stream of tracers
+      damage: 25,
       range: 80,
       speed: 160,
       magCap: 30,
-      bulletRadius: 0.03,
+      bulletRadius: 0.02,
       reloadDuration: 2000,
       pellets: 1,
-      spread: 0.02,
+      spread: 0.015,
       automatic: true,
     },
     {
@@ -46,13 +46,13 @@
       ammoItem: "shotgun_12g",
       fireRate: 1.2,
       damage: 14,                 // per pellet
-      range: 18,
-      speed: 55,
+      range: 20,
+      speed: 70,                  // slower spread pellets — all visible at once
       magCap: 8,
-      bulletRadius: 0.07,
+      bulletRadius: 0.03,
       reloadDuration: 2800,
-      pellets: 7,
-      spread: 0.12,
+      pellets: 9,
+      spread: 0.14,
       automatic: false,
     },
   ];

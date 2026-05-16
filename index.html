@@ -558,8 +558,9 @@ function setAmmo(n) { weaponAmmo.set(currentWeaponId, n); }
 const bullets3D = [];
 let pistolAmmo = 12;       // keep for backwards-compat ammoHud render; mirrors getAmmo()
 let pistolCooldown = 0;
-const bulletGeo = new THREE.SphereGeometry(0.04, 6, 4);
-const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffee55 });
+// Tracer-style bullet — thin elongated box, rotated to face travel direction
+const bulletGeo = new THREE.BoxGeometry(0.025, 0.025, 0.28);
+const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });  // bright yellow
 
 const damageFlashEl = document.getElementById("damageFlash");
 let damageFlashUntil = 0;
@@ -1686,11 +1687,19 @@ addEventListener("keydown", (e) => {
   if (buildMode && e.code === "KeyG" && window._builderGroupSelected) {
     window._builderGroupSelected(); e.preventDefault(); return;
   }
-  // B toggles BUILD MODE — drag-drop assets, click-select, arrows move, Del deletes
+  // B toggles BUILD MODE (freecam + editor)
   if (e.code === "KeyB" && window.Builder) {
     buildMode = !buildMode;
     if (worldBuilder) worldBuilder.setActive(buildMode);
-    if (buildMode && document.pointerLockElement) document.exitPointerLock();
+    if (buildMode) {
+      // Seed freecam at hero's current render position, looking forward
+      const hp = world.players.get("hero");
+      const hRender = Bridge.engineToRenderPos(hp);
+      freeCamPos.set(hRender.x, hRender.y + 3, hRender.z - 6);
+      freeCamYaw   = camYaw;
+      freeCamPitch = camPitch;
+      if (document.pointerLockElement) document.exitPointerLock();
+    }
     e.preventDefault();
     return;
   }
@@ -1817,7 +1826,12 @@ const mouseModeCursor = { x: 0, y: 0 };  // current cursor pos in screen canvas 
 let reloadMsg = "";             // transient HUD line for reload feedback
 let reloadMsgUntil = 0;
 let buildMode = false;          // B toggles world-builder mode
-let buildSelected = null;       // currently selected mesh (for move/delete)
+let buildSelected = null;
+// Freecam — active while buildMode is on
+const freeCamPos = new THREE.Vector3(0, 5, -8);
+let freeCamYaw   = 0;
+let freeCamPitch = 0;
+const FREE_CAM_SPEED = 8;       // m/s base; doubled with ShiftLeft
 
 function beginComputerEntry() {
   computerEntering = true;
@@ -1916,9 +1930,16 @@ addEventListener("mousemove", (e) => {
     dx = e.clientX - lastMouseX; dy = e.clientY - lastMouseY;
     lastMouseX = e.clientX; lastMouseY = e.clientY;
   }
-  camYaw   -= dx * 0.003;
-  camPitch -= dy * 0.003;
-  camPitch = Math.max(-1.2, Math.min(0.4, camPitch));
+  if (buildMode) {
+    // Freecam look: update freeCamYaw/Pitch (unbounded pitch for full orbit)
+    freeCamYaw   -= dx * 0.003;
+    freeCamPitch -= dy * 0.003;
+    freeCamPitch = Math.max(-1.4, Math.min(1.4, freeCamPitch));
+  } else {
+    camYaw   -= dx * 0.003;
+    camPitch -= dy * 0.003;
+    camPitch = Math.max(-1.2, Math.min(0.4, camPitch));
+  }
 });
 
 // ---- physics-lite ----
@@ -2081,6 +2102,8 @@ function _tryShoot() {
     const ang = baseAngle + (Math.random() - 0.5) * spread * 2;
     const dirU = Math.sin(ang), dirV = Math.cos(ang);
     const mesh = new THREE.Mesh(bulletGeo, bulletMat);
+    // Orient box tracer to face travel direction (box is built along Z; atan2 gives yaw)
+    mesh.rotation.y = -ang;
     mesh.position.set(hp.u, 1.5, hp.v);
     scene.add(mesh);
     bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: 1.5, dirU, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
@@ -2186,6 +2209,21 @@ function tick() {
     return;
   }
 
+  // Build mode freecam WASD/Space/C movement (before hero physics)
+  if (buildMode) {
+    const fcSpeed = keys["ShiftLeft"] ? FREE_CAM_SPEED * 2.5 : FREE_CAM_SPEED;
+    const fcFwdX =  Math.sin(freeCamYaw) * Math.cos(freeCamPitch);
+    const fcFwdZ =  Math.cos(freeCamYaw) * Math.cos(freeCamPitch);
+    const fcRgtX =  Math.cos(freeCamYaw);
+    const fcRgtZ = -Math.sin(freeCamYaw);
+    if (keys["KeyW"]) { freeCamPos.x += fcFwdX * fcSpeed * dt; freeCamPos.z += fcFwdZ * fcSpeed * dt; freeCamPos.y += Math.sin(freeCamPitch) * fcSpeed * dt; }
+    if (keys["KeyS"]) { freeCamPos.x -= fcFwdX * fcSpeed * dt; freeCamPos.z -= fcFwdZ * fcSpeed * dt; freeCamPos.y -= Math.sin(freeCamPitch) * fcSpeed * dt; }
+    if (keys["KeyA"]) { freeCamPos.x -= fcRgtX * fcSpeed * dt; freeCamPos.z -= fcRgtZ * fcSpeed * dt; }
+    if (keys["KeyD"]) { freeCamPos.x += fcRgtX * fcSpeed * dt; freeCamPos.z += fcRgtZ * fcSpeed * dt; }
+    if (keys["Space"])  freeCamPos.y += fcSpeed * dt;
+    if (keys["KeyC"])   freeCamPos.y -= fcSpeed * dt;
+  }
+
   // camera-relative basis projected to ground.
   // Camera sits at hero + (-sin(yaw), -cos(yaw)) * dist (behind hero),
   // so forward (the direction W should move = away from camera) is
@@ -2193,13 +2231,12 @@ function tick() {
   const forward = { x: Math.sin(camYaw), y: 0, z: Math.cos(camYaw) };
   const right   = { x: Math.cos(camYaw), y: 0, z: -Math.sin(camYaw) };
 
-  const inputF = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-  // A/D were inverted on screen — user said W/S correct but A/D reversed.
-  // Flip sign so A = move world-left (screen-left), D = move world-right.
-  const inputR = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
+  // In build mode WASD drives the freecam, not the character
+  const inputF = buildMode ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
+  const inputR = buildMode ? 0 : ((keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0));
   const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
 
-  if (inCar && activeVehicleId) {
+  if (!buildMode && inCar && activeVehicleId) {
     // Per-vehicle physics — all params come from the vehicle def
     const vDef = VEHICLE_DEFS.find(v => v.id === activeVehicleId);
     const vSt  = vehicleStates.get(activeVehicleId);
@@ -2372,18 +2409,19 @@ function tick() {
     return { topY: best, label: bestLabel };
   }
 
-  // jump + gravity (engine.y is the height channel)
+  // jump + gravity — frozen in build mode so the character stands still
   const hero = world.players.get("hero");
-  const support = _platformUnder(hero.u, hero.v, hero.y);
-  const onSupport = hero.y <= support.topY + 0.001;
-  if (keys["Space"] && onSupport) velocityY = JUMP_V;
-  velocityY += GRAVITY * dt;
-  let newY = hero.y + velocityY * dt;
-  // After falling, snap to whichever platform we're now above
-  const supportAfter = _platformUnder(hero.u, hero.v, Math.max(newY, hero.y));
-  if (newY < supportAfter.topY) { newY = supportAfter.topY; velocityY = 0; }
-  if (newY < 0) { newY = 0; velocityY = 0; }
-  world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
+  if (!buildMode) {
+    const support = _platformUnder(hero.u, hero.v, hero.y);
+    const onSupport = hero.y <= support.topY + 0.001;
+    if (keys["Space"] && onSupport) velocityY = JUMP_V;
+    velocityY += GRAVITY * dt;
+    let newY = hero.y + velocityY * dt;
+    const supportAfter = _platformUnder(hero.u, hero.v, Math.max(newY, hero.y));
+    if (newY < supportAfter.topY) { newY = supportAfter.topY; velocityY = 0; }
+    if (newY < 0) { newY = 0; velocityY = 0; }
+    world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
+  }
 
   // layer transition check
   const insideNow = world.boundaryAt(hero.u, hero.v, buildings.map(b => b.b));
@@ -2448,13 +2486,21 @@ function tick() {
   // (INSIDE + FIRST_PERSON). Falls back to old behavior if spine not loaded.
   const spineZone = spine ? spine.zone : null;
   const firstPerson = !inCar && (spineZone === "INSIDE" || spineZone === "FIRST_PERSON" || dist < 0.5);
-  heroGroup.visible = !inCar && (spine ? spine.params.heroVisible : !firstPerson);
+  heroGroup.visible = buildMode || (!inCar && (spine ? spine.params.heroVisible : !firstPerson));
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
   const sx = Math.cos(camYaw), sz = -Math.sin(camYaw);   // right vector
 
-  if (firstPerson) {
+  if (buildMode) {
+    // Freecam — camera floats independently so you can inspect the character
+    camera.position.copy(freeCamPos);
+    camera.lookAt(new THREE.Vector3(
+      freeCamPos.x + Math.sin(freeCamYaw) * Math.cos(freeCamPitch) * 10,
+      freeCamPos.y + Math.sin(freeCamPitch) * 10,
+      freeCamPos.z + Math.cos(freeCamYaw) * Math.cos(freeCamPitch) * 10
+    ));
+  } else if (firstPerson) {
     // FP CAMERA — locked to hero head. Pitch ONLY changes look direction,
     // NEVER the camera position (fixes the "height drifts as you pitch"
     // and "looks up when you pull mouse down" bugs).
