@@ -389,7 +389,7 @@
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
-  &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim
+  &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>1/2/3</b> switch weapon
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
@@ -453,12 +453,18 @@ const Health = window.GTAHealth;
 const HERO_HITBOX = { w: 0.8, d: 0.8, h: 1.8 };
 const CFG = window.GameConfig || {};
 
-// Hero inventory + health (iter 10-13 integration)
+// Hero inventory — give starting weapons + ammo from CFG.weapons
 const heroInv = Inv.makeInventory(24);
-Inv.addItem(heroInv, "gun_pistol", 1);
-Inv.addItem(heroInv, "pistol_9mm", 60);
+for (const w of (CFG.weapons || [])) {
+  Inv.addItem(heroInv, "gun_" + w.id, 1);
+  const startAmmo = w.magCap * 4;  // 4 mags worth of starting ammo
+  Inv.addItem(heroInv, w.ammoItem || "pistol_9mm", startAmmo);
+}
 Inv.addItem(heroInv, "medkit", 2);
-const heroHealth = Health.makeHealth(100, { regenRate: 5, regenDelay: 5 });
+const heroHealth = Health.makeHealth(
+  CFG.heroMaxHp || 100,
+  { regenRate: CFG.heroRegenRate || 5, regenDelay: CFG.heroRegenDelay || 5 }
+);
 
 const world = new WorldState(1);
 world.setPlayer("hero", 0, 0, 0, 0, 0);
@@ -1148,7 +1154,8 @@ setTimeout(() => {
   // 9 slots, each holds null or a library entry / primitive descriptor
   const hotbarSlots = Array(9).fill(null);
   let hotbarActive = 0;   // 0-8
-  let multiSelectList = [];  // for group selection
+  const multiSelectList = [];  // for group selection; exposed so mousedown handler can reach it
+  window._builderMultiList = multiSelectList;
 
   function _hotbarSlotEl(i) { return document.querySelector('.hb-slot[data-slot="' + i + '"]'); }
 
@@ -1324,7 +1331,7 @@ setTimeout(() => {
   window._builderGroupSelected = () => {
     if (multiSelectList.length >= 2) {
       worldBuilder.groupSelected(multiSelectList);
-      multiSelectList = [];
+      multiSelectList.length = 0;  // clear in-place so window._builderMultiList stays valid
       playSfx("tone:440:80:sine", 0.4);
     } else if (worldBuilder.getSelected()) {
       playSfx("noise", 0.2);
@@ -1552,7 +1559,8 @@ if (window.ScreenMesh) {
   });
   const skyMesh = SM.bindToThree(THREE, skyScreen, { doubleSided: true });
   if (skyMesh) {
-    skyMesh.position.set(0, 60, -150);   // up in the sky, behind the world
+    const _sscr = (WD.screens && WD.screens.sky) || { u: 0, y: 300, v: 0 };
+    skyMesh.position.set(_sscr.u, _sscr.y !== undefined ? _sscr.y : 300, _sscr.v);
     scene.add(skyMesh);
     worldScreens.set(skyScreen.id, { screen: skyScreen, mesh: skyMesh });
   }
@@ -1637,11 +1645,28 @@ addEventListener("keydown", (e) => {
     const ci = document.getElementById("creativeInv");
     if (ci && ci.classList.contains("open")) { window._closeCreativeInv && window._closeCreativeInv(); e.preventDefault(); return; }
   }
-  // 1-9 hotbar slot selection (build mode)
-  if (buildMode && e.code >= "Digit1" && e.code <= "Digit9") {
+  // 1-9 hotbar slot selection (build mode) OR weapon switch (non-build mode)
+  if (e.code >= "Digit1" && e.code <= "Digit9") {
     const idx = parseInt(e.code.replace("Digit",""), 10) - 1;
-    if (window._hotbarSelectSlot) window._hotbarSelectSlot(idx);
-    e.preventDefault(); return;
+    if (buildMode) {
+      if (window._hotbarSelectSlot) window._hotbarSelectSlot(idx);
+      e.preventDefault(); return;
+    } else {
+      // Digit1/2/3 cycle through weapons (only if we have that many)
+      const weps = CFG.weapons || [];
+      if (weps[idx]) {
+        const prev = currentWeaponId;
+        // Save current mag ammo before switching
+        weaponAmmo.set(prev, pistolAmmo);
+        currentWeaponId = weps[idx].id;
+        // Restore this weapon's mag ammo (or full mag if never used)
+        const nw = weps[idx];
+        pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
+        playSfx("click", 0.4);
+        reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 1000;
+        e.preventDefault(); return;
+      }
+    }
   }
   // F key: spawn active hotbar slot (build mode)
   if (buildMode && e.code === "KeyF" && window._hotbarSpawn) {
@@ -2670,13 +2695,14 @@ const APPS = {
   wallet: {
     title: "💰 Wallet",
     body: () => {
+      const _sw = getWeapon();
       const ammo = pistolAmmo;
-      const bagAmmo = Inv.countItem(heroInv, "pistol_9mm");
+      const bagAmmo = Inv.countItem(heroInv, _sw.ammoItem || "pistol_9mm");
       const meds    = Inv.countItem(heroInv, "medkit");
-      const hp = (typeof heroHealth.hp === "number") ? heroHealth.hp : 100;
+      const hp = (typeof heroHealth.hp === "number") ? heroHealth.hp : CFG.heroMaxHp || 100;
       return `<pre>player:    hero
 score:     ${score} coins
-pistol:    ${ammo}/12 mag, ${bagAmmo} in bag
+weapon:    ${_sw.name || _sw.id} — ${ammo}/${_sw.magCap} mag, ${bagAmmo} reserve
 medkits:   ${meds}
 HP:        ${hp}/${heroHealth.max || 100}</pre>`;
     },
