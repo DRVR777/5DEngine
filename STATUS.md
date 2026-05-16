@@ -103,6 +103,8 @@
 | 93   | notifications.js: 5 cats + 4 prios + sticky + mute + onClick     | 47   | iter93  |
 | 94   | voice_envelopes.js: 3 channels + PTT + spatial falloff + mute    | 37   | iter94  |
 | 95   | friends.js: request/accept/block + 4 statuses + session invites  | 59   | iter95  |
+| 96   | clans.js: 5 ranks + 10 perms + treasury + apps + custom ranks    | 65   | iter96  |
+| 97   | trading_post.js: offers + bids + escrow + dispute + resolve      | 53   | iter97  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -113,12 +115,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 96** — Clan/crew system (registry + ranks + shared resources).
-- **iter 97** — Trading post (p2p item trades + escrow + dispute).
 - **iter 98** — Weather forecast (predict next-N-min window + RNG).
 - **iter 99** — Currency exchange (ccy-to-ccy market + bid/ask).
 - **iter 100** — Mega-regression: wire 10+ systems + verify smoke.
 - **iter 101** — Marketplace search/filter UI module.
+- **iter 102** — PvP arena queue (matchmaking + lobby formation).
+- **iter 103** — Spectator camera director (auto-focus on action).
 
 ## Wakeup checklist
 
