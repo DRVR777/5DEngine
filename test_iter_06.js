@@ -9,7 +9,7 @@ function ok(cond, name) {
 }
 
 ok(typeof Bridge.walkCyclePhase === "function", "walkCyclePhase exported");
-ok(/iter[6-9]\d*/.test(Bridge.VERSION), `VERSION at iter6+ (got ${Bridge.VERSION})`);
+ok(/iter\d+/.test(Bridge.VERSION), `VERSION carries iter tag (got ${Bridge.VERSION})`);
 
 // Idle (speed=0) → minimal swing
 let s = { t: 0 };

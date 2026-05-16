@@ -19,7 +19,7 @@ const { WorldState } = sandbox.self.GTAEngine;
 
 ok(typeof Bridge.carPhysicsStep === "function", "carPhysicsStep exported");
 ok(typeof Bridge.uvDist === "function", "uvDist exported");
-ok(/iter[4-9]\d*/.test(Bridge.VERSION), `VERSION at iter4+ (got ${Bridge.VERSION})`);
+ok(/iter\d+/.test(Bridge.VERSION), `VERSION carries iter tag (got ${Bridge.VERSION})`);
 
 const world = new WorldState(1);
 world.setPlayer("car", 0, 0, 0, 0, 0);

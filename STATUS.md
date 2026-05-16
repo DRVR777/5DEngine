@@ -16,15 +16,17 @@
 | 8    | AABB hitboxes + substepped collision (no tunneling, slide)     | 17    | iter8   |
 | 8.5  | Wire collision into index.html (no-walk-thru-walls in browser) | (visual) | iter8.5 |
 | 9    | Per-world physics profile (earth/moon/underwater/dreamworld)   | 20    | iter9   |
+| 10   | Health facet + damage/heal/regen/death events                  | 24    | iter10  |
+| 11   | 7 gun types as data + bullet entity facet                      | 56    | iter11  |
 
-**Total: 112/112 tests passing.**
+**Total: 192/192 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 10** — Health facet + damage events.
-- **iter 11** — 7 gun types as data; bullet entity facet.
 - **iter 12** — 4 ammo types as facets; pickup→inventory.
 - **iter 13** — Inventory popup UI.
+- **iter 14** — AI enemies (state machine).
+- **iter 15** — Damage/death/respawn integration.
 
 ## Wakeup checklist
 
