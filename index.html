@@ -36,7 +36,9 @@
     pointer-events: none;
     border: 1px solid rgba(255, 255, 255, 0.7);
     border-radius: 50%;
+    transition: border-color 80ms ease-out;
   }
+  #crosshair.hit { border-color: #ff4444; transform: translate(-50%, -50%) scale(1.4); }
   #crosshair::after {
     content: ''; position: absolute; left: 50%; top: 50%;
     width: 3px; height: 3px; background: #ffd166;
@@ -270,6 +272,7 @@
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
+  &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag arrow = axis move · yellow ring = rotate · Del remove · arrows nudge</i>
 </div>
 
 <script src="./engine_browser.js"></script>
@@ -380,6 +383,10 @@ const enemy = {
   hp: 80, maxHp: 80, sightRange: 10, attackRange: 1.6, moveSpeed: 2.4,
   damage: 6, lastAttackT: -Infinity, dead: false,
 };
+let enemyRespawnT = -Infinity;
+const ENEMY_RESPAWN_DELAY = 8;  // seconds
+let enemyKills = 0;
+let hitMarkerUntil = 0;  // show hit-marker crosshair flash until this time
 world.setPlayer(enemy.id, 0, 0, 0, enemy.u, enemy.v);
 
 // In-game computer entity (iter 28). Walk near + press E to "use" (we
@@ -1532,9 +1539,27 @@ function drawMinimap() {
     mini.fillStyle = "#ffd700";
     mini.beginPath(); mini.arc(u2x(pk.u), v2y(pk.v), 2, 0, Math.PI*2); mini.fill();
   }
+  // Enemy (red diamond)
+  if (!enemy.dead) {
+    const ep = world.players.get(enemy.id);
+    const ex = u2x(ep.u), ey = v2y(ep.v);
+    mini.fillStyle = "#ff2244";
+    mini.beginPath(); mini.moveTo(ex, ey-5); mini.lineTo(ex+4, ey); mini.lineTo(ex, ey+5); mini.lineTo(ex-4, ey); mini.closePath(); mini.fill();
+  }
+  // Ammo pickups (orange squares)
+  for (const ap of ammoPickups) {
+    if (ap.collected) continue;
+    mini.fillStyle = "#ffaa00";
+    mini.fillRect(u2x(ap.u) - 2, v2y(ap.v) - 2, 5, 5);
+  }
   // Hero (always center)
   mini.fillStyle = "#ffd166";
   mini.beginPath(); mini.arc(W/2, H/2, 4, 0, Math.PI*2); mini.fill();
+  // Hero heading arrow
+  const hYaw = heroGroup.rotation.y;
+  mini.strokeStyle = "#ffd166"; mini.lineWidth = 2;
+  mini.beginPath(); mini.moveTo(W/2, H/2);
+  mini.lineTo(W/2 + Math.sin(hYaw)*8, H/2 - Math.cos(hYaw)*8); mini.stroke();
   // Compass
   mini.fillStyle = "#fff"; mini.font = "10px monospace";
   mini.fillText("N", W/2 - 3, 11); mini.fillText("S", W/2 - 3, H - 3);
@@ -1761,15 +1786,29 @@ function tick() {
         const ep = world.players.get(enemy.id);
         if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
           enemy.hp = Math.max(0, enemy.hp - b.damage);
+          hitMarkerUntil = now + 120;  // brief crosshair flash
+          playSfx("blip", 0.2);        // hit sound
           if (enemy.hp === 0) {
             enemy.dead = true;
+            enemyRespawnT = now / 1000;
+            enemyKills++;
             _spawnAmmoPickup(ep.u, ep.v);  // drop ammo at kill location
+            playSfx("tone:880:80:sine", 0.4);  // kill sound
           }
           scene.remove(b.mesh); bullets3D.splice(i, 1);
           continue;
         }
       }
-      if (b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
+      // Hit a building?
+      let hitSolid = false;
+      for (const bl of buildingBlockers) {
+        if (Math.abs(b.posU - bl.u) < bl.hitbox.w / 2 &&
+            Math.abs(b.posV - bl.v) < bl.hitbox.d / 2 &&
+            b.posY >= 0 && b.posY <= bl.hitbox.h) {
+          hitSolid = true; break;
+        }
+      }
+      if (hitSolid || b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       b.mesh.position.set(b.posU, b.posY, b.posV);
     }
   }
@@ -1804,6 +1843,16 @@ function tick() {
     enemyHpFg.position.x = -(1 - hpFrac) / 2;
   } else {
     enemyGroup.visible = false;
+    // Respawn enemy after delay at a new position
+    if ((now / 1000 - enemyRespawnT) > ENEMY_RESPAWN_DELAY) {
+      enemy.dead = false;
+      enemy.hp = enemy.maxHp;
+      const ang = Math.random() * Math.PI * 2;
+      enemy.u = Math.cos(ang) * (12 + Math.random() * 8);
+      enemy.v = Math.sin(ang) * (12 + Math.random() * 8);
+      world.setPlayer(enemy.id, 0, 0, 0, enemy.u, enemy.v);
+      enemyGroup.visible = true;
+    }
   }
 
   // Hero hp regen after no-damage delay
@@ -2048,8 +2097,8 @@ function tick() {
     (score === pickups.length ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "") +
     `<br>hp <b style="color:${hpColor}">${heroHp.toFixed(0)}/${HERO_MAX_HP}</b> ` +
     `<span style="color:${hpColor};font-family:monospace">${hpBar}</span>` +
-    `<br>9mm <b>${Inv.countItem(heroInv, "pistol_9mm")}</b>` +
-    (enemy.dead ? `<br><span style="color:#888">enemy dead</span>` :
+    `<br>kills <b style="color:#ff6666">${enemyKills}</b>` +
+    (enemy.dead ? `<br><span style="color:#888">enemy respawn in <b>${Math.max(0, ENEMY_RESPAWN_DELAY - (now/1000 - enemyRespawnT)).toFixed(1)}s</b></span>` :
                   `<br>enemy <b>${enemy.hp}/${enemy.maxHp}</b>`) +
     (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
@@ -2057,6 +2106,13 @@ function tick() {
     (mouseMode ? `<br><b style="color:#ffff00">🖱 MOUSE MODE</b> <span style="color:#888">— ESC or M to exit</span>` : "") +
     (buildMode ? `<br><b style="color:#66ff66">🛠 BUILD MODE</b> <span style="color:#888">— drop .glb/.obj/.fbx · click select · Del remove · arrows move</span>` : "") +
     (reloadMsgUntil > performance.now() ? `<br><b style="color:#ffd166">↻ ${reloadMsg}</b>` : "");
+
+  // Hit marker crosshair flash
+  const crosshairEl = document.getElementById("crosshair");
+  if (crosshairEl) {
+    if (now < hitMarkerUntil) crosshairEl.classList.add("hit");
+    else crosshairEl.classList.remove("hit");
+  }
 
   // Clear damage-flash overlay after its lifetime
   if (damageFlashUntil > 0 && performance.now() > damageFlashUntil) {

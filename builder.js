@@ -58,11 +58,13 @@
     let gizmoMesh = null;        // which mesh the gizmo belongs to
     const managed = new Map();   // mesh → meta {id, assetUrl, assetData, assetExt}
 
-    // ---------- axis-locked drag ----------
+    // ---------- axis-locked drag + rotation drag ----------
     let axisDragging = false;
     let axisDragAxis = null;
     let axisDragStartPos = null;   // THREE.Vector3 world hit on drag start
     let axisDragStartMeshPos = null;  // mesh.position snapshot
+    let axisDragStartRot = null;      // mesh.rotation snapshot (for rotY)
+    let axisDragStartNdcX = null;     // NDC x at drag start (for rotY)
 
     // ---------- undo / redo (command pattern) ----------
     const undoStack = [];
@@ -134,6 +136,15 @@
         gizmoGroup.add(_arrow(new THREE.Vector3(1, 0, 0), 0xff2200, "x"));
         gizmoGroup.add(_arrow(new THREE.Vector3(0, 1, 0), 0x22cc00, "y"));
         gizmoGroup.add(_arrow(new THREE.Vector3(0, 0, 1), 0x2244ff, "z"));
+        // Y-rotation ring (yellow horizontal torus) — drag left/right to rotate
+        if (THREE.TorusGeometry) {
+          const rGeom = new THREE.TorusGeometry(len * 0.65, len * 0.035, 8, 32);
+          const rMat  = new THREE.MeshBasicMaterial({ color: 0xffee00, side: THREE.DoubleSide });
+          const rotRing = new THREE.Mesh(rGeom, rMat);
+          rotRing.rotation.x = Math.PI / 2;   // lay flat in XZ plane
+          rotRing.userData.gizmoAxis = "rotY";
+          gizmoGroup.add(rotRing);
+        }
         scene.add(gizmoGroup);
         gizmoMesh = mesh;
       } catch (e) { /* swallow */ }
@@ -180,13 +191,25 @@
       if (!selected) return false;
       axisDragging = true;
       axisDragAxis = axis;
-      axisDragStartPos = _mouseToPlane(ndc);
-      axisDragStartMeshPos = { x: selected.position.x, y: selected.position.y, z: selected.position.z };
+      if (axis === "rotY") {
+        axisDragStartRot = { x: selected.rotation.x, y: selected.rotation.y, z: selected.rotation.z };
+        axisDragStartNdcX = ndc.x;
+      } else {
+        axisDragStartPos = _mouseToPlane(ndc);
+        axisDragStartMeshPos = { x: selected.position.x, y: selected.position.y, z: selected.position.z };
+      }
       return true;
     }
 
     function updateAxisDrag(ndc) {
-      if (!axisDragging || !selected || !axisDragStartPos) return false;
+      if (!axisDragging || !selected) return false;
+      if (axisDragAxis === "rotY") {
+        const dx = ndc.x - axisDragStartNdcX;
+        selected.rotation.y = axisDragStartRot.y + dx * Math.PI * 2;
+        _repositionGizmo();
+        return true;
+      }
+      if (!axisDragStartPos) return false;
       const cur = _mouseToPlane(ndc);
       if (!cur) return false;
       const delta = cur.clone().sub(axisDragStartPos);
@@ -202,21 +225,36 @@
     function endAxisDrag() {
       if (!axisDragging) return;
       axisDragging = false;
-      if (selected && axisDragStartMeshPos) {
+      if (selected) {
         const mesh = selected;
-        const old = axisDragStartMeshPos;
-        const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
-        if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
-          _pushOp(
-            () => { mesh.position.set(old.x, old.y, old.z); if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
-            () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
-            "axisDrag"
-          );
+        if (axisDragAxis === "rotY" && axisDragStartRot) {
+          const old = axisDragStartRot;
+          const nw  = { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z };
+          if (old.y !== nw.y) {
+            _pushOp(
+              () => { mesh.rotation.y = old.y; save(); },
+              () => { mesh.rotation.y = nw.y;  save(); },
+              "rotateY"
+            );
+          }
+          save();
+        } else if (axisDragStartMeshPos) {
+          const old = axisDragStartMeshPos;
+          const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+          if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
+            _pushOp(
+              () => { mesh.position.set(old.x, old.y, old.z); if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
+              () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
+              "axisDrag"
+            );
+          }
+          save();
         }
-        save();
       }
       axisDragStartPos = null;
       axisDragStartMeshPos = null;
+      axisDragStartRot = null;
+      axisDragStartNdcX = null;
     }
 
     function isAxisDragging() { return axisDragging; }
