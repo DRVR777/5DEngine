@@ -265,6 +265,16 @@
   <div id="hbVal">100</div>
 </div>
 
+<!-- Kill feed (top center) -->
+<div id="killFeed" style="position:fixed;top:48px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:200"></div>
+
+<!-- Vehicle dashboard (bottom center, only when in car) -->
+<div id="vehicleDash" style="display:none;position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:rgba(2,8,22,0.94);border:1px solid rgba(0,200,255,0.35);border-radius:10px;padding:10px 24px;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;text-align:center;z-index:200;box-shadow:0 0 24px rgba(0,200,255,0.18)">
+  <div id="vdSpeed" style="color:#00ccff;font-size:28px;font-weight:bold;line-height:1">0</div>
+  <div style="color:#4488aa;font-size:9px;letter-spacing:0.2em">KM/H</div>
+  <div id="vdGear" style="color:#ffd166;font-size:13px;letter-spacing:0.15em;margin-top:4px">N</div>
+</div>
+
 <!-- NPC dialog overlay -->
 <div id="npcDialog" style="display:none;position:fixed;bottom:110px;left:50%;transform:translateX(-50%);width:420px;background:rgba(2,8,22,0.96);border:1px solid rgba(0,200,255,0.45);border-radius:10px;padding:18px 22px;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;color:#b8e8ff;z-index:500;box-shadow:0 0 40px rgba(0,200,255,0.25)">
   <div id="npcDialogName" style="color:#00ccff;font-size:10px;letter-spacing:0.2em;margin-bottom:10px"></div>
@@ -718,6 +728,23 @@ const HERO_REGEN_DELAY = CFG.heroRegenDelay || 5;
 const HERO_REGEN_RATE  = CFG.heroRegenRate  || 4;
 let heroHp = HERO_MAX_HP;
 let heroLastDamageT = -Infinity;
+
+// ---- Kill feed ----
+function _addKillFeedEntry(text, color = "#ff4466") {
+  const feed = document.getElementById("killFeed");
+  if (!feed) return;
+  const el = document.createElement("div");
+  el.style.cssText = `color:${color};font-family:ui-monospace,monospace;font-size:11px;` +
+    `background:rgba(2,8,22,0.88);border:1px solid rgba(255,68,102,0.3);border-radius:4px;` +
+    `padding:4px 12px;animation:toastIn 0.15s ease-out forwards;letter-spacing:0.06em`;
+  el.textContent = text;
+  feed.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = "opacity 0.4s";
+    el.style.opacity = "0";
+    setTimeout(() => feed.contains(el) && feed.removeChild(el), 420);
+  }, 3200);
+}
 
 // ---- Toast notification system ----
 function showToast(msg, type = "info", duration = 3000) {
@@ -3165,6 +3192,7 @@ function tick() {
             en.respawnT = now / 1000;
             enemyKills++;
             showToast(`Enemy down — ${enemyKills} kill${enemyKills>1?"s":""}`, "danger", 2000);
+            _addKillFeedEntry(`★ KILL #${enemyKills} — enemy ${en.id}`, "#ff4466");
             completeQuestStep("combat", 0);
             if (enemyKills >= 3) completeQuestStep("combat", 1);
             _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
@@ -3317,11 +3345,15 @@ function tick() {
     world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
   }
 
-  // layer transition check
+  // layer transition check + ambient zone change
   const insideNow = world.boundaryAt(hero.u, hero.v, buildings.map(b => b.b));
   const targetLayer = insideNow ? insideNow.targetLayerId : 1;
   if (targetLayer !== world.layerId) {
     world.logTransition("hero", world.layerId, targetLayer, "phase_shift");
+    if (insideNow) showToast(`Entered ${bldgName(insideNow.targetLayerId)}`, "info", 1800);
+    else showToast("Outside", "info", 1200);
+    // Ambient tone on zone change (brief hum to cue the transition)
+    playSfx(`tone:${insideNow ? 320 : 180}:200:sine`, 0.12);
   }
 
   // --- render ---
@@ -3672,6 +3704,23 @@ function tick() {
     const reserve = Inv.countItem(heroInv, _wp.ammoItem || "pistol_9mm");
     if (wpAmmoEl) wpAmmoEl.childNodes[0].textContent = pistolAmmo;
     if (wpResEl)  wpResEl.textContent = " / " + reserve;
+  }
+
+  // Vehicle dashboard
+  const vDash = document.getElementById("vehicleDash");
+  if (vDash) {
+    if (inCar && activeVehicleId) {
+      vDash.style.display = "block";
+      const vst2 = vehicleStates.get(activeVehicleId);
+      const kmh = vst2 ? Math.abs(vst2.speed * 3.6).toFixed(0) : "0";
+      const gear2 = vst2 ? (vst2.gearName || "N") : "N";
+      const speedEl = document.getElementById("vdSpeed");
+      const gearEl  = document.getElementById("vdGear");
+      if (speedEl) speedEl.textContent = kmh;
+      if (gearEl)  { gearEl.textContent = gear2; gearEl.style.color = gear2 === "R" ? "#ff4466" : "#ffd166"; }
+    } else {
+      vDash.style.display = "none";
+    }
   }
 
   if (composer) composer.render(); else renderer.render(scene, camera);
