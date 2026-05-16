@@ -182,6 +182,8 @@
 <script src="./camera_spine.js"></script>
 <script src="./screen_mesh.js"></script>
 <script src="./gltf_loader.js"></script>
+<script src="./audio.js"></script>
+<script src="./audio_webaudio.js"></script>
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
@@ -691,6 +693,49 @@ if (deviceBus) {
   _rebuildDeviceWires();
 }
 
+// ---- storage media pickups (CD / USB you can carry) -----------------
+// Two extra media live as world pickups. Walk within 1.5m → auto-pickup
+// into heroMedia. From the Devices app you can [Insert] them into pc1.
+const heroMedia = [];   // [{ id, kind, label, files }, ...]
+const worldMedia = [];  // [{ id, kind, mesh, picked }]
+function _spawnMedia(spec, pos) {
+  const isCD = spec.kind === "cd";
+  const geom = isCD
+    ? new THREE.CylinderGeometry(0.18, 0.18, 0.02, 24)
+    : new THREE.BoxGeometry(0.08, 0.04, 0.2);
+  const color = isCD ? 0xddddff : 0xffffff;
+  const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.3 });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(pos.u, pos.y || 1.0, pos.v);
+  mesh.castShadow = true;
+  scene.add(mesh);
+  worldMedia.push({
+    id: spec.id, kind: spec.kind, label: spec.label, files: spec.files,
+    mesh, picked: false,
+  });
+}
+_spawnMedia({ id: "cd_mix", kind: "cd", label: "MIX_2026",
+              files: { "/track1.wav": "(440Hz sine)", "/track2.wav": "(beep loop)",
+                       "/readme.txt": "Burned by jumbotron HYPE crew" } },
+            { u: -2, v: 2, y: 1.0 });
+_spawnMedia({ id: "usb_work", kind: "usb", label: "WORK_USB",
+              files: { "/todo.txt": "* finish device graph\n* wire audio\n* fix everything",
+                       "/passwords.txt": "dont put real passwords on USBs that respawn" } },
+            { u: -1, v: 2.5, y: 1.0 });
+
+// ---- audio mixer (audio.js + audio_webaudio.js) --------------------
+// Single shared mixer drives all in-world sound — bus speakers, gunshots,
+// click feedback. WebAudio context auto-resumes on first user gesture.
+let audioMixer = null;
+if (window.GTAAudio && window.WebAudioAdapter) {
+  const adapter = window.WebAudioAdapter.createWebAudioAdapter();
+  audioMixer = window.GTAAudio.createMixer({ adapter });
+}
+function playSfx(src, vol) {
+  if (!audioMixer) return;
+  audioMixer.play({ src: src, route: "sfx", volume: vol != null ? vol : 0.4 });
+}
+
 // ---- in-world screen interaction (E + raycast → hit-test) ----------
 // Raycast from the camera through the screen center (crosshair) and
 // invoke the region.onClick under the UV. Returns true if a screen
@@ -751,15 +796,20 @@ if (window.ScreenMesh) {
     state: { hypeClicks: 0, lastBtn: "—" },
     hitRegions: [
       { id: "btn_hype",  label: "HYPE",   x: 80,  y: 360, w: 180, h: 70,
-        onClick: (sc) => { sc.state.hypeClicks++; sc.state.lastBtn = "HYPE"; } },
+        onClick: (sc) => { sc.state.hypeClicks++; sc.state.lastBtn = "HYPE";
+                           playSfx("beep:660", 0.5);
+                           if (deviceBus) deviceBus.send("pc1", "audio_out",
+                             { kind: "audio", payload: { src: "beep:880", volume: 0.5 } }); } },
       { id: "btn_radio", label: "📻 RF",  x: 290, y: 360, w: 180, h: 70,
         onClick: (sc) => {
           sc.state.lastBtn = "RF";
+          playSfx("blip", 0.4);
           if (deviceBus) deviceBus.send("radioA", "rf", { kind: "audio",
-            payload: { msg: "JUMBOTRON shout-out!" } });
+            payload: { msg: "JUMBOTRON shout-out!", src: "tone:520:120:sine", volume: 0.5 } });
         } },
       { id: "btn_coin",  label: "+ COIN", x: 500, y: 360, w: 180, h: 70,
-        onClick: (sc) => { sc.state.lastBtn = "COIN"; score++; } },
+        onClick: (sc) => { sc.state.lastBtn = "COIN"; score++;
+                           playSfx("tone:1000:50:sine", 0.4); } },
     ],
     paint: (ctx, sc) => {
       ctx.fillStyle = "#020514";
@@ -1143,6 +1193,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   if (pistolCooldown > 0 || pistolAmmo <= 0) return;
   pistolCooldown = 1 / PISTOL_FIRE_RATE;
   pistolAmmo--;
+  playSfx("tone:1200:60:square", 0.25);  // gunshot pop
   const hp = world.players.get("hero");
   // Fire forward (same direction W moves): +sin/+cos
   const dirU = Math.sin(camYaw);
@@ -1448,6 +1499,24 @@ function tick() {
     (inCar ? `<br><b>IN CAR</b> speed=${carState.speed.toFixed(1)} m/s` :
              (dToCar < 2.5 ? `<br>press <b>E</b> to enter car` : ""));
 
+  // Storage media pickups (CDs / USBs) — auto-pickup at 1.5m
+  if (worldMedia.length > 0) {
+    const hp = world.players.get("hero");
+    for (const m of worldMedia) {
+      if (m.picked) continue;
+      const d = Math.hypot(m.mesh.position.x - hp.u, m.mesh.position.z - hp.v);
+      if (d < 1.5) {
+        m.picked = true;
+        scene.remove(m.mesh);
+        heroMedia.push({ id: m.id, kind: m.kind, label: m.label, files: m.files });
+        playSfx("blip", 0.4);
+      } else {
+        m.mesh.rotation.y += dt * 1.5;
+        m.mesh.position.y = (m.kind === "cd" ? 1.0 : 1.0) + Math.sin(now / 350 + (m.id.length || 1)) * 0.12;
+      }
+    }
+  }
+
   // pickups (collect within 1.2 units; bob coin meshes)
   const collected = Bridge.collectPickup(world, "hero", pickups, 1.2);
   if (collected) {
@@ -1521,6 +1590,24 @@ function tick() {
       "spk:    " + (deviceBus.peek("spk1","audio_in").length) + " queued\n" +
       "radioB heard: " + (deviceBus.peek("radioB","rf").length) + " msgs"
     } });
+  }
+  // Drain spk1's audio_in inbox each tick → play each packet through the
+  // WebAudio mixer. This is what makes the speaker actually emit sound.
+  if (deviceBus && audioMixer) {
+    const audioPkts = deviceBus.drain("spk1", "audio_in");
+    for (const p of audioPkts) {
+      if (p && p.payload && p.payload.src) {
+        // Attenuate by distance from hero to speaker for spatial feel
+        const sp = deviceBus.getDevice("spk1");
+        let vol = p.payload.volume != null ? p.payload.volume : 0.4;
+        if (sp && sp.position) {
+          const hp2 = world.players.get("hero");
+          const d = Math.hypot(sp.position.u - hp2.u, sp.position.v - hp2.v);
+          vol *= Math.max(0, 1 - d / 30);
+        }
+        playSfx(p.payload.src, vol);
+      }
+    }
   }
   if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint();
 
@@ -1685,14 +1772,61 @@ ${inboxStr}</pre>
       const wireLines = wires.map(w =>
         `  ${w.kind.padEnd(6)} ${w.a.deviceId}.${w.a.port}  →  ${w.b.deviceId}.${w.b.port}`
       ).join("\n") || "  (no wires)";
-      return `<pre>bus stats: ${stats.deviceCount} devices, ${stats.wireCount} wires
-kinds: ${JSON.stringify(stats.kinds)}
-
-== devices ==
+      // Carried storage media + insert/eject controls
+      const pc = deviceBus.getDevice("pc1");
+      const slotted = pc && pc.state.slottedMedia;
+      const carriedLines = heroMedia.length > 0
+        ? heroMedia.map((m, i) => {
+            const icon = m.kind === "cd" ? "📀" : "💾";
+            const port = m.kind === "cd" ? "cd_slot" : "usb_b";
+            return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0">
+              <span style="flex:1">${icon} ${m.label} <span style="color:#888">(${m.id})</span></span>
+              <button data-action="insert" data-mediaidx="${i}" data-port="${port}"
+                      style="background:#4488cc;border:0;color:#fff;padding:4px 12px;border-radius:4px;cursor:pointer">Insert → ${port}</button>
+            </div>`;
+          }).join("")
+        : `<div style="color:#888">(no media carried — walk over the CDs/USBs near spawn)</div>`;
+      const slottedLine = slotted
+        ? `<div style="margin:6px 0;color:#88ddff">Slotted: ${slotted.mediaId} in ${slotted.hostPort}
+             <button data-action="eject" style="background:#aa3a3a;border:0;color:#fff;padding:2px 10px;border-radius:4px;cursor:pointer;margin-left:8px">Eject</button>
+           </div>`
+        : `<div style="color:#888;margin:6px 0">Slotted: (nothing)</div>`;
+      return `<pre style="margin-bottom:10px">bus stats: ${stats.deviceCount} devices, ${stats.wireCount} wires
+kinds: ${JSON.stringify(stats.kinds)}</pre>
+<div style="background:#0a1626;padding:8px;border-radius:6px;border:1px solid #4488cc55;margin-bottom:10px">
+  <div style="color:#ffd166;margin-bottom:6px">Carried media:</div>
+  ${carriedLines}
+  ${slottedLine}
+</div>
+<pre>== devices ==
 ${devLines}
 
 == wires ==
 ${wireLines}</pre>`;
+    },
+  },
+  files: {
+    title: "📁 Files",
+    body: () => {
+      if (!deviceBus) return `<pre>device bus not loaded</pre>`;
+      const pc = deviceBus.getDevice("pc1");
+      const slot = pc && pc.state.slottedMedia;
+      if (!slot) return `<pre>(no media slotted — go to Devices, insert a CD or USB first)</pre>`;
+      const media = deviceBus.getDevice(slot.mediaId);
+      if (!media) return `<pre>(slot points at missing device)</pre>`;
+      const fs = media.state.files || {};
+      const paths = Object.keys(fs).sort();
+      const writable = media.state.writable ? " (R/W)" : " (R only)";
+      const lines = paths.map(p => `  ${p}  ${fs[p].length} bytes`).join("\n");
+      const bodies = paths.map(p =>
+        `<details style="margin:4px 0"><summary style="cursor:pointer;color:#88ddff">${p}</summary><pre style="background:#0a1626;padding:8px;margin-top:4px">${String(fs[p]).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</pre></details>`
+      ).join("");
+      return `<pre>mount: ${media.state.label}${writable}
+slot:  ${slot.hostPort}
+files: ${paths.length}
+
+${lines}</pre>
+<div style="margin-top:10px">${bodies}</div>`;
     },
   },
   browser: {
@@ -1713,6 +1847,7 @@ ${wireLines}</pre>`;
   const extras = [
     { id: "browser", icon: "🌐", label: "Browser" },
     { id: "devices", icon: "🔌", label: "Devices" },
+    { id: "files",   icon: "📁", label: "Files" },
   ];
   for (const e of extras) {
     if (grid.querySelector('[data-app="' + e.id + '"]')) continue;
@@ -1724,10 +1859,43 @@ ${wireLines}</pre>`;
 })();
 
 // Click handlers: app icon → load that app's body into the window pane,
-// X-button → close, anywhere else → ignore.
+// X-button → close, Insert/Eject → mount/unmount media on pc1.
 document.getElementById("computerOverlay").addEventListener("click", (e) => {
   if (e.target && e.target.id === "computerClose") {
     closeComputer();
+    return;
+  }
+  // Insert button in Devices app
+  if (e.target && e.target.dataset && e.target.dataset.action === "insert" && deviceBus) {
+    const idx = parseInt(e.target.dataset.mediaidx, 10);
+    const port = e.target.dataset.port;
+    const m = heroMedia[idx];
+    if (m && !deviceBus.getDevice("pc1").state.slottedMedia) {
+      // Need to register media in the bus before insert
+      let busMedia = deviceBus.getDevice(m.id);
+      if (!busMedia) {
+        deviceBus.makeStorageMedia({ id: m.id, mediaKind: m.kind, label: m.label, files: m.files });
+      }
+      const r = deviceBus.insertMedia("pc1", port, m.id);
+      if (r.ok) {
+        heroMedia.splice(idx, 1);
+        playSfx("tone:600:80:square", 0.5);
+        // re-render Devices app
+        document.getElementById("appBody").innerHTML = APPS.devices.body();
+      }
+    }
+    return;
+  }
+  // Eject button
+  if (e.target && e.target.dataset && e.target.dataset.action === "eject" && deviceBus) {
+    const r = deviceBus.ejectMedia("pc1");
+    if (r.ok) {
+      // Return the media to hero's pocket
+      const m = deviceBus.getDevice(r.mediaId);
+      if (m) heroMedia.push({ id: m.id, kind: m.state.mediaKind, label: m.state.label, files: m.state.files });
+      playSfx("click", 0.5);
+      document.getElementById("appBody").innerHTML = APPS.devices.body();
+    }
     return;
   }
   const app = e.target.closest(".app");

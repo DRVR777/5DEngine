@@ -20,6 +20,14 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 6 (sound + storage media UX, iter 135)
+- [x] **Audio actually plays** — WebAudio adapter for the existing audio.js mixer. Synth tones from string specs ("beep", "beep:440", "click", "blip", "noise", "tone:F:MS:type"). Bus → spk1 inbox → mixer dispatch happens every tick.
+- [x] **Spatial attenuation** — sound volume scales by distance from hero to speaker (0 at 30m).
+- [x] **Sounds wired**: gunshot pop on LMB shoot; HYPE/RF/COIN jumbotron buttons each play distinct tones; pickup blip on CD/USB pickup; insert/eject sounds.
+- [x] **CD + USB as world pickups** — walk within 1.5m of them near spawn → auto-pickup into `heroMedia`. Visible 3D cylinder (CD) + box (USB) meshes; bob + spin while uncollected.
+- [x] **Devices app extended** — lists carried media with [Insert → cd_slot] / [Insert → usb_b] buttons. Slotted media row has [Eject] button. Click → calls `deviceBus.insertMedia` / `ejectMedia`; UI re-renders live.
+- [x] **Files app added** — shows the slotted media's filesystem as a clickable file tree; click a file → reveals its contents inline.
+
 ## ✅ Done — Session 5 (mouse-mode cursor + GLTF scaffold, iter 133)
 - [x] **TDZ bug fixed** — `worldScreens` was used before declaration (user-reported JS error); hoisted to before the device-graph block.
 - [x] **Full mouse-mode cursor on big screens** — press E on the jumbotron (or M near it) → enter mouse mode. Mouse movement drives a yellow crosshair cursor painted on the screen. LMB invokes the region under the cursor.
