@@ -551,6 +551,16 @@
   padding:14px;z-index:60;box-shadow:0 0 30px rgba(0,200,255,0.2)">
   <div style="color:#00ccff;font-weight:bold;letter-spacing:0.12em;font-size:11px;margin-bottom:12px">⬡ ENVIRONMENT</div>
 
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">TERRAIN</div>
+  <div style="display:flex;gap:5px;margin-bottom:12px">
+    <button onclick="window._generateTerrain({size:200,segments:96,maxHeight:6,seed:+(document.getElementById('terrainSeed').value||42)})" style="background:rgba(0,255,170,0.12);border:1px solid rgba(0,255,170,0.3);color:#00ffaa;border-radius:3px;padding:3px 8px;cursor:pointer;font-size:10px">⬡ Generate</button>
+    <button onclick="window._removeTerrain()" style="background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.3);color:#ff4466;border-radius:3px;padding:3px 8px;cursor:pointer;font-size:10px">✕ Remove</button>
+    <label style="color:#778899;font-size:9px;margin-left:4px">Seed
+      <input id="terrainSeed" type="number" min="1" max="9999" value="42"
+        style="width:52px;background:rgba(0,8,20,0.8);border:1px solid rgba(0,200,255,0.2);color:#b8e8ff;border-radius:3px;padding:2px 4px;font-size:9px">
+    </label>
+  </div>
+
   <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">SKYBOX</div>
   <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px" id="skyboxBtns">
     <button onclick="window._setSkybox('day')"    style="background:rgba(135,206,235,0.15);border:1px solid rgba(0,200,255,0.3);color:#b8e8ff;border-radius:3px;padding:3px 7px;cursor:pointer;font-size:10px">☀ Day</button>
@@ -624,11 +634,13 @@
 </div>
 
 <script src="./local_db_bridge.js"></script>
+<script src="./event_bus.js"></script>
 <script src="./particle_system.js"></script>
 <script src="./trigger_zones.js"></script>
 <script src="./sound_zones.js"></script>
 <script src="./cutscene.js"></script>
 <script src="./behavior_tree.js"></script>
+<script src="./terrain.js"></script>
 <script src="./game_config.js"></script>
 <script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
@@ -813,6 +825,7 @@ function _heroRespawn() {
   heroHp = HERO_MAX_HP;
   heroLastDamageT = -999;
   playSfx("tone:440:120:sine", 0.5);
+  if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp });
   flashDamage();
 }
 
@@ -1113,6 +1126,23 @@ scene.fog = new THREE.Fog(0x87ceeb, 40, 140);
 
 // Initialize ParticleSystem module with the live scene
 if (typeof ParticleSystem !== "undefined") ParticleSystem.init(THREE, scene);
+
+// Generate procedural terrain (off by default; enable with Terrain.generate() or env panel)
+// Terrain is initially hidden and can be toggled in the environment panel
+window._terrainEnabled = false;
+window._generateTerrain = function(opts) {
+  if (typeof Terrain === "undefined") return;
+  window._terrainEnabled = true;
+  window._terrainApi = Terrain.generate(THREE, scene, opts || {
+    size: 200, segments: 96, maxHeight: 6, seed: 42,
+  });
+  showToast("Terrain generated", "success", 2000);
+};
+window._removeTerrain = function() {
+  if (typeof Terrain !== "undefined") Terrain.dispose();
+  window._terrainEnabled = false;
+  window._terrainApi = null;
+};
 
 // Initialize TriggerZones with the live scene (debug wireframes shown in-world)
 if (typeof TriggerZones !== "undefined") {
@@ -3482,6 +3512,7 @@ function tick() {
             enemyKills++;
             showToast(`Enemy down — ${enemyKills} kill${enemyKills>1?"s":""}`, "danger", 2000);
             _addKillFeedEntry(`★ KILL #${enemyKills} — enemy ${en.id}`, "#ff4466");
+            if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id: en.id, kills: enemyKills });
             completeQuestStep("combat", 0);
             if (enemyKills >= 3) completeQuestStep("combat", 1);
             _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
@@ -3558,7 +3589,10 @@ function tick() {
             heroHp = Math.max(0, heroHp - en.damage);
             heroLastDamageT = ctx.now;
             flashDamage();
-            if (heroHp <= 0) { setTimeout(_heroRespawn, 1200); }
+            if (heroHp <= 0) {
+              if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: en.id });
+              setTimeout(_heroRespawn, 1200);
+            }
           },
         });
       } else {
