@@ -89,6 +89,8 @@
 | 79   | ride_along.js: replay buffer + spectator follow/free + catchup | 41    | iter79  |
 | 80   | stream_overlay.js: 7 event kinds + chat fade + hype + follow ribbon | 44 | iter80 |
 | 81   | weather_damage_bridge.js: lightning/flood/hail → destruction | 28      | iter81  |
+| 82   | city_traffic.js: vehicles on CityPlan road graph + intersections | 26   | iter82  |
+| 83   | npc_routing.js: A* + blocked nodes + mid-route replan + heap     | 38   | iter83  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -99,12 +101,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 82** — Traffic system on city_gen plans (vehicles spawn + route).
-- **iter 83** — NPC routing (A*) on city_gen plans.
 - **iter 84** — Cutscene scripting for missions (mission DSL → cinematics).
 - **iter 85** — Photo gallery with export/sharing (PNG encode + clipboard).
-- **iter 86** — Leaderboards (per-mission high-score store).
-- **iter 87** — Daily challenges (deterministic seed + reward).
+- **iter 86** — Leaderboards (per-mission high-score store + filter).
+- **iter 87** — Daily challenges (deterministic seed + reward + ledger).
+- **iter 88** — Minigame harness (start/finish/score events + arcade).
+- **iter 89** — Cooperative missions (shared mission progress sync).
 
 ## Wakeup checklist
 
