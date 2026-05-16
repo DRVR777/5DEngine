@@ -56,14 +56,18 @@
 | 47   | particles.js: emit/tick/retire + 4 presets + bounce + cap      | 30    | iter47  |
 | 48   | boss.js: 3-phase boss + 4 telegraphed attacks (cone+stun)      | 37    | iter48  |
 | 49   | pathfinding.js: A* grid + diagonal + corner-cut block + smooth | 34    | iter49  |
+| 50   | apps/network_monitor: filter, pause, view-lines, IPC stats     | 33    | iter50  |
+| 51   | Vehicle parts: motorcycle, boat, helicopter (9 new parts)      | 31    | iter51  |
+| 52   | weather.js: 6 presets + Markov transitions + particle wiring   | 36    | iter52  |
+| 53   | voice_chat.js: WebRTC signaling state machine over CWP         | 40    | iter53  |
 
-**Total: 1213/1213 tests passing.**
+**Total: 1353/1353 tests passing.**
 
 ## Up next
 
-- **iter 50** — Network monitor app (live CWP packet stream).
-- **iter 51** — Motorcycle + boat + helicopter (extend vehicle.js parts).
-- **iter 52** — Weather system (rain/snow/fog + particle integration).
+- **iter 54** — Traffic AI (cars/peds following road network).
+- **iter 55** — Quest system (objectives + rewards).
+- **iter 56** — Player profile + persistent stats.
 
 ## Wakeup checklist
 
