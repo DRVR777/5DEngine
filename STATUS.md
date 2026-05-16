@@ -25,15 +25,18 @@
 | 16   | vehicle.js: 11 parts + buildVehicle + compatibility/cost       | 26    | iter16  |
 | 17   | crafting.js: 5 recipes + workbench tiers + overflow refund     | 23    | iter17  |
 | 18   | planePhysicsStep: throttle/pitch/yaw/altitude + plane build    | 13    | iter18  |
+| 19   | shop.js: buy/sell + buyback rate + restock + currency          | 29    | iter19  |
+| 20   | net.js: CWP v1.0 envelope + vector clocks + room hub           | 36    | iter20  |
+| 21   | multiplayer.js: server tick, client snapshot apply, room iso   | 16    | iter21  |
 
-**Total: 323/323 tests passing.**
+**Total: 404/404 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 19** — Shop entity — buy/sell vehicles for in-game currency.
-- **iter 20** — WS server (CWP v1.0 envelope) — multiplayer foundation.
-- **iter 21** — Multi-client world (other players visible).
 - **iter 22** — Friends list (sidecar identity stub).
+- **iter 23** — World merging on proximity (per `conviction.pdf`).
+- **iter 24** — OBJ/GLB/GLTF upload + auto-AABB hitbox.
+- **iter 25** — Custom worlds (JSON manifest hot-load).
 
 ## Wakeup checklist
 
