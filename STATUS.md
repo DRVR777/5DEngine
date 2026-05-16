@@ -85,6 +85,8 @@
 | 75   | cinematics.js: cutscene timeline + 5 tracks + Director + easings | 32  | iter75  |
 | 76   | photo_mode.js: 9 filters + gallery + tag/search/favorite/export | 50  | iter76  |
 | 77   | input_remap.js: bindings + 3 devices + contexts + conflict detect | 48 | iter77  |
+| 78   | accessibility.js: 5 colorblind modes + subtitles + uiScale + motion | 58 | iter78 |
+| 79   | ride_along.js: replay buffer + spectator follow/free + catchup | 41    | iter79  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -95,12 +97,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 78** — Accessibility (colorblind modes + subtitles + UI scale).
-- **iter 79** — Ride-along (spectate friend's gameplay via replay buf).
-- **iter 80** — Streaming overlay (chat events + donation alerts).
+- **iter 80** — Streaming overlay (chat events + donation alerts + viewer count).
 - **iter 81** — Weather damage applied via destructible bridge.
 - **iter 82** — Traffic system on city_gen plans.
-- **iter 83** — NPC routing on city_gen plans.
+- **iter 83** — NPC routing (A*) on city_gen plans.
+- **iter 84** — Cutscene scripting for missions.
+- **iter 85** — Photo gallery with export/sharing.
 
 ## Wakeup checklist
 
