@@ -148,8 +148,8 @@ world.setPlayer("hero", 0, 0, 0, 0, 0);
 // Build blockers (AABB hitboxes) from the same building rects so collision
 // uses the exact footprint as rendering. Stored as plain objects: physics
 // reads {u, v, hitbox:{w,d}}; the LayerBoundary still drives layer transitions.
-function rectToBlocker(b) {
-  const { u0, v0, u1, v1 } = b.params;
+function rectToBlocker(building) {
+  const { u0, v0, u1, v1 } = building.b.params;
   return { u: (u0+u1)/2, v: (v0+v1)/2, hitbox: { w: Math.abs(u1-u0), d: Math.abs(v1-v0), h: 6 }, y: 0 };
 }
 
@@ -222,27 +222,9 @@ function flashDamage() {
   damageFlashUntil = performance.now() + 180;
 }
 
-// Click to shoot (only when not in inventory + has ammo + cooldown elapsed)
-renderer && renderer.domElement.addEventListener("mousedown", (e) => {
-  if (e.button !== 0) return;
-  if (!pointerLocked) return;   // only shoot when looking around
-  if (invDiv.classList.contains("open")) return;
-  if (pistolCooldown > 0 || pistolAmmo <= 0) return;
-  pistolCooldown = 1 / PISTOL_FIRE_RATE;
-  pistolAmmo--;
-  // Spawn bullet at hero head height, heading where camera faces
-  const hp = world.players.get("hero");
-  const dirU = -Math.sin(camYaw);
-  const dirV = -Math.cos(camYaw);
-  const mesh = new THREE.Mesh(bulletGeo, bulletMat);
-  mesh.position.set(hp.u, 1.5, hp.v);
-  scene.add(mesh);
-  bullets3D.push({
-    mesh, posU: hp.u, posV: hp.v, posY: 1.5,
-    dirU, dirV, speed: PISTOL_SPEED, traveled: 0,
-    range: PISTOL_RANGE, damage: PISTOL_DAMAGE,
-  });
-});
+// Click-to-shoot handler is registered later, after `renderer` is created
+// (it accesses renderer.domElement, scene, camYaw, pointerLocked, invDiv —
+// all of which are declared further down).
 
 // Pickups (coins) — 8 scattered around the world, the objective is to collect them all.
 const pickups = [
@@ -608,6 +590,27 @@ function drawMinimap() {
   mini.fillStyle = "#fff"; mini.font = "10px monospace";
   mini.fillText("N", W/2 - 3, 11); mini.fillText("S", W/2 - 3, H - 3);
 }
+
+// Click to shoot (registered after renderer/scene/camYaw all exist)
+renderer.domElement.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return;
+  if (!pointerLocked) return;   // only shoot when looking around
+  if (invDiv.classList.contains("open")) return;
+  if (pistolCooldown > 0 || pistolAmmo <= 0) return;
+  pistolCooldown = 1 / PISTOL_FIRE_RATE;
+  pistolAmmo--;
+  const hp = world.players.get("hero");
+  const dirU = -Math.sin(camYaw);
+  const dirV = -Math.cos(camYaw);
+  const mesh = new THREE.Mesh(bulletGeo, bulletMat);
+  mesh.position.set(hp.u, 1.5, hp.v);
+  scene.add(mesh);
+  bullets3D.push({
+    mesh, posU: hp.u, posV: hp.v, posY: 1.5,
+    dirU, dirV, speed: PISTOL_SPEED, traveled: 0,
+    range: PISTOL_RANGE, damage: PISTOL_DAMAGE,
+  });
+});
 
 let lastT = performance.now();
 
