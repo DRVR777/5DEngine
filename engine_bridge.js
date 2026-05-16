@@ -189,6 +189,6 @@
     collectPickup,
     dayNightPhase,
     walkCyclePhase,
-    VERSION: "0.5.0-iter6",
+    VERSION: "0.6.0-iter7",
   };
 });

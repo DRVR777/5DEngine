@@ -27,9 +27,13 @@
   class WorldState {
     constructor(layerId) {
       this.layerId = layerId;
-      this.players = new Map();
+      this.players = new Map();          // legacy fast-path (iter 1-6)
+      this.entities = new Map();         // iter 7+ — envelope-based
       this.transitions = []; // {pid, from, to, kind, t}
     }
+    addEntity(id, entity) { this.entities.set(id, entity); return entity; }
+    getEntity(id) { return this.entities.get(id); }
+    removeEntity(id) { this.entities.delete(id); }
     setPlayer(id, x, y, z, u, v) {
       this.players.set(id, { x, y, z, u, v, t: Date.now() });
     }

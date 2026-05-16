@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# gta_demo smoke runner — runs every iteration test in order.
-set -e
-cd "$(dirname "$0")/.."
+# 5DEngine smoke runner — runs every iteration test in order.
+set +e   # don't bail on first failure; we want a complete tally
+cd "$(dirname "$0")"
 
 ANY_FAIL=0
-for t in gta_demo/test_iter_*.js; do
+for t in test_iter_*.js; do
   echo ""
   echo "==== $t ===="
   if ! node "$t"; then
@@ -14,8 +14,8 @@ done
 
 echo ""
 if [ $ANY_FAIL -eq 0 ]; then
-  echo "GTA_DEMO SMOKE: PASS"
+  echo "5DENGINE SMOKE: PASS"
 else
-  echo "GTA_DEMO SMOKE: FAIL"
+  echo "5DENGINE SMOKE: FAIL"
   exit 1
 fi

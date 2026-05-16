@@ -1,8 +1,12 @@
 // test_iter_01.js — headless smoke for the bridge.
 // Run: node gta_demo/test_iter_01.js
+const fs = require("fs");
 const path = require("path");
+const vm = require("vm");
 const Bridge = require("./engine_bridge.js");
-const { WorldState } = require(path.join(__dirname, "..", "multi_dim_engine_skeleton", "world_state.js"));
+const _code = fs.readFileSync(path.join(__dirname, "engine_browser.js"), "utf8");
+const _sb = { self: {} }; vm.createContext(_sb); vm.runInContext(_code, _sb);
+const { WorldState } = _sb.self.GTAEngine;
 
 let pass = 0, fail = 0;
 function ok(cond, name) {
