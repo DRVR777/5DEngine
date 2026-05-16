@@ -626,6 +626,8 @@
 <script src="./local_db_bridge.js"></script>
 <script src="./particle_system.js"></script>
 <script src="./trigger_zones.js"></script>
+<script src="./sound_zones.js"></script>
+<script src="./cutscene.js"></script>
 <script src="./game_config.js"></script>
 <script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
@@ -3399,6 +3401,10 @@ function tick() {
     );
   }
 
+  // onGround is set later in the jump/gravity block; pre-declare here so footstep
+  // check can safely reference it (will be false until the block below assigns it)
+  let onGround = false;
+
   // Footstep SFX — tick when grounded and moving
   if (!inCar && !buildMode && onGround && (inputF !== 0 || inputR !== 0)) {
     const stepInterval = keys["ShiftLeft"] ? 0.28 : 0.42;
@@ -3437,6 +3443,15 @@ function tick() {
       if (ep) ents.push({ id: en.id, u: ep.u, v: ep.v, y: 0 });
     }
     TriggerZones.tick(ents, dt);
+  }
+  // Ambient sound zones — fade in/out as hero moves
+  if (typeof SoundZones !== "undefined") {
+    const hz2 = world.players.get("hero");
+    SoundZones.tick(hz2.u, hz2.v);
+  }
+  // Cutscene camera path — overrides camera when active
+  if (typeof Cutscene !== "undefined") {
+    Cutscene.tick(dt, camera);
   }
 
   // Tick bullets (substep dt to avoid tunneling past enemy)
@@ -3605,7 +3620,6 @@ function tick() {
 
   // jump + gravity — frozen in build mode so the character stands still
   const hero = world.players.get("hero");
-  let onGround = false;
   if (!buildMode) {
     const support = _platformUnder(hero.u, hero.v, hero.y);
     const onSupport = hero.y <= support.topY + 0.001;
