@@ -109,6 +109,8 @@
 | 99   | currency_exchange.js: limit/market + slippage + depth + matching | 52   | iter99  |
 | 100  | **MEGA-REGRESSION: 12 systems wired end-to-end**                 | 42   | iter100 |
 | 101  | marketplace_search.js: query DSL + facets + sort + 3 adapters    | 62   | iter101 |
+| 102  | pvp_queue.js: 4 modes + skill widening + region + snake-draft   | 53   | iter102 |
+| 103  | spectator_director.js: auto-focus + 4 transitions + hysteresis  | 43   | iter103 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -119,12 +121,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 102** — PvP arena queue (matchmaking + lobby formation).
-- **iter 103** — Spectator camera director (auto-focus on action).
 - **iter 104** — In-game radio (curated playlists + dynamic shifts).
 - **iter 105** — Mission generator (template-driven random spawner).
 - **iter 106** — Achievement system (unlock conditions + reward).
 - **iter 107** — Glossary/codex (lore entries auto-unlocked by events).
+- **iter 108** — Difficulty scaler (auto-adjust enemy HP/damage).
+- **iter 109** — Reputation system (per-faction standing).
 
 ## Wakeup checklist
 
