@@ -209,6 +209,24 @@
     </div>
   </div>
   <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
+  <div style="color:#888;margin-bottom:6px">Scenes:</div>
+  <div style="display:flex;gap:4px;margin-bottom:4px">
+    <select id="bSceneList" style="flex:1;background:#0a1626;color:#cfe;border:1px solid #4488cc55;padding:4px;border-radius:3px;font-family:inherit;font-size:11px">
+      <option value="">— select —</option>
+    </select>
+    <button id="bSceneLoad" style="background:#2a4a6a;border:0;color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:11px">Load</button>
+    <button id="bSceneDel"  style="background:#aa3a3a;border:0;color:#fff;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:11px">×</button>
+  </div>
+  <div style="display:flex;gap:4px;margin-bottom:4px">
+    <input id="bSceneName" type="text" placeholder="name…" style="flex:1;background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:4px;border-radius:3px;font-family:inherit;font-size:11px">
+    <button id="bSceneSave" style="background:#4488cc;border:0;color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:11px">Save</button>
+  </div>
+  <div style="display:flex;gap:4px;margin-bottom:4px">
+    <button id="bExport" style="flex:1;background:#666;border:0;color:#fff;padding:4px;border-radius:3px;cursor:pointer;font-size:11px">⬇ Export JSON</button>
+    <button id="bImport" style="flex:1;background:#666;border:0;color:#fff;padding:4px;border-radius:3px;cursor:pointer;font-size:11px">⬆ Import JSON</button>
+  </div>
+  <input id="bImportFile" type="file" accept=".json,application/json" style="display:none">
+  <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
   <div style="color:#888;font-size:10px;line-height:1.5">
     drag .glb/.obj/.fbx onto window<br>
     click empty space → deselect<br>
@@ -851,6 +869,71 @@ setTimeout(() => {
   if (undoBtn) undoBtn.addEventListener("click", () => { worldBuilder.undo(); playSfx("click", 0.3); });
   const redoBtn = document.getElementById("bRedo");
   if (redoBtn) redoBtn.addEventListener("click", () => { worldBuilder.redo(); playSfx("blip", 0.3); });
+
+  // ---- named scenes UI ----
+  function _refreshSceneList() {
+    const sel = document.getElementById("bSceneList");
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— select —</option>';
+    for (const s of worldBuilder.listNamed()) {
+      const opt = document.createElement("option");
+      opt.value = s.name; opt.textContent = s.name + " (" + s.count + ")";
+      if (s.name === cur) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+  _refreshSceneList();
+  document.getElementById("bSceneSave").addEventListener("click", () => {
+    const name = (document.getElementById("bSceneName").value || "").trim();
+    if (!name) return;
+    const r = worldBuilder.saveNamed(name);
+    if (r.ok) { _refreshSceneList(); playSfx("blip", 0.4); }
+  });
+  document.getElementById("bSceneLoad").addEventListener("click", () => {
+    const name = document.getElementById("bSceneList").value;
+    if (!name) return;
+    const r = worldBuilder.loadNamed(name);
+    if (r && r.ok) playSfx("blip", 0.5);
+  });
+  document.getElementById("bSceneDel").addEventListener("click", () => {
+    const name = document.getElementById("bSceneList").value;
+    if (!name) return;
+    if (worldBuilder.deleteNamed(name)) { _refreshSceneList(); playSfx("click", 0.3); }
+  });
+
+  // ---- export / import JSON ----
+  document.getElementById("bExport").addEventListener("click", () => {
+    const json = worldBuilder.exportSceneJSON();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "dwrld-scene-" + Date.now() + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    playSfx("blip", 0.4);
+  });
+  document.getElementById("bImport").addEventListener("click", () => {
+    document.getElementById("bImportFile").click();
+  });
+  document.getElementById("bImportFile").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const r = worldBuilder.importSceneJSON(text);
+    if (r && r.ok) playSfx("blip", 0.5);
+    e.target.value = "";   // allow re-importing same file
+  });
+
+  // Rehydrate any auto-saved scene from last session
+  const prevState = worldBuilder.loadState();
+  if (Array.isArray(prevState) && prevState.length > 0) {
+    const r = worldBuilder.rehydrate(prevState);
+    if (r && r.ok && r.restored > 0) {
+      console.info("Builder: rehydrated " + r.restored + " primitives" +
+                   (r.skipped > 0 ? " (skipped " + r.skipped + " non-primitives)" : ""));
+    }
+  }
 }, 250);
 
 // Each frame: show/hide builder UI + update inspector inputs from the

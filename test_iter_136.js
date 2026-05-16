@@ -206,5 +206,40 @@ ok(ub.managedCount() === 0, "delete removed");
 ub.undo();
 ok(ub.managedCount() === 1, "undo restored deletion");
 
+// ---- iter 140: named scenes + export/import ----
+ok(typeof ub.saveNamed === "function", "saveNamed exported");
+ok(typeof ub.loadNamed === "function", "loadNamed exported");
+ok(typeof ub.deleteNamed === "function", "deleteNamed exported");
+ok(typeof ub.listNamed === "function", "listNamed exported");
+ok(typeof ub.exportSceneJSON === "function", "exportSceneJSON exported");
+ok(typeof ub.importSceneJSON === "function", "importSceneJSON exported");
+ok(typeof ub.clearScene === "function", "clearScene exported");
+ok(typeof ub.rehydrate === "function", "rehydrate exported");
+
+// Empty-name guard
+ok(ub.saveNamed("").ok === false, "empty name rejected");
+ok(ub.saveNamed(null).ok === false, "null name rejected");
+
+// Round-trip via JSON
+const json = ub.exportSceneJSON();
+ok(typeof json === "string" && json.indexOf("specs") >= 0, "exported JSON has specs");
+const parsed = JSON.parse(json);
+ok(Array.isArray(parsed.specs), "specs is array");
+
+// Bad JSON rejected
+ok(ub.importSceneJSON("{").ok === false, "bad JSON rejected");
+ok(ub.importSceneJSON("[]").ok === false, "no-specs rejected");
+
+// clearScene wipes everything
+ub.clearScene();
+ok(ub.managedCount() === 0, "clearScene empties");
+ok(ub.undoDepth() === 0, "clearScene clears undo");
+
+// listNamed returns array
+ok(Array.isArray(ub.listNamed()), "listNamed returns array");
+
+// deleteNamed missing → false
+ok(ub.deleteNamed("definitely_not_a_scene") === false, "deleteNamed missing false");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

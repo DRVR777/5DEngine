@@ -20,6 +20,15 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 11 (named scenes + JSON I/O + rehydrate, iter 140)
+- [x] **Named scene slots** — Save/Load/Delete by name; multiple worlds stored under `dwrld.builder.scenes.named.v1`. Inspector dropdown lists them with object count.
+- [x] **Export JSON** button — downloads current scene as `dwrld-scene-<timestamp>.json` (versioned, with savedAt).
+- [x] **Import JSON** button — file picker opens; uploaded file's specs replace the current scene.
+- [x] **Rehydrate on page-load** — auto-saved scene from last session restores automatically when the builder boots. Primitives only (assets need source files; non-primitive specs are skipped with a note).
+- [x] **`clearScene()`** wipes managed meshes + undo/redo stacks (uses internally by rehydrate).
+- [x] **Auto-save now includes primitive kind + material color** so the rehydrate has enough info.
+- [x] Tests bumped to 92 (added 18 for named scenes / JSON round-trip / clear / safety guards).
+
 ## ✅ Done — Session 10 (undo/redo, iter 139)
 - [x] **Undo/redo** via command pattern. Every mutation (add, delete, translate, rotateY, scaleBy, setPosition/Rotation/Scale, drag-move) pushes a `{undo, redo}` pair onto the stack. Max 100 entries; new edits clear the redo stack.
 - [x] **Ctrl+Z** undo, **Ctrl+Y** or **Ctrl+Shift+Z** redo. Bound BEFORE the bare Z=BIRD-snap keybind so Ctrl+Z doesn't snap-zoom by accident. The snap keybinds also now skip when Ctrl/Meta is held.

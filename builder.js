@@ -204,10 +204,8 @@
     // ---------- persistence ----------
     function save() {
       try {
-        const arr = [];
-        for (const [mesh, meta] of managed) arr.push(serializeMesh(mesh, meta));
         if (typeof localStorage !== "undefined") {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(_enrichedSpecsForSave()));
         }
       } catch (_) {}
     }
@@ -221,6 +219,129 @@
     }
     function clearState() {
       try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    }
+
+    // Wipe everything currently managed from the scene (used before rehydrate
+    // OR when the user hits "Clear scene"). Does NOT clear localStorage.
+    function clearScene() {
+      for (const mesh of Array.from(managed.keys())) {
+        scene.remove(mesh);
+      }
+      managed.clear();
+      clearSelection();
+      undoStack.length = 0;
+      redoStack.length = 0;
+      save();
+    }
+
+    // Rebuild the scene from an array of serialized specs. Only PRIMITIVES
+    // (cube/sphere/cyl/plane/light) are rehydrated automatically — they're
+    // self-contained. Specs with assetUrl/assetExt (drag-dropped files)
+    // can't be re-loaded without the source file; they're returned in the
+    // result for the caller to handle however it likes.
+    function rehydrate(specs) {
+      if (!Array.isArray(specs)) return { ok: false, reason: "bad_specs" };
+      clearScene();
+      let restored = 0, skipped = 0;
+      const skippedSpecs = [];
+      suppressUndo = true;
+      try {
+        for (const s of specs) {
+          if (s.assetUrl || s.assetExt) { skipped++; skippedSpecs.push(s); continue; }
+          const kind = s.primitive || (s.meta && s.meta.primitive);
+          if (!kind) { skipped++; continue; }
+          const mesh = spawnPrimitive(kind, { x: s.px, y: s.py, z: s.pz });
+          if (!mesh) { skipped++; continue; }
+          if (isFinite(s.rx)) mesh.rotation.x = s.rx;
+          if (isFinite(s.ry)) mesh.rotation.y = s.ry;
+          if (isFinite(s.rz)) mesh.rotation.z = s.rz;
+          if (isFinite(s.sx)) mesh.scale.set(s.sx, s.sy || s.sx, s.sz || s.sx);
+          if (s.color) { try { setColor(s.color); } catch (_) {} }
+          restored++;
+        }
+      } finally {
+        suppressUndo = false;
+      }
+      clearSelection();
+      undoStack.length = 0; redoStack.length = 0;
+      save();
+      return { ok: true, restored, skipped, skippedSpecs };
+    }
+
+    // Override serializeMesh wrapper to ALSO capture primitive + color
+    // — without this, the rehydrate above can't reconstruct the mesh.
+    function _enrichedSpecsForSave() {
+      const out = [];
+      for (const [mesh, meta] of managed) {
+        const spec = serializeMesh(mesh, meta);
+        spec.primitive = meta.primitive || null;
+        // Try to grab the material color if any (single-mesh primitives)
+        let colorHex = null;
+        if (typeof mesh.traverse === "function") {
+          mesh.traverse((o) => {
+            if (!colorHex && o.material && o.material.color &&
+                typeof o.material.color.getHexString === "function") {
+              colorHex = "#" + o.material.color.getHexString();
+            }
+          });
+        }
+        if (colorHex) spec.color = colorHex;
+        out.push(spec);
+      }
+      return out;
+    }
+
+    // ---------- named scenes (multi-slot localStorage) ----------
+    const NAMED_KEY = "dwrld.builder.scenes.named.v1";
+    function _readNamedMap() {
+      try {
+        if (typeof localStorage === "undefined") return {};
+        const raw = localStorage.getItem(NAMED_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch (_) { return {}; }
+    }
+    function _writeNamedMap(m) {
+      try { localStorage.setItem(NAMED_KEY, JSON.stringify(m)); } catch (_) {}
+    }
+    function saveNamed(name) {
+      if (!name || typeof name !== "string") return { ok: false, reason: "bad_name" };
+      const m = _readNamedMap();
+      m[name] = { savedAt: Date.now(), specs: _enrichedSpecsForSave() };
+      _writeNamedMap(m);
+      return { ok: true, count: m[name].specs.length };
+    }
+    function loadNamed(name) {
+      const m = _readNamedMap();
+      if (!m[name]) return { ok: false, reason: "not_found" };
+      const r = rehydrate(m[name].specs);
+      return Object.assign({ name }, r);
+    }
+    function deleteNamed(name) {
+      const m = _readNamedMap();
+      if (!m[name]) return false;
+      delete m[name];
+      _writeNamedMap(m);
+      return true;
+    }
+    function listNamed() {
+      const m = _readNamedMap();
+      return Object.keys(m).map(n => ({ name: n, savedAt: m[n].savedAt, count: (m[n].specs || []).length }));
+    }
+
+    // ---------- export / import JSON ----------
+    function exportSceneJSON() {
+      return JSON.stringify({
+        version: "0.4.0-iter140",
+        savedAt: Date.now(),
+        specs: _enrichedSpecsForSave(),
+      }, null, 2);
+    }
+    function importSceneJSON(text) {
+      let obj;
+      try { obj = JSON.parse(text); }
+      catch (e) { return { ok: false, reason: "bad_json" }; }
+      if (!obj || !Array.isArray(obj.specs)) return { ok: false, reason: "no_specs" };
+      return rehydrate(obj.specs);
     }
 
     // ---------- drag-and-drop ----------
@@ -510,7 +631,10 @@
       managedCount: () => managed.size,
       getSelected: () => selected,
       undo, redo, undoDepth, redoDepth,
-      VERSION: "0.4.0-iter139",
+      clearScene, rehydrate,
+      saveNamed, loadNamed, deleteNamed, listNamed,
+      exportSceneJSON, importSceneJSON,
+      VERSION: "0.5.0-iter140",
     };
   }
 
