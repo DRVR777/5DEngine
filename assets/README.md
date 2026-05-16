@@ -38,9 +38,22 @@ Sub-directories are by convention only — change `path` in
 
 ## What format?
 
-`.glb` is best (single binary file, embedded textures). Plain `.gltf`
-also works but expects separate `.bin` + texture files next to it.
-For rigged characters use `.fbx` only if you also drop a converter.
+All three formats work — the loader dispatches by file extension:
+
+| Ext     | Loader      | Notes                                            |
+|---------|-------------|--------------------------------------------------|
+| `.glb`  | GLTFLoader  | Best (single file, embedded textures, PBR, anim) — Kenney's default |
+| `.gltf` | GLTFLoader  | Same loader; needs companion `.bin` + textures next to it |
+| `.obj`  | OBJLoader   | Static geometry only. Drops a `.mtl` next to it if you want materials — Quaternius's default for static packs |
+| `.fbx`  | FBXLoader   | Use for rigged characters with animations (Mixamo, some Quaternius character packs) — heavier than GLB but Mixamo's only export |
+
+Just change the path in `manifest.json` to whatever extension you have.
+**You don't need to convert anything.** Drop a `.obj` directly if that's
+what Quaternius gave you.
+
+**Scale hints:** FBX from Mixamo is usually in centimetres — set
+`"scale": 0.01` for those. OBJ varies widely; tweak after you see the
+in-game size.
 
 See `ASSET_LIST.md` at the repo root for source recommendations and a
 full shopping list of what to grab per `abstractifyThis.pdf` +

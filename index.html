@@ -190,13 +190,24 @@
 </script>
 <script type="module">
 import * as THREE from "three";
-// GLTFLoader — pulled lazily so demo still runs if the CDN is down.
-// We use a .then chain (no top-level await) so the inline module also
-// loads cleanly in vm-based test sandboxes that don't support TLA.
-let GLTFLoader = null;
+// Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
+// We use .then chains (no top-level await) so the inline module also loads
+// cleanly in vm-based test sandboxes that don't support TLA.
+// .glb → GLTFLoader, .obj → OBJLoader (+ MTLLoader), .fbx → FBXLoader.
+// Quaternius packs are OBJ/FBX; Kenney is GLB; both work via the manifest.
+const Loaders = {};
 import("three/addons/loaders/GLTFLoader.js")
-  .then((mod) => { GLTFLoader = mod.GLTFLoader; })
-  .catch((e) => { console.warn("GLTFLoader unavailable, asset loading skipped:", e.message); });
+  .then((m) => { Loaders.GLTFLoader = m.GLTFLoader; })
+  .catch((e) => { console.warn("GLTFLoader unavailable:", e.message); });
+import("three/addons/loaders/OBJLoader.js")
+  .then((m) => { Loaders.OBJLoader = m.OBJLoader; })
+  .catch((e) => { console.warn("OBJLoader unavailable:", e.message); });
+import("three/addons/loaders/MTLLoader.js")
+  .then((m) => { Loaders.MTLLoader = m.MTLLoader; })
+  .catch((e) => { console.warn("MTLLoader unavailable:", e.message); });
+import("three/addons/loaders/FBXLoader.js")
+  .then((m) => { Loaders.FBXLoader = m.FBXLoader; })
+  .catch((e) => { console.warn("FBXLoader unavailable:", e.message); });
 
 // ---- engine state ----
 const { WorldState, LayerBoundary } = window.GTAEngine;
@@ -1546,29 +1557,28 @@ function tick() {
 }
 requestAnimationFrame(tick);
 
-// ───── GLTF asset loading (gltf_loader.js) ─────
-// Fire-and-forget — if assets/manifest.json + .glb files exist they replace
-// placeholders; if not, the demo runs identically with the primitives.
-if (GLTFLoader && window.GLTFAssets) {
-  window.GLTFAssets.load(THREE, GLTFLoader).then((r) => {
+// ───── Asset loading (gltf_loader.js — multi-format) ─────
+// Wait a tick for the lazy loader imports to settle, then fire load.
+// Supports .glb (Kenney) + .obj (Quaternius) + .fbx (Mixamo etc).
+// Missing files silently fall back to placeholder primitives.
+setTimeout(() => {
+  if (!window.AssetLoader) return;
+  window.AssetLoader.load(THREE, Loaders).then((r) => {
     if (!r || !r.ok) {
-      console.info("GLTF: manifest load skipped/failed:", r && r.reason);
+      console.info("Assets: manifest load skipped/failed:", r && r.reason);
       return;
     }
-    // Replace pistol placeholder on armR when it resolves
-    window.GLTFAssets.replacePlaceholder("pistol", armR, gunGroup, { position: { x: 0, y: -0.7, z: 0.2 } });
-    // Replace car body placeholder
-    window.GLTFAssets.replacePlaceholder("car", carGroup, carBody, { position: { x: 0, y: 0.7, z: 0 } });
-    // Coins
+    console.info("Assets: loaders ready", r.formats, "—", r.slotCount, "slots");
+    window.AssetLoader.replacePlaceholder("pistol", armR, gunGroup, { position: { x: 0, y: -0.7, z: 0.2 } });
+    window.AssetLoader.replacePlaceholder("car", carGroup, carBody, { position: { x: 0, y: 0.7, z: 0 } });
     if (typeof pickupMeshes !== "undefined") {
       for (const pk of pickups) {
         const m = pickupMeshes.get(pk.id);
-        window.GLTFAssets.replacePlaceholder("coin", scene, m, { position: { x: pk.u, y: 1.0, z: pk.v } });
+        window.AssetLoader.replacePlaceholder("coin", scene, m, { position: { x: pk.u, y: 1.0, z: pk.v } });
       }
     }
-    console.info("GLTF: load kicked off,", r.slotCount, "slots");
-  }).catch((e) => console.warn("GLTF: load threw:", e.message));
-}
+  }).catch((e) => console.warn("Assets: load threw:", e.message));
+}, 200);
 
 // ───── Desktop OS app wiring ─────
 // Each app reads live engine state when opened. Adding a new app =

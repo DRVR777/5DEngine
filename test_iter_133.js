@@ -58,6 +58,20 @@ ok(typeof GA.getMesh === "function", "getMesh() exported");
 ok(typeof GA.onSlotReady === "function", "onSlotReady() exported");
 ok(typeof GA.replacePlaceholder === "function", "replacePlaceholder() exported");
 ok(typeof GA.stats === "function", "stats() exported");
+ok(typeof GA.formatFor === "function", "formatFor() exported");
+
+// Format dispatch by extension
+ok(GA.formatFor("foo.glb")  === "glb", "glb detected");
+ok(GA.formatFor("foo.GLB")  === "glb", "GLB case-insensitive");
+ok(GA.formatFor("foo.gltf") === "glb", "gltf maps to glb loader");
+ok(GA.formatFor("foo.obj")  === "obj", "obj detected");
+ok(GA.formatFor("foo.fbx")  === "fbx", "fbx detected");
+ok(GA.formatFor("subdir/path/thing.OBJ") === "obj", "nested path obj detected");
+ok(GA.formatFor("no_ext")   === null,  "no extension → null");
+ok(GA.formatFor("foo.dae")  === null,  "unsupported ext → null");
+ok(GA.formatFor(null)       === null,  "null → null");
+ok(GA.formatFor(undefined)  === null,  "undefined → null");
+ok(GA.formatFor("")         === null,  "empty string → null");
 
 // =====================================================================
 // 2. Screen click round-trip — bus + screen + region.onClick.

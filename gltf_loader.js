@@ -1,9 +1,14 @@
-// gltf_loader.js — load .glb assets per assets/manifest.json, gracefully
-// fall back to placeholder primitives when a file is missing.
+// gltf_loader.js — multi-format asset loader (.glb / .obj / .fbx).
+// Despite the filename it dispatches by file extension. Quaternius is
+// OBJ/FBX-first; Kenney is GLB-first; both work seamlessly via the same
+// manifest. Gracefully falls back to placeholder primitives when a file
+// is missing.
 //
-// API (window.GLTFAssets):
-//   await load(THREE, GLTFLoader)      — fetches assets/manifest.json and
-//                                         every entry; returns Map<slot, group|null>.
+// API (window.GLTFAssets, also aliased as window.AssetLoader):
+//   await load(THREE, loaders)         — `loaders` is { GLTFLoader, OBJLoader,
+//                                         FBXLoader, MTLLoader }. Any missing
+//                                         loader just disables that format.
+//                                         Returns { ok, slotCount }.
 //   getMesh(slot)                      — synchronously returns the loaded
 //                                         THREE.Group for a slot, or null.
 //   onSlotReady(slot, cb)              — calls cb(group) when slot resolves
@@ -55,8 +60,30 @@
     return { ok: true, specs: out };
   }
 
-  async function load(THREE, GLTFLoader, opts) {
+  // Pick a format from a file extension. Returns "glb" | "obj" | "fbx" | null.
+  function formatFor(path) {
+    if (!path || typeof path !== "string") return null;
+    const dot = path.lastIndexOf(".");
+    if (dot < 0) return null;
+    const ext = path.slice(dot + 1).toLowerCase();
+    if (ext === "glb" || ext === "gltf") return "glb";
+    if (ext === "obj") return "obj";
+    if (ext === "fbx") return "fbx";
+    return null;
+  }
+
+  // Strip extension off a path for MTL companion lookup
+  function stripExt(p) {
+    const dot = p.lastIndexOf("."); return dot < 0 ? p : p.slice(0, dot);
+  }
+
+  async function load(THREE, loaders, opts) {
     opts = opts || {};
+    // Back-compat: caller passes a single GLTFLoader → wrap it.
+    if (loaders && typeof loaders === "function") loaders = { GLTFLoader: loaders };
+    loaders = loaders || {};
+    const { GLTFLoader, OBJLoader, FBXLoader, MTLLoader } = loaders;
+
     const manifestUrl = opts.manifestUrl || "./assets/manifest.json";
     const base        = opts.base        || "./assets/";
     let resp;
@@ -67,27 +94,61 @@
     const m = parseManifest(text);
     if (!m.ok) return m;
 
-    const loader = new GLTFLoader();
+    const gltfLoader = GLTFLoader ? new GLTFLoader() : null;
+    const objLoader  = OBJLoader  ? new OBJLoader()  : null;
+    const fbxLoader  = FBXLoader  ? new FBXLoader()  : null;
+
+    function _onLoadGroup(slot, spec, g) {
+      if (!g) { slots.get(slot).status = "no_scene"; _notify(slot, null); return; }
+      g.scale.setScalar(spec.scale);
+      slots.get(slot).group = g;
+      slots.get(slot).status = "ready";
+      _notify(slot, g);
+    }
+    function _onErr(slot) {
+      return () => { slots.get(slot).status = "missing"; _notify(slot, null); };
+    }
+
     for (const [slot, spec] of m.specs) {
       slots.set(slot, { spec, group: null, status: "loading" });
       const url = base + spec.path;
-      loader.load(url,
-        (gltf) => {
-          const g = gltf.scene || gltf.scenes && gltf.scenes[0] || null;
-          if (!g) { slots.get(slot).status = "no_scene"; _notify(slot, null); return; }
-          g.scale.setScalar(spec.scale);
-          slots.get(slot).group = g;
-          slots.get(slot).status = "ready";
-          _notify(slot, g);
-        },
-        undefined,
-        (err) => {
-          // Missing file is OK — caller falls back to placeholder.
-          slots.get(slot).status = "missing";
-          _notify(slot, null);
-        });
+      const fmt = formatFor(spec.path);
+
+      if (fmt === "glb" && gltfLoader) {
+        gltfLoader.load(url,
+          (gltf) => _onLoadGroup(slot, spec, gltf.scene || (gltf.scenes && gltf.scenes[0])),
+          undefined, _onErr(slot));
+      } else if (fmt === "obj" && objLoader) {
+        // Try to load companion .mtl first (same basename) if MTLLoader present.
+        const mtlUrl = base + stripExt(spec.path) + ".mtl";
+        const loadObjWithMtl = (materials) => {
+          const ol = new (OBJLoader)();
+          if (materials) ol.setMaterials(materials);
+          ol.load(url, (obj) => _onLoadGroup(slot, spec, obj),
+                       undefined, _onErr(slot));
+        };
+        if (MTLLoader) {
+          const ml = new MTLLoader();
+          ml.load(mtlUrl,
+            (materials) => { materials.preload(); loadObjWithMtl(materials); },
+            undefined,
+            // No MTL? Load OBJ bare — that's fine for many Quaternius packs.
+            () => loadObjWithMtl(null));
+        } else {
+          loadObjWithMtl(null);
+        }
+      } else if (fmt === "fbx" && fbxLoader) {
+        fbxLoader.load(url,
+          (group) => _onLoadGroup(slot, spec, group),
+          undefined, _onErr(slot));
+      } else {
+        // Unknown extension OR loader not provided → silent skip
+        slots.get(slot).status = fmt ? "no_loader_for_" + fmt : "unknown_ext";
+        _notify(slot, null);
+      }
     }
-    return { ok: true, slotCount: m.specs.size };
+    return { ok: true, slotCount: m.specs.size,
+             formats: { glb: !!gltfLoader, obj: !!objLoader, fbx: !!fbxLoader, mtl: !!MTLLoader } };
   }
 
   function getMesh(slot) {
@@ -126,8 +187,12 @@
     return out;
   }
 
-  return {
-    parseManifest, load, getMesh, onSlotReady, replacePlaceholder, stats,
-    VERSION: "0.1.0-iter133",
+  const api = {
+    parseManifest, formatFor, load, getMesh, onSlotReady,
+    replacePlaceholder, stats,
+    VERSION: "0.2.0-iter134",
   };
+  // Expose as both names — gltf_loader.js is now multi-format.
+  if (typeof self !== "undefined") self.AssetLoader = api;
+  return api;
 });
