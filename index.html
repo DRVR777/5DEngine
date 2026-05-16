@@ -627,7 +627,7 @@
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
   &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>1/2/3</b> switch weapon
-  &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>J</b> objectives &nbsp;·&nbsp; <b>H</b> rain
+  &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>J</b> objectives &nbsp;·&nbsp; <b>H</b> rain &nbsp;·&nbsp; <b>G</b> achievements
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
   &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag=move · Del remove · arrows nudge · Tab=library · N=spawn point · K=config · P=char editor</i>
@@ -641,6 +641,8 @@
 <script src="./cutscene.js"></script>
 <script src="./behavior_tree.js"></script>
 <script src="./terrain.js"></script>
+<script src="./a_star.js"></script>
+<script src="./achievements.js"></script>
 <script src="./game_config.js"></script>
 <script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
@@ -1165,6 +1167,16 @@ if (typeof TriggerZones !== "undefined") {
     const { entityId, zoneId } = e.detail;
     if (typeof ScriptRunner !== "undefined") ScriptRunner.dispatchZoneEvent("exit", zoneId, entityId);
   });
+}
+
+// Init AStar pathfinder with building data
+if (typeof AStar !== "undefined") {
+  AStar.build(WD, { halfSize: 60, cellSize: 1 });
+}
+
+// Init Achievements and wire to EventBus
+if (typeof Achievements !== "undefined" && typeof EventBus !== "undefined") {
+  Achievements.wireEventBus(EventBus);
 }
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -2723,6 +2735,16 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
+  // G key: toggle achievement panel (non-build mode; build mode uses G for group)
+  if (e.code === "KeyG" && !buildMode && !computerOpen) {
+    if (typeof Achievements !== "undefined") {
+      const ap = document.getElementById("_achPanel");
+      const show = !ap || ap.style.display === "none";
+      Achievements.showPanel(show);
+    }
+    e.preventDefault();
+    return;
+  }
   // N key: place spawn point at freecam ground position in build mode
   if (buildMode && e.code === "KeyN") {
     const sp = _addSpawnPoint(freeCamPos.x, freeCamPos.z);
@@ -3484,6 +3506,8 @@ function tick() {
   if (typeof Cutscene !== "undefined") {
     Cutscene.tick(dt, camera);
   }
+  // Achievement time tracker
+  if (typeof Achievements !== "undefined") Achievements.tick(dt);
 
   // Tick bullets (substep dt to avoid tunneling past enemy)
   pistolCooldown = Math.max(0, pistolCooldown - dt);
@@ -3569,10 +3593,30 @@ function tick() {
           distToHero: dist, canSeeHero: canSee,
           onChase: (ctx, pos) => {
             const target = pos || { u: ctx.hero.u, v: ctx.hero.v };
-            const ddx = target.u - ep.u, ddz = target.v - ep.v;
-            const m = Math.hypot(ddx, ddz) || 1;
-            en.heading = Math.atan2(ddx, ddz);
-            world.setPlayer(en.id, ep.x, 0, 0, ep.u + (ddx / m) * en.moveSpeed * dt, ep.v + (ddz / m) * en.moveSpeed * dt);
+            // A* navigation: recompute path every 0.6s or when path exhausted
+            if (typeof AStar !== "undefined") {
+              const now6 = now / 1000;
+              if (!en._pathT || now6 - en._pathT > 0.6 || !en._path || en._path.length === 0) {
+                en._path = AStar.findPath(ep.u, ep.v, target.u, target.v);
+                en._pathT = now6;
+              }
+              // Consume waypoints within 0.8 units
+              while (en._path && en._path.length > 1) {
+                const wp = en._path[0];
+                if (Math.hypot(wp.u - ep.u, wp.v - ep.v) < 0.8) en._path.shift();
+                else break;
+              }
+              const wp = (en._path && en._path.length > 0) ? en._path[0] : target;
+              const ddx = wp.u - ep.u, ddz = wp.v - ep.v;
+              const m = Math.hypot(ddx, ddz) || 1;
+              en.heading = Math.atan2(ddx, ddz);
+              world.setPlayer(en.id, ep.x, 0, 0, ep.u + (ddx / m) * en.moveSpeed * dt, ep.v + (ddz / m) * en.moveSpeed * dt);
+            } else {
+              const ddx = target.u - ep.u, ddz = target.v - ep.v;
+              const m = Math.hypot(ddx, ddz) || 1;
+              en.heading = Math.atan2(ddx, ddz);
+              world.setPlayer(en.id, ep.x, 0, 0, ep.u + (ddx / m) * en.moveSpeed * dt, ep.v + (ddz / m) * en.moveSpeed * dt);
+            }
           },
           onPatrol: (ctx) => {
             en._patrolAngle = (en._patrolAngle || 0) + dt * 0.35;
