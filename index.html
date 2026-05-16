@@ -178,16 +178,29 @@
       <input id="bPosX" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
       <input id="bPosY" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
       <input id="bPosZ" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <span style="color:#888">rot</span>
-      <input id="bRotX" type="number" step="0.05" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bRotY" type="number" step="0.05" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bRotZ" type="number" step="0.05" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <span style="color:#888">rot°</span>
+      <input id="bRotX" type="number" step="5" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bRotY" type="number" step="5" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bRotZ" type="number" step="5" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
       <span style="color:#888">scl</span>
       <input id="bSclX" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
       <input id="bSclY" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
       <input id="bSclZ" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
     </div>
-    <button id="bDelete" style="width:100%;background:#aa3a3a;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Delete Selected</button>
+    <div id="bColorRow" style="display:none;margin-bottom:8px">
+      <span style="color:#888">color</span>
+      <input id="bColor" type="color" value="#88aaff" style="vertical-align:middle;margin-left:6px;width:42px;height:24px;background:transparent;border:1px solid #4488cc55;border-radius:3px;cursor:pointer">
+      <span id="bColorKind" style="color:#888;margin-left:6px;font-size:10px">material</span>
+    </div>
+    <div id="bIntensityRow" style="display:none;margin-bottom:8px">
+      <span style="color:#888">intensity</span>
+      <input id="bIntensity" type="range" min="0" max="5" step="0.1" value="1.5" style="width:160px;vertical-align:middle;margin-left:6px">
+      <span id="bIntensityVal" style="color:#fff;margin-left:4px">1.5</span>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:4px">
+      <button id="bClone" style="flex:1;background:#4488cc;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Clone (Ctrl+D)</button>
+      <button id="bDelete" style="flex:1;background:#aa3a3a;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Delete (Del)</button>
+    </div>
   </div>
   <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
   <div style="color:#888;font-size:10px;line-height:1.5">
@@ -789,6 +802,7 @@ setTimeout(() => {
   });
 
   // Inspector input handlers — each onchange writes through to the selected mesh
+  const DEG_PER_RAD = 180 / Math.PI;
   function _wireInputs() {
     const ids = ["bPosX","bPosY","bPosZ","bRotX","bRotY","bRotZ","bSclX","bSclY","bSclZ"];
     for (const id of ids) {
@@ -798,14 +812,15 @@ setTimeout(() => {
         const px = parseFloat(document.getElementById("bPosX").value);
         const py = parseFloat(document.getElementById("bPosY").value);
         const pz = parseFloat(document.getElementById("bPosZ").value);
-        const rx = parseFloat(document.getElementById("bRotX").value);
-        const ry = parseFloat(document.getElementById("bRotY").value);
-        const rz = parseFloat(document.getElementById("bRotZ").value);
+        // Rotation: UI shows degrees, builder API takes radians
+        const rxDeg = parseFloat(document.getElementById("bRotX").value);
+        const ryDeg = parseFloat(document.getElementById("bRotY").value);
+        const rzDeg = parseFloat(document.getElementById("bRotZ").value);
         const sx = parseFloat(document.getElementById("bSclX").value);
         const sy = parseFloat(document.getElementById("bSclY").value);
         const sz = parseFloat(document.getElementById("bSclZ").value);
         worldBuilder.setPosition(px, py, pz);
-        worldBuilder.setRotation(rx, ry, rz);
+        worldBuilder.setRotation(rxDeg / DEG_PER_RAD, ryDeg / DEG_PER_RAD, rzDeg / DEG_PER_RAD);
         worldBuilder.setScale(sx, sy, sz);
       });
     }
@@ -813,6 +828,18 @@ setTimeout(() => {
   _wireInputs();
   const delBtn = document.getElementById("bDelete");
   if (delBtn) delBtn.addEventListener("click", () => worldBuilder.deleteSelected());
+  const cloneBtn = document.getElementById("bClone");
+  if (cloneBtn) cloneBtn.addEventListener("click", () => {
+    if (worldBuilder.cloneSelected()) playSfx("blip", 0.4);
+  });
+  const colorEl = document.getElementById("bColor");
+  if (colorEl) colorEl.addEventListener("input", () => worldBuilder.setColor(colorEl.value));
+  const intEl = document.getElementById("bIntensity");
+  if (intEl) intEl.addEventListener("input", () => {
+    const v = parseFloat(intEl.value);
+    worldBuilder.setIntensity(v);
+    document.getElementById("bIntensityVal").textContent = v.toFixed(1);
+  });
 }, 250);
 
 // Each frame: show/hide builder UI + update inspector inputs from the
@@ -829,13 +856,34 @@ function _refreshBuilderUI() {
   inspector.style.display = "block";
   document.getElementById("bSelMeta").textContent =
     (t.meta.primitive ? t.meta.primitive : (t.meta.assetUrl || "mesh"));
-  const set = (id, v) => {
+  const set = (id, v, fixed) => {
     const el = document.getElementById(id);
-    if (el && document.activeElement !== el) el.value = v.toFixed(2);
+    if (el && document.activeElement !== el) el.value = v.toFixed(fixed != null ? fixed : 2);
   };
+  const DEG = 180 / Math.PI;
   set("bPosX", t.pos.x); set("bPosY", t.pos.y); set("bPosZ", t.pos.z);
-  set("bRotX", t.rot.x); set("bRotY", t.rot.y); set("bRotZ", t.rot.z);
+  set("bRotX", t.rot.x * DEG, 0); set("bRotY", t.rot.y * DEG, 0); set("bRotZ", t.rot.z * DEG, 0);
   set("bSclX", t.scale.x); set("bSclY", t.scale.y); set("bSclZ", t.scale.z);
+
+  // Color row — show if the selection has a material or light color
+  const cinfo = worldBuilder.getColor();
+  const colorRow = document.getElementById("bColorRow");
+  if (cinfo) {
+    colorRow.style.display = "block";
+    const cel = document.getElementById("bColor");
+    if (cel && document.activeElement !== cel) cel.value = cinfo.hex;
+    document.getElementById("bColorKind").textContent = cinfo.kind;
+  } else { colorRow.style.display = "none"; }
+
+  // Intensity row — only for lights
+  const ints = worldBuilder.getIntensity();
+  const intRow = document.getElementById("bIntensityRow");
+  if (ints != null) {
+    intRow.style.display = "block";
+    const iel = document.getElementById("bIntensity");
+    if (iel && document.activeElement !== iel) iel.value = ints;
+    document.getElementById("bIntensityVal").textContent = ints.toFixed(1);
+  } else { intRow.style.display = "none"; }
 }
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
@@ -1072,6 +1120,12 @@ addEventListener("keydown", (e) => {
     buildMode = !buildMode;
     if (worldBuilder) worldBuilder.setActive(buildMode);
     if (buildMode && document.pointerLockElement) document.exitPointerLock();
+    e.preventDefault();
+    return;
+  }
+  // Ctrl+D clones the selected object (standard editor convention)
+  if (buildMode && worldBuilder && (e.ctrlKey || e.metaKey) && e.code === "KeyD") {
+    if (worldBuilder.cloneSelected()) playSfx("blip", 0.4);
     e.preventDefault();
     return;
   }

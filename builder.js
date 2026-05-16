@@ -304,11 +304,85 @@
       };
     }
 
+    // ---------- material / light color + intensity ----------
+    // Walk the selected group to find the first Mesh's material (color)
+    // OR a PointLight (color + intensity). Returns null if neither.
+    function _findColorTarget(root) {
+      if (!root || typeof root.traverse !== "function") return null;
+      let mat = null, light = null;
+      root.traverse(function (obj) {
+        if (!mat && obj.material && obj.material.color) mat = obj.material;
+        if (!light && obj.isLight) light = obj;
+      });
+      if (light) return { kind: "light", ref: light };
+      if (mat) return { kind: "material", ref: mat };
+      return null;
+    }
+    function getColor() {
+      if (!selected) return null;
+      const t = _findColorTarget(selected);
+      if (!t || !t.ref.color || typeof t.ref.color.getHexString !== "function") return null;
+      return { hex: "#" + t.ref.color.getHexString(), kind: t.kind };
+    }
+    function setColor(hex) {
+      if (!selected || typeof hex !== "string") return false;
+      const t = _findColorTarget(selected);
+      if (!t) return false;
+      try { t.ref.color.set(hex); } catch (_) { return false; }
+      save();
+      return true;
+    }
+    function getIntensity() {
+      if (!selected || typeof selected.traverse !== "function") return null;
+      let light = null;
+      selected.traverse(function (o) { if (!light && o.isLight) light = o; });
+      return light ? light.intensity : null;
+    }
+    function setIntensity(v) {
+      if (!selected || !isFinite(v) || typeof selected.traverse !== "function") return false;
+      let light = null;
+      selected.traverse(function (o) { if (!light && o.isLight) light = o; });
+      if (!light) return false;
+      light.intensity = Math.max(0, v);
+      save();
+      return true;
+    }
+
+    // ---------- clone selected (Ctrl+D) ----------
+    function cloneSelected(offset) {
+      if (!selected) return null;
+      offset = offset || { x: 1.2, y: 0, z: 0 };
+      if (typeof selected.clone !== "function") return null;
+      let copy;
+      try { copy = selected.clone(true); }
+      catch (_) { return null; }
+      // Materials on cloned meshes are shared by default — clone them
+      // too so color edits on the copy don't affect the original.
+      if (typeof copy.traverse === "function") {
+        copy.traverse((o) => {
+          if (o.material) {
+            try { o.material = o.material.clone(); } catch (_) {}
+          }
+        });
+      }
+      copy.position.set(
+        selected.position.x + offset.x,
+        selected.position.y + offset.y,
+        selected.position.z + offset.z
+      );
+      const meta = Object.assign({}, managed.get(selected) || {});
+      _addManagedMesh(copy, meta);
+      select(copy);
+      return copy;
+    }
+
     return {
       setActive, isActive,
       select, clearSelection, deleteSelected,
       translate, rotateY, scaleBy,
       setPosition, setRotation, setScale, getTransform,
+      getColor, setColor, getIntensity, setIntensity,
+      cloneSelected,
       pickAt,
       add: _addManagedMesh,
       spawnPrimitive,
@@ -317,7 +391,7 @@
       save, loadState, clearState,
       managedCount: () => managed.size,
       getSelected: () => selected,
-      VERSION: "0.2.0-iter137",
+      VERSION: "0.3.0-iter138",
     };
   }
 

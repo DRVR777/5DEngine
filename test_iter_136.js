@@ -139,5 +139,20 @@ ok(t.meta.primitive === "cube", "meta.primitive preserved");
 ok(t.pos.x === 5 && t.pos.y === 2, "transform pos");
 ok(t.scale.y === 2, "transform scale");
 
+// ---- iter 138: clone + color + intensity API surface ----
+ok(typeof builder.cloneSelected === "function", "cloneSelected exported");
+ok(typeof builder.getColor === "function", "getColor exported");
+ok(typeof builder.setColor === "function", "setColor exported");
+ok(typeof builder.getIntensity === "function", "getIntensity exported");
+ok(typeof builder.setIntensity === "function", "setIntensity exported");
+
+// getColor on a mesh without traverse method returns null safely
+ok(builder.getColor() === null || builder.getColor() === null, "getColor safe with mock mesh");
+
+// setColor without selection → false
+builder.clearSelection();
+ok(builder.setColor("#ff0000") === false, "setColor without selection false");
+ok(builder.cloneSelected() === null, "cloneSelected without selection null");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

@@ -20,6 +20,13 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 9 (builder: clone + color + degrees, iter 138)
+- [x] **Clone selected** — Ctrl+D or [Clone] button duplicates the selected object with a 1.2m offset, auto-selects the copy. Materials are deep-cloned so color edits don't bleed onto the original.
+- [x] **Material color picker** — inspector shows a color swatch + native picker when the selection has a material; live edits write through to the mesh.
+- [x] **Light color + intensity** — when a 💡 Light primitive is selected, the picker drives the PointLight color and a slider (0..5) drives intensity in real time.
+- [x] **Rotation in degrees** — inspector rotation fields now show 0–360° (not radians); UI converts at the input boundary. Step 5° per arrow click.
+- [x] Tests bumped to 54 passing (added clone/color/intensity surface + safety checks for the non-THREE mock).
+
 ## ✅ Done — Session 8 (builder UX: inspector + drag + spawn, iter 137)
 - [x] **Inspector panel** (top-right, only in build mode): live pos/rot/scale fields for the selected object; editing any field writes back to the mesh and saves.
 - [x] **Click-and-drag-to-move** — click an already-selected object → LMB-drag slides it along the ground plane (Y preserved). Single-click on an unselected object selects it instead.
