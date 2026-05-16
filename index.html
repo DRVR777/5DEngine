@@ -529,7 +529,7 @@
     LMB=select · drag=move · Del=remove<br>
     arrows/PgUp-Dn nudge · [/] rotY<br>
     +/- scale · Ctrl+D clone · B exit<br>
-    <span style="color:#00ccff">K</span>=config editor · <span style="color:#00ccff">P</span>=char editor
+    <span style="color:#00ccff">K</span>=config · <span style="color:#00ccff">O</span>=environment · <span style="color:#00ccff">P</span>=char editor
   </div>
 </div>
 
@@ -544,6 +544,75 @@
   <div id="cfgMsg" style="color:#4488aa;font-size:10px;margin-top:6px;min-height:14px"></div>
 </div>
 
+<!-- Environment / Post-FX panel (O in build mode) -->
+<div id="envPanel" style="display:none;position:fixed;top:10px;right:260px;width:240px;max-height:88vh;overflow-y:auto;
+  background:rgba(2,8,22,0.96);border:1px solid rgba(0,200,255,0.4);border-radius:8px;
+  color:#b8e8ff;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:11px;
+  padding:14px;z-index:60;box-shadow:0 0 30px rgba(0,200,255,0.2)">
+  <div style="color:#00ccff;font-weight:bold;letter-spacing:0.12em;font-size:11px;margin-bottom:12px">⬡ ENVIRONMENT</div>
+
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">SKYBOX</div>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px" id="skyboxBtns">
+    <button onclick="window._setSkybox('day')"    style="background:rgba(135,206,235,0.15);border:1px solid rgba(0,200,255,0.3);color:#b8e8ff;border-radius:3px;padding:3px 7px;cursor:pointer;font-size:10px">☀ Day</button>
+    <button onclick="window._setSkybox('sunset')" style="background:rgba(255,120,50,0.12);border:1px solid rgba(255,120,50,0.3);color:#ffaa66;border-radius:3px;padding:3px 7px;cursor:pointer;font-size:10px">🌅 Sunset</button>
+    <button onclick="window._setSkybox('night')"  style="background:rgba(10,10,40,0.4);border:1px solid rgba(100,100,200,0.3);color:#8899cc;border-radius:3px;padding:3px 7px;cursor:pointer;font-size:10px">🌙 Night</button>
+    <button onclick="window._setSkybox('holo')"   style="background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.4);color:#00ccff;border-radius:3px;padding:3px 7px;cursor:pointer;font-size:10px">⬡ Holo</button>
+    <button onclick="window._setSkybox('space')"  style="background:rgba(5,5,20,0.5);border:1px solid rgba(100,50,200,0.35);color:#aa88ff;border-radius:3px;padding:3px 7px;cursor:pointer;font-size:10px">🪐 Space</button>
+  </div>
+
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">FOG</div>
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
+    <label style="color:#778899;font-size:9px">Near <input id="fogNear" type="range" min="1" max="80" step="1" value="40"
+      style="width:100px;accent-color:#00ccff"
+      oninput="scene.fog&&(scene.fog.near=+this.value);document.getElementById('fogNearV').textContent=this.value">
+      <span id="fogNearV" style="color:#ffd166">40</span></label>
+    <label style="color:#778899;font-size:9px">Far  <input id="fogFar"  type="range" min="20" max="400" step="5" value="140"
+      style="width:100px;accent-color:#00ccff"
+      oninput="scene.fog&&(scene.fog.far=+this.value);document.getElementById('fogFarV').textContent=this.value">
+      <span id="fogFarV" style="color:#ffd166">140</span></label>
+    <label style="color:#778899;font-size:9px">Density <input id="fogDens" type="range" min="0" max="1" step="0.01" value="0"
+      style="width:100px;accent-color:#00ccff"
+      oninput="window._setFogDensity(+this.value);document.getElementById('fogDensV').textContent=this.value">
+      <span id="fogDensV" style="color:#ffd166">0</span></label>
+  </div>
+
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">BLOOM (post-FX)</div>
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
+    <label style="color:#778899;font-size:9px">Strength <input id="bloomStr" type="range" min="0" max="3" step="0.05" value="0.55"
+      style="width:100px;accent-color:#00ccff"
+      oninput="window._bloomPass&&(window._bloomPass.strength=+this.value);document.getElementById('bloomStrV').textContent=this.value">
+      <span id="bloomStrV" style="color:#ffd166">0.55</span></label>
+    <label style="color:#778899;font-size:9px">Radius   <input id="bloomRad" type="range" min="0" max="2" step="0.05" value="0.40"
+      style="width:100px;accent-color:#00ccff"
+      oninput="window._bloomPass&&(window._bloomPass.radius=+this.value);document.getElementById('bloomRadV').textContent=this.value">
+      <span id="bloomRadV" style="color:#ffd166">0.40</span></label>
+    <label style="color:#778899;font-size:9px">Threshold <input id="bloomThr" type="range" min="0" max="1" step="0.02" value="0.82"
+      style="width:100px;accent-color:#00ccff"
+      oninput="window._bloomPass&&(window._bloomPass.threshold=+this.value);document.getElementById('bloomThrV').textContent=this.value">
+      <span id="bloomThrV" style="color:#ffd166">0.82</span></label>
+  </div>
+
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">AMBIENT LIGHT</div>
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
+    <label style="color:#778899;font-size:9px">Intensity <input id="ambInt" type="range" min="0" max="3" step="0.05" value="0.9"
+      style="width:100px;accent-color:#00ccff"
+      oninput="window._ambLight&&(window._ambLight.intensity=+this.value);document.getElementById('ambIntV').textContent=this.value">
+      <span id="ambIntV" style="color:#ffd166">0.9</span></label>
+  </div>
+
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">SUN / DIRECTIONAL</div>
+  <div style="display:flex;flex-direction:column;gap:5px">
+    <label style="color:#778899;font-size:9px">Intensity <input id="sunInt" type="range" min="0" max="4" step="0.1" value="1.2"
+      style="width:100px;accent-color:#00ccff"
+      oninput="window._sunLight&&(window._sunLight.intensity=+this.value);document.getElementById('sunIntV').textContent=this.value">
+      <span id="sunIntV" style="color:#ffd166">1.2</span></label>
+    <label style="color:#778899;font-size:9px">Azimuth  <input id="sunAz" type="range" min="0" max="360" step="1" value="45"
+      style="width:100px;accent-color:#00ccff"
+      oninput="window._rotateSun(+this.value);document.getElementById('sunAzV').textContent=this.value+'°'">
+      <span id="sunAzV" style="color:#ffd166">45°</span></label>
+  </div>
+</div>
+
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
@@ -556,6 +625,7 @@
 
 <script src="./local_db_bridge.js"></script>
 <script src="./particle_system.js"></script>
+<script src="./trigger_zones.js"></script>
 <script src="./game_config.js"></script>
 <script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
@@ -1041,6 +1111,29 @@ scene.fog = new THREE.Fog(0x87ceeb, 40, 140);
 // Initialize ParticleSystem module with the live scene
 if (typeof ParticleSystem !== "undefined") ParticleSystem.init(THREE, scene);
 
+// Initialize TriggerZones with the live scene (debug wireframes shown in-world)
+if (typeof TriggerZones !== "undefined") {
+  TriggerZones.init(THREE, scene);
+  // Example: shop zone — heal player on enter
+  TriggerZones.addBox("zone_shop", { minU:-10, maxU:-4, minV:-6, maxV:0, minY:0, maxY:5 }, {
+    onEnter: (eid) => { if (eid === "hero") showToast("SHOP — Press E to browse", "info", 2500); },
+    onExit:  (eid) => { if (eid === "hero") showToast("Left SHOP", "info", 1500); },
+  }, { label: "SHOP", color: 0x00ffaa, debug: true });
+  // Combat zone — give a "DANGER" warning
+  TriggerZones.addBox("zone_danger", { minU:10, maxU:30, minV:10, maxV:30, minY:0, maxY:8 }, {
+    onEnter: (eid) => { if (eid === "hero") showToast("⚠ DANGER ZONE", "danger", 2000); },
+  }, { label: "DANGER", color: 0xff4466, debug: true });
+  // Listen for any zone events on window for scripting
+  window.addEventListener("zoneEnter", (e) => {
+    const { entityId, zoneId } = e.detail;
+    if (typeof ScriptRunner !== "undefined") ScriptRunner.dispatchZoneEvent("enter", zoneId, entityId);
+  });
+  window.addEventListener("zoneExit", (e) => {
+    const { entityId, zoneId } = e.detail;
+    if (typeof ScriptRunner !== "undefined") ScriptRunner.dispatchZoneEvent("exit", zoneId, entityId);
+  });
+}
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
@@ -1057,7 +1150,9 @@ addEventListener("resize", () => {
 });
 
 // Lighting: soft hemi + a key sun
-scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 0.7));
+const _ambLight = new THREE.AmbientLight(0xffffff, 0.9);
+scene.add(_ambLight);
+window._ambLight = _ambLight;
 const sun = new THREE.DirectionalLight(0xffffff, 1.1);
 sun.position.set(20, 30, 10);
 sun.castShadow = true;
@@ -1065,6 +1160,46 @@ sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
 sun.shadow.camera.top  =  40; sun.shadow.camera.bottom = -40;
 scene.add(sun);
+window._sunLight = sun;
+
+// Skybox presets
+const _skyboxPresets = {
+  day:    { bg: 0x87ceeb, fog: 0x87ceeb, fogNear: 40, fogFar: 140, ambColor: 0xffffff, ambInt: 0.9, sunColor: 0xffffff, sunInt: 1.1 },
+  sunset: { bg: 0xff7744, fog: 0xee6633, fogNear: 20, fogFar: 90,  ambColor: 0xff9966, ambInt: 0.8, sunColor: 0xff8800, sunInt: 1.4 },
+  night:  { bg: 0x060a1a, fog: 0x060a1a, fogNear: 15, fogFar: 60,  ambColor: 0x223366, ambInt: 0.3, sunColor: 0x3366aa, sunInt: 0.4 },
+  holo:   { bg: 0x010810, fog: 0x010810, fogNear: 30, fogFar: 100, ambColor: 0x00ccff, ambInt: 0.4, sunColor: 0x00ffaa, sunInt: 0.6 },
+  space:  { bg: 0x000008, fog: 0x000008, fogNear: 60, fogFar: 300, ambColor: 0x8866ff, ambInt: 0.2, sunColor: 0xffffff, sunInt: 2.0 },
+};
+
+window._setSkybox = function(name) {
+  const p = _skyboxPresets[name];
+  if (!p) return;
+  scene.background = new THREE.Color(p.bg);
+  if (scene.fog) { scene.fog.color.set(p.fog); scene.fog.near = p.fogNear; scene.fog.far = p.fogFar; }
+  _ambLight.color.set(p.ambColor); _ambLight.intensity = p.ambInt;
+  sun.color.set(p.sunColor); sun.intensity = p.sunInt;
+  // Update env panel sliders
+  const fn = document.getElementById("fogNear"), ff = document.getElementById("fogFar");
+  const ai = document.getElementById("ambInt"),  si = document.getElementById("sunInt");
+  if (fn) { fn.value = p.fogNear; document.getElementById("fogNearV").textContent = p.fogNear; }
+  if (ff) { ff.value = p.fogFar;  document.getElementById("fogFarV").textContent  = p.fogFar;  }
+  if (ai) { ai.value = p.ambInt;  document.getElementById("ambIntV").textContent  = p.ambInt;  }
+  if (si) { si.value = p.sunInt;  document.getElementById("sunIntV").textContent  = p.sunInt;  }
+  showToast(`Skybox: ${name}`, "info", 1500);
+};
+
+window._setFogDensity = function(d) {
+  if (d > 0) {
+    scene.fog = new THREE.FogExp2(scene.background ? scene.background.getHex() : 0x87ceeb, d * 0.04);
+  } else {
+    scene.fog = new THREE.Fog(scene.background ? scene.background.getHex() : 0x87ceeb, 40, 140);
+  }
+};
+
+window._rotateSun = function(azimuthDeg) {
+  const rad = azimuthDeg * Math.PI / 180;
+  sun.position.set(Math.sin(rad) * 30, 30, Math.cos(rad) * 30);
+};
 
 // Procedural ground texture — checker + noise so the player can see motion
 function makeGroundTexture(size=256) {
@@ -2574,6 +2709,13 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
+  // O key: toggle environment/post-FX panel in build mode
+  if (buildMode && e.code === "KeyO") {
+    const ep = document.getElementById("envPanel");
+    if (ep) ep.style.display = ep.style.display === "none" ? "block" : "none";
+    e.preventDefault();
+    return;
+  }
   // B toggles BUILD MODE (freecam + editor)
   if (e.code === "KeyB" && window.Builder) {
     buildMode = !buildMode;
@@ -3286,6 +3428,16 @@ function tick() {
   // Tick particles
   _tickParticles(dt);
   if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
+  // Trigger zones — check hero + all enemies
+  if (typeof TriggerZones !== "undefined") {
+    const hz = world.players.get("hero");
+    const ents = [{ id: "hero", u: hz.u, v: hz.v, y: hz.y || 0 }];
+    for (const en of enemies) if (!en.dead) {
+      const ep = world.players.get(en.id);
+      if (ep) ents.push({ id: en.id, u: ep.u, v: ep.v, y: 0 });
+    }
+    TriggerZones.tick(ents, dt);
+  }
 
   // Tick bullets (substep dt to avoid tunneling past enemy)
   pistolCooldown = Math.max(0, pistolCooldown - dt);
