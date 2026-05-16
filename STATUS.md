@@ -93,6 +93,8 @@
 | 83   | npc_routing.js: A* + blocked nodes + mid-route replan + heap     | 38   | iter83  |
 | 84   | mission_dsl.js: 9 objective kinds + cinematics hooks + branches  | 45   | iter84  |
 | 85   | photo_export.js: pure-JS PNG encode + tEXt metadata + clipboard  | 35   | iter85  |
+| 86   | leaderboards.js: per-board high/low + 5 time windows + filters   | 44   | iter86  |
+| 87   | daily_challenges.js: deterministic-by-day picks + grant ledger   | 41   | iter87  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -103,12 +105,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 86** — Leaderboards (per-mission high-score store + filter).
-- **iter 87** — Daily challenges (deterministic seed + reward + ledger).
-- **iter 88** — Minigame harness (start/finish/score events + arcade).
+- **iter 88** — Minigame harness (start/finish/score events + arcade + retry).
 - **iter 89** — Cooperative missions (shared mission progress sync).
-- **iter 90** — Mod loader (signed manifests + sandboxed exec).
+- **iter 90** — Mod loader (signed manifests + sandboxed exec via vm).
 - **iter 91** — Replay export (serialize ride_along buffer + reimport).
+- **iter 92** — Stat aggregator (kills/distance/missions/playtime).
+- **iter 93** — Notification system (toast queue + categories).
 
 ## Wakeup checklist
 
