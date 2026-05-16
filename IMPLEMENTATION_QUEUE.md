@@ -20,6 +20,15 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 3 (camera spine + in-world screens, iter 131)
+- [x] **camera_spine.js** — pure module mapping camDist→4 named zones (INSIDE/FIRST_PERSON/THIRD_PERSON/BIRD_VIEW) per conviction.pdf §5.1. Per-zone params: distance, heightOffset, heroVisible, heroOpacity, inputMode, allowShooting, fovBias.
+- [x] **screen_mesh.js** — any 3D plane can become a clickable HTML-rendered screen via CanvasTexture; raycast UV → DOM hit-test; SIZE_PRESETS for small/big/jumbotron(50ft)/colossal(1000ft).
+- [x] **50ft jumbotron in-world** — placed at city edge, paints hero pos, coins, HP, current camera zone live each frame.
+- [x] **1000ft sky screen** — way up in the sky, scrolling marquee + score, visible from anywhere.
+- [x] Spine wired into camera positioning — hero visibility now zone-driven (INSIDE/FP hide hero, TP/BIRD show).
+- [x] HUD shows current camera zone + localT percentage.
+- [x] 50 tests passing (test_iter_131.js).
+
 ## ✅ Done — Session 2 (devices/wires + UX polish, iter 130)
 - [x] **A/D inversion fixed** (user said W/S correct but A/D reversed)
 - [x] **Right-click to aim** — camera pulls in 40%, arms raise to sighting pose
@@ -38,16 +47,13 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [ ] Honest integration audit — which of the 130+ iter modules are actually wired into `index.html` vs sitting orphan
 
 ## 🎯 Next session (queued)
-- [ ] **`screen_mesh.js`** — any 3D surface can be a `screen_surface`. Press E → enter "mouse-mode" on that surface, raycast UV → DOM hit-test, click anything. Big-screen TVs, projector walls, etc. (Maps onto conviction.pdf §6.1.)
-- [ ] **Camera spine — 4 named zones** per conviction.pdf §5.1:
-  - INSIDE (0–12%): camera at character center, fades transparent
-  - FIRST_PERSON (12–30%): just outside surface, FPS view
-  - THIRD_PERSON (30–60%): orbitable, wall-collision raycast
-  - BIRD_VIEW (60–100%): far back, flying mode activates
-- [ ] **CD / USB as inventory pickups** that you carry — currently devices live in the world. Player should be able to pick up a USB, walk to a computer, insert it via UI.
+- [ ] **Screen-to-DOM interactivity** — currently screens are render-only. Wire E + raycast → SM.hitTest → invoke the region's onClick. Should let the player "click" buttons painted on the jumbotron.
+- [ ] **Mouse-mode on big screens** — user spec: "switch to mouse mode" on the 50ft/1000ft screens so the cursor is unlocked and movement controls the screen instead of the camera.
+- [ ] **Mirror computer's monitor content onto a 3D in-world monitor mesh** — wire the device-graph's `mon1` to its physical mesh via screen_mesh.
+- [ ] **CD / USB as inventory pickups** that you carry — currently devices live in the world. Player should pick up a USB, walk to a computer, insert it via UI.
 - [ ] **GLTFLoader integration** + `assets/` dir — replace placeholder block meshes with the `.glb` files from `ASSET_LIST.md`
-- [ ] **In-world screens** that anyone can wire to a computer (extra-large meshes the user mentioned: 50ft, 1000ft)
 - [ ] **FP camera reticle / FOV widen on aim** (currently only camDist shrinks; FOV is static)
+- [ ] **Snap-to-zone keybinds** — Q=FIRST_PERSON, Z=BIRD_VIEW using CameraSpine.zoomForZone + lerpZoom
 - [ ] **test_iter_109.js flaky decay/clamp** — reputation system clamps right but timing of `_applyDecay` between `standing()` and the actual `delta` is causing intermittent mismatches under load. Fix: hoist `now` once per call and reuse.
 
 ## 📚 Architectural debt from the two PDFs (medium-term)

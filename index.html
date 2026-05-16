@@ -178,6 +178,8 @@
 <script src="./health.js"></script>
 <script src="./devices.js"></script>
 <script src="./wires.js"></script>
+<script src="./camera_spine.js"></script>
+<script src="./screen_mesh.js"></script>
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"
@@ -607,6 +609,88 @@ if (deviceBus) {
   devicePositions.set("radioB", new THREE.Vector3(RADIO_B.u, RADIO_B.y, RADIO_B.v));
 
   _rebuildDeviceWires();
+}
+
+// ---- in-world screens (screen_mesh.js) -------------------------------
+// Two giant screens per user spec: a 50ft jumbotron and a 1000ft sky screen.
+// Both render live game state into a canvas texture; press E within range
+// to interact (raycast UV → DOM hit-test). Wired to device-graph monitors.
+const worldScreens = new Map();
+let jumbotronScreen = null;
+let skyScreen = null;
+if (window.ScreenMesh) {
+  const SM = window.ScreenMesh;
+  // 50ft jumbotron — place at the city edge, facing the player spawn
+  jumbotronScreen = SM.createScreen({
+    id: "jumbotron50",
+    resolutionW: 768, resolutionH: 460,
+    widthM: SM.SIZE_PRESETS.jumbotron.widthM,
+    heightM: SM.SIZE_PRESETS.jumbotron.heightM,
+    paint: (ctx, sc) => {
+      ctx.fillStyle = "#020514";
+      ctx.fillRect(0, 0, sc.resolutionW, sc.resolutionH);
+      // Title
+      ctx.fillStyle = "#ffd166";
+      ctx.font = "bold 38px monospace";
+      ctx.fillText("★ DWRLD STADIUM ★", 100, 60);
+      ctx.fillStyle = "#88ddff";
+      ctx.font = "22px monospace";
+      ctx.fillText("LIVE FROM 5DENGINE — IT'S YOU", 120, 110);
+      ctx.fillStyle = "#ff5d5d";
+      ctx.font = "26px monospace";
+      try {
+        const hp = world.players.get("hero");
+        ctx.fillText("PLAYER  POS  ( " + hp.u.toFixed(1) + " , " + hp.v.toFixed(1) + " )", 80, 180);
+        ctx.fillText("COINS   " + score + "  /  " + pickups.length, 80, 230);
+        ctx.fillText("HEALTH  " + Math.round(heroHp) + "  /  " + HERO_MAX_HP, 80, 280);
+        const z = sc.state.spineZone || "—";
+        ctx.fillStyle = "#66cc66";
+        ctx.fillText("CAMERA  " + z, 80, 330);
+      } catch (_) {}
+      // Footer
+      ctx.fillStyle = "#888";
+      ctx.font = "16px monospace";
+      ctx.fillText("press E within 6m to interact  ·  any surface = screen", 80, sc.resolutionH - 30);
+    },
+  });
+  const jumboMesh = SM.bindToThree(THREE, jumbotronScreen, { doubleSided: false });
+  if (jumboMesh) {
+    jumboMesh.position.set(20, jumbotronScreen.heightM / 2 + 1, 18);
+    jumboMesh.rotation.y = -Math.PI / 2.2;
+    scene.add(jumboMesh);
+    worldScreens.set(jumbotronScreen.id, { screen: jumbotronScreen, mesh: jumboMesh });
+  }
+
+  // 1000ft sky screen — way up high, visible from anywhere
+  skyScreen = SM.createScreen({
+    id: "sky1000",
+    resolutionW: 1024, resolutionH: 512,
+    widthM: SM.SIZE_PRESETS.colossal.widthM,
+    heightM: SM.SIZE_PRESETS.colossal.heightM,
+    paint: (ctx, sc) => {
+      const t = (Date.now() / 1000) % 60;
+      ctx.fillStyle = "#000814";
+      ctx.fillRect(0, 0, sc.resolutionW, sc.resolutionH);
+      // huge scrolling marquee
+      ctx.fillStyle = "#ffcc00";
+      ctx.font = "bold 96px monospace";
+      const msg = "▶ DWRLD ◀  ◆  WIRE THE WORLD TOGETHER  ◆  ";
+      const x0 = -(t * 220) % (msg.length * 56);
+      ctx.fillText(msg + msg, x0, sc.resolutionH * 0.45);
+      ctx.fillStyle = "#88ddff";
+      ctx.font = "bold 64px monospace";
+      try {
+        ctx.fillText("COINS: " + score + " / " + pickups.length,
+                     sc.resolutionW * 0.3, sc.resolutionH * 0.75);
+      } catch (_) {}
+    },
+  });
+  const skyMesh = SM.bindToThree(THREE, skyScreen, { doubleSided: true });
+  if (skyMesh) {
+    skyMesh.position.set(0, 60, -150);   // up in the sky, behind the world
+    scene.add(skyMesh);
+    worldScreens.set(skyScreen.id, { screen: skyScreen, mesh: skyMesh });
+  }
 }
 
 // ---- input ----
@@ -1099,10 +1183,18 @@ function tick() {
   // with a side offset (GTA-style over-the-shoulder). L toggles shoulder.
   // Aim-mode pulls camera in (~60% as far) for an over-the-shoulder ADS feel.
   const aimMul = 1 - 0.4 * aimAmt;
+  // camera_spine.js — map camDist to one of 4 named zones for consistent
+  // visibility/input rules. Aim shrinks the effective zoom proportionally.
+  const spineZoom = Math.max(0, Math.min(1, camDist / CAM_DIST_MAX)) * aimMul;
+  const spine = (window.CameraSpine && window.CameraSpine.evaluate)
+    ? window.CameraSpine.evaluate(spineZoom, { camDistMax: CAM_DIST_MAX })
+    : null;
   const dist = inCar ? Math.max(camDist, 6) : camDist * aimMul;
-  const firstPerson = !inCar && dist < 0.5;
-  // Hero is hidden in first person so we don't see our own head from inside
-  heroGroup.visible = !inCar && !firstPerson;
+  // Zone-driven visibility: spine says when the hero mesh should be hidden
+  // (INSIDE + FIRST_PERSON). Falls back to old behavior if spine not loaded.
+  const spineZone = spine ? spine.zone : null;
+  const firstPerson = !inCar && (spineZone === "INSIDE" || spineZone === "FIRST_PERSON" || dist < 0.5);
+  heroGroup.visible = !inCar && (spine ? spine.params.heroVisible : !firstPerson);
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
   // Camera offset back from hero: -sin(yaw), -cos(yaw) × dist
@@ -1182,7 +1274,8 @@ function tick() {
     (enemy.dead ? `<br><span style="color:#888">enemy dead</span>` :
                   `<br>enemy <b>${enemy.hp}/${enemy.maxHp}</b>`) +
     (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
-    (computerOpen ? `<br><span style="color:#44ccff">★ computer open (iter38 wires takeover)</span>` : "");
+    (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
+    (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "");
 
   // Clear damage-flash overlay after its lifetime
   if (damageFlashUntil > 0 && performance.now() > damageFlashUntil) {
@@ -1192,6 +1285,16 @@ function tick() {
 
   // mini-map (top-right)
   drawMinimap();
+
+  // Refresh in-world screens (jumbotron, sky screen) — paint live game state
+  // into the canvas, mark texture dirty so THREE re-uploads it.
+  if (window.ScreenMesh) {
+    if (jumbotronScreen) {
+      window.ScreenMesh.setState(jumbotronScreen, { spineZone: spineZone });
+      window.ScreenMesh.update(jumbotronScreen);
+    }
+    if (skyScreen) window.ScreenMesh.update(skyScreen);
+  }
 
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
