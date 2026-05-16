@@ -78,14 +78,15 @@
 | 69   | visibility.js: ambient + light field + carry-torch + classify  | 38    | iter69  |
 | 70   | music_selector.js: 6 contexts + palette + crossfade + fallbacks | 48   | iter70  |
 | 71   | apps/minimap_markers: 6 kinds + filters + add/remove/select    | 35    | iter71  |
+| 72   | emotes.js: 13 emotes + 20 emojis + trigger/cancel/tick/expire  | 46    | iter72  |
 
-**Total: 2149/2149 tests passing.**
+**Total: 2195/2195 tests passing.**
 
 ## Up next
 
-- **iter 72** — Emoji + emote system (player gestures).
 - **iter 73** — Building destruction physics.
 - **iter 74** — Procedural city generator (WFC tiles).
+- **iter 75** — Cinematics system (cutscene timeline).
 
 ## Wakeup checklist
 
