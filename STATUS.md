@@ -37,14 +37,18 @@
 | 28   | computer.js: in-game PC entity, sit/stand/launch + fileSystem  | 39    | iter28  |
 | 29   | app_framework.js: register/instantiate/render/input/ipc        | 23    | iter29  |
 | 30   | apps/object_studio.js + apps/friend_finder.js (with IPC)       | 27    | iter30  |
+| 31   | game_mode.js: survival/creative/peaceful as data rules         | 34    | iter31  |
+| 32   | interest.js: 3-tier interest mgmt (80m/300m/∞ at 60/5/1Hz)     | 28    | iter32  |
+| 33   | domain.js: sector grid + HINT/PREPARE/COMMIT handoff           | 27    | iter33  |
 
-**Total: 673/673 tests passing.**
+**Total: 762/762 tests passing.**
 
-## Up next (from MASTER_PLAN.md)
+## Up next (continuing roadmap — optimization & polish)
 
-- **iter 31** — Survival mode integration.
-- **iter 32** — Creative mode integration.
-- **iter 33+** — Optimization & polish.
+- **iter 34** — Manifest signing (Ed25519 placeholder per CWP v1.0).
+- **iter 35** — Content-addressed assets (blake3 placeholder).
+- **iter 36** — App store / discovery for the in-game computer.
+- **iter 37+** — Browser integration + visual polish in index.html.
 
 ## Wakeup checklist
 
