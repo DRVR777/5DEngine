@@ -54,7 +54,15 @@
     let active = false;
     let selected = null;
     let outline = null;          // wireframe helper
+    let gizmoGroup = null;       // 3-axis arrow gizmo
+    let gizmoMesh = null;        // which mesh the gizmo belongs to
     const managed = new Map();   // mesh → meta {id, assetUrl, assetData, assetExt}
+
+    // ---------- axis-locked drag ----------
+    let axisDragging = false;
+    let axisDragAxis = null;
+    let axisDragStartPos = null;   // THREE.Vector3 world hit on drag start
+    let axisDragStartMeshPos = null;  // mesh.position snapshot
 
     // ---------- undo / redo (command pattern) ----------
     const undoStack = [];
@@ -91,7 +99,7 @@
 
     function _outlineFor(mesh) {
       if (outline) { scene.remove(outline); outline.geometry.dispose(); outline.material.dispose(); outline = null; }
-      if (!mesh) return;
+      if (!mesh) { _gizmoFor(null); return; }
       try {
         const box = new THREE.Box3().setFromObject(mesh);
         const size = new THREE.Vector3(); box.getSize(size);
@@ -102,7 +110,116 @@
         outline.position.copy(center);
         scene.add(outline);
       } catch (e) { /* swallow */ }
+      _gizmoFor(mesh);
     }
+
+    function _gizmoFor(mesh) {
+      if (gizmoGroup) { scene.remove(gizmoGroup); gizmoGroup = null; gizmoMesh = null; }
+      if (!mesh) return;
+      try {
+        const box = new THREE.Box3().setFromObject(mesh);
+        const center = new THREE.Vector3(); box.getCenter(center);
+        const size   = new THREE.Vector3(); box.getSize(size);
+        const len = Math.max(1.5, size.length() * 0.5 + 0.5);
+        gizmoGroup = new THREE.Group();
+        gizmoGroup.position.copy(center);
+        const origin = new THREE.Vector3(0, 0, 0);
+        function _arrow(dir, color, axis) {
+          const a = new THREE.ArrowHelper(dir, origin, len, color, len * 0.22, len * 0.13);
+          a.userData.gizmoAxis = axis;
+          if (a.line)  a.line.userData.gizmoAxis = axis;
+          if (a.cone)  a.cone.userData.gizmoAxis = axis;
+          return a;
+        }
+        gizmoGroup.add(_arrow(new THREE.Vector3(1, 0, 0), 0xff2200, "x"));
+        gizmoGroup.add(_arrow(new THREE.Vector3(0, 1, 0), 0x22cc00, "y"));
+        gizmoGroup.add(_arrow(new THREE.Vector3(0, 0, 1), 0x2244ff, "z"));
+        scene.add(gizmoGroup);
+        gizmoMesh = mesh;
+      } catch (e) { /* swallow */ }
+    }
+
+    function _repositionGizmo() {
+      if (!gizmoGroup || !gizmoMesh) return;
+      try {
+        const box = new THREE.Box3().setFromObject(gizmoMesh);
+        const center = new THREE.Vector3(); box.getCenter(center);
+        gizmoGroup.position.copy(center);
+      } catch (e) {}
+    }
+
+    function pickGizmoAxis(ndc) {
+      if (!gizmoGroup) return null;
+      try {
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), camera);
+        const hits = ray.intersectObjects(gizmoGroup.children, true);
+        for (const hit of hits) {
+          let o = hit.object;
+          while (o && !o.userData.gizmoAxis) o = o.parent;
+          if (o && o.userData.gizmoAxis) return o.userData.gizmoAxis;
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function _mouseToPlane(ndc) {
+      if (!selected) return null;
+      try {
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), camera);
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, selected.position);
+        const pt = new THREE.Vector3();
+        return ray.ray.intersectPlane(plane, pt) ? pt : null;
+      } catch (e) { return null; }
+    }
+
+    function startAxisDrag(axis, ndc) {
+      if (!selected) return false;
+      axisDragging = true;
+      axisDragAxis = axis;
+      axisDragStartPos = _mouseToPlane(ndc);
+      axisDragStartMeshPos = { x: selected.position.x, y: selected.position.y, z: selected.position.z };
+      return true;
+    }
+
+    function updateAxisDrag(ndc) {
+      if (!axisDragging || !selected || !axisDragStartPos) return false;
+      const cur = _mouseToPlane(ndc);
+      if (!cur) return false;
+      const delta = cur.clone().sub(axisDragStartPos);
+      const s = axisDragStartMeshPos;
+      if (axisDragAxis === "x") selected.position.x = s.x + delta.x;
+      else if (axisDragAxis === "y") selected.position.y = s.y + delta.y;
+      else if (axisDragAxis === "z") selected.position.z = s.z + delta.z;
+      if (outline) outline.position.copy(selected.position);
+      _repositionGizmo();
+      return true;
+    }
+
+    function endAxisDrag() {
+      if (!axisDragging) return;
+      axisDragging = false;
+      if (selected && axisDragStartMeshPos) {
+        const mesh = selected;
+        const old = axisDragStartMeshPos;
+        const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+        if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
+          _pushOp(
+            () => { mesh.position.set(old.x, old.y, old.z); if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
+            () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
+            "axisDrag"
+          );
+        }
+        save();
+      }
+      axisDragStartPos = null;
+      axisDragStartMeshPos = null;
+    }
+
+    function isAxisDragging() { return axisDragging; }
 
     function select(mesh) {
       selected = mesh;
@@ -134,10 +251,11 @@
       mesh.position.x += dx; mesh.position.y += dy; mesh.position.z += dz;
       const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
       if (outline) outline.position.set(mesh.position.x, mesh.position.y, mesh.position.z);
+      _repositionGizmo();
       save();
       _pushOp(
-        () => { mesh.position.set(old.x, old.y, old.z); if (outline) outline.position.copy(mesh.position); save(); },
-        () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline) outline.position.copy(mesh.position); save(); },
+        () => { mesh.position.set(old.x, old.y, old.z); if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
+        () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
         "translate"
       );
     }
@@ -183,16 +301,31 @@
       return mesh;
     }
 
-    // Pick under a NDC point (e.g. {x: 0, y: 0} = screen center)
-    function pickAt(ndc) {
+    // Pick under a NDC point (e.g. {x: 0, y: 0} = screen center).
+    // opts.allScene: also raycast scene.children so world objects become selectable.
+    // Non-managed hits are auto-registered with { worldObject: true } so they get
+    // a gizmo but are excluded from save/serialization.
+    function pickAt(ndc, opts) {
+      opts = opts || {};
       const ray = new THREE.Raycaster();
       ray.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), camera);
-      const hits = ray.intersectObjects(Array.from(managed.keys()), true);
+      const managedArr = Array.from(managed.keys());
+      let targets = managedArr;
+      if (opts.allScene && scene.children && scene.children.length) {
+        const extra = scene.children.filter(c => !managed.has(c));
+        targets = managedArr.concat(extra);
+      }
+      const hits = ray.intersectObjects(targets, true);
       if (!hits.length) return null;
-      // Walk up to the top-level managed mesh
       let m = hits[0].object;
       while (m.parent && !managed.has(m) && m.parent !== scene) m = m.parent;
-      return managed.has(m) ? m : null;
+      if (managed.has(m)) return m;
+      if (opts.allScene && m && m.parent === scene && m !== scene) {
+        // Auto-register as world object — selectable but not serialized
+        managed.set(m, { worldObject: true });
+        return m;
+      }
+      return null;
     }
 
     function setActive(on) {
@@ -242,11 +375,20 @@
     function rehydrate(specs) {
       if (!Array.isArray(specs)) return { ok: false, reason: "bad_specs" };
       clearScene();
-      let restored = 0, skipped = 0;
+      let restored = 0, skipped = 0, pendingAssets = 0;
       const skippedSpecs = [];
       suppressUndo = true;
       try {
         for (const s of specs) {
+          // ASSET path: bytes were embedded → async-load + add when ready
+          if (s.assetData && s.assetExt) {
+            pendingAssets++;
+            _rehydrateAssetSpec(s).then((added) => {
+              if (added) restored++;
+            }).catch(() => {});
+            continue;
+          }
+          // Asset URL with no bytes — can't rehydrate (legacy / external file)
           if (s.assetUrl || s.assetExt) { skipped++; skippedSpecs.push(s); continue; }
           const kind = s.primitive || (s.meta && s.meta.primitive);
           if (!kind) { skipped++; continue; }
@@ -265,14 +407,46 @@
       clearSelection();
       undoStack.length = 0; redoStack.length = 0;
       save();
-      return { ok: true, restored, skipped, skippedSpecs };
+      return { ok: true, restored, skipped, skippedSpecs, pendingAssets };
+    }
+
+    // Rehydrate a single asset-bytes spec asynchronously. Decodes base64,
+    // pushes through the right loader, transforms + registers the result.
+    async function _rehydrateAssetSpec(s) {
+      try {
+        const buf = _base64ToArrayBuffer(s.assetData);
+        const group = await _loadArrayBuffer(buf, s.assetExt);
+        if (!group) return false;
+        group.position.set(s.px || 0, s.py || 0, s.pz || 0);
+        if (isFinite(s.rx)) group.rotation.x = s.rx;
+        if (isFinite(s.ry)) group.rotation.y = s.ry;
+        if (isFinite(s.rz)) group.rotation.z = s.rz;
+        if (isFinite(s.sx)) group.scale.set(s.sx, s.sy || s.sx, s.sz || s.sx);
+        // Register without pushing undo (rehydrate is not a user action)
+        suppressUndo = true;
+        try {
+          managed.set(group, {
+            assetUrl: s.assetUrl || null,
+            assetExt: s.assetExt || null,
+            assetData: s.assetData,
+          });
+          scene.add(group);
+        } finally { suppressUndo = false; }
+        save();
+        onChange("add");
+        return true;
+      } catch (e) {
+        console.warn("builder: asset rehydrate failed", e);
+        return false;
+      }
     }
 
     // Override serializeMesh wrapper to ALSO capture primitive + color
-    // — without this, the rehydrate above can't reconstruct the mesh.
+    // + assetData — without these, rehydrate can't reconstruct the mesh.
     function _enrichedSpecsForSave() {
       const out = [];
       for (const [mesh, meta] of managed) {
+        if (meta.worldObject) continue;   // scene objects, not builder-placed
         const spec = serializeMesh(mesh, meta);
         spec.primitive = meta.primitive || null;
         // Try to grab the material color if any (single-mesh primitives)
@@ -286,6 +460,10 @@
           });
         }
         if (colorHex) spec.color = colorHex;
+        // Drag-dropped asset bytes (base64) so the mesh can round-trip
+        if (meta.assetData) spec.assetData = meta.assetData;
+        if (meta.assetExt)  spec.assetExt  = meta.assetExt;
+        if (meta.assetUrl)  spec.assetUrl  = meta.assetUrl;
         out.push(spec);
       }
       return out;
@@ -360,33 +538,68 @@
       opts2 = opts2 || {};
       const ext = (file.name.split(".").pop() || "").toLowerCase();
       const buf = await file.arrayBuffer();
-      const url = URL.createObjectURL(new Blob([buf]));
       const at = opts2.at || { x: 0, y: 1, z: 0 };
-      let group = null;
-      try {
-        if ((ext === "glb" || ext === "gltf") && loaders.GLTFLoader) {
-          group = await new Promise((res, rej) => {
-            new loaders.GLTFLoader().load(url, (g) => res(g.scene || (g.scenes && g.scenes[0])), undefined, rej);
-          });
-        } else if (ext === "obj" && loaders.OBJLoader) {
-          group = await new Promise((res, rej) => {
-            new loaders.OBJLoader().load(url, res, undefined, rej);
-          });
-        } else if (ext === "fbx" && loaders.FBXLoader) {
-          group = await new Promise((res, rej) => {
-            new loaders.FBXLoader().load(url, res, undefined, rej);
-          });
-        }
-      } catch (e) {
-        console.warn("builder: load failed", file.name, e.message);
-      } finally {
-        URL.revokeObjectURL(url);
-      }
+      const group = await _loadArrayBuffer(buf, ext);
       if (!group) return null;
       group.position.set(at.x, at.y, at.z);
-      _addManagedMesh(group, { assetUrl: file.name, assetExt: ext });
+      // Stash the raw bytes (as base64) on the meta so save() can embed them.
+      // Skip if the file is HUGE (>4MB) — localStorage typically caps ~5MB.
+      let assetData = null;
+      if (buf.byteLength <= 4 * 1024 * 1024) {
+        try { assetData = _arrayBufferToBase64(buf); }
+        catch (_) { /* swallow */ }
+      } else {
+        console.warn("builder: asset", file.name, "is", (buf.byteLength/1024/1024).toFixed(1),
+                     "MB — too large to persist; this mesh won't survive reload.");
+      }
+      _addManagedMesh(group, { assetUrl: file.name, assetExt: ext, assetData });
       select(group);
       return group;
+    }
+
+    // Load an ArrayBuffer through the right loader for `ext`.
+    function _loadArrayBuffer(buf, ext) {
+      const url = URL.createObjectURL(new Blob([buf]));
+      return new Promise((resolve) => {
+        const done = (g) => { URL.revokeObjectURL(url); resolve(g); };
+        try {
+          if ((ext === "glb" || ext === "gltf") && loaders.GLTFLoader) {
+            new loaders.GLTFLoader().load(url,
+              (gltf) => done(gltf.scene || (gltf.scenes && gltf.scenes[0]) || null),
+              undefined, (e) => { console.warn("builder: gltf load failed", e); done(null); });
+          } else if (ext === "obj" && loaders.OBJLoader) {
+            new loaders.OBJLoader().load(url, done, undefined,
+              (e) => { console.warn("builder: obj load failed", e); done(null); });
+          } else if (ext === "fbx" && loaders.FBXLoader) {
+            new loaders.FBXLoader().load(url, done, undefined,
+              (e) => { console.warn("builder: fbx load failed", e); done(null); });
+          } else {
+            URL.revokeObjectURL(url); resolve(null);
+          }
+        } catch (e) { URL.revokeObjectURL(url); resolve(null); }
+      });
+    }
+
+    // base64 helpers (work in browser; node has Buffer but we don't need it there)
+    function _arrayBufferToBase64(buf) {
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+      }
+      if (typeof btoa === "function") return btoa(binary);
+      // Node fallback for tests
+      return Buffer.from(buf).toString("base64");
+    }
+    function _base64ToArrayBuffer(b64) {
+      let binary;
+      if (typeof atob === "function") binary = atob(b64);
+      else binary = Buffer.from(b64, "base64").toString("binary");
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
     }
 
     // ---------- click-and-drag move ----------
@@ -416,6 +629,7 @@
       selected.position.z = hit.z;
       selected.position.y = dragYOffset;
       if (outline) outline.position.set(selected.position.x, selected.position.y, selected.position.z);
+      _repositionGizmo();
       return true;
     }
     function dragEnd() {
@@ -486,11 +700,12 @@
       if (isFinite(z)) mesh.position.z = z;
       const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
       if (outline) outline.position.set(mesh.position.x, mesh.position.y, mesh.position.z);
+      _repositionGizmo();
       save();
       if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
         _pushOp(
-          () => { mesh.position.set(old.x, old.y, old.z); if (outline && selected === mesh) outline.position.copy(mesh.position); save(); },
-          () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline && selected === mesh) outline.position.copy(mesh.position); save(); },
+          () => { mesh.position.set(old.x, old.y, old.z); if (outline && selected === mesh) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
+          () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline && selected === mesh) outline.position.copy(mesh.position); _repositionGizmo(); save(); },
           "setPos"
         );
       }
@@ -622,7 +837,8 @@
       setPosition, setRotation, setScale, getTransform,
       getColor, setColor, getIntensity, setIntensity,
       cloneSelected,
-      pickAt,
+      pickAt, pickGizmoAxis,
+      startAxisDrag, updateAxisDrag, endAxisDrag, isAxisDragging,
       add: _addManagedMesh,
       spawnPrimitive,
       attachDragDrop, loadDroppedFile,
@@ -634,7 +850,7 @@
       clearScene, rehydrate,
       saveNamed, loadNamed, deleteNamed, listNamed,
       exportSceneJSON, importSceneJSON,
-      VERSION: "0.5.0-iter140",
+      VERSION: "0.5.1-iter141",
     };
   }
 

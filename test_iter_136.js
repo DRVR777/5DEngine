@@ -241,5 +241,18 @@ ok(Array.isArray(ub.listNamed()), "listNamed returns array");
 // deleteNamed missing → false
 ok(ub.deleteNamed("definitely_not_a_scene") === false, "deleteNamed missing false");
 
+// ---- iter 141: asset bytes round-trip ----
+// Manually craft a spec with assetData embedded — verify rehydrate
+// recognizes the asset path (we can't actually load it without THREE).
+ub.clearScene();
+const specWithAsset = {
+  id: "z1", assetUrl: "test.obj", assetExt: "obj",
+  assetData: "Zm9v",   // "foo" in base64 — not a real .obj, but tests the path
+  px: 0, py: 0, pz: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1,
+};
+const r = ub.rehydrate([specWithAsset]);
+ok(r.ok, "rehydrate with asset spec returns ok");
+ok(r.pendingAssets === 1, "1 pending asset queued");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
