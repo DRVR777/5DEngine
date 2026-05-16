@@ -627,7 +627,7 @@
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
   &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>1/2/3</b> switch weapon
-  &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>J</b> objectives &nbsp;·&nbsp; <b>H</b> rain &nbsp;·&nbsp; <b>G</b> achievements
+  &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>J</b> objectives &nbsp;·&nbsp; <b>H</b> rain &nbsp;·&nbsp; <b>G</b> achievements &nbsp;·&nbsp; <b>C</b> crafting
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
   &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag=move · Del remove · arrows nudge · Tab=library · N=spawn point · K=config · P=char editor</i>
@@ -643,6 +643,8 @@
 <script src="./terrain.js"></script>
 <script src="./a_star.js"></script>
 <script src="./achievements.js"></script>
+<script src="./status_effects.js"></script>
+<script src="./crafting.js"></script>
 <script src="./game_config.js"></script>
 <script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
@@ -837,6 +839,23 @@ const HERO_REGEN_DELAY = CFG.heroRegenDelay || 5;
 const HERO_REGEN_RATE  = CFG.heroRegenRate  || 4;
 let heroHp = HERO_MAX_HP;
 let heroLastDamageT = -Infinity;
+
+// StatusEffects entity hooks — called by status_effects.js onTick callbacks
+window._entityDamage = function(entityId, amount, _type) {
+  if (entityId !== "hero") return;
+  heroHp = Math.max(0, heroHp - amount);
+  heroLastDamageT = performance.now() / 1000;
+  if (heroHp <= 0 && typeof EventBus !== "undefined")
+    EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: "effect" });
+};
+window._entityHeal = function(entityId, amount) {
+  if (entityId !== "hero") return;
+  heroHp = Math.min(HERO_MAX_HP, heroHp + amount);
+};
+window._setHeroOpacity = function(v) {
+  const hg = window._heroGroup;
+  if (hg) hg.traverse(c => { if (c.material) c.material.transparent = true, c.material.opacity = v; });
+};
 
 // ---- Kill feed ----
 function _addKillFeedEntry(text, color = "#ff4466") {
@@ -2735,6 +2754,16 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
+  // C key: toggle crafting panel (non-build mode)
+  if (e.code === "KeyC" && !buildMode && !computerOpen) {
+    if (typeof Crafting !== "undefined") {
+      const cp = document.getElementById("_craftPanel");
+      const show = !cp || cp.style.display === "none";
+      Crafting.showPanel(show, heroInv);
+    }
+    e.preventDefault();
+    return;
+  }
   // G key: toggle achievement panel (non-build mode; build mode uses G for group)
   if (e.code === "KeyG" && !buildMode && !computerOpen) {
     if (typeof Achievements !== "undefined") {
@@ -3508,6 +3537,8 @@ function tick() {
   }
   // Achievement time tracker
   if (typeof Achievements !== "undefined") Achievements.tick(dt);
+  // Status effects (buffs/debuffs)
+  if (typeof StatusEffects !== "undefined") StatusEffects.tick(dt);
 
   // Tick bullets (substep dt to avoid tunneling past enemy)
   pistolCooldown = Math.max(0, pistolCooldown - dt);
