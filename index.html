@@ -265,6 +265,9 @@
   <div id="hbVal">100</div>
 </div>
 
+<!-- Weapon selector bar (fades out after switch) -->
+<div id="weaponSelector" style="display:none;position:fixed;bottom:130px;right:8px;display:flex;flex-direction:column;gap:4px;pointer-events:none;z-index:201"></div>
+
 <!-- Kill feed (top center) -->
 <div id="killFeed" style="position:fixed;top:48px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;z-index:200"></div>
 
@@ -959,6 +962,30 @@ function getWeapon() {
     pellets: 1, spread: 0, automatic: false,
   };
 }
+// Weapon selector bar — momentarily shown when switching
+let _weaponSelectorTimeout = null;
+function _showWeaponSelector() {
+  const el = document.getElementById("weaponSelector");
+  if (!el) return;
+  const weps = CFG.weapons || [];
+  el.style.display = "flex";
+  el.style.opacity = "1";
+  el.innerHTML = weps.map((w, i) => {
+    const isActive = w.id === currentWeaponId;
+    return `<div style="background:${isActive?"rgba(0,200,255,0.18)":"rgba(2,8,22,0.88)"};border:1px solid ${isActive?"rgba(0,200,255,0.6)":"rgba(0,200,255,0.2)"};border-radius:5px;padding:5px 14px;font-family:ui-monospace,monospace;font-size:10px;color:${isActive?"#00ccff":"#4488aa"};display:flex;gap:8px;align-items:center">
+      <span style="color:#4488aa;font-size:9px">${i+1}</span>
+      <span>${(w.name||w.id).toUpperCase()}</span>
+      ${isActive?'<span style="color:#ffd166;font-size:9px">▶</span>':""}
+    </div>`;
+  }).join("");
+  if (_weaponSelectorTimeout) clearTimeout(_weaponSelectorTimeout);
+  _weaponSelectorTimeout = setTimeout(() => {
+    el.style.transition = "opacity 0.4s";
+    el.style.opacity = "0";
+    setTimeout(() => { el.style.display = "none"; el.style.transition = ""; }, 420);
+  }, 1800);
+}
+
 // Per-weapon magazine ammo tracker; undefined = full mag on first read
 const weaponAmmo = new Map();
 function getAmmo()  { const w = getWeapon(); return weaponAmmo.has(w.id) ? weaponAmmo.get(w.id) : w.magCap; }
@@ -1115,6 +1142,15 @@ const legL = makeLimb(heroPants, 0.85); legL.position.set(-0.18, 0.85, 0); heroG
 const legR = makeLimb(heroPants, 0.85); legR.position.set( 0.18, 0.85, 0); heroGroup.add(legR);
 const armL = makeLimb(heroSkin,  0.7);  armL.position.set(-0.45, 1.6, 0);  heroGroup.add(armL);
 const armR = makeLimb(heroSkin,  0.7);  armR.position.set( 0.45, 1.6, 0);  heroGroup.add(armR);
+// Blob shadow under hero
+const _shadowBlob = new THREE.Mesh(
+  new THREE.CircleGeometry(0.45, 16),
+  new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, side: THREE.DoubleSide })
+);
+_shadowBlob.rotation.x = -Math.PI / 2;
+_shadowBlob.position.y = 0.01;
+scene.add(_shadowBlob);
+
 // Pistol mesh — boxy primitive (drop in a .glb later via GLTFLoader)
 const gunBody = new THREE.Mesh(
   new THREE.BoxGeometry(0.1, 0.16, 0.32),
@@ -2392,6 +2428,7 @@ addEventListener("keydown", (e) => {
         pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
         playSfx("click", 0.4);
         reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 1000;
+        _showWeaponSelector();
         e.preventDefault(); return;
       }
     }
@@ -3379,6 +3416,9 @@ function tick() {
   const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
   // hero visibility is set below after firstPerson is computed
   heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
+  // Blob shadow follows hero on ground, fades when airborne
+  _shadowBlob.position.set(heroPos.x, 0.01, heroPos.z);
+  _shadowBlob.material.opacity = Math.max(0, 0.28 - heroPos.y * 0.06);
 
   // Walk cycle — drive limb swing by ground speed. Amplified vs. the bridge's
   // default so the legs visibly pump while walking (rotation around hip pivot).
@@ -3419,6 +3459,7 @@ function tick() {
   const spineZone = spine ? spine.zone : null;
   const firstPerson = !inCar && (spineZone === "INSIDE" || spineZone === "FIRST_PERSON" || dist < 0.5);
   heroGroup.visible = buildMode || (!inCar && (spine ? spine.params.heroVisible : !firstPerson));
+  _shadowBlob.visible = !inCar && !firstPerson && !buildMode;
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
