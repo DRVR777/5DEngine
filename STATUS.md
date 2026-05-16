@@ -54,14 +54,16 @@
 | 45   | save_load.js: world snapshot/restore + slot manager + signed   | 33    | iter45  |
 | 46   | audio.js: 4-route mixer + adapter + spatialization + events    | 44    | iter46  |
 | 47   | particles.js: emit/tick/retire + 4 presets + bounce + cap      | 30    | iter47  |
+| 48   | boss.js: 3-phase boss + 4 telegraphed attacks (cone+stun)      | 37    | iter48  |
+| 49   | pathfinding.js: A* grid + diagonal + corner-cut block + smooth | 34    | iter49  |
 
-**Total: 1142/1142 tests passing.**
+**Total: 1213/1213 tests passing.**
 
 ## Up next
 
-- **iter 48** — Boss battle (special enemy with attack patterns).
-- **iter 49** — Ped pathfinding (A* navmesh).
-- **iter 50+** — Network monitor app, motorcycle, weather, voice chat stub.
+- **iter 50** — Network monitor app (live CWP packet stream).
+- **iter 51** — Motorcycle + boat + helicopter (extend vehicle.js parts).
+- **iter 52** — Weather system (rain/snow/fog + particle integration).
 
 ## Wakeup checklist
 
