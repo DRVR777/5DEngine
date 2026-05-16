@@ -72,14 +72,16 @@
 | 63   | trade.js: P2P escrow + counter + lock + atomic swap + timeout  | 45    | iter63  |
 | 64   | factions.js: 6 rep tiers + cross-faction cascades + access     | 52    | iter64  |
 | 65   | chat.js: rooms + @ mentions + mute + history + broadcast       | 52    | iter65  |
+| 66   | mod_marketplace.js: list/buy/settle + revenue split + reviews  | 60    | iter66  |
+| 67   | portal_gen.js: 6 strategies (ring/star/MST/full/weighted/kNN)  | 41    | iter67  |
 
-**Total: 1897/1897 tests passing.**
+**Total: 1998/1998 tests passing.**
 
 ## Up next
 
-- **iter 66** — Mod marketplace (paid mods + revenue split).
-- **iter 67** — Portal generator (procedural world connections).
 - **iter 68** — Weather damage + lightning strikes.
+- **iter 69** — Day/night NPC visibility (peds disappear at night).
+- **iter 70** — Ambient music selector (per-world soundtrack).
 
 ## Wakeup checklist
 

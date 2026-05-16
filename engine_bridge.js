@@ -266,6 +266,6 @@
     walkCyclePhase,
     tickBullets,
     planePhysicsStep,
-    VERSION: "0.58.0-iter65",
+    VERSION: "0.60.0-iter67",
   };
 });
