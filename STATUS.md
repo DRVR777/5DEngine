@@ -129,6 +129,8 @@
 | 119  | cooking.js: recipes + 6 qualities + buff outputs + skill        | 51   | iter119 |
 | 120  | farming.js: 4 crops + 4 seasons + 7 phases + yield variance     | 51   | iter120 |
 | 121  | pet_ai.js: 7 commands + 5 moods + bond/loyalty + fetch          | 49   | iter121 |
+| 122  | race_track.js: laps + checkpoints + ghost replay + leaderboard  | 48   | iter122 |
+| 123  | garage.js: 7 part slots + 5 tunings + paint + stat composition  | 54   | iter123 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -139,12 +141,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 122** — Race/track (lap timing + checkpoints + ghosts).
-- **iter 123** — Garage/vehicle storage (paint + tuning).
 - **iter 124** — Character customization (face/hair + clothing).
 - **iter 125** — Emote wheel UI (quick gesture select).
 - **iter 126** — Mounts/horses (ride/dismount + stamina).
 - **iter 127** — Weather-trigger missions (storm-only quests).
+- **iter 128** — Shipwreck/diving (sunken loot + diving mechanics).
+- **iter 129** — Treasure-map clue chain + buried digging.
 
 ## Wakeup checklist
 
