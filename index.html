@@ -508,14 +508,17 @@ let activeVehicleId = null;
 // carState always mirrors the active vehicle's state (backwards-compat reads)
 const carState = { speed: 0, heading: 0, gear: 0, gearName: "N" };
 
-// AI enemy — cloned from WorldData template
-const _enemyTpl = WD.enemyTemplate || { id: "enemy1", color: 0xff0044, u: 14, v: -14, heading: 0, hp: 80, maxHp: 80, sightRange: 10, attackRange: 1.6, moveSpeed: 2.4, damage: 6 };
-const enemy = Object.assign({ lastAttackT: -Infinity, dead: false }, _enemyTpl);
-let enemyRespawnT = -Infinity;
+// AI enemies — array from WorldData; each has its own state
+const _enemyDefaultDefs = [{ id: "enemy1", color: 0xff0044, u: 14, v: -14, heading: 0, hp: 80, maxHp: 80, sightRange: 10, attackRange: 1.6, moveSpeed: 2.4, damage: 6, dropAmmo: "pistol_9mm", dropQty: 12 }];
+const enemies = (WD.enemies || _enemyDefaultDefs).map(def =>
+  Object.assign({ lastAttackT: -Infinity, dead: false, respawnT: -Infinity }, def)
+);
+// Keep backwards-compat `enemy` alias pointing to first enemy
+const enemy = enemies[0];
 const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
 let enemyKills = 0;
-let hitMarkerUntil = 0;  // show hit-marker crosshair flash until this time
-world.setPlayer(enemy.id, 0, 0, 0, enemy.u, enemy.v);
+let hitMarkerUntil = 0;
+for (const e of enemies) world.setPlayer(e.id, 0, 0, 0, e.u, e.v);
 
 // In-game computer entity (iter 28). Walk near + press E to "use" (we
 // just toast a banner — full sit/screen takeover is iter 28 logic ready
@@ -805,24 +808,31 @@ for (const n of NPC_DEFS) {
   npcMeshes.set(n.id, { group: g, heading: n.heading });
 }
 
-// Enemy mesh — taller, redder, with a hp bar overhead
-const enemyGroup = new THREE.Group();
-const enemyBody = new THREE.Mesh(
-  new THREE.CapsuleGeometry(0.4, 1.1, 4, 12),
-  new THREE.MeshStandardMaterial({ color: enemy.color, emissive: 0x440000 })
-);
-enemyBody.position.y = 1.0; enemyBody.castShadow = true; enemyGroup.add(enemyBody);
-const enemyHpBg = new THREE.Mesh(
-  new THREE.PlaneGeometry(1.0, 0.12),
-  new THREE.MeshBasicMaterial({ color: 0x222222 })
-);
-enemyHpBg.position.y = 2.3; enemyGroup.add(enemyHpBg);
-const enemyHpFg = new THREE.Mesh(
-  new THREE.PlaneGeometry(1.0, 0.10),
-  new THREE.MeshBasicMaterial({ color: 0x00cc44 })
-);
-enemyHpFg.position.y = 2.3; enemyHpFg.position.z = 0.001; enemyGroup.add(enemyHpFg);
-scene.add(enemyGroup);
+// Enemy meshes — one group per enemy def
+const enemyMeshes = new Map();  // enemy.id → { group, hpFg }
+function _makeEnemyMesh(eDef) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.4, 1.1, 4, 12),
+    new THREE.MeshStandardMaterial({ color: eDef.color || 0xff0044, emissive: 0x220000 })
+  );
+  body.position.y = 1.0; body.castShadow = true; group.add(body);
+  const hpBg = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.0, 0.12),
+    new THREE.MeshBasicMaterial({ color: 0x222222 })
+  );
+  hpBg.position.y = 2.3; group.add(hpBg);
+  const hpFg = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.0, 0.10),
+    new THREE.MeshBasicMaterial({ color: 0x00cc44 })
+  );
+  hpFg.position.y = 2.3; hpFg.position.z = 0.001; group.add(hpFg);
+  scene.add(group);
+  return { group, hpFg };
+}
+for (const e of enemies) enemyMeshes.set(e.id, _makeEnemyMesh(e));
+// Backwards-compat: keep enemyGroup/enemyHpFg pointing to first enemy's mesh
+const { group: enemyGroup, hpFg: enemyHpFg } = enemyMeshes.get(enemies[0].id) || {};
 
 // Computer mesh — gray box with a glowing screen front
 const compGroup = new THREE.Group();
@@ -1958,11 +1968,12 @@ function drawMinimap() {
     mini.fillStyle = "#ffd700";
     mini.beginPath(); mini.arc(u2x(pk.u), v2y(pk.v), 2, 0, Math.PI*2); mini.fill();
   }
-  // Enemy (red diamond)
-  if (!enemy.dead) {
-    const ep = world.players.get(enemy.id);
+  // Enemies — each in its own color
+  for (const en of enemies) {
+    if (en.dead) continue;
+    const ep = world.players.get(en.id);
     const ex = u2x(ep.u), ey = v2y(ep.v);
-    mini.fillStyle = "#ff2244";
+    mini.fillStyle = "#" + (en.color || 0xff2244).toString(16).padStart(6, "0");
     mini.beginPath(); mini.moveTo(ex, ey-5); mini.lineTo(ex+4, ey); mini.lineTo(ex, ey+5); mini.lineTo(ex-4, ey); mini.closePath(); mini.fill();
   }
   // Ammo pickups (orange squares)
@@ -2035,43 +2046,46 @@ renderer.domElement.addEventListener("mousedown", (e) => {
     e.preventDefault();
     return;
   }
-  if (!pointerLocked) return;   // only shoot when looking around
+  if (!pointerLocked) return;
   if (invDiv.classList.contains("open")) return;
-  if (_reloading) return;   // can't shoot while reloading
+  _tryShoot();
+});
+
+// Central shoot function — called from click and from auto-fire tick
+let _mouseHeld = false;
+document.addEventListener("mousedown", (e) => { if (e.button === 0) _mouseHeld = true; });
+document.addEventListener("mouseup",   (e) => { if (e.button === 0) _mouseHeld = false; });
+
+function _tryShoot() {
+  if (_reloading) return;
   const wep = getWeapon();
   if (pistolCooldown > 0 || pistolAmmo <= 0) return;
   pistolCooldown = 1 / wep.fireRate;
   pistolAmmo--;
   setAmmo(pistolAmmo);
-  playSfx("tone:1200:60:square", 0.25);  // gunshot pop
+  playSfx("tone:1200:60:square", 0.25);
   const hp = world.players.get("hero");
-  // Aim where the CROSSHAIR points (raycast from camera through screen
-  // center into the world). This fixes the 3rd-person aim drift where
-  // bullets went where the BODY faced instead of where the crosshair was.
+  // Raycast through crosshair to get base aim direction
   const aimRay = new THREE.Raycaster();
   aimRay.setFromCamera(new THREE.Vector2(0, 0), camera);
-  // Intersect a horizontal plane at hero shoulder height; that's the
-  // best proxy for "where you actually pointed in screen space".
   let aimX = hp.u + Math.sin(camYaw) * 30;
   let aimZ = hp.v + Math.cos(camYaw) * 30;
   const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.5);
   const aimPoint = new THREE.Vector3();
-  if (aimRay.ray.intersectPlane(aimPlane, aimPoint)) {
-    aimX = aimPoint.x; aimZ = aimPoint.z;
-  }
+  if (aimRay.ray.intersectPlane(aimPlane, aimPoint)) { aimX = aimPoint.x; aimZ = aimPoint.z; }
   const dxA = aimX - hp.u, dzA = aimZ - hp.v;
-  const mag = Math.hypot(dxA, dzA) || 1;
-  const dirU = dxA / mag;
-  const dirV = dzA / mag;
-  const mesh = new THREE.Mesh(bulletGeo, bulletMat);
-  mesh.position.set(hp.u, 1.5, hp.v);
-  scene.add(mesh);
-  bullets3D.push({
-    mesh, posU: hp.u, posV: hp.v, posY: 1.5,
-    dirU, dirV, speed: wep.speed, traveled: 0,
-    range: wep.range, damage: wep.damage,
-  });
-});
+  const baseAngle = Math.atan2(dxA, dzA);
+  const pellets = wep.pellets || 1;
+  const spread  = wep.spread  || 0;
+  for (let p = 0; p < pellets; p++) {
+    const ang = baseAngle + (Math.random() - 0.5) * spread * 2;
+    const dirU = Math.sin(ang), dirV = Math.cos(ang);
+    const mesh = new THREE.Mesh(bulletGeo, bulletMat);
+    mesh.position.set(hp.u, 1.5, hp.v);
+    scene.add(mesh);
+    bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: 1.5, dirU, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
+  }
+}
 
 let lastT = performance.now();
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
@@ -2102,6 +2116,12 @@ function tick() {
     const reserve = Inv.countItem(heroInv, _wep.ammoItem || "pistol_9mm");
     ammoEl.textContent = pistolAmmo + " / " + reserve;
     ammoEl.style.color = pistolAmmo === 0 ? "#ff5d5d" : "#ffd166";
+  }
+
+  // Auto-fire for automatic weapons (rifle etc.) — held LMB
+  if (_mouseHeld && pointerLocked && !invDiv.classList.contains("open") && !buildMode) {
+    const _aw = getWeapon();
+    if (_aw.automatic) _tryShoot();
   }
 
   // Reload circle: show while _reloading, hide when done
@@ -2224,24 +2244,26 @@ function tick() {
       b.posU += b.dirU * b.speed * subDt;
       b.posV += b.dirV * b.speed * subDt;
       b.traveled += b.speed * subDt;
-      // Hit enemy?
-      if (!enemy.dead) {
-        const ep = world.players.get(enemy.id);
+      // Hit any enemy?
+      let hitEnemy = false;
+      for (const en of enemies) {
+        if (en.dead) continue;
+        const ep = world.players.get(en.id);
         if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
-          enemy.hp = Math.max(0, enemy.hp - b.damage);
-          hitMarkerUntil = now + 120;  // brief crosshair flash
-          playSfx("blip", 0.2);        // hit sound
-          if (enemy.hp === 0) {
-            enemy.dead = true;
-            enemyRespawnT = now / 1000;
+          en.hp = Math.max(0, en.hp - b.damage);
+          hitMarkerUntil = now + 120;
+          playSfx("blip", 0.2);
+          if (en.hp === 0) {
+            en.dead = true;
+            en.respawnT = now / 1000;
             enemyKills++;
-            _spawnAmmoPickup(ep.u, ep.v);  // drop ammo at kill location
-            playSfx("tone:880:80:sine", 0.4);  // kill sound
+            _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
+            playSfx("tone:880:80:sine", 0.4);
           }
-          scene.remove(b.mesh); bullets3D.splice(i, 1);
-          continue;
+          hitEnemy = true; break;
         }
       }
+      if (hitEnemy) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       // Hit a building?
       let hitSolid = false;
       for (const bl of buildingBlockers) {
@@ -2256,45 +2278,44 @@ function tick() {
     }
   }
 
-  // Drive enemy AI — seek + attack hero
-  if (!enemy.dead) {
-    const ep = world.players.get(enemy.id);
-    const hp = world.players.get("hero");
-    const dx = hp.u - ep.u, dz = hp.v - ep.v;
-    const dist = Math.hypot(dx, dz);
-    if (dist <= enemy.sightRange) {
-      enemy.heading = Math.atan2(dx, dz);
-      if (dist > enemy.attackRange) {
-        const m = dist || 1;
-        const newU = ep.u + (dx / m) * enemy.moveSpeed * dt;
-        const newV = ep.v + (dz / m) * enemy.moveSpeed * dt;
-        world.setPlayer(enemy.id, ep.x, 0, 0, newU, newV);
-      } else {
-        // Attack: 1s cooldown
-        if (now / 1000 - enemy.lastAttackT > 1.0) {
-          enemy.lastAttackT = now / 1000;
-          heroHp = Math.max(0, heroHp - enemy.damage);
-          heroLastDamageT = now / 1000;
-          flashDamage();
+  // Drive all enemy AI — each seeks + attacks hero independently
+  const _heroNowAI = world.players.get("hero");
+  for (const en of enemies) {
+    const em = enemyMeshes.get(en.id);
+    if (!em) continue;
+    if (!en.dead) {
+      const ep = world.players.get(en.id);
+      const dx = _heroNowAI.u - ep.u, dz = _heroNowAI.v - ep.v;
+      const dist = Math.hypot(dx, dz);
+      if (dist <= en.sightRange) {
+        en.heading = Math.atan2(dx, dz);
+        if (dist > en.attackRange) {
+          const m = dist || 1;
+          world.setPlayer(en.id, ep.x, 0, 0, ep.u + (dx / m) * en.moveSpeed * dt, ep.v + (dz / m) * en.moveSpeed * dt);
+        } else {
+          if (now / 1000 - en.lastAttackT > 1.0) {
+            en.lastAttackT = now / 1000;
+            heroHp = Math.max(0, heroHp - en.damage);
+            heroLastDamageT = now / 1000;
+            flashDamage();
+          }
         }
       }
-    }
-    enemyGroup.position.set(ep.u, 0, ep.v);
-    enemyGroup.rotation.y = enemy.heading;
-    const hpFrac = enemy.hp / enemy.maxHp;
-    enemyHpFg.scale.x = Math.max(0.001, hpFrac);
-    enemyHpFg.position.x = -(1 - hpFrac) / 2;
-  } else {
-    enemyGroup.visible = false;
-    // Respawn enemy after delay at a new position
-    if ((now / 1000 - enemyRespawnT) > ENEMY_RESPAWN_DELAY) {
-      enemy.dead = false;
-      enemy.hp = enemy.maxHp;
-      const ang = Math.random() * Math.PI * 2;
-      enemy.u = Math.cos(ang) * (12 + Math.random() * 8);
-      enemy.v = Math.sin(ang) * (12 + Math.random() * 8);
-      world.setPlayer(enemy.id, 0, 0, 0, enemy.u, enemy.v);
-      enemyGroup.visible = true;
+      em.group.position.set(ep.u, 0, ep.v);
+      em.group.rotation.y = en.heading;
+      em.group.visible = true;
+      const hpFrac = en.hp / en.maxHp;
+      em.hpFg.scale.x = Math.max(0.001, hpFrac);
+      em.hpFg.position.x = -(1 - hpFrac) / 2;
+    } else {
+      em.group.visible = false;
+      if ((now / 1000 - en.respawnT) > ENEMY_RESPAWN_DELAY) {
+        en.dead = false; en.hp = en.maxHp;
+        const ang = Math.random() * Math.PI * 2;
+        en.u = Math.cos(ang) * (12 + Math.random() * 8);
+        en.v = Math.sin(ang) * (12 + Math.random() * 8);
+        world.setPlayer(en.id, 0, 0, 0, en.u, en.v);
+      }
     }
   }
 
@@ -2563,8 +2584,7 @@ function tick() {
     `<br>hp <b style="color:${hpColor}">${heroHp.toFixed(0)}/${HERO_MAX_HP}</b> ` +
     `<span style="color:${hpColor};font-family:monospace">${hpBar}</span>` +
     `<br>kills <b style="color:#ff6666">${enemyKills}</b>` +
-    (enemy.dead ? `<br><span style="color:#888">enemy respawn in <b>${Math.max(0, ENEMY_RESPAWN_DELAY - (now/1000 - enemyRespawnT)).toFixed(1)}s</b></span>` :
-                  `<br>enemy <b>${enemy.hp}/${enemy.maxHp}</b>`) +
+    `<br>enemies: ${enemies.filter(e=>!e.dead).map(e=>`<b style="color:#ff${(e.color||0xff0044).toString(16).slice(2)}">${e.hp}/${e.maxHp}</b>`).join(" | ") || `<span style="color:#888">all dead — respawn in ${Math.max(0,ENEMY_RESPAWN_DELAY-(now/1000-Math.max(...enemies.map(e=>e.respawnT)))).toFixed(0)}s</span>`}` +
     (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
     (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "") +

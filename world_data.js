@@ -29,14 +29,36 @@
   ];
 
   // ---- Enemies ----
-  // Spawned at runtime; engine can clone for multiple enemies.
-  const enemyTemplate = {
-    id: "enemy1", color: 0xff0044,
-    u: 14, v: -14, heading: 0,
-    hp: 80, maxHp: 80,
-    sightRange: 10, attackRange: 1.6,
-    moveSpeed: 2.4, damage: 6,
-  };
+  // Each entry is a fully-specified enemy. The engine spawns all of them.
+  // Add new entries here to add more enemies without touching engine code.
+  const enemies = [
+    {
+      id: "enemy1", color: 0xff0044,
+      u: 14, v: -14, heading: 0,
+      hp: 80, maxHp: 80,
+      sightRange: 10, attackRange: 1.6,
+      moveSpeed: 2.4, damage: 6,
+      dropAmmo: "pistol_9mm", dropQty: 12,
+    },
+    {
+      id: "enemy2", color: 0xff6600,
+      u: -18, v: -8, heading: 1.5,
+      hp: 60, maxHp: 60,
+      sightRange: 12, attackRange: 1.8,
+      moveSpeed: 3.0, damage: 4,
+      dropAmmo: "pistol_9mm", dropQty: 8,
+    },
+    {
+      id: "enemy3", color: 0xcc0088,
+      u: 22, v: 8, heading: 3.0,
+      hp: 120, maxHp: 120,
+      sightRange: 8, attackRange: 2.0,
+      moveSpeed: 1.8, damage: 10,
+      dropAmmo: "pistol_9mm", dropQty: 16,
+    },
+  ];
+  // Keep enemyTemplate for test compatibility
+  const enemyTemplate = enemies[0];
 
   // ---- Vehicles ----
   // Each vehicle has its own physics params + behavior profile.
@@ -117,5 +139,5 @@
     radioB: { id: "radioB", u: 10, v: 8, dy: 1.0 },  // absolute position
   };
 
-  return { buildings, npcs, enemyTemplate, vehicles, pickups, entities, screens, devices };
+  return { buildings, npcs, enemies, enemyTemplate, vehicles, pickups, entities, screens, devices };
 });
