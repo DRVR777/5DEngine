@@ -155,27 +155,28 @@
   #hotbar {
     display: none;
     position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
-    background: rgba(10,20,40,0.88); border: 1px solid #66ff6655;
+    background: rgba(2,8,22,0.92); border: 1px solid rgba(0,200,255,0.3);
     border-radius: 8px; padding: 6px; gap: 5px;
     flex-direction: row; z-index: 60;
+    box-shadow: 0 0 18px rgba(0,200,255,0.15);
   }
   #hotbar.visible { display: flex; }
   .hb-slot {
-    width: 52px; height: 52px; background: rgba(30,50,80,0.8);
-    border: 2px solid #334455; border-radius: 5px;
+    width: 52px; height: 52px; background: rgba(0,200,255,0.05);
+    border: 1px solid rgba(0,200,255,0.2); border-radius: 5px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    cursor: pointer; position: relative; font-size: 9px; color: #aaa;
+    cursor: pointer; position: relative; font-size: 9px; color: #b8e8ff;
     overflow: hidden; text-align: center;
-    transition: border-color 80ms;
+    transition: border-color 80ms, background 80ms;
   }
-  .hb-slot:hover { border-color: #88aaff; }
-  .hb-slot.active { border-color: #ffd166; background: rgba(60,50,10,0.9); }
+  .hb-slot:hover { border-color: rgba(0,200,255,0.6); background: rgba(0,200,255,0.1); }
+  .hb-slot.active { border-color: #ffd166; background: rgba(255,209,102,0.08); }
   .hb-slot .hb-num {
     position: absolute; top: 2px; left: 4px; font-size: 9px; color: #ffd16688;
-    font-family: monospace;
+    font-family: var(--mono, monospace);
   }
   .hb-slot .hb-name {
-    font-size: 8px; color: #ccc; word-break: break-all; padding: 0 2px;
+    font-size: 8px; color: #b8e8ff; word-break: break-all; padding: 0 2px;
     line-height: 1.1; margin-top: 2px;
   }
   .hb-slot .hb-icon { font-size: 20px; }
@@ -187,51 +188,54 @@
   }
   #creativeInv.open { display: flex; }
   #creativeInv .ci-panel {
-    background: #0d1a2e; border: 1px solid #66ff6655; border-radius: 10px;
+    background: rgba(2,8,22,0.97); border: 1px solid rgba(0,200,255,0.35); border-radius: 10px;
     padding: 18px; width: 640px; max-height: 80vh; overflow-y: auto;
-    color: #cfe; font-family: monospace; font-size: 12px;
+    color: #b8e8ff; font-family: var(--mono, monospace); font-size: 12px;
+    box-shadow: 0 0 40px rgba(0,200,255,0.2);
   }
-  #creativeInv h3 { margin: 0 0 12px; color: #66ff66; }
+  #creativeInv h3 { margin: 0 0 12px; color: #00ccff; letter-spacing: 0.1em; }
   #creativeInv .ci-section { margin-bottom: 14px; }
   #creativeInv .ci-section h4 { margin: 0 0 8px; color: #ffd166; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
   #creativeInv .ci-grid { display: flex; flex-wrap: wrap; gap: 6px; }
   .ci-item {
-    width: 80px; height: 72px; background: #1a2a44; border: 1px solid #334455;
+    width: 80px; height: 72px; background: rgba(0,200,255,0.04); border: 1px solid rgba(0,200,255,0.18);
     border-radius: 6px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; cursor: pointer;
-    font-size: 9px; color: #ccc; text-align: center; padding: 4px;
+    font-size: 9px; color: #b8e8ff; text-align: center; padding: 4px;
     word-break: break-all; line-height: 1.2;
     transition: border-color 80ms, background 80ms;
   }
-  .ci-item:hover { border-color: #66ff66; background: #1f3d2a; }
+  .ci-item:hover { border-color: rgba(0,200,255,0.6); background: rgba(0,200,255,0.1); }
   .ci-item .ci-icon { font-size: 22px; margin-bottom: 3px; }
   .ci-item .ci-label { font-size: 8px; }
   /* Texture panel (side panel in build mode) */
   #texturePanel {
     display: none; position: fixed; right: 10px; bottom: 80px;
-    width: 160px; background: rgba(10,18,35,0.92);
-    border: 1px solid #66ff6644; border-radius: 8px;
-    padding: 8px; z-index: 55; color: #cfe; font-family: monospace; font-size: 11px;
+    width: 160px; background: rgba(2,8,22,0.94);
+    border: 1px solid rgba(0,200,255,0.25); border-radius: 8px;
+    padding: 8px; z-index: 55; color: #b8e8ff; font-family: var(--mono, monospace); font-size: 11px;
+    box-shadow: 0 0 18px rgba(0,200,255,0.14);
   }
   #texturePanel.visible { display: block; }
   #texturePanel h4 { margin: 0 0 7px; color: #ffd166; font-size: 11px; }
   .tex-swatch {
-    width: 40px; height: 40px; border: 2px solid #334455;
+    width: 40px; height: 40px; border: 2px solid rgba(0,200,255,0.2);
     border-radius: 4px; cursor: pointer; display: inline-block;
     background-size: cover; background-position: center;
     margin: 2px; vertical-align: top; transition: border-color 80ms;
   }
   .tex-swatch:hover { border-color: #ffd166; }
   #texDropZone {
-    border: 1px dashed #66ff6666; border-radius: 4px;
-    padding: 6px; text-align: center; color: #888; font-size: 10px;
+    border: 1px dashed rgba(0,200,255,0.35); border-radius: 4px;
+    padding: 6px; text-align: center; color: #4488aa; font-size: 10px;
     margin-top: 6px; cursor: pointer;
   }
-  #texDropZone:hover { border-color: #66ff66; color: #cfe; }
+  #texDropZone:hover { border-color: rgba(0,200,255,0.7); color: #b8e8ff; }
 </style>
 </head>
 <body>
 <div id="fpsCounter">-- FPS</div>
+<div id="clockHud" style="position:fixed;top:8px;left:68px;background:var(--holo-bg);border:1px solid var(--holo-border);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:11px;color:var(--holo-text);pointer-events:none;z-index:200;letter-spacing:0.05em">☀ 12:00</div>
 <div id="hud">loading…</div>
 <div id="ammoHud" style="display:none">12 / 60</div>
 <div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#00ccff" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
@@ -378,38 +382,38 @@
     <div style="margin-top:10px;color:#888;">Weight: <span id="invWeight">0</span> kg</div>
   </div>
 </div>
-<div id="builderUI" style="display:none;position:fixed;top:10px;right:200px;width:280px;background:rgba(15,25,45,0.95);border:1px solid #66ff66aa;border-radius:6px;color:#cfe;font-family:monospace;font-size:12px;padding:10px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,0.6)">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="color:#66ff66;font-weight:bold">🛠 BUILD MODE</span>
+<div id="builderUI" style="display:none;position:fixed;top:10px;right:200px;width:290px;background:rgba(2,8,22,0.94);border:1px solid rgba(0,200,255,0.4);border-radius:8px;color:#b8e8ff;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12px;padding:12px;z-index:50;box-shadow:0 0 24px rgba(0,200,255,0.18),inset 0 0 12px rgba(0,200,255,0.04)">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="color:#00ccff;font-weight:bold;letter-spacing:0.12em;font-size:11px">⬡ BUILD MODE</span>
     <span>
-      <button id="bUndo" title="Ctrl+Z" style="background:#2a4a6a;border:0;color:#fff;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px">↶ undo <span id="bUndoCount" style="color:#888;font-size:10px">0</span></button>
-      <button id="bRedo" title="Ctrl+Y" style="background:#2a4a6a;border:0;color:#fff;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px;margin-left:2px">↷ redo <span id="bRedoCount" style="color:#888;font-size:10px">0</span></button>
+      <button id="bUndo" title="Ctrl+Z" style="background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);color:#b8e8ff;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px">↶ undo <span id="bUndoCount" style="color:#4488aa;font-size:10px">0</span></button>
+      <button id="bRedo" title="Ctrl+Y" style="background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);color:#b8e8ff;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px;margin-left:2px">↷ redo <span id="bRedoCount" style="color:#4488aa;font-size:10px">0</span></button>
     </span>
   </div>
-  <div style="margin-bottom:6px;color:#888">Spawn:</div>
+  <div style="margin-bottom:5px;color:#4488aa;font-size:10px;letter-spacing:0.1em">SPAWN OBJECT</div>
   <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
-    <button class="b-spawn" data-kind="cube"     style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Cube</button>
-    <button class="b-spawn" data-kind="sphere"   style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Sphere</button>
-    <button class="b-spawn" data-kind="cylinder" style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Cyl</button>
-    <button class="b-spawn" data-kind="plane"    style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Plane</button>
-    <button class="b-spawn" data-kind="light"    style="flex:1;background:#aa8a2a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">💡 Light</button>
+    <button class="b-spawn" data-kind="cube"     style="flex:1;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:5px 4px;border-radius:3px;cursor:pointer;font-size:11px">Cube</button>
+    <button class="b-spawn" data-kind="sphere"   style="flex:1;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:5px 4px;border-radius:3px;cursor:pointer;font-size:11px">Sphere</button>
+    <button class="b-spawn" data-kind="cylinder" style="flex:1;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:5px 4px;border-radius:3px;cursor:pointer;font-size:11px">Cyl</button>
+    <button class="b-spawn" data-kind="plane"    style="flex:1;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:5px 4px;border-radius:3px;cursor:pointer;font-size:11px">Plane</button>
+    <button class="b-spawn" data-kind="light"    style="flex:1;background:rgba(255,209,102,0.1);border:1px solid rgba(255,209,102,0.3);color:#ffd166;padding:5px 4px;border-radius:3px;cursor:pointer;font-size:11px">⬡ Light</button>
   </div>
   <div id="bInspector" style="display:none">
-    <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
-    <div style="color:#66ff66;margin-bottom:4px">Selected: <span id="bSelMeta" style="color:#fff">—</span></div>
+    <hr style="border:none;border-top:1px solid rgba(0,200,255,0.15);margin:8px 0">
+    <div style="color:#00ccff;margin-bottom:4px;font-size:10px;letter-spacing:0.1em">SELECTED: <span id="bSelMeta" style="color:#b8e8ff;letter-spacing:0">—</span></div>
     <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:4px;align-items:center;margin-bottom:8px">
       <span style="color:#888">pos</span>
-      <input id="bPosX" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bPosY" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bPosZ" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bPosX" type="number" step="0.1" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bPosY" type="number" step="0.1" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bPosZ" type="number" step="0.1" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
       <span style="color:#888">rot°</span>
-      <input id="bRotX" type="number" step="5" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bRotY" type="number" step="5" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bRotZ" type="number" step="5" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bRotX" type="number" step="5" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bRotY" type="number" step="5" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bRotZ" type="number" step="5" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
       <span style="color:#888">scl</span>
-      <input id="bSclX" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bSclY" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
-      <input id="bSclZ" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bSclX" type="number" step="0.1" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bSclY" type="number" step="0.1" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bSclZ" type="number" step="0.1" style="background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:3px;width:100%;border-radius:3px;font-family:inherit">
     </div>
     <div id="bColorRow" style="display:none;margin-bottom:8px">
       <span style="color:#888">color</span>
@@ -422,8 +426,8 @@
       <span id="bIntensityVal" style="color:#fff;margin-left:4px">1.5</span>
     </div>
     <div style="display:flex;gap:4px;margin-bottom:4px">
-      <button id="bClone" style="flex:1;background:#4488cc;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Clone (Ctrl+D)</button>
-      <button id="bDelete" style="flex:1;background:#aa3a3a;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Delete (Del)</button>
+      <button id="bClone" style="flex:1;background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.35);color:#00ccff;padding:6px;border-radius:3px;cursor:pointer">Clone (Ctrl+D)</button>
+      <button id="bDelete" style="flex:1;background:rgba(255,68,102,0.12);border:1px solid rgba(255,68,102,0.35);color:#ff4466;padding:6px;border-radius:3px;cursor:pointer">Delete (Del)</button>
     </div>
     <!-- Script editor for selected object -->
     <div id="bScriptRow" style="margin-top:8px">
@@ -441,33 +445,43 @@
       <div id="bScriptError" style="color:#ff4466;font-size:9px;margin-top:4px;min-height:12px"></div>
     </div>
   </div>
-  <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
-  <div style="color:#888;margin-bottom:6px">Scenes:</div>
+  <hr style="border:none;border-top:1px solid rgba(0,200,255,0.15);margin:8px 0">
+  <div style="color:#4488aa;margin-bottom:5px;font-size:10px;letter-spacing:0.1em">SCENES</div>
   <div style="display:flex;gap:4px;margin-bottom:4px">
-    <select id="bSceneList" style="flex:1;background:#0a1626;color:#cfe;border:1px solid #4488cc55;padding:4px;border-radius:3px;font-family:inherit;font-size:11px">
+    <select id="bSceneList" style="flex:1;background:#020c1b;color:#b8e8ff;border:1px solid rgba(0,200,255,0.25);padding:4px;border-radius:3px;font-family:inherit;font-size:11px">
       <option value="">— select —</option>
     </select>
-    <button id="bSceneLoad" style="background:#2a4a6a;border:0;color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:11px">Load</button>
-    <button id="bSceneDel"  style="background:#aa3a3a;border:0;color:#fff;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:11px">×</button>
+    <button id="bSceneLoad" style="background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);color:#b8e8ff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:11px">Load</button>
+    <button id="bSceneDel"  style="background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.3);color:#ff4466;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:11px">×</button>
   </div>
   <div style="display:flex;gap:4px;margin-bottom:4px">
-    <input id="bSceneName" type="text" placeholder="name…" style="flex:1;background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:4px;border-radius:3px;font-family:inherit;font-size:11px">
-    <button id="bSceneSave" style="background:#4488cc;border:0;color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:11px">Save</button>
+    <input id="bSceneName" type="text" placeholder="name…" style="flex:1;background:#020c1b;border:1px solid rgba(0,200,255,0.25);color:#b8e8ff;padding:4px;border-radius:3px;font-family:inherit;font-size:11px">
+    <button id="bSceneSave" style="background:rgba(0,200,255,0.15);border:1px solid rgba(0,200,255,0.4);color:#00ccff;padding:4px 10px;border-radius:3px;cursor:pointer;font-size:11px">Save</button>
   </div>
   <div style="display:flex;gap:4px;margin-bottom:4px">
-    <button id="bExport" style="flex:1;background:#666;border:0;color:#fff;padding:4px;border-radius:3px;cursor:pointer;font-size:11px">⬇ Export JSON</button>
-    <button id="bImport" style="flex:1;background:#666;border:0;color:#fff;padding:4px;border-radius:3px;cursor:pointer;font-size:11px">⬆ Import JSON</button>
+    <button id="bExport" style="flex:1;background:rgba(0,200,255,0.06);border:1px solid rgba(0,200,255,0.2);color:#b8e8ff;padding:4px;border-radius:3px;cursor:pointer;font-size:11px">↓ Export</button>
+    <button id="bImport" style="flex:1;background:rgba(0,200,255,0.06);border:1px solid rgba(0,200,255,0.2);color:#b8e8ff;padding:4px;border-radius:3px;cursor:pointer;font-size:11px">↑ Import</button>
   </div>
   <input id="bImportFile" type="file" accept=".json,application/json" style="display:none">
-  <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
-  <div style="color:#888;font-size:10px;line-height:1.5">
+  <hr style="border:none;border-top:1px solid rgba(0,200,255,0.15);margin:8px 0">
+  <div style="color:#4488aa;font-size:10px;line-height:1.6">
     drag .glb/.obj/.fbx onto window<br>
-    click empty space → deselect<br>
-    LMB+drag selected = slide on floor<br>
-    arrows/PgUp-Dn = nudge · [/] rotate<br>
-    +/- scale · Del remove · B exit<br>
-    Ctrl+Z undo · Ctrl+Y redo · Ctrl+D clone
+    LMB=select · drag=move · Del=remove<br>
+    arrows/PgUp-Dn nudge · [/] rotY<br>
+    +/- scale · Ctrl+D clone · B exit<br>
+    <span style="color:#00ccff">K</span>=config editor · <span style="color:#00ccff">P</span>=char editor
   </div>
+</div>
+
+<!-- Game Config Editor (K in build mode) -->
+<div id="cfgEditor" style="display:none;position:fixed;top:10px;left:10px;width:310px;max-height:90vh;overflow-y:auto;background:rgba(2,8,22,0.96);border:1px solid rgba(0,200,255,0.4);border-radius:8px;color:#b8e8ff;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:11px;padding:14px;z-index:60;box-shadow:0 0 30px rgba(0,200,255,0.2),inset 0 0 14px rgba(0,200,255,0.04)">
+  <div style="color:#00ccff;font-weight:bold;letter-spacing:0.12em;font-size:11px;margin-bottom:12px">⬡ GAME CONFIG EDITOR</div>
+  <div id="cfgSections"></div>
+  <div style="display:flex;gap:6px;margin-top:14px">
+    <button id="cfgApply" style="flex:1;background:rgba(0,255,170,0.12);border:1px solid rgba(0,255,170,0.4);color:#00ffaa;padding:6px;border-radius:3px;cursor:pointer;font-size:11px">Apply Live</button>
+    <button id="cfgReset" style="flex:1;background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.3);color:#ff4466;padding:6px;border-radius:3px;cursor:pointer;font-size:11px">Reset</button>
+  </div>
+  <div id="cfgMsg" style="color:#4488aa;font-size:10px;margin-top:6px;min-height:14px"></div>
 </div>
 
 <div id="help">
@@ -923,6 +937,122 @@ window._heroStopClip = (name) => {
   const action = _heroClips[name];
   if (action) action.stop();
 };
+
+// ---- Game Config Editor (K key in build mode) ----
+const _cfgDefaults = JSON.parse(JSON.stringify(window.GameConfig || {}));
+
+const _cfgSections = [
+  { label: "PLAYER MOVEMENT", keys: ["walkSpeed","sprintSpeed","jumpVelocity","gravity"] },
+  { label: "PLAYER HEALTH",   keys: ["heroMaxHp","heroRegenDelay","heroRegenRate"] },
+  { label: "CAMERA",          keys: ["camDistMin","camDistMax","camDefaultDist","camAimShrink","camPitchMin","camPitchMax","camLookAheadDist"] },
+  { label: "WORLD",           keys: ["arenaHalfExtent","computerInteractDist","vehicleInteractDist","pickupRadius"] },
+  { label: "BUILDER",         keys: ["snapGridSize"] },
+];
+
+const _cfgMeta = {
+  walkSpeed:          { min:1,  max:20,  step:0.5 },
+  sprintSpeed:        { min:1,  max:40,  step:0.5 },
+  jumpVelocity:       { min:1,  max:30,  step:0.5 },
+  gravity:            { min:-60,max:-5,  step:1   },
+  heroMaxHp:          { min:10, max:500, step:10  },
+  heroRegenDelay:     { min:0,  max:30,  step:0.5 },
+  heroRegenRate:      { min:0,  max:50,  step:0.5 },
+  camDistMin:         { min:0,  max:5,   step:0.1 },
+  camDistMax:         { min:1,  max:40,  step:0.5 },
+  camDefaultDist:     { min:0,  max:30,  step:0.5 },
+  camAimShrink:       { min:0,  max:1,   step:0.05},
+  camPitchMin:        { min:-2, max:0,   step:0.05},
+  camPitchMax:        { min:0,  max:1.5, step:0.05},
+  camLookAheadDist:   { min:0,  max:60,  step:1   },
+  arenaHalfExtent:    { min:10, max:200, step:5   },
+  computerInteractDist:{min:0.5,max:10,  step:0.5 },
+  vehicleInteractDist: {min:0.5,max:10,  step:0.5 },
+  pickupRadius:       { min:0.2,max:5,   step:0.1 },
+  snapGridSize:       { min:0.1,max:5,   step:0.1 },
+};
+
+function _buildCfgEditor() {
+  const container = document.getElementById("cfgSections");
+  if (!container) return;
+  const cfg = window.GameConfig || {};
+  let html = "";
+  for (const sec of _cfgSections) {
+    html += `<div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:4px;margin-top:8px">${sec.label}</div>`;
+    for (const key of sec.keys) {
+      const val = cfg[key] != null ? cfg[key] : 0;
+      const m = _cfgMeta[key] || { min: -100, max: 100, step: 0.1 };
+      const label = key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+      html += `<div style="display:grid;grid-template-columns:1fr 80px 44px;gap:4px;align-items:center;margin-bottom:3px">
+        <span style="color:#b8e8ff;font-size:10px">${label}</span>
+        <input type="range" data-cfgkey="${key}" min="${m.min}" max="${m.max}" step="${m.step}" value="${val}"
+          style="accent-color:#00ccff" oninput="document.getElementById('cfgv_${key}').textContent=parseFloat(this.value)">
+        <span id="cfgv_${key}" style="color:#ffd166;font-size:10px;text-align:right">${val}</span>
+      </div>`;
+    }
+  }
+  container.innerHTML = html;
+
+  // Weapon sliders
+  if (Array.isArray(cfg.weapons)) {
+    html = "";
+    for (const wep of cfg.weapons) {
+      html += `<div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:4px;margin-top:10px">WEAPON · ${wep.name || wep.id}</div>`;
+      const wepFields = [
+        ["damage",         {min:1,max:200,step:1}],
+        ["fireRate",       {min:0.1,max:30,step:0.1}],
+        ["range",          {min:5,max:200,step:1}],
+        ["speed",          {min:10,max:400,step:5}],
+        ["magCap",         {min:1,max:100,step:1}],
+        ["reloadDuration", {min:200,max:8000,step:100}],
+        ["spread",         {min:0,max:0.5,step:0.005}],
+        ["pellets",        {min:1,max:20,step:1}],
+      ];
+      for (const [field, m] of wepFields) {
+        const val = wep[field] != null ? wep[field] : 0;
+        const id = `cfgv_wep_${wep.id}_${field}`;
+        const label = field.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+        html += `<div style="display:grid;grid-template-columns:1fr 80px 44px;gap:4px;align-items:center;margin-bottom:3px">
+          <span style="color:#b8e8ff;font-size:10px">${label}</span>
+          <input type="range" data-wepid="${wep.id}" data-wepfield="${field}" min="${m.min}" max="${m.max}" step="${m.step}" value="${val}"
+            style="accent-color:#00ccff" oninput="document.getElementById('${id}').textContent=parseFloat(this.value)">
+          <span id="${id}" style="color:#ffd166;font-size:10px;text-align:right">${val}</span>
+        </div>`;
+      }
+    }
+    container.innerHTML += html;
+  }
+}
+
+function _applyCfgEditor() {
+  const cfg = window.GameConfig;
+  if (!cfg) return;
+  // Apply plain config keys
+  const sliders = document.querySelectorAll("#cfgSections input[data-cfgkey]");
+  for (const sl of sliders) {
+    const key = sl.dataset.cfgkey;
+    const val = parseFloat(sl.value);
+    if (!isNaN(val)) cfg[key] = val;
+  }
+  // Apply weapon fields
+  const wepSliders = document.querySelectorAll("#cfgSections input[data-wepid]");
+  for (const sl of wepSliders) {
+    const wep = (cfg.weapons || []).find(w => w.id === sl.dataset.wepid);
+    if (wep) wep[sl.dataset.wepfield] = parseFloat(sl.value);
+  }
+  const msg = document.getElementById("cfgMsg");
+  if (msg) { msg.textContent = "Applied — changes are live."; msg.style.color = "#00ffaa"; setTimeout(() => { msg.textContent = ""; }, 2000); }
+}
+
+function _resetCfgEditor() {
+  if (!window.GameConfig) return;
+  Object.assign(window.GameConfig, JSON.parse(JSON.stringify(_cfgDefaults)));
+  _buildCfgEditor();
+  const msg = document.getElementById("cfgMsg");
+  if (msg) { msg.textContent = "Reset to defaults."; msg.style.color = "#ffd166"; setTimeout(() => { msg.textContent = ""; }, 2000); }
+}
+
+document.getElementById("cfgApply").addEventListener("click", _applyCfgEditor);
+document.getElementById("cfgReset").addEventListener("click", _resetCfgEditor);
 
 // GLB drop onto canvas → replace hero model (only when char editor is open)
 renderer.domElement.addEventListener("dragover", (e) => e.preventDefault());
@@ -1960,6 +2090,17 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
+  // K key: toggle game config editor in build mode
+  if (buildMode && e.code === "KeyK") {
+    const ced = document.getElementById("cfgEditor");
+    if (ced) {
+      const show = ced.style.display === "none";
+      ced.style.display = show ? "block" : "none";
+      if (show) _buildCfgEditor();
+    }
+    e.preventDefault();
+    return;
+  }
   // B toggles BUILD MODE (freecam + editor)
   if (e.code === "KeyB" && window.Builder) {
     buildMode = !buildMode;
@@ -2983,6 +3124,20 @@ function tick() {
   scene.fog.color.setRGB(dn.sky.r, dn.sky.g, dn.sky.b);
   sun.position.set(dn.sun.x * 30, Math.max(2, dn.sun.y * 30), dn.sun.z * 30);
   sun.intensity = 0.3 + 1.0 * dn.dayMix;
+
+  // Update day/night clock HUD
+  const clockEl = document.getElementById("clockHud");
+  if (clockEl) {
+    const dayFrac = ((now / 1000) % 60) / 60;
+    const gameH = Math.floor(dayFrac * 24);
+    const gameM = Math.floor((dayFrac * 24 - gameH) * 60);
+    const isPM = gameH >= 12;
+    const h12 = ((gameH % 12) || 12).toString().padStart(2, "0");
+    const mStr = gameM.toString().padStart(2, "0");
+    const icon = dn.dayMix > 0.7 ? "☀" : (dn.dayMix > 0.3 ? "🌤" : "🌙");
+    clockEl.textContent = `${icon} ${h12}:${mStr} ${isPM ? "PM" : "AM"}`;
+    clockEl.style.color = dn.dayMix > 0.5 ? "#ffd166" : "#6699cc";
+  }
 
   // append objective + score to HUD
   // hp bar (rendered as block string — quick + readable)
