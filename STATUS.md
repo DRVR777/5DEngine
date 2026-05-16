@@ -50,14 +50,16 @@
 | 41   | Performance benchmarks across 7 hot paths                      | 7     | iter41  |
 | 42   | Browser polish: crosshair + click-to-shoot + bullets + flash   | (visual) | iter42 |
 | 43   | apps/calculator + apps/terminal (REPL with custom commands)    | 44    | iter43  |
+| 44   | mod_loader.js: signed manifests + sandbox + quarantine         | 29    | iter44  |
+| 45   | save_load.js: world snapshot/restore + slot manager + signed   | 33    | iter45  |
 
-**Total: 1006/1006 tests passing.**
+**Total: 1068/1068 tests passing.**
 
 ## Up next
 
-- **iter 44** — Mod loading via signed manifests (sandbox).
-- **iter 45** — Save/load game state through manifest store.
-- **iter 46+** — More apps, more biomes, more vehicle types.
+- **iter 46** — Audio system stub (sidecar-mediated SFX + music).
+- **iter 47** — Visual polish (particle effects: muzzle flash, hit, explosions).
+- **iter 48** — Boss battle (special enemy with attack patterns).
 
 ## Wakeup checklist
 
