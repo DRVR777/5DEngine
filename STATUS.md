@@ -31,15 +31,19 @@
 | 22   | identity.js: profiles + friends list (req/accept/block) + persist | 25 | iter22  |
 | 23   | world_graph.js: worlds-as-nodes, portals, merge, traverse      | 26    | iter23  |
 | 24   | custom_objects.js: OBJ parser + AABB + auto-register type      | 33    | iter24  |
+| 25   | custom_worlds.js: JSON manifest load/export round-trip         | 33    | iter25  |
+| 26   | subworlds.js: nested impossible interiors per conviction.pdf   | 24    | iter26  |
+| 27   | character.js: 8 slots + presets + randomize + persistence      | 39    | iter27  |
 
-**Total: 488/488 tests passing.**
+**Total: 584/584 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 25** — Custom worlds (JSON manifest hot-load).
-- **iter 26** — Nested impossible interiors per conviction.pdf.
-- **iter 27** — Character customization.
-- **iter 28-30** — In-game computer + apps.
+- **iter 28** — In-game computer entity (sit + screen takeover).
+- **iter 29** — App framework (registry of apps).
+- **iter 30** — First 2 apps (ObjectStudio + FriendFinder).
+- **iter 31** — Survival mode integration.
+- **iter 32** — Creative mode integration.
 
 ## Wakeup checklist
 
