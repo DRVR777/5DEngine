@@ -62,14 +62,16 @@
 | 53   | voice_chat.js: WebRTC signaling state machine over CWP         | 40    | iter53  |
 | 54   | traffic.js: road network + BFS routes + fleet auto-respawn     | 40    | iter54  |
 | 55   | quests.js: 5 objective kinds + chains + repeatable + custom    | 40    | iter55  |
+| 56   | player_profile.js: 11 stats + 8 achievements + level + persist | 57    | iter56  |
+| 57   | fog_of_war.js: visible/explored grid + waypoints + TTL         | 44    | iter57  |
 
-**Total: 1433/1433 tests passing.**
+**Total: 1534/1534 tests passing.**
 
 ## Up next
 
-- **iter 56** — Player profile + persistent stats.
-- **iter 57** — Minimap fog-of-war + waypoints.
 - **iter 58** — Mini-game framework + leaderboards.
+- **iter 59** — Anti-cheat (server-authoritative validation).
+- **iter 60** — Economy/currency conversion across worlds.
 
 ## Wakeup checklist
 
