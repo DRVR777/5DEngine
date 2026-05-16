@@ -105,6 +105,8 @@
 | 95   | friends.js: request/accept/block + 4 statuses + session invites  | 59   | iter95  |
 | 96   | clans.js: 5 ranks + 10 perms + treasury + apps + custom ranks    | 65   | iter96  |
 | 97   | trading_post.js: offers + bids + escrow + dispute + resolve      | 53   | iter97  |
+| 98   | weather_forecast.js: 7 kinds + 5 climates + nextOf + transitions | 38   | iter98  |
+| 99   | currency_exchange.js: limit/market + slippage + depth + matching | 52   | iter99  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -115,12 +117,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 98** — Weather forecast (predict next-N-min window + RNG).
-- **iter 99** — Currency exchange (ccy-to-ccy market + bid/ask).
 - **iter 100** — Mega-regression: wire 10+ systems + verify smoke.
 - **iter 101** — Marketplace search/filter UI module.
 - **iter 102** — PvP arena queue (matchmaking + lobby formation).
 - **iter 103** — Spectator camera director (auto-focus on action).
+- **iter 104** — In-game radio (curated playlists + dynamic shifts).
+- **iter 105** — Mission generator (template-driven random spawner).
 
 ## Wakeup checklist
 
