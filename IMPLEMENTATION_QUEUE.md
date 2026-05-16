@@ -20,6 +20,13 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 4 (interactive screens + snap-zoom + mon1 mirror, iter 132)
+- [x] **E + raycast → click in-world screens** — `tryClickWorldScreen()` shoots a ray through the crosshair, finds the screen + UV, invokes the region's onClick.
+- [x] **Jumbotron has 3 clickable buttons** — HYPE (counter), 📻 RF (broadcasts on radioA), + COIN (gives score)
+- [x] **Snap-zone keybinds**: **Q** → FIRST_PERSON, **V** → THIRD_PERSON, **Z** → BIRD_VIEW. Smooth lerp via `CameraSpine.lerpZoom`.
+- [x] **M** toggles mouse-mode (releases pointer lock for screen interaction)
+- [x] **mon1 mirror** — the physical monitor mesh next to the PC now shows the device-graph's mon1 video_in inbox; PC broadcasts a live video frame every 500ms.
+
 ## ✅ Done — Session 3 (camera spine + in-world screens, iter 131)
 - [x] **camera_spine.js** — pure module mapping camDist→4 named zones (INSIDE/FIRST_PERSON/THIRD_PERSON/BIRD_VIEW) per conviction.pdf §5.1. Per-zone params: distance, heightOffset, heroVisible, heroOpacity, inputMode, allowShooting, fovBias.
 - [x] **screen_mesh.js** — any 3D plane can become a clickable HTML-rendered screen via CanvasTexture; raycast UV → DOM hit-test; SIZE_PRESETS for small/big/jumbotron(50ft)/colossal(1000ft).

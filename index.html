@@ -162,9 +162,10 @@
 </div>
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
-  &nbsp;·&nbsp; <b>E</b> car/PC &nbsp;·&nbsp; <b>I</b> inventory
+  &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
   &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload
+  &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
 </div>
 
@@ -595,8 +596,61 @@ if (deviceBus) {
     m.position.set(pos.u, pos.y, pos.v); m.castShadow = true;
     scene.add(m); return m;
   }
-  _proxy(0x222244, 0.7, 0.5, 0.05, MON_POS);     // monitor screen-ish
-  _proxy(0x553311, 0.3, 0.5, 0.3, SPK_POS);      // speaker box
+  // Speaker box (still a primitive)
+  _proxy(0x553311, 0.3, 0.5, 0.3, SPK_POS);
+  // mon1 — real screen_mesh that mirrors device-graph video_in inbox
+  if (window.ScreenMesh) {
+    const monScreen = window.ScreenMesh.createScreen({
+      id: "mon1_phys",
+      resolutionW: 384, resolutionH: 224,
+      widthM: 0.7, heightM: 0.5,
+      state: { lastFrame: "(no signal — boot the PC and click Devices)" },
+      paint: (ctx, sc) => {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, sc.resolutionW, sc.resolutionH);
+        // Tiny scanline shimmer
+        for (let y = 0; y < sc.resolutionH; y += 2) {
+          ctx.fillStyle = "rgba(50, 80, 120, 0.05)";
+          ctx.fillRect(0, y, sc.resolutionW, 1);
+        }
+        ctx.fillStyle = "#88ddff";
+        ctx.font = "bold 16px monospace";
+        ctx.fillText("MON1  ◯ ON", 8, 22);
+        ctx.font = "12px monospace";
+        ctx.fillStyle = "#aaccff";
+        const lines = String(sc.state.lastFrame || "").split("\n");
+        let y = 50;
+        for (const line of lines) {
+          ctx.fillText(line, 8, y); y += 16;
+          if (y > sc.resolutionH - 8) break;
+        }
+      },
+    });
+    const monMesh = window.ScreenMesh.bindToThree(THREE, monScreen, { doubleSided: false });
+    if (monMesh) {
+      monMesh.position.set(MON_POS.u, MON_POS.y, MON_POS.v + 0.1);
+      monMesh.rotation.y = Math.PI; // face the player
+      scene.add(monMesh);
+      worldScreens.set(monScreen.id, { screen: monScreen, mesh: monMesh });
+      // Tie this physical monitor to the device-graph mon1 — every tick we
+      // drain its video_in inbox and paint the latest frame text.
+      window.__mon1Bridge = {
+        screen: monScreen,
+        pollAndPaint: () => {
+          if (!deviceBus) return;
+          const frames = deviceBus.drain("mon1", "video_in");
+          if (frames.length > 0) {
+            const last = frames[frames.length - 1];
+            const payload = last.payload || {};
+            const txt = payload.frame || JSON.stringify(payload);
+            monScreen.state.lastFrame = txt;
+          }
+        },
+      };
+    }
+  } else {
+    _proxy(0x222244, 0.7, 0.5, 0.05, MON_POS);
+  }
   _proxy(0xcccccc, 0.08, 0.25, 0.05, USB_POS);   // USB
   _proxy(0x222233, 0.18, 0.25, 0.12, RADIO_A);   // walkie A
   _proxy(0x222233, 0.18, 0.25, 0.12, RADIO_B);   // walkie B
@@ -611,6 +665,28 @@ if (deviceBus) {
   _rebuildDeviceWires();
 }
 
+// ---- in-world screen interaction (E + raycast → hit-test) ----------
+// Raycast from the camera through the screen center (crosshair) and
+// invoke the region.onClick under the UV. Returns true if a screen
+// was hit and a region was clicked (so the caller can preventDefault).
+function tryClickWorldScreen() {
+  if (!window.ScreenMesh) return false;
+  if (!worldScreens || worldScreens.size === 0) return false;
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const meshes = Array.from(worldScreens.values()).map(s => s.mesh);
+  const screenMap = new Map();
+  for (const [id, s] of worldScreens) screenMap.set(id, s.screen);
+  const hit = window.ScreenMesh.pickScreen(raycaster, meshes, screenMap);
+  if (!hit || !hit.screen) return false;
+  // Range limit — must be within 50m
+  if (hit.distance > 50) return false;
+  const region = window.ScreenMesh.hitTest(hit.screen, hit.uv);
+  if (!region) return false;
+  if (typeof region.onClick === "function") region.onClick(hit.screen);
+  return true;
+}
+
 // ---- in-world screens (screen_mesh.js) -------------------------------
 // Two giant screens per user spec: a 50ft jumbotron and a 1000ft sky screen.
 // Both render live game state into a canvas texture; press E within range
@@ -620,12 +696,27 @@ let jumbotronScreen = null;
 let skyScreen = null;
 if (window.ScreenMesh) {
   const SM = window.ScreenMesh;
-  // 50ft jumbotron — place at the city edge, facing the player spawn
+  // 50ft jumbotron — place at the city edge, facing the player spawn.
+  // Has clickable regions: press E while aiming at the screen to "press"
+  // them — this is the proof-of-concept for "any surface is a screen".
   jumbotronScreen = SM.createScreen({
     id: "jumbotron50",
     resolutionW: 768, resolutionH: 460,
     widthM: SM.SIZE_PRESETS.jumbotron.widthM,
     heightM: SM.SIZE_PRESETS.jumbotron.heightM,
+    state: { hypeClicks: 0, lastBtn: "—" },
+    hitRegions: [
+      { id: "btn_hype",  label: "HYPE",   x: 80,  y: 360, w: 180, h: 70,
+        onClick: (sc) => { sc.state.hypeClicks++; sc.state.lastBtn = "HYPE"; } },
+      { id: "btn_radio", label: "📻 RF",  x: 290, y: 360, w: 180, h: 70,
+        onClick: (sc) => {
+          sc.state.lastBtn = "RF";
+          if (deviceBus) deviceBus.send("radioA", "rf", { kind: "audio",
+            payload: { msg: "JUMBOTRON shout-out!" } });
+        } },
+      { id: "btn_coin",  label: "+ COIN", x: 500, y: 360, w: 180, h: 70,
+        onClick: (sc) => { sc.state.lastBtn = "COIN"; score++; } },
+    ],
     paint: (ctx, sc) => {
       ctx.fillStyle = "#020514";
       ctx.fillRect(0, 0, sc.resolutionW, sc.resolutionH);
@@ -637,20 +728,34 @@ if (window.ScreenMesh) {
       ctx.font = "22px monospace";
       ctx.fillText("LIVE FROM 5DENGINE — IT'S YOU", 120, 110);
       ctx.fillStyle = "#ff5d5d";
-      ctx.font = "26px monospace";
+      ctx.font = "24px monospace";
       try {
         const hp = world.players.get("hero");
-        ctx.fillText("PLAYER  POS  ( " + hp.u.toFixed(1) + " , " + hp.v.toFixed(1) + " )", 80, 180);
-        ctx.fillText("COINS   " + score + "  /  " + pickups.length, 80, 230);
-        ctx.fillText("HEALTH  " + Math.round(heroHp) + "  /  " + HERO_MAX_HP, 80, 280);
+        ctx.fillText("POS  ( " + hp.u.toFixed(1) + " , " + hp.v.toFixed(1) + " )", 80, 170);
+        ctx.fillText("COINS  " + score + " / " + pickups.length, 80, 210);
+        ctx.fillText("HP     " + Math.round(heroHp) + " / " + HERO_MAX_HP, 80, 250);
         const z = sc.state.spineZone || "—";
         ctx.fillStyle = "#66cc66";
-        ctx.fillText("CAMERA  " + z, 80, 330);
+        ctx.fillText("CAM    " + z, 80, 290);
+        ctx.fillStyle = "#ffd166";
+        ctx.fillText("HYPE   " + sc.state.hypeClicks + "   LAST: " + sc.state.lastBtn, 80, 330);
       } catch (_) {}
+      // Render clickable buttons
+      for (const r of sc.hitRegions) {
+        ctx.fillStyle = "#1a3d5a";
+        ctx.fillRect(r.x, r.y, r.w, r.h);
+        ctx.strokeStyle = "#88ddff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 24px monospace";
+        ctx.fillText(r.label, r.x + 18, r.y + 44);
+      }
       // Footer
       ctx.fillStyle = "#888";
-      ctx.font = "16px monospace";
-      ctx.fillText("press E within 6m to interact  ·  any surface = screen", 80, sc.resolutionH - 30);
+      ctx.font = "14px monospace";
+      ctx.fillText("aim crosshair at a button & press E to click  ·  any surface = screen",
+                   80, sc.resolutionH - 10);
     },
   });
   const jumboMesh = SM.bindToThree(THREE, jumbotronScreen, { doubleSided: false });
@@ -739,6 +844,24 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
+  // E pointed at an in-world screen → invoke its hit region under the crosshair.
+  // (Different from E near PC because we use raycast to detect the screen.)
+  if (e.code === "KeyE" && !nearComputer) {
+    if (tryClickWorldScreen()) { e.preventDefault(); return; }
+  }
+  // Snap-zone keybinds — set a target zoom; tick() lerps toward it.
+  if (window.CameraSpine) {
+    if (e.code === "KeyQ") { snapZoomTarget = window.CameraSpine.zoomForZone("FIRST_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
+    if (e.code === "KeyV") { snapZoomTarget = window.CameraSpine.zoomForZone("THIRD_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
+    if (e.code === "KeyZ") { snapZoomTarget = window.CameraSpine.zoomForZone("BIRD_VIEW")    * CAM_DIST_MAX; e.preventDefault(); return; }
+  }
+  // M toggles mouse-mode — releases pointer lock + lets you drive the screen cursor
+  if (e.code === "KeyM") {
+    mouseMode = !mouseMode;
+    if (mouseMode && document.pointerLockElement) document.exitPointerLock();
+    e.preventDefault();
+    return;
+  }
   // L toggles which side the camera offset is on (left/right shoulder)
   if (e.code === "KeyL") {
     camSide = -camSide;
@@ -793,6 +916,9 @@ let aimAmt = 0;                 // smoothed [0..1] aim multiplier
 let computerEntering = false;   // playing cinematic-entry animation
 let computerEntryT = 0;         // 0..1 progress
 const COMPUTER_ENTRY_DUR = 0.45; // seconds
+let snapZoomTarget = null;      // Q/Z/V keybinds: lerp camDist toward this
+let mouseMode = false;          // M toggles — cursor controls in-world screen cursor
+let activeMouseScreen = null;   // which screen we're driving in mouse-mode
 
 function beginComputerEntry() {
   computerEntering = true;
@@ -955,6 +1081,15 @@ function tick() {
   // shrink camDist by ~40% — feels like a scope-zoom without changing FOV.
   const aimTarget = aiming && !computerOpen && !computerEntering ? 1 : 0;
   aimAmt += (aimTarget - aimAmt) * Math.min(1, dt * 12);
+
+  // Snap-zone keybinds — lerp camDist toward snapZoomTarget if set
+  if (snapZoomTarget != null && window.CameraSpine) {
+    camDist = window.CameraSpine.lerpZoom(camDist, snapZoomTarget, dt, 8);
+    if (Math.abs(camDist - snapZoomTarget) < 0.05) {
+      camDist = snapZoomTarget;
+      snapZoomTarget = null;
+    }
+  }
 
   // Cinematic computer entry — dolly the camera toward a tight near-screen
   // shot over COMPUTER_ENTRY_DUR seconds, then flip the overlay on.
@@ -1286,7 +1421,22 @@ function tick() {
   // mini-map (top-right)
   drawMinimap();
 
-  // Refresh in-world screens (jumbotron, sky screen) — paint live game state
+  // PC periodically broadcasts a video frame to mon1 — gives the physical
+  // monitor mesh something to mirror (proof the device-graph pipes data).
+  if (deviceBus && (Math.floor(now / 500) !== Math.floor(lastT / 500))) {
+    const hp = world.players.get("hero");
+    deviceBus.send("pc1", "video_out", { kind: "video", payload: { frame:
+      "DWRLD OS v0.1\n" +
+      "uptime: " + (now / 1000).toFixed(0) + "s\n" +
+      "score:  " + score + " / " + pickups.length + "\n" +
+      "pos:    " + hp.u.toFixed(1) + ", " + hp.v.toFixed(1) + "\n" +
+      "spk:    " + (deviceBus.peek("spk1","audio_in").length) + " queued\n" +
+      "radioB heard: " + (deviceBus.peek("radioB","rf").length) + " msgs"
+    } });
+  }
+  if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint();
+
+  // Refresh in-world screens (jumbotron, sky screen, mon1) — paint live state
   // into the canvas, mark texture dirty so THREE re-uploads it.
   if (window.ScreenMesh) {
     if (jumbotronScreen) {
@@ -1294,6 +1444,11 @@ function tick() {
       window.ScreenMesh.update(jumbotronScreen);
     }
     if (skyScreen) window.ScreenMesh.update(skyScreen);
+    for (const [id, entry] of worldScreens) {
+      if (entry.screen !== jumbotronScreen && entry.screen !== skyScreen) {
+        window.ScreenMesh.update(entry.screen);
+      }
+    }
   }
 
   renderer.render(scene, camera);
