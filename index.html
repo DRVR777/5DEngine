@@ -491,7 +491,7 @@
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
-  &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag arrow=move · yellow ring=rotY · Del remove · arrows nudge · Tab=library · 1-9 hotbar · F spawn · G group</i>
+  &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag=move · Del remove · arrows nudge · Tab=library · N=spawn point · K=config · P=char editor</i>
 </div>
 
 <script src="./game_config.js"></script>
@@ -539,6 +539,31 @@ import("three/addons/loaders/MTLLoader.js")
 import("three/addons/loaders/FBXLoader.js")
   .then((m) => { Loaders.FBXLoader = m.FBXLoader; })
   .catch((e) => { console.warn("FBXLoader unavailable:", e.message); });
+
+// Post-processing — loaded lazily; bloom optional if CDN unreachable
+let composer = null;
+Promise.all([
+  import("three/addons/postprocessing/EffectComposer.js"),
+  import("three/addons/postprocessing/RenderPass.js"),
+  import("three/addons/postprocessing/UnrealBloomPass.js"),
+]).then(([compMod, renderMod, bloomMod]) => {
+  const { EffectComposer } = compMod;
+  const { RenderPass }     = renderMod;
+  const { UnrealBloomPass } = bloomMod;
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(
+    new THREE.Vector2(innerWidth, innerHeight),
+    0.55,   // strength
+    0.40,   // radius
+    0.82    // threshold — only bright surfaces bloom
+  );
+  composer.addPass(bloom);
+  window._bloomPass = bloom;
+  console.log("[5DEngine] bloom post-processing active");
+}).catch((e) => {
+  console.warn("Bloom post-processing unavailable:", e.message);
+});
 
 // ---- engine state ----
 const { WorldState, LayerBoundary } = window.GTAEngine;
@@ -627,6 +652,35 @@ const computerEntity = Object.assign(
   (WD.entities && WD.entities.computer) || { id: "pc1", u: -4, v: 4 }
 );
 
+// ---- Spawn points (N key in build mode places a respawn marker) ----
+const _spawnPoints = [{ u: 0, v: 0, label: "origin" }];  // always at least origin
+let _spawnMeshes = [];
+
+function _addSpawnPoint(u, v) {
+  const sp = { u, v, label: `SP${_spawnPoints.length + 1}` };
+  _spawnPoints.push(sp);
+  const geo = new THREE.CylinderGeometry(0.3, 0.8, 0.15, 8);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.8 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(u, 0.08, v);
+  scene.add(mesh);
+  _spawnMeshes.push({ mesh, sp });
+  return sp;
+}
+
+function _getSpawnPoint() {
+  return _spawnPoints[Math.floor(Math.random() * _spawnPoints.length)];
+}
+
+function _heroRespawn() {
+  const sp = _getSpawnPoint();
+  world.setPlayer("hero", 0, 0, 0, sp.u, sp.v);
+  heroHp = HERO_MAX_HP;
+  heroLastDamageT = -999;
+  playSfx("tone:440:120:sine", 0.5);
+  flashDamage();
+}
+
 // Hero hp (iter 10) — visible bar in HUD
 const HERO_MAX_HP    = CFG.heroMaxHp    || 100;
 const HERO_REGEN_DELAY = CFG.heroRegenDelay || 5;
@@ -694,6 +748,7 @@ addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  if (composer) composer.setSize(innerWidth, innerHeight);
 });
 
 // Lighting: soft hemi + a key sun
@@ -2090,6 +2145,13 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
+  // N key: place spawn point at freecam ground position in build mode
+  if (buildMode && e.code === "KeyN") {
+    const sp = _addSpawnPoint(freeCamPos.x, freeCamPos.z);
+    console.log(`[5DEngine] Spawn point placed: ${sp.label} at (${sp.u.toFixed(1)}, ${sp.v.toFixed(1)})`);
+    e.preventDefault();
+    return;
+  }
   // K key: toggle game config editor in build mode
   if (buildMode && e.code === "KeyK") {
     const ced = document.getElementById("cfgEditor");
@@ -2693,7 +2755,7 @@ function tick() {
     // Still render scene + HUD, but skip movement/physics
     const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
     heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
-    renderer.render(scene, camera);
+    if (composer) composer.render(); else renderer.render(scene, camera);
     requestAnimationFrame(tick);
     return;
   }
@@ -2767,6 +2829,12 @@ function tick() {
     if (Math.abs(_recoilPitch) < 0.0001) _recoilPitch = 0;
   }
 
+  // Pulse spawn point meshes
+  for (const { mesh } of _spawnMeshes) {
+    mesh.material.opacity = 0.4 + 0.4 * Math.abs(Math.sin(now / 600));
+    mesh.rotation.y += dt * 1.2;
+  }
+
   // Tick particles
   _tickParticles(dt);
 
@@ -2837,6 +2905,7 @@ function tick() {
             heroHp = Math.max(0, heroHp - en.damage);
             heroLastDamageT = now / 1000;
             flashDamage();
+            if (heroHp <= 0) { setTimeout(_heroRespawn, 1200); }
           }
         }
       }
@@ -3157,7 +3226,7 @@ function tick() {
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
     (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "") +
     (mouseMode ? `<br><b style="color:#ffff00">🖱 MOUSE MODE</b> <span style="color:#888">— ESC or M to exit</span>` : "") +
-    (buildMode ? `<br><b style="color:#00ccff">BUILD MODE</b> <span style="color:#556677">WASD fly · RMB drag or R lock mouse · P char editor · Tab library · Del remove</span>` : "") +
+    (buildMode ? `<br><b style="color:#00ccff">BUILD MODE</b> <span style="color:#556677">WASD fly · R=lock mouse · P=char · K=config · N=spawn point · Tab=library</span>` : "") +
     (reloadMsgUntil > performance.now() ? `<br><b style="color:#ffd166">↻ ${reloadMsg}</b>` : "");
 
   // Hit marker crosshair flash
@@ -3277,7 +3346,7 @@ function tick() {
     if (wpResEl)  wpResEl.textContent = " / " + reserve;
   }
 
-  renderer.render(scene, camera);
+  if (composer) composer.render(); else renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
