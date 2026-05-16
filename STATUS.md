@@ -123,6 +123,8 @@
 | 113  | npc_routine.js: schedule windows + transitions + census + atLoc | 51   | iter113 |
 | 114  | crime_police.js: 7 crimes + 6 tiers + chase/arrest/escape       | 67   | iter114 |
 | 115  | vendor_restock.js: dynamic pricing + linear/exp restock + buy   | 53   | iter115 |
+| 116  | banking.js: savings + loans + credit score + interest accrual   | 41   | iter116 |
+| 117  | housing.js: buy/sell/rent + storage + decor + eviction tick     | 59   | iter117 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -133,12 +135,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 116** — Banking system (deposit + interest + loans).
-- **iter 117** — Housing/real estate (player-buyable properties).
 - **iter 118** — Fishing minigame (cast + reel + catch + bait).
 - **iter 119** — Cooking system (recipes + ingredients + buffs).
 - **iter 120** — Farming system (plant + harvest + seasons).
 - **iter 121** — Pet/companion AI (follow + fetch + bond).
+- **iter 122** — Race/track (lap timing + checkpoints + ghosts).
+- **iter 123** — Garage/vehicle storage (paint + tuning).
 
 ## Wakeup checklist
 
