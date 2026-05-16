@@ -198,17 +198,126 @@
       return group;
     }
 
+    // ---------- click-and-drag move ----------
+    // While dragging, each mousemove raycasts to the ground plane and
+    // re-positions the selected object's XZ to match the cursor.
+    let dragging = false;
+    let dragYOffset = 0;
+    function dragStart() {
+      if (!selected) return false;
+      dragging = true;
+      dragYOffset = selected.position.y;   // preserve current height
+      return true;
+    }
+    function dragMove(ndc) {
+      if (!dragging || !selected) return false;
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const hit = new THREE.Vector3();
+      if (!ray.ray.intersectPlane(plane, hit)) return false;
+      selected.position.x = hit.x;
+      selected.position.z = hit.z;
+      selected.position.y = dragYOffset;
+      if (outline) outline.position.set(selected.position.x, selected.position.y, selected.position.z);
+      return true;
+    }
+    function dragEnd() {
+      if (!dragging) return;
+      dragging = false;
+      save();
+    }
+    function isDragging() { return dragging; }
+
+    // ---------- quick-spawn primitives ----------
+    function spawnPrimitive(kind, pos) {
+      pos = pos || { x: 0, y: 0.5, z: 0 };
+      let mesh = null;
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x88aaff, metalness: 0.2, roughness: 0.6,
+      });
+      if (kind === "cube") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
+      } else if (kind === "sphere") {
+        mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 16), mat);
+      } else if (kind === "cylinder") {
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.5, 24), mat);
+      } else if (kind === "plane") {
+        mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2),
+          new THREE.MeshStandardMaterial({ color: 0xaaccff, side: THREE.DoubleSide }));
+        mesh.rotation.x = -Math.PI / 2;
+      } else if (kind === "light") {
+        // PointLight wrapped in a Group so the helper mesh is selectable
+        const grp = new THREE.Group();
+        const light = new THREE.PointLight(0xffffaa, 1.5, 20);
+        grp.add(light);
+        const helper = new THREE.Mesh(
+          new THREE.SphereGeometry(0.18, 12, 8),
+          new THREE.MeshBasicMaterial({ color: 0xffffaa })
+        );
+        grp.add(helper);
+        mesh = grp;
+      } else {
+        return null;
+      }
+      mesh.position.set(pos.x, pos.y, pos.z);
+      if (mesh.castShadow !== undefined) mesh.castShadow = true;
+      _addManagedMesh(mesh, { primitive: kind });
+      select(mesh);
+      return mesh;
+    }
+
+    // ---------- inspector helpers ----------
+    function setPosition(x, y, z) {
+      if (!selected) return false;
+      if (isFinite(x)) selected.position.x = x;
+      if (isFinite(y)) selected.position.y = y;
+      if (isFinite(z)) selected.position.z = z;
+      if (outline) outline.position.set(selected.position.x, selected.position.y, selected.position.z);
+      save();
+      return true;
+    }
+    function setRotation(rx, ry, rz) {
+      if (!selected) return false;
+      if (isFinite(rx)) selected.rotation.x = rx;
+      if (isFinite(ry)) selected.rotation.y = ry;
+      if (isFinite(rz)) selected.rotation.z = rz;
+      save();
+      return true;
+    }
+    function setScale(sx, sy, sz) {
+      if (!selected) return false;
+      if (isFinite(sx)) selected.scale.x = sx;
+      if (isFinite(sy)) selected.scale.y = sy;
+      if (isFinite(sz)) selected.scale.z = sz;
+      _outlineFor(selected);
+      save();
+      return true;
+    }
+    function getTransform() {
+      if (!selected) return null;
+      return {
+        pos:   { x: selected.position.x, y: selected.position.y, z: selected.position.z },
+        rot:   { x: selected.rotation.x, y: selected.rotation.y, z: selected.rotation.z },
+        scale: { x: selected.scale.x,    y: selected.scale.y,    z: selected.scale.z    },
+        meta:  managed.get(selected) || {},
+      };
+    }
+
     return {
       setActive, isActive,
       select, clearSelection, deleteSelected,
       translate, rotateY, scaleBy,
+      setPosition, setRotation, setScale, getTransform,
       pickAt,
       add: _addManagedMesh,
+      spawnPrimitive,
       attachDragDrop, loadDroppedFile,
+      dragStart, dragMove, dragEnd, isDragging,
       save, loadState, clearState,
       managedCount: () => managed.size,
       getSelected: () => selected,
-      VERSION: "0.1.0-iter136",
+      VERSION: "0.2.0-iter137",
     };
   }
 

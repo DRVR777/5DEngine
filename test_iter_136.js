@@ -101,5 +101,43 @@ ok(ls === null || Array.isArray(ls), "loadState returns null or array");
 builder.clearState();
 ok(true, "clearState doesn't throw");
 
+// ---- iter 137 additions: inspector + drag API ----
+ok(typeof builder.setPosition === "function", "setPosition exported");
+ok(typeof builder.setRotation === "function", "setRotation exported");
+ok(typeof builder.setScale === "function", "setScale exported");
+ok(typeof builder.getTransform === "function", "getTransform exported");
+ok(typeof builder.spawnPrimitive === "function", "spawnPrimitive exported");
+ok(typeof builder.dragStart === "function", "dragStart exported");
+ok(typeof builder.dragMove === "function", "dragMove exported");
+ok(typeof builder.dragEnd === "function", "dragEnd exported");
+ok(typeof builder.isDragging === "function", "isDragging exported");
+
+// dragStart/End without selection is safe
+ok(builder.dragStart() === false, "dragStart without selection false");
+builder.dragEnd();   // shouldn't throw
+ok(builder.isDragging() === false, "isDragging false after end");
+
+// getTransform with nothing selected
+ok(builder.getTransform() === null, "getTransform null without selection");
+
+// setPosition without selection
+ok(builder.setPosition(1,2,3) === false, "setPosition false without selection");
+
+// Add a mesh, select, then transform via setters
+const m2 = { position: new fakeTHREE.Vector3(0,0,0), rotation: { x:0,y:0,z:0 }, scale: new fakeTHREE.Vector3(1,1,1), uuid: "y" };
+builder.add(m2, { primitive: "cube" });
+builder.select(m2);
+ok(builder.setPosition(5, 2, -1), "setPosition true with selection");
+ok(m2.position.x === 5 && m2.position.y === 2 && m2.position.z === -1, "position written");
+builder.setRotation(0, 1.5, 0);
+ok(m2.rotation.y === 1.5, "rotation Y written");
+builder.setScale(2, 2, 2);
+ok(m2.scale.x === 2, "scale X written");
+
+const t = builder.getTransform();
+ok(t.meta.primitive === "cube", "meta.primitive preserved");
+ok(t.pos.x === 5 && t.pos.y === 2, "transform pos");
+ok(t.scale.y === 2, "transform scale");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

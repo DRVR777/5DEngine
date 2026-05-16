@@ -160,6 +160,45 @@
     <div style="margin-top:10px;color:#888;">Weight: <span id="invWeight">0</span> kg</div>
   </div>
 </div>
+<div id="builderUI" style="display:none;position:fixed;top:10px;right:200px;width:280px;background:rgba(15,25,45,0.95);border:1px solid #66ff66aa;border-radius:6px;color:#cfe;font-family:monospace;font-size:12px;padding:10px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,0.6)">
+  <div style="color:#66ff66;font-weight:bold;margin-bottom:8px">🛠 BUILD MODE</div>
+  <div style="margin-bottom:6px;color:#888">Spawn:</div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+    <button class="b-spawn" data-kind="cube"     style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Cube</button>
+    <button class="b-spawn" data-kind="sphere"   style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Sphere</button>
+    <button class="b-spawn" data-kind="cylinder" style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Cyl</button>
+    <button class="b-spawn" data-kind="plane"    style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Plane</button>
+    <button class="b-spawn" data-kind="light"    style="flex:1;background:#aa8a2a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">💡 Light</button>
+  </div>
+  <div id="bInspector" style="display:none">
+    <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
+    <div style="color:#66ff66;margin-bottom:4px">Selected: <span id="bSelMeta" style="color:#fff">—</span></div>
+    <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:4px;align-items:center;margin-bottom:8px">
+      <span style="color:#888">pos</span>
+      <input id="bPosX" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bPosY" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bPosZ" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <span style="color:#888">rot</span>
+      <input id="bRotX" type="number" step="0.05" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bRotY" type="number" step="0.05" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bRotZ" type="number" step="0.05" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <span style="color:#888">scl</span>
+      <input id="bSclX" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bSclY" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+      <input id="bSclZ" type="number" step="0.1" style="background:#0a1626;border:1px solid #4488cc55;color:#cfe;padding:3px;width:100%;border-radius:3px;font-family:inherit">
+    </div>
+    <button id="bDelete" style="width:100%;background:#aa3a3a;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Delete Selected</button>
+  </div>
+  <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
+  <div style="color:#888;font-size:10px;line-height:1.5">
+    drag .glb/.obj/.fbx onto window<br>
+    click empty space → deselect<br>
+    LMB+drag selected = slide on floor<br>
+    arrows/PgUp-Dn = nudge · [/] rotate<br>
+    +/- scale · Del remove · B exit
+  </div>
+</div>
+
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
@@ -735,7 +774,69 @@ setTimeout(() => {
     loaders: Loaders,
   });
   worldBuilder.attachDragDrop();
+
+  // Spawn-primitive buttons
+  document.querySelectorAll(".b-spawn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const kind = btn.dataset.kind;
+      const hp = world.players.get("hero");
+      // Spawn 2m in front of hero at hip height
+      const fwdX = Math.sin(camYaw) * 2;
+      const fwdZ = Math.cos(camYaw) * 2;
+      worldBuilder.spawnPrimitive(kind, { x: hp.u + fwdX, y: 1.0, z: hp.v + fwdZ });
+      playSfx("blip", 0.4);
+    });
+  });
+
+  // Inspector input handlers — each onchange writes through to the selected mesh
+  function _wireInputs() {
+    const ids = ["bPosX","bPosY","bPosZ","bRotX","bRotY","bRotZ","bSclX","bSclY","bSclZ"];
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.addEventListener("change", () => {
+        const px = parseFloat(document.getElementById("bPosX").value);
+        const py = parseFloat(document.getElementById("bPosY").value);
+        const pz = parseFloat(document.getElementById("bPosZ").value);
+        const rx = parseFloat(document.getElementById("bRotX").value);
+        const ry = parseFloat(document.getElementById("bRotY").value);
+        const rz = parseFloat(document.getElementById("bRotZ").value);
+        const sx = parseFloat(document.getElementById("bSclX").value);
+        const sy = parseFloat(document.getElementById("bSclY").value);
+        const sz = parseFloat(document.getElementById("bSclZ").value);
+        worldBuilder.setPosition(px, py, pz);
+        worldBuilder.setRotation(rx, ry, rz);
+        worldBuilder.setScale(sx, sy, sz);
+      });
+    }
+  }
+  _wireInputs();
+  const delBtn = document.getElementById("bDelete");
+  if (delBtn) delBtn.addEventListener("click", () => worldBuilder.deleteSelected());
 }, 250);
+
+// Each frame: show/hide builder UI + update inspector inputs from the
+// selected object (so external mutations like drag-move keep the panel
+// in sync). Editing an input fires change → writes back to the mesh.
+function _refreshBuilderUI() {
+  const panel = document.getElementById("builderUI");
+  if (!panel) return;
+  panel.style.display = buildMode ? "block" : "none";
+  const inspector = document.getElementById("bInspector");
+  if (!worldBuilder || !buildMode) { if (inspector) inspector.style.display = "none"; return; }
+  const t = worldBuilder.getTransform();
+  if (!t) { if (inspector) inspector.style.display = "none"; return; }
+  inspector.style.display = "block";
+  document.getElementById("bSelMeta").textContent =
+    (t.meta.primitive ? t.meta.primitive : (t.meta.assetUrl || "mesh"));
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el) el.value = v.toFixed(2);
+  };
+  set("bPosX", t.pos.x); set("bPosY", t.pos.y); set("bPosZ", t.pos.z);
+  set("bRotX", t.rot.x); set("bRotY", t.rot.y); set("bRotZ", t.rot.z);
+  set("bSclX", t.scale.x); set("bSclY", t.scale.y); set("bSclZ", t.scale.z);
+}
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
 // Single shared mixer drives all in-world sound — bus speakers, gunshots,
@@ -1124,6 +1225,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
 });
 addEventListener("mouseup", (e) => {
   if (e.button === 2) aiming = false;
+  if (e.button === 0 && buildMode && worldBuilder) worldBuilder.dragEnd();
 });
 // Releasing pointer lock should also drop the aim
 document.addEventListener("pointerlockchange", () => {
@@ -1148,6 +1250,16 @@ renderer.domElement.addEventListener("mousedown", (e) => {
 });
 addEventListener("mouseup", () => { dragging = false; });
 addEventListener("mousemove", (e) => {
+  // BUILD MODE: if dragging a selected object, slide it along the ground.
+  if (buildMode && worldBuilder && worldBuilder.isDragging()) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ndc = {
+      x: ((e.clientX - rect.left) / rect.width)  * 2 - 1,
+      y: -((e.clientY - rect.top)  / rect.height) * 2 + 1,
+    };
+    worldBuilder.dragMove(ndc);
+    return;
+  }
   // Mouse-mode on a big screen: mouse movement drives the screen cursor
   // (not the camera). Sensitivity scales with screen resolution so it
   // feels consistent on a 50ft vs 1000ft canvas.
@@ -1231,7 +1343,8 @@ function drawMinimap() {
 // In mouse-mode we instead route LMB to the active screen's hit-test.
 renderer.domElement.addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
-  // BUILD MODE: LMB picks a managed mesh under the cursor
+  // BUILD MODE: LMB picks under the cursor; if it hits the already-selected
+  // object, start a click-drag move; otherwise just select (or deselect).
   if (buildMode && worldBuilder) {
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = {
@@ -1239,8 +1352,13 @@ renderer.domElement.addEventListener("mousedown", (e) => {
       y: -((e.clientY - rect.top)  / rect.height) * 2 + 1,
     };
     const picked = worldBuilder.pickAt(ndc);
-    worldBuilder.select(picked);   // may be null (deselect by clicking empty)
-    playSfx("click", 0.3);
+    const wasSelected = worldBuilder.getSelected();
+    if (picked && picked === wasSelected) {
+      worldBuilder.dragStart();
+    } else {
+      worldBuilder.select(picked);   // may be null (deselect)
+      playSfx("click", 0.3);
+    }
     e.preventDefault();
     return;
   }
@@ -1669,6 +1787,9 @@ function tick() {
 
   // mini-map (top-right)
   drawMinimap();
+
+  // Builder UI refresh (inspector + show/hide)
+  if (typeof _refreshBuilderUI === "function") _refreshBuilderUI();
 
   // PC periodically broadcasts a video frame to mon1 — gives the physical
   // monitor mesh something to mirror (proof the device-graph pipes data).

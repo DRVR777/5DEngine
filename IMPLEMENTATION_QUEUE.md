@@ -20,6 +20,14 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 8 (builder UX: inspector + drag + spawn, iter 137)
+- [x] **Inspector panel** (top-right, only in build mode): live pos/rot/scale fields for the selected object; editing any field writes back to the mesh and saves.
+- [x] **Click-and-drag-to-move** — click an already-selected object → LMB-drag slides it along the ground plane (Y preserved). Single-click on an unselected object selects it instead.
+- [x] **Quick-spawn primitives**: Cube / Sphere / Cylinder / Plane / 💡 Light buttons on the panel — spawns 2m in front of hero, auto-selects.
+- [x] Inspector + spawn buttons live in `builderUI` overlay; auto-hides outside build mode.
+- [x] Builder API extended: `spawnPrimitive`, `dragStart/Move/End`, `setPosition/Rotation/Scale`, `getTransform`.
+- [x] Tests bumped to 46 passing.
+
 ## ✅ Done — Session 7 (camera fixes + world builder, iter 136)
 User-reported issues:
 - [x] **FP camera no longer inverts pitch or drifts height** — camera position is locked to hero head; only the look direction uses pitch. `+Math.sin(camPitch)` for look-y (was `-sin`, that was the inversion). Mouse-down now looks down, as expected.
