@@ -27,7 +27,7 @@
   // Pure: serialize a builder-managed mesh to JSON-safe spec.
   function serializeMesh(mesh, meta) {
     meta = meta || {};
-    return {
+    const spec = {
       id:        meta.id || mesh.uuid,
       assetUrl:  meta.assetUrl  || null,
       assetData: meta.assetData || null,    // base64 if loaded from drag-drop
@@ -36,6 +36,9 @@
       rx: mesh.rotation.x, ry: mesh.rotation.y, rz: mesh.rotation.z,
       sx: mesh.scale.x,    sy: mesh.scale.y,    sz: mesh.scale.z,
     };
+    if (meta.script)    spec.script    = meta.script;
+    if (meta.primitive) spec.primitive = meta.primitive;
+    return spec;
   }
 
   function createBuilder(opts) {
@@ -445,6 +448,7 @@
           if (isFinite(s.rz)) mesh.rotation.z = s.rz;
           if (isFinite(s.sx)) mesh.scale.set(s.sx, s.sy || s.sx, s.sz || s.sx);
           if (s.color) { try { setColor(s.color); } catch (_) {} }
+          if (s.script) { const m = managed.get(mesh); if (m) m.script = s.script; }
           restored++;
         }
       } finally {
@@ -1030,7 +1034,15 @@
       addToLibrary, getLibrary, removeFromLibrary, spawnFromLibrary,
       addTexture, getTextures, applyTexture,
       groupSelected,
-      VERSION: "0.6.0-iter144",
+      getManagedMap: () => managed,
+      setScript: (mesh, code) => {
+        const meta = managed.get(mesh);
+        if (!meta) return false;
+        meta.script = code;
+        save();
+        return true;
+      },
+      VERSION: "0.6.0-iter151",
     };
   }
 

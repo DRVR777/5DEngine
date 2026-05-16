@@ -425,6 +425,21 @@
       <button id="bClone" style="flex:1;background:#4488cc;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Clone (Ctrl+D)</button>
       <button id="bDelete" style="flex:1;background:#aa3a3a;border:0;color:#fff;padding:6px;border-radius:3px;cursor:pointer">Delete (Del)</button>
     </div>
+    <!-- Script editor for selected object -->
+    <div id="bScriptRow" style="margin-top:8px">
+      <div style="color:#00ccff;font-size:9px;letter-spacing:0.14em;margin-bottom:4px">SCRIPT (JS · runs every frame)</div>
+      <textarea id="bScript" rows="5" placeholder="// mesh, dt, time, state, scene, world, CFG available&#10;mesh.rotation.y += dt * 1.5;"
+        style="width:100%;box-sizing:border-box;background:#020c1b;border:1px solid rgba(0,200,255,0.3);
+        color:#b8e8ff;font-family:ui-monospace,Consolas,monospace;font-size:10px;
+        padding:5px;border-radius:3px;resize:vertical"></textarea>
+      <div style="display:flex;gap:4px;margin-top:4px">
+        <button id="bScriptApply" style="flex:1;background:rgba(0,200,255,0.15);border:1px solid rgba(0,200,255,0.4);
+          color:#00ccff;padding:4px;border-radius:3px;cursor:pointer;font-size:10px">Apply</button>
+        <button id="bScriptClear" style="background:rgba(255,68,102,0.12);border:1px solid rgba(255,68,102,0.3);
+          color:#ff4466;padding:4px 8px;border-radius:3px;cursor:pointer;font-size:10px">Clear</button>
+      </div>
+      <div id="bScriptError" style="color:#ff4466;font-size:9px;margin-top:4px;min-height:12px"></div>
+    </div>
   </div>
   <hr style="border:none;border-top:1px solid #66ff6633;margin:8px 0">
   <div style="color:#888;margin-bottom:6px">Scenes:</div>
@@ -478,6 +493,7 @@
 <script src="./devices.js"></script>
 <script src="./wires.js"></script>
 <script src="./camera_spine.js"></script>
+<script src="./scripting.js"></script>
 <script src="./screen_mesh.js"></script>
 <script src="./gltf_loader.js"></script>
 <script src="./audio.js"></script>
@@ -1300,6 +1316,29 @@ setTimeout(() => {
   const redoBtn = document.getElementById("bRedo");
   if (redoBtn) redoBtn.addEventListener("click", () => { worldBuilder.redo(); playSfx("blip", 0.3); });
 
+  // Script apply/clear
+  const scriptApply = document.getElementById("bScriptApply");
+  const scriptClear = document.getElementById("bScriptClear");
+  const scriptEl    = document.getElementById("bScript");
+  const scriptErrEl = document.getElementById("bScriptError");
+  if (scriptApply) scriptApply.addEventListener("click", () => {
+    const sel = worldBuilder.getSelected();
+    if (!sel) return;
+    const code = scriptEl ? scriptEl.value : "";
+    worldBuilder.setScript(sel, code);
+    if (window.ScriptRunner) window.ScriptRunner.clearCache(sel.uuid);
+    if (scriptErrEl) scriptErrEl.textContent = "";
+    playSfx("blip", 0.3);
+  });
+  if (scriptClear) scriptClear.addEventListener("click", () => {
+    const sel = worldBuilder.getSelected();
+    if (!sel) return;
+    worldBuilder.setScript(sel, "");
+    if (window.ScriptRunner) window.ScriptRunner.clearCache(sel.uuid);
+    if (scriptEl) scriptEl.value = "";
+    if (scriptErrEl) scriptErrEl.textContent = "";
+  });
+
   // ---- named scenes UI ----
   function _refreshSceneList() {
     const sel = document.getElementById("bSceneList");
@@ -1608,6 +1647,18 @@ function _refreshBuilderUI() {
     if (iel && document.activeElement !== iel) iel.value = ints;
     document.getElementById("bIntensityVal").textContent = ints.toFixed(1);
   } else { intRow.style.display = "none"; }
+
+  // Script editor — populate with the selected mesh's current script
+  const sel = worldBuilder.getSelected();
+  const scriptEl  = document.getElementById("bScript");
+  const errEl     = document.getElementById("bScriptError");
+  if (scriptEl && sel && document.activeElement !== scriptEl) {
+    scriptEl.value = (t.meta.script) || "";
+  }
+  if (errEl && sel && window.ScriptRunner) {
+    const err = window.ScriptRunner.getError(sel.uuid);
+    errEl.textContent = err ? "ERR: " + err : "";
+  }
 }
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
@@ -2178,66 +2229,133 @@ const hud = document.getElementById("hud");
 const mini = document.getElementById("minimap").getContext("2d");
 const MINI_HALF = CFG.miniMapHalfExtent || 35;
 
+let _mmSweepAngle = 0;   // rotating radar sweep angle
 function drawMinimap() {
-  const W = 180, H = 180;
+  const W = 180, H = 180, CX = W/2, CY = H/2, R = W/2 - 2;
   mini.clearRect(0, 0, W, H);
-  // Background
-  mini.fillStyle = "rgba(40, 70, 50, 0.85)";
-  mini.fillRect(0, 0, W, H);
-  // Center is hero
+
+  // Circular clip + holographic background
+  mini.save();
+  mini.beginPath(); mini.arc(CX, CY, R, 0, Math.PI*2); mini.clip();
+  mini.fillStyle = "rgba(0,8,22,0.90)"; mini.fillRect(0, 0, W, H);
+
+  // Grid lines
+  mini.strokeStyle = "rgba(0,200,255,0.08)"; mini.lineWidth = 1;
+  for (let g = -4; g <= 4; g++) {
+    const gx = CX + g * R / 4;
+    mini.beginPath(); mini.moveTo(gx, 0); mini.lineTo(gx, H); mini.stroke();
+    mini.beginPath(); mini.moveTo(0, CY + g * R / 4); mini.lineTo(W, CY + g * R / 4); mini.stroke();
+  }
+
+  // Radar sweep trail
+  const trailGrad = mini.createConicalGradient
+    ? mini.createConicalGradient(_mmSweepAngle, CX, CY)
+    : null;
+  if (trailGrad) {
+    trailGrad.addColorStop(0, "rgba(0,200,255,0)");
+    trailGrad.addColorStop(0.9, "rgba(0,200,255,0.14)");
+    trailGrad.addColorStop(1, "rgba(0,200,255,0)");
+    mini.fillStyle = trailGrad;
+    mini.beginPath(); mini.arc(CX, CY, R, 0, Math.PI * 2); mini.fill();
+  } else {
+    // Fallback sweep line (browsers without conical gradient)
+    mini.strokeStyle = "rgba(0,200,255,0.35)"; mini.lineWidth = 2;
+    mini.beginPath(); mini.moveTo(CX, CY);
+    mini.lineTo(CX + Math.cos(_mmSweepAngle) * R, CY + Math.sin(_mmSweepAngle) * R);
+    mini.stroke();
+  }
+
   const hero = world.players.get("hero");
-  const u2x = (u) => W/2 + ((u - hero.u) / MINI_HALF) * (W/2);
-  const v2y = (v) => H/2 + ((v - hero.v) / MINI_HALF) * (H/2);
-  // Buildings
+  const u2x = (u) => CX + ((u - hero.u) / MINI_HALF) * R;
+  const v2y = (v) => CY + ((v - hero.v) / MINI_HALF) * R;
+
+  // Buildings — semi-transparent colored rects
   for (const bldg of buildings) {
     const { u0, v0, u1, v1 } = bldg.b.params;
-    mini.fillStyle = "#" + bldg.color.toString(16).padStart(6, "0") + "88";
+    const hex = bldg.color.toString(16).padStart(6, "0");
+    mini.fillStyle = "#" + hex + "44";
+    mini.strokeStyle = "#" + hex + "99";
+    mini.lineWidth = 1;
     const x0 = u2x(u0), y0 = v2y(v0), x1 = u2x(u1), y1 = v2y(v1);
-    mini.fillRect(Math.min(x0,x1), Math.min(y0,y1), Math.abs(x1-x0), Math.abs(y1-y0));
+    const rx = Math.min(x0,x1), ry = Math.min(y0,y1), rw = Math.abs(x1-x0), rh = Math.abs(y1-y0);
+    mini.fillRect(rx, ry, rw, rh); mini.strokeRect(rx, ry, rw, rh);
   }
-  // NPCs
-  for (const n of NPC_DEFS) {
-    const np = world.players.get(n.id);
-    mini.fillStyle = "#" + n.color.toString(16).padStart(6, "0");
-    mini.beginPath(); mini.arc(u2x(np.u), v2y(np.v), 3, 0, Math.PI*2); mini.fill();
-  }
-  // Vehicles — draw each one in its own color
+
+  // Vehicles — colored rectangles
   for (const v of VEHICLE_DEFS) {
     const vp = world.players.get(v.id);
-    mini.fillStyle = "#" + (v.color || 0xc1121f).toString(16).padStart(6, "0");
+    mini.fillStyle = "#" + (v.color || 0xc1121f).toString(16).padStart(6, "0") + "cc";
     mini.fillRect(u2x(vp.u) - 3, v2y(vp.v) - 4, 6, 8);
   }
-  // Pickups
+
+  // NPCs — dim dots
+  for (const n of NPC_DEFS) {
+    const np = world.players.get(n.id);
+    mini.fillStyle = "#" + n.color.toString(16).padStart(6, "0") + "99";
+    mini.beginPath(); mini.arc(u2x(np.u), v2y(np.v), 2, 0, Math.PI*2); mini.fill();
+  }
+
+  // Coins — small gold dots
   for (const pk of pickups) {
     if (pk.collected) continue;
-    mini.fillStyle = "#ffd700";
+    mini.fillStyle = "#ffd700cc";
     mini.beginPath(); mini.arc(u2x(pk.u), v2y(pk.v), 2, 0, Math.PI*2); mini.fill();
   }
-  // Enemies — each in its own color
+
+  // Ammo pickups — orange squares
+  for (const ap of ammoPickups) {
+    if (ap.collected) continue;
+    mini.fillStyle = "#ffaa00bb";
+    mini.fillRect(u2x(ap.u) - 2, v2y(ap.v) - 2, 4, 4);
+  }
+
+  // Enemies — red diamond blips (pulse with sweep)
   for (const en of enemies) {
     if (en.dead) continue;
     const ep = world.players.get(en.id);
     const ex = u2x(ep.u), ey = v2y(ep.v);
-    mini.fillStyle = "#" + (en.color || 0xff2244).toString(16).padStart(6, "0");
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
+    mini.fillStyle = `rgba(255,40,80,${0.7 + pulse * 0.3})`;
     mini.beginPath(); mini.moveTo(ex, ey-5); mini.lineTo(ex+4, ey); mini.lineTo(ex, ey+5); mini.lineTo(ex-4, ey); mini.closePath(); mini.fill();
   }
-  // Ammo pickups (orange squares)
-  for (const ap of ammoPickups) {
-    if (ap.collected) continue;
-    mini.fillStyle = "#ffaa00";
-    mini.fillRect(u2x(ap.u) - 2, v2y(ap.v) - 2, 5, 5);
-  }
-  // Hero (always center)
+
+  // Hero — bright centered dot + heading arrow
   mini.fillStyle = "#ffd166";
-  mini.beginPath(); mini.arc(W/2, H/2, 4, 0, Math.PI*2); mini.fill();
-  // Hero heading arrow
+  mini.beginPath(); mini.arc(CX, CY, 4, 0, Math.PI*2); mini.fill();
   const hYaw = heroGroup.rotation.y;
-  mini.strokeStyle = "#ffd166"; mini.lineWidth = 2;
-  mini.beginPath(); mini.moveTo(W/2, H/2);
-  mini.lineTo(W/2 + Math.sin(hYaw)*8, H/2 - Math.cos(hYaw)*8); mini.stroke();
-  // Compass
-  mini.fillStyle = "#fff"; mini.font = "10px monospace";
-  mini.fillText("N", W/2 - 3, 11); mini.fillText("S", W/2 - 3, H - 3);
+  mini.strokeStyle = "#ffd166bb"; mini.lineWidth = 2;
+  mini.beginPath(); mini.moveTo(CX, CY);
+  mini.lineTo(CX + Math.sin(hYaw)*9, CY - Math.cos(hYaw)*9); mini.stroke();
+
+  mini.restore();
+
+  // Compass ring (outside clip)
+  mini.strokeStyle = "rgba(0,200,255,0.45)"; mini.lineWidth = 1.5;
+  mini.beginPath(); mini.arc(CX, CY, R, 0, Math.PI*2); mini.stroke();
+
+  // Tick marks every 45°
+  mini.strokeStyle = "rgba(0,200,255,0.30)"; mini.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI / 4);
+    const innerR = R - 4, outerR = R;
+    mini.beginPath();
+    mini.moveTo(CX + Math.cos(a) * innerR, CY + Math.sin(a) * innerR);
+    mini.lineTo(CX + Math.cos(a) * outerR, CY + Math.sin(a) * outerR);
+    mini.stroke();
+  }
+
+  // Cardinal letters
+  mini.fillStyle = "rgba(0,200,255,0.85)"; mini.font = "bold 9px monospace";
+  mini.textAlign = "center";
+  mini.fillText("N", CX, 11);
+  mini.fillText("S", CX, H - 3);
+  mini.fillStyle = "rgba(0,200,255,0.55)"; mini.font = "8px monospace";
+  mini.fillText("E", W - 5, CY + 3);
+  mini.fillText("W", 5, CY + 3);
+  mini.textAlign = "left";
+
+  // Advance sweep
+  _mmSweepAngle = (_mmSweepAngle + 0.05) % (Math.PI * 2);
 }
 
 // Click to shoot (registered after renderer/scene/camYaw all exist).
@@ -2969,6 +3087,14 @@ function tick() {
 
   // Hero animation mixer (active once a GLB is loaded)
   if (heroMixer) heroMixer.update(dt);
+
+  // Scripted world objects — run each managed mesh's script if present
+  if (window.ScriptRunner && worldBuilder && worldBuilder.getManagedMap) {
+    const scriptEnv = { scene, world, CFG };
+    for (const [mesh, meta] of worldBuilder.getManagedMap()) {
+      if (meta && meta.script) window.ScriptRunner.tick(mesh.uuid, mesh, meta, dt, scriptEnv);
+    }
+  }
 
   // Holographic health bar update
   const hbFill = document.getElementById("hbFill");
