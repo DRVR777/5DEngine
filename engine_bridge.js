@@ -163,26 +163,92 @@
   //   speed accumulates with throttle, drags toward 0
   //   heading turns at a rate proportional to (steer × current speed)
   // Returns updated { speed, heading } so caller persists them.
-  function carPhysicsStep(world, id, state, throttle, steer, dt) {
-    const ACCEL = 12;     // m/s²
-    const DRAG  = 1.6;    // 1/s
-    const MAX_S = 18;     // m/s
-    const MAX_TURN = 1.8; // rad/s at full speed+lock
+  // Gear table: each gear caps speed, has its own accel multiplier.
+  // Auto-shift up when speed > 90% of gear cap; down when < 40%.
+  const CAR_GEARS = [
+    { name: "R",  maxSpeed: -10, accelMul: 0.8 },
+    { name: "N",  maxSpeed:   0, accelMul: 0   },
+    { name: "1",  maxSpeed:   8, accelMul: 1.6 },
+    { name: "2",  maxSpeed:  16, accelMul: 1.3 },
+    { name: "3",  maxSpeed:  28, accelMul: 1.0 },
+    { name: "4",  maxSpeed:  42, accelMul: 0.75 },
+    { name: "5",  maxSpeed:  60, accelMul: 0.5 },
+  ];
+  function carPhysicsStep(world, id, state, throttle, steer, dt, opts) {
+    opts = opts || {};
+    const BASE_ACCEL = 16;
+    const DRAG = 0.9;
+    const BRAKE = 30;
+    const HANDBRAKE = 60;
+    const MAX_TURN = 2.2;
     let speed   = state.speed   || 0;
     let heading = state.heading || 0;
-    speed += throttle * ACCEL * dt;
+    let gear    = state.gear != null ? state.gear : 2;   // start in 1st (index 2)
+    const handbrake = !!opts.handbrake;
+    // Reverse: hold throttle<0 from standstill → engage R
+    if (throttle < 0 && speed <= 0.5 && gear > 1) gear = 0;
+    if (throttle > 0 && speed >= -0.5 && gear === 0) gear = 2;
+    if (gear === 1 && throttle !== 0) gear = throttle > 0 ? 2 : 0;
+    const g = CAR_GEARS[gear];
+    // Apply throttle / braking
+    if (handbrake) {
+      const sign = Math.sign(speed);
+      speed -= sign * HANDBRAKE * dt;
+      if (Math.sign(speed) !== sign) speed = 0;
+    } else if ((speed > 0 && throttle < 0) || (speed < 0 && throttle > 0)) {
+      // Braking: counter-throttle decelerates faster
+      const sign = Math.sign(speed);
+      speed -= sign * BRAKE * dt;
+      if (Math.sign(speed) !== sign) speed = 0;
+    } else {
+      speed += throttle * BASE_ACCEL * g.accelMul * dt;
+    }
+    // Drag (rolling resistance)
     speed *= Math.exp(-DRAG * dt);
-    if (speed >  MAX_S) speed =  MAX_S;
-    if (speed < -MAX_S/2) speed = -MAX_S/2;
-    const turnRate = steer * MAX_TURN * (Math.abs(speed) / MAX_S);
+    // Clamp to gear's range
+    if (gear === 0) {
+      if (speed < g.maxSpeed) speed = g.maxSpeed;
+      if (speed > 0) speed = 0;
+    } else {
+      if (speed > g.maxSpeed) speed = g.maxSpeed;
+      if (speed < -2) speed = -2;
+    }
+    // Auto-shift (forward gears only)
+    if (gear >= 2 && !handbrake) {
+      if (gear < CAR_GEARS.length - 1 && speed > g.maxSpeed * 0.95) gear++;
+      else if (gear > 2 && speed < CAR_GEARS[gear - 1].maxSpeed * 0.45) gear--;
+    }
+    // Steering — speed-dependent, plus tighter at low speed
+    const speedNorm = Math.min(1, Math.abs(speed) / 30);
+    const turnRate = steer * MAX_TURN * (0.3 + 0.7 * speedNorm);
     heading += turnRate * dt;
     const p = world.players.get(id);
     if (p) {
       const du = Math.sin(heading) * speed * dt;
       const dv = Math.cos(heading) * speed * dt;
-      world.setPlayer(id, p.x, p.y, p.z, p.u + du, p.v + dv);
+      const newU = p.u + du;
+      const newV = p.v + dv;
+      // Building collision: if blockers given, halt at first hit
+      let hit = false;
+      if (Array.isArray(opts.blockers)) {
+        const halfW = (opts.carHitbox && opts.carHitbox.w / 2) || 1.5;
+        const halfD = (opts.carHitbox && opts.carHitbox.d / 2) || 2.5;
+        for (const b of opts.blockers) {
+          const bw = b.hitbox.w / 2, bd = b.hitbox.d / 2;
+          if (newU + halfW > b.u - bw && newU - halfW < b.u + bw &&
+              newV + halfD > b.v - bd && newV - halfD < b.v + bd) {
+            hit = true; break;
+          }
+        }
+      }
+      if (hit) {
+        speed *= 0.3;   // bounce — bleed speed on impact
+        // don't move this tick
+      } else {
+        world.setPlayer(id, p.x, p.y, p.z, newU, newV);
+      }
     }
-    return { speed, heading };
+    return { speed, heading, gear, gearName: CAR_GEARS[gear].name };
   }
 
   // Distance in the (u, v) ground plane between two engine players.

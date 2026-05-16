@@ -61,8 +61,13 @@ function makeThreeMock() {
 function makeDocumentMock() {
   function makeEl(tag) {
     return {
-      tagName: tag, innerHTML: "", classList: { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} },
+      tagName: tag, innerHTML: "", textContent: "", value: "",
+      dataset: {}, src: "",
+      classList: { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} },
       appendChild: () => {}, addEventListener: () => {}, requestPointerLock: () => {},
+      querySelector: () => makeEl("div"),
+      querySelectorAll: () => [],
+      closest: () => null,
       style: {}, getContext: () => ({
         clearRect: () => {}, fillRect: () => {}, beginPath: () => {}, moveTo: () => {},
         lineTo: () => {}, stroke: () => {}, fill: () => {}, arc: () => {}, ellipse: () => {},
@@ -76,6 +81,8 @@ function makeDocumentMock() {
     createElement: makeEl,
     body: { appendChild: () => {} },
     getElementById: (id) => makeEl("div"),
+    querySelector: () => makeEl("div"),
+    querySelectorAll: () => [],
     addEventListener: () => {},
   };
 }

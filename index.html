@@ -43,11 +43,38 @@
     transform: translate(-50%, -50%);
     border-radius: 50%;
   }
-  #inventory {
+  #inventory, #computerOverlay {
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(0,0,0,0.65); z-index: 1000;
   }
-  #inventory.open { display: flex; }
+  #inventory.open, #computerOverlay.open { display: flex; }
+  #computerOverlay .desktop {
+    background: linear-gradient(135deg, #1a3050 0%, #0d1a30 100%);
+    color: #eee; padding: 24px 28px; border-radius: 12px;
+    border: 2px solid #4488cc; min-width: 720px; min-height: 460px;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    box-shadow: 0 0 40px #4488cc88;
+  }
+  #computerOverlay .titlebar {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #4488cc55; padding-bottom: 8px; margin-bottom: 14px;
+    font-size: 14px;
+  }
+  #computerOverlay .grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  }
+  #computerOverlay .app {
+    background: #1a2a44; border: 1px solid #4488cc55; padding: 14px;
+    border-radius: 8px; text-align: center; cursor: pointer;
+    transition: background 120ms;
+  }
+  #computerOverlay .app:hover { background: #234060; }
+  #computerOverlay .icon { font-size: 36px; }
+  #computerOverlay .label { font-size: 12px; margin-top: 6px; color: #aac; }
+  #appWindow { display: none; padding: 14px; min-height: 280px; }
+  #appWindow.open { display: block; }
+  #appWindow h4 { margin: 0 0 10px 0; color: #ffd166; }
+  #appWindow pre { background: #0a1626; padding: 10px; border-radius: 6px; color: #88c; font-size: 11px; white-space: pre-wrap; }
   #inventory .panel {
     background: #1a1a1a; color: #eee; padding: 16px 18px; border-radius: 10px;
     border: 1px solid #444; min-width: 480px;
@@ -96,6 +123,33 @@
 <canvas id="minimap" width="180" height="180"></canvas>
 <div id="crosshair"></div>
 <div id="damageFlash"></div>
+<div id="computerOverlay">
+  <div class="desktop">
+    <div class="titlebar">
+      <span><b style="color:#88ddff">DWRLD OS</b> <span style="color:#888">v0.1 — 5DEngine integration</span></span>
+      <span style="color:#888">[ESC] close</span>
+    </div>
+    <div id="appHome">
+      <div class="grid">
+        <div class="app" data-app="mail"><div class="icon">📬</div><div class="label">Mail</div></div>
+        <div class="app" data-app="wallet"><div class="icon">💰</div><div class="label">Wallet</div></div>
+        <div class="app" data-app="stats"><div class="icon">📊</div><div class="label">Stats</div></div>
+        <div class="app" data-app="codex"><div class="icon">📖</div><div class="label">Codex</div></div>
+        <div class="app" data-app="achievements"><div class="icon">🏆</div><div class="label">Achievements</div></div>
+        <div class="app" data-app="map"><div class="icon">🗺️</div><div class="label">Map</div></div>
+        <div class="app" data-app="market"><div class="icon">🛒</div><div class="label">Market</div></div>
+        <div class="app" data-app="radio"><div class="icon">📻</div><div class="label">Radio</div></div>
+      </div>
+    </div>
+    <div id="appWindow">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h4 id="appTitle"></h4>
+        <span style="cursor:pointer;color:#88ddff" onclick="document.getElementById('appWindow').classList.remove('open');document.getElementById('appHome').style.display='block';">[ home ]</span>
+      </div>
+      <div id="appBody"></div>
+    </div>
+  </div>
+</div>
 <div id="inventory">
   <div class="panel">
     <h3>Inventory <span style="color:#888;font-weight:normal;">— press I or Esc to close</span></h3>
@@ -365,6 +419,21 @@ const legL = makeLimb(heroPants, 0.85); legL.position.set(-0.18, 0.85, 0); heroG
 const legR = makeLimb(heroPants, 0.85); legR.position.set( 0.18, 0.85, 0); heroGroup.add(legR);
 const armL = makeLimb(heroSkin,  0.7);  armL.position.set(-0.45, 1.6, 0);  heroGroup.add(armL);
 const armR = makeLimb(heroSkin,  0.7);  armR.position.set( 0.45, 1.6, 0);  heroGroup.add(armR);
+// Pistol mesh — boxy primitive (drop in a .glb later via GLTFLoader)
+const gunBody = new THREE.Mesh(
+  new THREE.BoxGeometry(0.1, 0.16, 0.32),
+  new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.7, roughness: 0.4 })
+);
+const gunBarrel = new THREE.Mesh(
+  new THREE.BoxGeometry(0.06, 0.06, 0.4),
+  new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 })
+);
+gunBarrel.position.z = 0.34;
+const gunGroup = new THREE.Group();
+gunGroup.add(gunBody); gunGroup.add(gunBarrel);
+// Mount at the right hand: position relative to armR's pivot
+gunGroup.position.set(0, -0.7, 0.2);   // at the tip of the arm, slightly forward
+armR.add(gunGroup);
 scene.add(heroGroup);
 const walkState = { t: 0 };
 
@@ -482,9 +551,43 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // E near computer → "open" (iter 38 wires the actual takeover screen)
+  // E near computer → open desktop OS
   if (e.code === "KeyE" && nearComputer) {
     computerOpen = !computerOpen;
+    document.getElementById("computerOverlay").classList.toggle("open", computerOpen);
+    e.preventDefault();
+    return;
+  }
+  // ESC closes the computer overlay
+  if (e.code === "Escape" && computerOpen) {
+    computerOpen = false;
+    document.getElementById("computerOverlay").classList.remove("open");
+    e.preventDefault();
+    return;
+  }
+  // L toggles which side the camera offset is on (left/right shoulder)
+  if (e.code === "KeyL") {
+    camSide = -camSide;
+    e.preventDefault();
+    return;
+  }
+  // R reloads pistol from inventory
+  if (e.code === "KeyR") {
+    const PISTOL_MAG = 12;
+    const need = PISTOL_MAG - pistolAmmo;
+    if (need > 0) {
+      const slot = heroInv.items.find ? heroInv.items.find(i => i && i.id === "pistol_9mm") : null;
+      // Inventory API is { items[], ... } — try a safe direct lookup:
+      let invAmmo = 0;
+      for (const it of heroInv.items || []) {
+        if (it && it.id === "pistol_9mm") invAmmo += it.qty || 0;
+      }
+      const take = Math.min(need, invAmmo);
+      if (take > 0) {
+        try { Inv.removeItem(heroInv, "pistol_9mm", take); } catch (_) {}
+        pistolAmmo += take;
+      }
+    }
     e.preventDefault();
     return;
   }
@@ -506,6 +609,16 @@ addEventListener("keyup",   (e) => { keys[e.code] = false; });
 
 let camYaw = 0;
 let camPitch = -0.25;
+let camDist = 7;          // 0..0.5 = first-person, > 0.5 = third-person
+let camSide = 1;          // +1 = right shoulder, -1 = left shoulder
+const CAM_DIST_MIN = 0;
+const CAM_DIST_MAX = 15;
+
+// Scroll-wheel zoom: shrinks camDist into first-person, expands into pull-back.
+renderer.domElement.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  camDist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camDist + e.deltaY * 0.01));
+}, { passive: false });
 
 // Pointer lock for true freelook (GTA-style). Click the canvas to capture, ESC to release.
 let pointerLocked = false;
@@ -600,8 +713,9 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   pistolCooldown = 1 / PISTOL_FIRE_RATE;
   pistolAmmo--;
   const hp = world.players.get("hero");
-  const dirU = -Math.sin(camYaw);
-  const dirV = -Math.cos(camYaw);
+  // Fire forward (same direction W moves): +sin/+cos
+  const dirU = Math.sin(camYaw);
+  const dirV = Math.cos(camYaw);
   const mesh = new THREE.Mesh(bulletGeo, bulletMat);
   mesh.position.set(hp.u, 1.5, hp.v);
   scene.add(mesh);
@@ -619,27 +733,40 @@ function tick() {
   const dt  = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
 
-  // camera-relative basis projected to ground
-  const forward = { x: -Math.sin(camYaw), y: 0, z: -Math.cos(camYaw) };
-  const right   = { x:  Math.cos(camYaw), y: 0, z: -Math.sin(camYaw) };
+  // camera-relative basis projected to ground.
+  // Camera sits at hero + (-sin(yaw), -cos(yaw)) * dist (behind hero),
+  // so forward (the direction W should move = away from camera) is
+  // the opposite vector: (+sin(yaw), +cos(yaw)).
+  const forward = { x: Math.sin(camYaw), y: 0, z: Math.cos(camYaw) };
+  const right   = { x: Math.cos(camYaw), y: 0, z: -Math.sin(camYaw) };
 
   const inputF = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
   const inputR = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
   const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
 
   if (inCar) {
-    // Car physics: W/S throttle, A/D steer
+    // Car physics: W/S throttle, A/D steer, SPACE handbrake
     const throttle = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
     const steerIn  = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
-    const next = Bridge.carPhysicsStep(world, "car", carState, throttle, steerIn, dt);
+    const handbrake = !!keys["Space"];
+    const next = Bridge.carPhysicsStep(world, "car", carState, throttle, steerIn, dt, {
+      blockers: buildingBlockers,
+      carHitbox: { w: 2, d: 4 },
+      handbrake,
+    });
     carState.speed = next.speed; carState.heading = next.heading;
+    carState.gear = next.gear; carState.gearName = next.gearName;
     // Hero rides in the car
     const cp = world.players.get("car");
     world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
   } else {
+    // Add the car as a dynamic blocker so the hero can't walk through it.
+    const cp = world.players.get("car");
+    const carBlocker = { u: cp.u, v: cp.v, y: 0,
+                         hitbox: { w: 2, d: 4, h: 1.4 } };
     Bridge.applyCameraRelativeMove(
       world, "hero", inputF, inputR, forward, right, speed, dt,
-      { blockers: buildingBlockers, heroHitbox: HERO_HITBOX }
+      { blockers: buildingBlockers.concat([carBlocker]), heroHitbox: HERO_HITBOX }
     );
   }
 
@@ -722,11 +849,42 @@ function tick() {
     m.group.rotation.y = m.heading;
   }
 
+  // --- Stackable platforms (generic): any object can declare one or
+  // more horizontal "top surfaces" the hero can stand on. The hero
+  // gets clamped to the highest platform whose XZ footprint contains
+  // them (otherwise: ground at y=0). Inspired by Dreamworld §5.2.1.
+  // Each platform: { u, v, w, d, topY, label }.
+  const carP = world.players.get("car");
+  // Car: hood (lower) and roof (upper). Footprint approximated as
+  // axis-aligned for v1; heading-rotated bounds is a v2 follow-up.
+  const platforms = [
+    { u: carP.u, v: carP.v - 0.8, w: 1.6, d: 2.0, topY: 0.9, label: "car_hood" },
+    { u: carP.u, v: carP.v + 0.4, w: 1.8, d: 1.6, topY: 1.4, label: "car_roof" },
+  ];
+  function _platformUnder(u, v, currentY) {
+    // Return highest top whose XZ contains (u,v) AND whose top is at or below currentY.
+    // The "at or below" condition prevents teleporting up through a ceiling.
+    let best = 0;   // ground
+    let bestLabel = "ground";
+    for (const p of platforms) {
+      const halfW = p.w / 2, halfD = p.d / 2;
+      if (u < p.u - halfW || u > p.u + halfW || v < p.v - halfD || v > p.v + halfD) continue;
+      if (p.topY > currentY + 0.3) continue;   // can't pop up through it
+      if (p.topY > best) { best = p.topY; bestLabel = p.label; }
+    }
+    return { topY: best, label: bestLabel };
+  }
+
   // jump + gravity (engine.y is the height channel)
   const hero = world.players.get("hero");
-  if (keys["Space"] && hero.y <= 0.001) velocityY = JUMP_V;
+  const support = _platformUnder(hero.u, hero.v, hero.y);
+  const onSupport = hero.y <= support.topY + 0.001;
+  if (keys["Space"] && onSupport) velocityY = JUMP_V;
   velocityY += GRAVITY * dt;
   let newY = hero.y + velocityY * dt;
+  // After falling, snap to whichever platform we're now above
+  const supportAfter = _platformUnder(hero.u, hero.v, Math.max(newY, hero.y));
+  if (newY < supportAfter.topY) { newY = supportAfter.topY; velocityY = 0; }
   if (newY < 0) { newY = 0; velocityY = 0; }
   world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
 
@@ -745,7 +903,7 @@ function tick() {
   carGroup.rotation.y = carState.heading;
 
   const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
-  heroGroup.visible = !inCar;
+  // hero visibility is set below after firstPerson is computed
   heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
 
   // Walk cycle — drive limb swing by ground speed
@@ -763,16 +921,33 @@ function tick() {
     heroGroup.rotation.y = Math.atan2(fx, fz);
   }
 
-  // chase camera — wider when in car
-  const dist = inCar ? 11 : 7;
-  const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + 1.2, heroPos.z);
+  // Camera: pulls back along the inverse of `forward` vector (so we sit
+  // behind the hero). camDist=0 → first-person at head; >0.5 → 3rd person
+  // with a side offset (GTA-style over-the-shoulder). L toggles shoulder.
+  const dist = inCar ? Math.max(camDist, 6) : camDist;
+  const firstPerson = !inCar && dist < 0.5;
+  // Hero is hidden in first person so we don't see our own head from inside
+  heroGroup.visible = !inCar && !firstPerson;
+  const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
+  // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
+  // Camera offset back from hero: -sin(yaw), -cos(yaw) × dist
+  const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
+  const sx = Math.cos(camYaw), sz = -Math.sin(camYaw);   // right vector
+  // Side offset shrinks as we zoom in; zero at FP
+  const sideAmt = firstPerson ? 0 : Math.min(0.8, dist * 0.18) * camSide;
   const camOff = new THREE.Vector3(
-    -Math.sin(camYaw) * Math.cos(camPitch) * dist,
-     Math.sin(-camPitch) * dist + 1.2,
-    -Math.cos(camYaw) * Math.cos(camPitch) * dist
+    -fx * Math.cos(camPitch) * dist + sx * sideAmt,
+     Math.sin(-camPitch) * dist + (firstPerson ? 0 : 1.2),
+    -fz * Math.cos(camPitch) * dist + sz * sideAmt
   );
   camera.position.copy(camTarget.clone().add(camOff));
-  camera.lookAt(camTarget);
+  // In first-person, look forward (where hero is facing). Otherwise look at hero head.
+  if (firstPerson) {
+    const look = camTarget.clone().add(new THREE.Vector3(fx * 10, -Math.sin(camPitch) * 10, fz * 10));
+    camera.lookAt(look);
+  } else {
+    camera.lookAt(camTarget);
+  }
 
   const dToCar = Bridge.uvDist(world, "hero", "car");
   const bldgName = (id) => ({2:"shop",3:"tower",4:"house",5:"garage",6:"diner",7:"bank",8:"park",9:"studio"}[id] || `L${id}`);
@@ -847,6 +1022,123 @@ function tick() {
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
+
+// ───── Desktop OS app wiring ─────
+// Each app reads live engine state when opened. Adding a new app =
+// adding a new entry to APPS — no other code needs to change.
+const APPS = {
+  mail: {
+    title: "📬 Mail",
+    body: () => `<p style="color:#aac;font-size:13px">Inbox (offline-only for now):</p>
+      <ul style="color:#ccd;line-height:1.6;font-size:12px">
+        <li>[system] Welcome to DWRLD OS. Try the Browser app.</li>
+        <li>[system] Press E near a wired screen to interact in-world (planned).</li>
+      </ul>`,
+  },
+  wallet: {
+    title: "💰 Wallet",
+    body: () => {
+      const ammo = pistolAmmo;
+      let bagAmmo = 0; for (const it of (heroInv.items || [])) if (it && it.id === "pistol_9mm") bagAmmo += it.qty || 0;
+      const meds = (heroInv.items || []).filter(i=>i && i.id==="medkit").reduce((s,i)=>s+(i.qty||0),0);
+      const hp = (typeof heroHealth.hp === "number") ? heroHealth.hp : 100;
+      return `<pre>player:    hero
+score:     ${score} coins
+pistol:    ${ammo}/12 mag, ${bagAmmo} in bag
+medkits:   ${meds}
+HP:        ${hp}/${heroHealth.max || 100}</pre>`;
+    },
+  },
+  stats: {
+    title: "📊 Stats",
+    body: () => `<pre>position:  (${world.players.get("hero").u.toFixed(1)}, ${world.players.get("hero").v.toFixed(1)})
+in car:    ${inCar}
+gear:      ${carState.gearName || "—"} (${(carState.speed||0).toFixed(1)} m/s)
+camDist:   ${camDist.toFixed(2)} m
+shoulder:  ${camSide > 0 ? "right" : "left"} (L to flip)
+nearComp:  ${nearComputer}</pre>`,
+  },
+  codex: {
+    title: "📖 Codex",
+    body: () => `<pre>Codex entries (placeholder — wire to codex.js next):
+- DWRLD City   (auto-unlock: enter the world)
+- The PC       (auto-unlock: press E on it)
+- The Car      (auto-unlock: drive it)
+- The Gun      (auto-unlock: fire it)</pre>`,
+  },
+  achievements: {
+    title: "🏆 Achievements",
+    body: () => `<pre>${score > 0 ? "✓" : "·"} First Coin (collect 1 coin)
+${score >= 8 ? "✓" : "·"} Coin Hoarder (collect all 8)
+${inCar ? "✓" : "·"} Behind the Wheel (drive the car)
+${pistolAmmo < 12 ? "✓" : "·"} Pulled the Trigger (fire pistol)</pre>`,
+  },
+  map: {
+    title: "🗺️ Map",
+    body: () => {
+      const buildingList = buildings.map(b => `  ${b.id.padEnd(8)} at (${b.b.params.u0},${b.b.params.v0})`).join("\n");
+      return `<pre>world: city demo
+buildings:
+${buildingList}
+computer: (${computerEntity.u}, ${computerEntity.v})
+car: (${world.players.get("car").u.toFixed(1)}, ${world.players.get("car").v.toFixed(1)})</pre>`;
+    },
+  },
+  market: {
+    title: "🛒 Market",
+    body: () => `<pre>Listings (placeholder — wire to marketplace_search.js):
+  pistol_9mm × 60      120 coin
+  medkit                80 coin
+  gun_pistol           500 coin
+  car_paint_red         50 coin</pre>`,
+  },
+  radio: {
+    title: "📻 Radio",
+    body: () => `<pre>tuned to: 94.7 MHz "DWRLD FM"
+now playing: ambient_clear (placeholder)
+note: wire to radio.js + weather_music_bridge.js next iter</pre>`,
+  },
+  browser: {
+    title: "🌐 Browser",
+    body: () => `<div style="display:flex;gap:6px;margin-bottom:8px">
+  <input id="browserUrl" type="text" value="https://example.com/" style="flex:1;background:#0a1626;border:1px solid #4488cc55;color:#eee;padding:6px;border-radius:4px;font-family:inherit;font-size:12px"/>
+  <button id="browserGo" style="background:#4488cc;border:0;color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer">Go</button>
+</div>
+<iframe id="browserFrame" src="https://example.com/" style="width:100%;height:320px;border:1px solid #4488cc55;border-radius:4px;background:#fff" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+<div style="color:#88a;font-size:11px;margin-top:6px">⚠ Cross-origin sites may refuse to embed (X-Frame-Options). Try local pages or sites that allow embedding.</div>`,
+  },
+};
+
+// Add Browser app icon to the home grid (extends iter 38 placeholder)
+(function addBrowserIcon() {
+  const grid = document.querySelector("#computerOverlay .grid");
+  if (!grid) return;
+  if (grid.querySelector('[data-app="browser"]')) return;
+  const div = document.createElement("div");
+  div.className = "app"; div.dataset.app = "browser";
+  div.innerHTML = '<div class="icon">🌐</div><div class="label">Browser</div>';
+  grid.appendChild(div);
+})();
+
+// Click handlers: app icon → load that app's body into the window pane
+document.getElementById("computerOverlay").addEventListener("click", (e) => {
+  const app = e.target.closest(".app");
+  if (!app) return;
+  const id = app.dataset.app;
+  const spec = APPS[id];
+  if (!spec) return;
+  document.getElementById("appHome").style.display = "none";
+  document.getElementById("appTitle").textContent = spec.title;
+  document.getElementById("appBody").innerHTML = spec.body();
+  document.getElementById("appWindow").classList.add("open");
+  // Browser app: wire the Go button after the iframe HTML is in the DOM
+  if (id === "browser") {
+    const goBtn = document.getElementById("browserGo");
+    if (goBtn) goBtn.addEventListener("click", () => {
+      document.getElementById("browserFrame").src = document.getElementById("browserUrl").value;
+    });
+  }
+});
 </script>
 </body>
 </html>
