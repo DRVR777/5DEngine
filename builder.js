@@ -355,13 +355,21 @@
       }
       const hits = ray.intersectObjects(targets, true);
       if (!hits.length) return null;
+      // Walk ALL the way to scene root, checking every ancestor for a managed entry.
+      // This catches deeply-nested GLTF groups where the root group is managed
+      // but a leaf Mesh inside it was the actual raycast hit.
       let m = hits[0].object;
-      while (m.parent && !managed.has(m) && m.parent !== scene) m = m.parent;
-      if (managed.has(m)) return m;
-      if (opts.allScene && m && m.parent === scene && m !== scene) {
-        // Auto-register as world object — selectable but not serialized
-        managed.set(m, { worldObject: true });
-        return m;
+      while (m && m !== scene) {
+        if (managed.has(m)) return m;
+        m = m.parent;
+      }
+      // No managed ancestor — if allScene, register the direct scene child
+      const topObj = hits[0].object;
+      let sceneChild = topObj;
+      while (sceneChild && sceneChild.parent && sceneChild.parent !== scene) sceneChild = sceneChild.parent;
+      if (opts.allScene && sceneChild && sceneChild !== scene && sceneChild.parent === scene) {
+        managed.set(sceneChild, { worldObject: true });
+        return sceneChild;
       }
       return null;
     }
@@ -868,6 +876,136 @@
       return copy;
     }
 
+    // ---------- object library (persistent, cross-session) ----------
+    // Every drag-dropped asset or library-spawned item gets added here.
+    // Stored as: { id, name, ext, assetData (base64), addedAt }
+    const LIB_KEY = "dwrld.builder.library.v1";
+    function _readLib() {
+      try {
+        if (typeof localStorage === "undefined") return [];
+        const raw = localStorage.getItem(LIB_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) { return []; }
+    }
+    function _writeLib(arr) {
+      try { localStorage.setItem(LIB_KEY, JSON.stringify(arr)); } catch (_) {}
+    }
+    function addToLibrary(name, ext, assetData) {
+      if (!name || !ext || !assetData) return null;
+      const lib = _readLib();
+      // Dedup by name — overwrite if same filename
+      const existing = lib.findIndex(e => e.name === name);
+      const entry = { id: name + "_" + Date.now(), name, ext, assetData, addedAt: Date.now() };
+      if (existing >= 0) { lib[existing] = entry; } else { lib.push(entry); }
+      _writeLib(lib);
+      return entry;
+    }
+    function getLibrary() { return _readLib(); }
+    function removeFromLibrary(name) {
+      const lib = _readLib().filter(e => e.name !== name);
+      _writeLib(lib);
+    }
+    async function spawnFromLibrary(entry, pos) {
+      if (!entry || !entry.assetData || !entry.ext) return null;
+      pos = pos || { x: 0, y: 1, z: 0 };
+      try {
+        const buf = _base64ToArrayBuffer(entry.assetData);
+        const group = await _loadArrayBuffer(buf, entry.ext);
+        if (!group) return null;
+        group.position.set(pos.x, pos.y, pos.z);
+        _addManagedMesh(group, {
+          assetUrl: entry.name, assetExt: entry.ext, assetData: entry.assetData,
+          libraryName: entry.name,
+        });
+        select(group);
+        return group;
+      } catch (e) { console.warn("builder: spawnFromLibrary failed", e); return null; }
+    }
+
+    // Override loadDroppedFile to also add to library
+    const _origLoadDroppedFile = loadDroppedFile;
+    async function loadDroppedFileAndAddToLibrary(file, opts2) {
+      const ext = (file.name.split(".").pop() || "").toLowerCase();
+      const result = await loadDroppedFile(file, opts2);
+      // If successfully loaded + asset fits localStorage, add to library
+      if (result) {
+        const meta = managed.get(result) || {};
+        if (meta.assetData) addToLibrary(file.name, ext, meta.assetData);
+      }
+      return result;
+    }
+
+    // ---------- texture library ----------
+    const TEX_KEY = "dwrld.builder.textures.v1";
+    function _readTexLib() {
+      try {
+        if (typeof localStorage === "undefined") return [];
+        const raw = localStorage.getItem(TEX_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) { return []; }
+    }
+    function _writeTexLib(arr) {
+      try { localStorage.setItem(TEX_KEY, JSON.stringify(arr)); } catch (_) {}
+    }
+    function addTexture(name, dataUrl) {
+      if (!name || !dataUrl) return null;
+      const lib = _readTexLib();
+      const existing = lib.findIndex(e => e.name === name);
+      const entry = { name, dataUrl, addedAt: Date.now() };
+      if (existing >= 0) lib[existing] = entry; else lib.push(entry);
+      _writeTexLib(lib);
+      return entry;
+    }
+    function getTextures() { return _readTexLib(); }
+    function applyTexture(dataUrl) {
+      if (!selected || !dataUrl) return false;
+      try {
+        const img = new Image();
+        img.src = dataUrl;
+        const tex = new THREE.Texture(img);
+        tex.needsUpdate = true;
+        img.onload = () => { tex.needsUpdate = true; };
+        let applied = false;
+        if (typeof selected.traverse === "function") {
+          selected.traverse((o) => {
+            if (o.material && o.material.map !== undefined) {
+              try { o.material.map = tex; o.material.needsUpdate = true; applied = true; } catch (_) {}
+            }
+          });
+        }
+        save();
+        return applied;
+      } catch (e) { return false; }
+    }
+
+    // ---------- object grouping ----------
+    // group(meshA, meshB, ...) → new THREE.Group that is managed and
+    // contains all selected objects as children. The originals are removed
+    // from the scene and re-parented into the group.
+    function groupSelected(meshes) {
+      if (!meshes || meshes.length < 2) return null;
+      const grp = new THREE.Group();
+      // Find centroid
+      let cx = 0, cy = 0, cz = 0;
+      for (const m of meshes) { cx += m.position.x; cy += m.position.y; cz += m.position.z; }
+      cx /= meshes.length; cy /= meshes.length; cz /= meshes.length;
+      grp.position.set(cx, cy, cz);
+      const metas = [];
+      for (const m of meshes) {
+        const meta = managed.get(m) || {};
+        metas.push(meta);
+        scene.remove(m);
+        managed.delete(m);
+        // Re-parent: position relative to group center
+        m.position.x -= cx; m.position.y -= cy; m.position.z -= cz;
+        grp.add(m);
+      }
+      if (selected && meshes.includes(selected)) clearSelection();
+      _addManagedMesh(grp, { group: true, groupMetas: metas });
+      select(grp);
+      return grp;
+    }
+
     return {
       setActive, isActive,
       select, clearSelection, deleteSelected,
@@ -879,7 +1017,8 @@
       startAxisDrag, updateAxisDrag, endAxisDrag, isAxisDragging,
       add: _addManagedMesh,
       spawnPrimitive,
-      attachDragDrop, loadDroppedFile,
+      attachDragDrop,
+      loadDroppedFile: loadDroppedFileAndAddToLibrary,
       dragStart, dragMove, dragEnd, isDragging,
       save, loadState, clearState,
       managedCount: () => managed.size,
@@ -888,7 +1027,10 @@
       clearScene, rehydrate,
       saveNamed, loadNamed, deleteNamed, listNamed,
       exportSceneJSON, importSceneJSON,
-      VERSION: "0.5.1-iter141",
+      addToLibrary, getLibrary, removeFromLibrary, spawnFromLibrary,
+      addTexture, getTextures, applyTexture,
+      groupSelected,
+      VERSION: "0.6.0-iter144",
     };
   }
 

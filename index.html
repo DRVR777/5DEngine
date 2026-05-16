@@ -116,6 +116,83 @@
   }
   #reloadCircle svg { transform-origin: center; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* Hotbar (Minecraft-style, bottom center, build mode only) */
+  #hotbar {
+    display: none;
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(10,20,40,0.88); border: 1px solid #66ff6655;
+    border-radius: 8px; padding: 6px; gap: 5px;
+    flex-direction: row; z-index: 60;
+  }
+  #hotbar.visible { display: flex; }
+  .hb-slot {
+    width: 52px; height: 52px; background: rgba(30,50,80,0.8);
+    border: 2px solid #334455; border-radius: 5px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; font-size: 9px; color: #aaa;
+    overflow: hidden; text-align: center;
+    transition: border-color 80ms;
+  }
+  .hb-slot:hover { border-color: #88aaff; }
+  .hb-slot.active { border-color: #ffd166; background: rgba(60,50,10,0.9); }
+  .hb-slot .hb-num {
+    position: absolute; top: 2px; left: 4px; font-size: 9px; color: #ffd16688;
+    font-family: monospace;
+  }
+  .hb-slot .hb-name {
+    font-size: 8px; color: #ccc; word-break: break-all; padding: 0 2px;
+    line-height: 1.1; margin-top: 2px;
+  }
+  .hb-slot .hb-icon { font-size: 20px; }
+  /* Creative inventory modal */
+  #creativeInv {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  #creativeInv.open { display: flex; }
+  #creativeInv .ci-panel {
+    background: #0d1a2e; border: 1px solid #66ff6655; border-radius: 10px;
+    padding: 18px; width: 640px; max-height: 80vh; overflow-y: auto;
+    color: #cfe; font-family: monospace; font-size: 12px;
+  }
+  #creativeInv h3 { margin: 0 0 12px; color: #66ff66; }
+  #creativeInv .ci-section { margin-bottom: 14px; }
+  #creativeInv .ci-section h4 { margin: 0 0 8px; color: #ffd166; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  #creativeInv .ci-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ci-item {
+    width: 80px; height: 72px; background: #1a2a44; border: 1px solid #334455;
+    border-radius: 6px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; cursor: pointer;
+    font-size: 9px; color: #ccc; text-align: center; padding: 4px;
+    word-break: break-all; line-height: 1.2;
+    transition: border-color 80ms, background 80ms;
+  }
+  .ci-item:hover { border-color: #66ff66; background: #1f3d2a; }
+  .ci-item .ci-icon { font-size: 22px; margin-bottom: 3px; }
+  .ci-item .ci-label { font-size: 8px; }
+  /* Texture panel (side panel in build mode) */
+  #texturePanel {
+    display: none; position: fixed; right: 10px; bottom: 80px;
+    width: 160px; background: rgba(10,18,35,0.92);
+    border: 1px solid #66ff6644; border-radius: 8px;
+    padding: 8px; z-index: 55; color: #cfe; font-family: monospace; font-size: 11px;
+  }
+  #texturePanel.visible { display: block; }
+  #texturePanel h4 { margin: 0 0 7px; color: #ffd166; font-size: 11px; }
+  .tex-swatch {
+    width: 40px; height: 40px; border: 2px solid #334455;
+    border-radius: 4px; cursor: pointer; display: inline-block;
+    background-size: cover; background-position: center;
+    margin: 2px; vertical-align: top; transition: border-color 80ms;
+  }
+  .tex-swatch:hover { border-color: #ffd166; }
+  #texDropZone {
+    border: 1px dashed #66ff6666; border-radius: 4px;
+    padding: 6px; text-align: center; color: #888; font-size: 10px;
+    margin-top: 6px; cursor: pointer;
+  }
+  #texDropZone:hover { border-color: #66ff66; color: #cfe; }
 </style>
 </head>
 <body>
@@ -123,6 +200,50 @@
 <div id="hud">loading…</div>
 <div id="ammoHud">12 / 60</div>
 <div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#ffd166" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
+
+<!-- Hotbar (build mode) -->
+<div id="hotbar">
+  <div class="hb-slot" data-slot="0"><span class="hb-num">1</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="1"><span class="hb-num">2</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="2"><span class="hb-num">3</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="3"><span class="hb-num">4</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="4"><span class="hb-num">5</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="5"><span class="hb-num">6</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="6"><span class="hb-num">7</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="7"><span class="hb-num">8</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+  <div class="hb-slot" data-slot="8"><span class="hb-num">9</span><span class="hb-icon">📦</span><span class="hb-name">empty</span></div>
+</div>
+
+<!-- Creative inventory modal (Tab in build mode) -->
+<div id="creativeInv">
+  <div class="ci-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin:0">📚 Object Library</h3>
+      <span style="color:#888;font-size:11px">Tab or Esc to close &nbsp;·&nbsp; click item to add to hotbar</span>
+    </div>
+    <div class="ci-section">
+      <h4>Primitives</h4>
+      <div class="ci-grid" id="ciPrimitives">
+        <div class="ci-item" data-kind="cube"><div class="ci-icon">🟦</div><div class="ci-label">Cube</div></div>
+        <div class="ci-item" data-kind="sphere"><div class="ci-icon">🔵</div><div class="ci-label">Sphere</div></div>
+        <div class="ci-item" data-kind="cylinder"><div class="ci-icon">🔶</div><div class="ci-label">Cylinder</div></div>
+        <div class="ci-item" data-kind="plane"><div class="ci-icon">🟩</div><div class="ci-label">Plane</div></div>
+        <div class="ci-item" data-kind="light"><div class="ci-icon">💡</div><div class="ci-label">Light</div></div>
+      </div>
+    </div>
+    <div class="ci-section">
+      <h4>Imported Assets <span style="color:#888;font-weight:normal">(drag .glb/.obj/.fbx to add)</span></h4>
+      <div class="ci-grid" id="ciAssets"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Texture panel (build mode side panel) -->
+<div id="texturePanel">
+  <h4>🎨 Textures</h4>
+  <div id="texSwatches"></div>
+  <div id="texDropZone">drop PNG/JPG<br>to add texture</div>
+</div>
 <script>
   // If we're still on "loading…" after 8s, surface the error.
   setTimeout(() => {
@@ -272,7 +393,7 @@
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
-  &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag arrow = axis move · yellow ring = rotate · Del remove · arrows nudge</i>
+  &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag arrow=move · yellow ring=rotY · Del remove · arrows nudge · Tab=library · 1-9 hotbar · F spawn · G group</i>
 </div>
 
 <script src="./engine_browser.js"></script>
@@ -981,6 +1102,195 @@ setTimeout(() => {
                    (r.skipped > 0 ? " (skipped " + r.skipped + " non-primitives)" : ""));
     }
   }
+
+  // ---- Hotbar state ----
+  // 9 slots, each holds null or a library entry / primitive descriptor
+  const hotbarSlots = Array(9).fill(null);
+  let hotbarActive = 0;   // 0-8
+  let multiSelectList = [];  // for group selection
+
+  function _hotbarSlotEl(i) { return document.querySelector('.hb-slot[data-slot="' + i + '"]'); }
+
+  function _refreshHotbar() {
+    for (let i = 0; i < 9; i++) {
+      const el = _hotbarSlotEl(i);
+      if (!el) continue;
+      const slot = hotbarSlots[i];
+      const iconEl = el.querySelector(".hb-icon");
+      const nameEl = el.querySelector(".hb-name");
+      if (slot) {
+        iconEl.textContent = slot.primitive ? ["🟦","🔵","🔶","🟩","💡"]["cube","sphere","cylinder","plane","light"].indexOf(slot.primitive) >= 0
+            ? ["🟦","🔵","🔶","🟩","💡"][["cube","sphere","cylinder","plane","light"].indexOf(slot.primitive)]
+            : "📦" : "📦";
+        nameEl.textContent = slot.primitive || (slot.name ? slot.name.replace(/\.\w+$/, "").slice(0, 12) : "?");
+      } else {
+        iconEl.textContent = "📦";
+        nameEl.textContent = "empty";
+      }
+      el.classList.toggle("active", i === hotbarActive);
+    }
+  }
+
+  function _setHotbarSlot(i, entry) {
+    hotbarSlots[i] = entry;
+    _refreshHotbar();
+  }
+
+  function _spawnHotbarActive() {
+    const slot = hotbarSlots[hotbarActive];
+    if (!slot) return;
+    const hp = world.players.get("hero");
+    const fx = Math.sin(camYaw) * 2.5;
+    const fz = Math.cos(camYaw) * 2.5;
+    const pos = { x: hp.u + fx, y: 1.0, z: hp.v + fz };
+    if (slot.primitive) {
+      worldBuilder.spawnPrimitive(slot.primitive, pos);
+      playSfx("blip", 0.4);
+    } else if (slot.assetData) {
+      worldBuilder.spawnFromLibrary(slot, pos).then(() => { playSfx("blip", 0.4); });
+    }
+  }
+
+  // Hotbar click (slot click = select that slot; double-click = spawn)
+  document.getElementById("hotbar").addEventListener("click", (e) => {
+    const sl = e.target.closest(".hb-slot");
+    if (!sl) return;
+    const i = parseInt(sl.dataset.slot, 10);
+    if (i === hotbarActive) {
+      // Second click: spawn
+      _spawnHotbarActive();
+    } else {
+      hotbarActive = i;
+      _refreshHotbar();
+    }
+  });
+
+  // 1-9 keys select hotbar slots
+  // (added to the keydown listener later; using the exposed refreshHotbar)
+  window._hotbarSelectSlot = (i) => { hotbarActive = i; _refreshHotbar(); };
+  window._hotbarSpawn = _spawnHotbarActive;
+
+  // ---- Creative Inventory ----
+  function _refreshCreativeInv() {
+    const ciAssets = document.getElementById("ciAssets");
+    if (!ciAssets) return;
+    const lib = worldBuilder.getLibrary();
+    if (lib.length === 0) {
+      ciAssets.innerHTML = '<span style="color:#555;font-size:10px">none yet — drag .glb/.obj/.fbx into the window</span>';
+    } else {
+      ciAssets.innerHTML = lib.map((e, i) =>
+        `<div class="ci-item" data-libidx="${i}">
+          <div class="ci-icon">📂</div>
+          <div class="ci-label">${e.name.replace(/\.\w+$/, "").slice(0,14)}</div>
+        </div>`
+      ).join("");
+    }
+  }
+
+  let creativeOpen = false;
+  function openCreativeInv() {
+    creativeOpen = true;
+    _refreshCreativeInv();
+    document.getElementById("creativeInv").classList.add("open");
+  }
+  function closeCreativeInv() {
+    creativeOpen = false;
+    document.getElementById("creativeInv").classList.remove("open");
+  }
+  window._openCreativeInv = openCreativeInv;
+  window._closeCreativeInv = closeCreativeInv;
+
+  // Primitive click in creative inv → assign to active hotbar slot
+  document.getElementById("ciPrimitives").addEventListener("click", (e) => {
+    const item = e.target.closest(".ci-item");
+    if (!item) return;
+    _setHotbarSlot(hotbarActive, { primitive: item.dataset.kind });
+    closeCreativeInv();
+    playSfx("blip", 0.3);
+  });
+  // Asset click in creative inv
+  document.getElementById("ciAssets").addEventListener("click", (e) => {
+    const item = e.target.closest(".ci-item");
+    if (!item) return;
+    const idx = parseInt(item.dataset.libidx, 10);
+    const lib = worldBuilder.getLibrary();
+    if (lib[idx]) { _setHotbarSlot(hotbarActive, lib[idx]); closeCreativeInv(); playSfx("blip", 0.3); }
+  });
+  document.getElementById("creativeInv").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("creativeInv")) closeCreativeInv();
+  });
+
+  // ---- Texture panel ----
+  function _refreshTexPanel() {
+    const sw = document.getElementById("texSwatches");
+    if (!sw) return;
+    const texs = worldBuilder.getTextures();
+    if (texs.length === 0) {
+      sw.innerHTML = '<span style="color:#555;font-size:9px">none — drop PNG/JPG below</span>';
+    } else {
+      sw.innerHTML = texs.map((t, i) =>
+        `<div class="tex-swatch" title="${t.name}" data-texidx="${i}"
+              style="background-image:url('${t.dataUrl}')"></div>`
+      ).join("");
+    }
+  }
+  document.getElementById("texSwatches").addEventListener("click", (e) => {
+    const sw = e.target.closest(".tex-swatch");
+    if (!sw) return;
+    const idx = parseInt(sw.dataset.texidx, 10);
+    const texs = worldBuilder.getTextures();
+    if (texs[idx]) {
+      const ok = worldBuilder.applyTexture(texs[idx].dataUrl);
+      if (ok) playSfx("blip", 0.4);
+    }
+  });
+  // Texture drop zone
+  const texDrop = document.getElementById("texDropZone");
+  texDrop.addEventListener("click", () => {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = "image/*"; inp.style.display = "none";
+    document.body.appendChild(inp);
+    inp.click();
+    inp.addEventListener("change", () => {
+      const file = inp.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        worldBuilder.addTexture(file.name, ev.target.result);
+        _refreshTexPanel();
+        playSfx("blip", 0.3);
+      };
+      reader.readAsDataURL(file);
+      document.body.removeChild(inp);
+    });
+  });
+  texDrop.addEventListener("dragover", (e) => { e.preventDefault(); });
+  texDrop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    for (const file of (e.dataTransfer && e.dataTransfer.files) || []) {
+      if (!file.type.startsWith("image/")) continue;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        worldBuilder.addTexture(file.name, ev.target.result);
+        _refreshTexPanel();
+        playSfx("blip", 0.3);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  _refreshTexPanel();
+
+  // ---- G key: group selected + anything shift-clicked ----
+  window._builderGroupSelected = () => {
+    if (multiSelectList.length >= 2) {
+      worldBuilder.groupSelected(multiSelectList);
+      multiSelectList = [];
+      playSfx("tone:440:80:sine", 0.4);
+    } else if (worldBuilder.getSelected()) {
+      playSfx("noise", 0.2);
+    }
+  };
+
+  _refreshHotbar();
 }, 250);
 
 // Each frame: show/hide builder UI + update inspector inputs from the
@@ -990,6 +1300,11 @@ function _refreshBuilderUI() {
   const panel = document.getElementById("builderUI");
   if (!panel) return;
   panel.style.display = buildMode ? "block" : "none";
+  // Hotbar + texture panel visibility
+  const hb = document.getElementById("hotbar");
+  if (hb) hb.classList.toggle("visible", buildMode);
+  const tp = document.getElementById("texturePanel");
+  if (tp) tp.classList.toggle("visible", buildMode);
   const inspector = document.getElementById("bInspector");
   if (!worldBuilder || !buildMode) { if (inspector) inspector.style.display = "none"; return; }
   // Live-update undo/redo depth counters
@@ -1268,6 +1583,34 @@ addEventListener("keydown", (e) => {
     if (e.code === "KeyQ") { snapZoomTarget = window.CameraSpine.zoomForZone("FIRST_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
     if (e.code === "KeyV") { snapZoomTarget = window.CameraSpine.zoomForZone("THIRD_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
     if (e.code === "KeyZ") { snapZoomTarget = window.CameraSpine.zoomForZone("BIRD_VIEW")    * CAM_DIST_MAX; e.preventDefault(); return; }
+  }
+  // Tab opens/closes creative inventory (build mode)
+  if (e.code === "Tab" && buildMode) {
+    if (window._openCreativeInv && window._closeCreativeInv) {
+      const ci = document.getElementById("creativeInv");
+      if (ci && ci.classList.contains("open")) window._closeCreativeInv();
+      else window._openCreativeInv && window._openCreativeInv();
+    }
+    e.preventDefault(); return;
+  }
+  // Esc closes creative inventory if open
+  if (e.code === "Escape") {
+    const ci = document.getElementById("creativeInv");
+    if (ci && ci.classList.contains("open")) { window._closeCreativeInv && window._closeCreativeInv(); e.preventDefault(); return; }
+  }
+  // 1-9 hotbar slot selection (build mode)
+  if (buildMode && e.code >= "Digit1" && e.code <= "Digit9") {
+    const idx = parseInt(e.code.replace("Digit",""), 10) - 1;
+    if (window._hotbarSelectSlot) window._hotbarSelectSlot(idx);
+    e.preventDefault(); return;
+  }
+  // F key: spawn active hotbar slot (build mode)
+  if (buildMode && e.code === "KeyF" && window._hotbarSpawn) {
+    window._hotbarSpawn(); e.preventDefault(); return;
+  }
+  // G key: group selected (build mode)
+  if (buildMode && e.code === "KeyG" && window._builderGroupSelected) {
+    window._builderGroupSelected(); e.preventDefault(); return;
   }
   // B toggles BUILD MODE — drag-drop assets, click-select, arrows move, Del deletes
   if (e.code === "KeyB" && window.Builder) {
@@ -2002,10 +2345,12 @@ function tick() {
     camera.position.copy(camTarget.clone().add(camOff));
     // Look at a point ahead of the hero along the current yaw + pitch
     const aimDist = 18;
+    // aimTarget: full sideAmt so pressing L actually shifts the forward
+    // aim point with the camera instead of just rotating toward the hero.
     const aimTarget = new THREE.Vector3(
-      heroPos.x + fx * aimDist * Math.cos(camPitch) + sx * sideAmt * 0.5,
+      heroPos.x + fx * aimDist * Math.cos(camPitch) + sx * sideAmt,
       heroPos.y + 1.2 + Math.sin(camPitch) * aimDist,
-      heroPos.z + fz * aimDist * Math.cos(camPitch) + sz * sideAmt * 0.5
+      heroPos.z + fz * aimDist * Math.cos(camPitch) + sz * sideAmt
     );
     camera.lookAt(aimTarget);
   }
