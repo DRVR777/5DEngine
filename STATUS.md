@@ -60,14 +60,16 @@
 | 51   | Vehicle parts: motorcycle, boat, helicopter (9 new parts)      | 31    | iter51  |
 | 52   | weather.js: 6 presets + Markov transitions + particle wiring   | 36    | iter52  |
 | 53   | voice_chat.js: WebRTC signaling state machine over CWP         | 40    | iter53  |
+| 54   | traffic.js: road network + BFS routes + fleet auto-respawn     | 40    | iter54  |
+| 55   | quests.js: 5 objective kinds + chains + repeatable + custom    | 40    | iter55  |
 
-**Total: 1353/1353 tests passing.**
+**Total: 1433/1433 tests passing.**
 
 ## Up next
 
-- **iter 54** — Traffic AI (cars/peds following road network).
-- **iter 55** — Quest system (objectives + rewards).
 - **iter 56** — Player profile + persistent stats.
+- **iter 57** — Minimap fog-of-war + waypoints.
+- **iter 58** — Mini-game framework + leaderboards.
 
 ## Wakeup checklist
 
