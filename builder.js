@@ -56,6 +56,39 @@
     let outline = null;          // wireframe helper
     const managed = new Map();   // mesh → meta {id, assetUrl, assetData, assetExt}
 
+    // ---------- undo / redo (command pattern) ----------
+    const undoStack = [];
+    const redoStack = [];
+    const MAX_UNDO  = 100;
+    let suppressUndo = false;    // set by undo/redo themselves so they don't recurse
+
+    function _pushOp(undoFn, redoFn, label) {
+      if (suppressUndo) return;
+      undoStack.push({ undo: undoFn, redo: redoFn, label: label || "edit" });
+      if (undoStack.length > MAX_UNDO) undoStack.shift();
+      redoStack.length = 0;
+    }
+    function undo() {
+      const op = undoStack.pop();
+      if (!op) return false;
+      suppressUndo = true;
+      try { op.undo(); } finally { suppressUndo = false; }
+      redoStack.push(op);
+      save();
+      return true;
+    }
+    function redo() {
+      const op = redoStack.pop();
+      if (!op) return false;
+      suppressUndo = true;
+      try { op.redo(); } finally { suppressUndo = false; }
+      undoStack.push(op);
+      save();
+      return true;
+    }
+    function undoDepth() { return undoStack.length; }
+    function redoDepth() { return redoStack.length; }
+
     function _outlineFor(mesh) {
       if (outline) { scene.remove(outline); outline.geometry.dispose(); outline.material.dispose(); outline = null; }
       if (!mesh) return;
@@ -79,37 +112,74 @@
 
     function deleteSelected() {
       if (!selected) return false;
-      scene.remove(selected);
-      managed.delete(selected);
+      const mesh = selected;
+      const meta = managed.get(mesh) || {};
+      scene.remove(mesh);
+      managed.delete(mesh);
       clearSelection();
       save();
       onChange("delete");
+      _pushOp(
+        () => { managed.set(mesh, meta); scene.add(mesh); select(mesh); save(); onChange("add"); },
+        () => { scene.remove(mesh); managed.delete(mesh); if (selected === mesh) clearSelection(); save(); onChange("delete"); },
+        "delete"
+      );
       return true;
     }
 
     function translate(dx, dy, dz) {
       if (!selected) return;
-      selected.position.x += dx; selected.position.y += dy; selected.position.z += dz;
-      if (outline) outline.position.set(selected.position.x, selected.position.y, selected.position.z);
+      const mesh = selected;
+      const old = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+      mesh.position.x += dx; mesh.position.y += dy; mesh.position.z += dz;
+      const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+      if (outline) outline.position.set(mesh.position.x, mesh.position.y, mesh.position.z);
       save();
+      _pushOp(
+        () => { mesh.position.set(old.x, old.y, old.z); if (outline) outline.position.copy(mesh.position); save(); },
+        () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline) outline.position.copy(mesh.position); save(); },
+        "translate"
+      );
     }
     function rotateY(d) {
       if (!selected) return;
-      selected.rotation.y += d;
+      const mesh = selected;
+      const old = mesh.rotation.y;
+      mesh.rotation.y += d;
+      const nw = mesh.rotation.y;
       save();
+      _pushOp(
+        () => { mesh.rotation.y = old; save(); },
+        () => { mesh.rotation.y = nw;  save(); },
+        "rotateY"
+      );
     }
     function scaleBy(f) {
       if (!selected) return;
-      selected.scale.multiplyScalar(f);
-      _outlineFor(selected);
+      const mesh = selected;
+      const old = { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z };
+      mesh.scale.multiplyScalar(f);
+      const nw  = { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z };
+      _outlineFor(mesh);
       save();
+      _pushOp(
+        () => { mesh.scale.set(old.x, old.y, old.z); _outlineFor(mesh); save(); },
+        () => { mesh.scale.set(nw.x,  nw.y,  nw.z);  _outlineFor(mesh); save(); },
+        "scale"
+      );
     }
 
     function _addManagedMesh(mesh, meta) {
-      managed.set(mesh, meta || {});
+      const m = meta || {};
+      managed.set(mesh, m);
       scene.add(mesh);
       save();
       onChange("add");
+      _pushOp(
+        () => { scene.remove(mesh); managed.delete(mesh); if (selected === mesh) clearSelection(); save(); onChange("delete"); },
+        () => { managed.set(mesh, m); scene.add(mesh); save(); onChange("add"); },
+        "add"
+      );
       return mesh;
     }
 
@@ -201,12 +271,17 @@
     // ---------- click-and-drag move ----------
     // While dragging, each mousemove raycasts to the ground plane and
     // re-positions the selected object's XZ to match the cursor.
+    // The entire drag is collapsed into ONE undo entry on dragEnd.
     let dragging = false;
     let dragYOffset = 0;
+    let dragMesh = null;
+    let dragStartPos = null;
     function dragStart() {
       if (!selected) return false;
       dragging = true;
-      dragYOffset = selected.position.y;   // preserve current height
+      dragMesh = selected;
+      dragStartPos = { x: selected.position.x, y: selected.position.y, z: selected.position.z };
+      dragYOffset = selected.position.y;
       return true;
     }
     function dragMove(ndc) {
@@ -226,6 +301,19 @@
       if (!dragging) return;
       dragging = false;
       save();
+      if (dragMesh && dragStartPos) {
+        const mesh = dragMesh;
+        const old = dragStartPos;
+        const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+        if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
+          _pushOp(
+            () => { mesh.position.set(old.x, old.y, old.z); if (outline && selected === mesh) outline.position.copy(mesh.position); save(); },
+            () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline && selected === mesh) outline.position.copy(mesh.position); save(); },
+            "drag"
+          );
+        }
+      }
+      dragMesh = null; dragStartPos = null;
     }
     function isDragging() { return dragging; }
 
@@ -270,28 +358,58 @@
     // ---------- inspector helpers ----------
     function setPosition(x, y, z) {
       if (!selected) return false;
-      if (isFinite(x)) selected.position.x = x;
-      if (isFinite(y)) selected.position.y = y;
-      if (isFinite(z)) selected.position.z = z;
-      if (outline) outline.position.set(selected.position.x, selected.position.y, selected.position.z);
+      const mesh = selected;
+      const old = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+      if (isFinite(x)) mesh.position.x = x;
+      if (isFinite(y)) mesh.position.y = y;
+      if (isFinite(z)) mesh.position.z = z;
+      const nw  = { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z };
+      if (outline) outline.position.set(mesh.position.x, mesh.position.y, mesh.position.z);
       save();
+      if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
+        _pushOp(
+          () => { mesh.position.set(old.x, old.y, old.z); if (outline && selected === mesh) outline.position.copy(mesh.position); save(); },
+          () => { mesh.position.set(nw.x,  nw.y,  nw.z);  if (outline && selected === mesh) outline.position.copy(mesh.position); save(); },
+          "setPos"
+        );
+      }
       return true;
     }
     function setRotation(rx, ry, rz) {
       if (!selected) return false;
-      if (isFinite(rx)) selected.rotation.x = rx;
-      if (isFinite(ry)) selected.rotation.y = ry;
-      if (isFinite(rz)) selected.rotation.z = rz;
+      const mesh = selected;
+      const old = { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z };
+      if (isFinite(rx)) mesh.rotation.x = rx;
+      if (isFinite(ry)) mesh.rotation.y = ry;
+      if (isFinite(rz)) mesh.rotation.z = rz;
+      const nw = { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z };
       save();
+      if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
+        _pushOp(
+          () => { mesh.rotation.x = old.x; mesh.rotation.y = old.y; mesh.rotation.z = old.z; save(); },
+          () => { mesh.rotation.x = nw.x;  mesh.rotation.y = nw.y;  mesh.rotation.z = nw.z;  save(); },
+          "setRot"
+        );
+      }
       return true;
     }
     function setScale(sx, sy, sz) {
       if (!selected) return false;
-      if (isFinite(sx)) selected.scale.x = sx;
-      if (isFinite(sy)) selected.scale.y = sy;
-      if (isFinite(sz)) selected.scale.z = sz;
-      _outlineFor(selected);
+      const mesh = selected;
+      const old = { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z };
+      if (isFinite(sx)) mesh.scale.x = sx;
+      if (isFinite(sy)) mesh.scale.y = sy;
+      if (isFinite(sz)) mesh.scale.z = sz;
+      const nw = { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z };
+      _outlineFor(mesh);
       save();
+      if (old.x !== nw.x || old.y !== nw.y || old.z !== nw.z) {
+        _pushOp(
+          () => { mesh.scale.set(old.x, old.y, old.z); _outlineFor(mesh); save(); },
+          () => { mesh.scale.set(nw.x,  nw.y,  nw.z);  _outlineFor(mesh); save(); },
+          "setScl"
+        );
+      }
       return true;
     }
     function getTransform() {
@@ -391,7 +509,8 @@
       save, loadState, clearState,
       managedCount: () => managed.size,
       getSelected: () => selected,
-      VERSION: "0.3.0-iter138",
+      undo, redo, undoDepth, redoDepth,
+      VERSION: "0.4.0-iter139",
     };
   }
 

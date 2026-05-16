@@ -20,6 +20,13 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 10 (undo/redo, iter 139)
+- [x] **Undo/redo** via command pattern. Every mutation (add, delete, translate, rotateY, scaleBy, setPosition/Rotation/Scale, drag-move) pushes a `{undo, redo}` pair onto the stack. Max 100 entries; new edits clear the redo stack.
+- [x] **Ctrl+Z** undo, **Ctrl+Y** or **Ctrl+Shift+Z** redo. Bound BEFORE the bare Z=BIRD-snap keybind so Ctrl+Z doesn't snap-zoom by accident. The snap keybinds also now skip when Ctrl/Meta is held.
+- [x] **Buttons** ↶ undo / ↷ redo in the builder header, with live depth counters.
+- [x] Click-and-drag collapses into ONE undo entry per drag (not one per mousemove tick).
+- [x] Tests bumped to 74 passing (added 18 for undo API + behavior: depth tracking, mutation→push, redo-stack-clear on new mutation, full undo all the way back, delete restoration).
+
 ## ✅ Done — Session 9 (builder: clone + color + degrees, iter 138)
 - [x] **Clone selected** — Ctrl+D or [Clone] button duplicates the selected object with a 1.2m offset, auto-selects the copy. Materials are deep-cloned so color edits don't bleed onto the original.
 - [x] **Material color picker** — inspector shows a color swatch + native picker when the selection has a material; live edits write through to the mesh.

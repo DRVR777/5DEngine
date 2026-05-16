@@ -161,7 +161,13 @@
   </div>
 </div>
 <div id="builderUI" style="display:none;position:fixed;top:10px;right:200px;width:280px;background:rgba(15,25,45,0.95);border:1px solid #66ff66aa;border-radius:6px;color:#cfe;font-family:monospace;font-size:12px;padding:10px;z-index:50;box-shadow:0 4px 20px rgba(0,0,0,0.6)">
-  <div style="color:#66ff66;font-weight:bold;margin-bottom:8px">🛠 BUILD MODE</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="color:#66ff66;font-weight:bold">🛠 BUILD MODE</span>
+    <span>
+      <button id="bUndo" title="Ctrl+Z" style="background:#2a4a6a;border:0;color:#fff;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px">↶ undo <span id="bUndoCount" style="color:#888;font-size:10px">0</span></button>
+      <button id="bRedo" title="Ctrl+Y" style="background:#2a4a6a;border:0;color:#fff;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:11px;margin-left:2px">↷ redo <span id="bRedoCount" style="color:#888;font-size:10px">0</span></button>
+    </span>
+  </div>
   <div style="margin-bottom:6px;color:#888">Spawn:</div>
   <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
     <button class="b-spawn" data-kind="cube"     style="flex:1;background:#2a4a6a;border:0;color:#fff;padding:5px 6px;border-radius:3px;cursor:pointer;font-size:11px">Cube</button>
@@ -208,7 +214,8 @@
     click empty space → deselect<br>
     LMB+drag selected = slide on floor<br>
     arrows/PgUp-Dn = nudge · [/] rotate<br>
-    +/- scale · Del remove · B exit
+    +/- scale · Del remove · B exit<br>
+    Ctrl+Z undo · Ctrl+Y redo · Ctrl+D clone
   </div>
 </div>
 
@@ -840,6 +847,10 @@ setTimeout(() => {
     worldBuilder.setIntensity(v);
     document.getElementById("bIntensityVal").textContent = v.toFixed(1);
   });
+  const undoBtn = document.getElementById("bUndo");
+  if (undoBtn) undoBtn.addEventListener("click", () => { worldBuilder.undo(); playSfx("click", 0.3); });
+  const redoBtn = document.getElementById("bRedo");
+  if (redoBtn) redoBtn.addEventListener("click", () => { worldBuilder.redo(); playSfx("blip", 0.3); });
 }, 250);
 
 // Each frame: show/hide builder UI + update inspector inputs from the
@@ -851,6 +862,11 @@ function _refreshBuilderUI() {
   panel.style.display = buildMode ? "block" : "none";
   const inspector = document.getElementById("bInspector");
   if (!worldBuilder || !buildMode) { if (inspector) inspector.style.display = "none"; return; }
+  // Live-update undo/redo depth counters
+  const uc = document.getElementById("bUndoCount");
+  const rc = document.getElementById("bRedoCount");
+  if (uc) uc.textContent = worldBuilder.undoDepth();
+  if (rc) rc.textContent = worldBuilder.redoDepth();
   const t = worldBuilder.getTransform();
   if (!t) { if (inspector) inspector.style.display = "none"; return; }
   inspector.style.display = "block";
@@ -1109,8 +1125,16 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyE" && !nearComputer) {
     if (tryClickWorldScreen()) { e.preventDefault(); return; }
   }
+  // Build-mode undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z). Bound before
+  // the bare KeyZ snap below so Ctrl+Z doesn't fire BIRD-view zoom.
+  if (buildMode && worldBuilder && (e.ctrlKey || e.metaKey)) {
+    if (e.code === "KeyZ" && e.shiftKey) { worldBuilder.redo(); playSfx("blip", 0.3); e.preventDefault(); return; }
+    if (e.code === "KeyZ")               { worldBuilder.undo(); playSfx("click", 0.3); e.preventDefault(); return; }
+    if (e.code === "KeyY")               { worldBuilder.redo(); playSfx("blip", 0.3); e.preventDefault(); return; }
+  }
   // Snap-zone keybinds — set a target zoom; tick() lerps toward it.
-  if (window.CameraSpine) {
+  // Skip when Ctrl/Meta is held so they don't eat editor shortcuts.
+  if (window.CameraSpine && !e.ctrlKey && !e.metaKey) {
     if (e.code === "KeyQ") { snapZoomTarget = window.CameraSpine.zoomForZone("FIRST_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
     if (e.code === "KeyV") { snapZoomTarget = window.CameraSpine.zoomForZone("THIRD_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
     if (e.code === "KeyZ") { snapZoomTarget = window.CameraSpine.zoomForZone("BIRD_VIEW")    * CAM_DIST_MAX; e.preventDefault(); return; }

@@ -154,5 +154,57 @@ builder.clearSelection();
 ok(builder.setColor("#ff0000") === false, "setColor without selection false");
 ok(builder.cloneSelected() === null, "cloneSelected without selection null");
 
+// ---- iter 139: undo / redo ----
+ok(typeof builder.undo === "function", "undo exported");
+ok(typeof builder.redo === "function", "redo exported");
+ok(typeof builder.undoDepth === "function", "undoDepth exported");
+ok(typeof builder.redoDepth === "function", "redoDepth exported");
+
+// Fresh builder for clean undo testing
+const ub = B.createBuilder({
+  THREE: fakeTHREE, scene: fakeScene, camera: fakeCam, domEl: fakeDom,
+});
+// Empty stack: undo/redo return false safely
+ok(ub.undo() === false, "undo empty stack false");
+ok(ub.redo() === false, "redo empty stack false");
+
+const m3 = { position: new fakeTHREE.Vector3(0,0,0), rotation: { x:0,y:0,z:0 }, scale: new fakeTHREE.Vector3(1,1,1), uuid: "z" };
+ub.add(m3, { primitive: "cube" });
+ok(ub.undoDepth() === 1, "add pushes undo op");
+ok(ub.managedCount() === 1, "1 managed");
+
+ub.select(m3);
+ub.setPosition(5, 0, 0);
+ok(ub.undoDepth() === 2, "setPos pushes op");
+ok(m3.position.x === 5, "pos changed");
+
+ub.undo();
+ok(m3.position.x === 0, "undo restored pos");
+ok(ub.undoDepth() === 1, "undo decremented");
+ok(ub.redoDepth() === 1, "redo incremented");
+
+ub.redo();
+ok(m3.position.x === 5, "redo restored new pos");
+ok(ub.undoDepth() === 2, "undo back up");
+
+// New mutation clears redo
+ub.setPosition(10, 0, 0);
+ok(ub.redoDepth() === 0, "new mutation clears redo stack");
+
+// Undo all the way back
+ub.undo(); ub.undo(); ub.undo();
+ok(ub.managedCount() === 0, "undo all the way removed mesh");
+
+// Redo back
+ub.redo(); ub.redo(); ub.redo();
+ok(ub.managedCount() === 1, "redo brought mesh back");
+
+// Delete + undo restores
+ub.select(m3);
+ub.deleteSelected();
+ok(ub.managedCount() === 0, "delete removed");
+ub.undo();
+ok(ub.managedCount() === 1, "undo restored deletion");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
