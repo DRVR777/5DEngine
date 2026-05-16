@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>gta_demo — 3rd person on multi_dim_engine</title>
+<style>
+  body { margin: 0; background: #87ceeb; overflow: hidden; font-family: system-ui, sans-serif; }
+  #hud {
+    position: fixed; top: 8px; left: 8px; padding: 8px 10px;
+    background: rgba(0,0,0,0.55); color: #eee; font-size: 12px;
+    border-radius: 6px; line-height: 1.4; pointer-events: none;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  #hud b { color: #ffd166; }
+  #help {
+    position: fixed; bottom: 8px; left: 8px; padding: 8px 10px;
+    background: rgba(0,0,0,0.55); color: #eee; font-size: 12px;
+    border-radius: 6px; pointer-events: none;
+  }
+  #minimap {
+    position: fixed; top: 8px; right: 8px;
+    width: 180px; height: 180px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid #666; border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+<div id="hud">loading…</div>
+<canvas id="minimap" width="180" height="180"></canvas>
+<div id="help">
+  <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump
+  &nbsp;·&nbsp; <b>E</b> enter/exit car &nbsp;·&nbsp; <b>click</b> for freelook
+</div>
+
+<script src="./engine_browser.js"></script>
+<script src="./engine_bridge.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.161.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+
+// ---- engine state ----
+const { WorldState, LayerBoundary } = window.GTAEngine;
+const Bridge = window.GTABridge;
+
+const world = new WorldState(1);
+world.setPlayer("hero", 0, 0, 0, 0, 0);
+
+// Some buildings as layer boundaries (rect in u-v plane). 8 buildings = small downtown.
+const buildings = [
+  { id: "shop",    color: 0xff6b6b, b: new LayerBoundary(2, "rect", { u0:  10, v0: -4, u1: 16, v1:  4 }) },
+  { id: "tower",   color: 0x4ecdc4, b: new LayerBoundary(3, "rect", { u0: -16, v0:  6, u1:-10, v1: 12 }) },
+  { id: "house",   color: 0xffe66d, b: new LayerBoundary(4, "rect", { u0:  -6, v0:-14, u1:  0, v1:-8 }) },
+  { id: "garage",  color: 0xa8dadc, b: new LayerBoundary(5, "rect", { u0:   6, v0: 10, u1: 12, v1: 16 }) },
+  { id: "diner",   color: 0xff9f1c, b: new LayerBoundary(6, "rect", { u0: -22, v0:-12, u1:-16, v1:-6 }) },
+  { id: "bank",    color: 0x9b5de5, b: new LayerBoundary(7, "rect", { u0:  18, v0: 12, u1: 24, v1: 18 }) },
+  { id: "park",    color: 0x80ed99, b: new LayerBoundary(8, "rect", { u0: -10, v0: 18, u1:  -2, v1: 26 }) },
+  { id: "studio",  color: 0xf72585, b: new LayerBoundary(9, "rect", { u0:  20, v0:-22, u1: 26, v1:-14 }) },
+];
+
+// NPC roster — wander randomly inside a 50-half arena.
+const NPC_DEFS = [
+  { id: "npc_red",   color: 0xe63946, u:  4, v:  4, heading: 1.2 },
+  { id: "npc_blue",  color: 0x457b9d, u: -8, v:  2, heading: 3.0 },
+  { id: "npc_green", color: 0x52b788, u:  2, v: -6, heading: 0.5 },
+  { id: "npc_white", color: 0xeeeeee, u: -3, v:-10, heading: 4.7 },
+];
+for (const n of NPC_DEFS) world.setPlayer(n.id, 0, 0, 0, n.u, n.v);
+
+// Car — also a player in the engine
+world.setPlayer("car", 0, 0, 0, 4, 6);
+const carState = { speed: 0, heading: 0 };
+let inCar = false;
+
+// Pickups (coins) — 8 scattered around the world, the objective is to collect them all.
+const pickups = [
+  { id: "coin1", u:  4, v:  -8, collected: false },
+  { id: "coin2", u: -8, v:  10, collected: false },
+  { id: "coin3", u: 18, v:   2, collected: false },
+  { id: "coin4", u:-20, v:   0, collected: false },
+  { id: "coin5", u:  0, v: -22, collected: false },
+  { id: "coin6", u: 12, v:  20, collected: false },
+  { id: "coin7", u:-12, v: -18, collected: false },
+  { id: "coin8", u: 22, v: -10, collected: false },
+];
+let score = 0;
+
+// ---- three.js scene ----
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 40, 140);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 500);
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// Lighting: soft hemi + a key sun
+scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.set(20, 30, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
+sun.shadow.camera.top  =  40; sun.shadow.camera.bottom = -40;
+scene.add(sun);
+
+// Procedural ground texture — checker + noise so the player can see motion
+function makeGroundTexture(size=256) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d");
+  // base color
+  g.fillStyle = "#4a7c59"; g.fillRect(0, 0, size, size);
+  // big checker
+  g.fillStyle = "#3f6b4d";
+  for (let y = 0; y < size; y += 32)
+    for (let x = (y / 32) % 2 === 0 ? 0 : 32; x < size; x += 64)
+      g.fillRect(x, y, 32, 32);
+  // grass speckle
+  for (let i = 0; i < 1500; i++) {
+    g.fillStyle = `rgba(${100 + Math.random()*80|0}, ${140 + Math.random()*60|0}, ${80 + Math.random()*40|0}, 0.5)`;
+    g.fillRect(Math.random() * size | 0, Math.random() * size | 0, 1, 1);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(20, 20);
+  return tex;
+}
+const groundMat = new THREE.MeshStandardMaterial({ map: makeGroundTexture(), roughness: 0.95 });
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Skybox dome — gradient that morphs with day/night via shader uniforms
+const skyUniforms = {
+  topColor:    { value: new THREE.Color(0x87ceeb) },
+  bottomColor: { value: new THREE.Color(0xffd9aa) },
+  offset:      { value: 33 },
+  exponent:    { value: 0.6 },
+};
+const skyMat = new THREE.ShaderMaterial({
+  uniforms: skyUniforms,
+  vertexShader: `varying vec3 vWorld; void main(){ vWorld = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform vec3 topColor; uniform vec3 bottomColor; uniform float offset; uniform float exponent;
+    varying vec3 vWorld;
+    void main(){
+      float h = normalize(vWorld + vec3(0.0, offset, 0.0)).y;
+      gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+    }`,
+  side: THREE.BackSide,
+  depthWrite: false,
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), skyMat);
+scene.add(sky);
+scene.background = null; // sky dome handles background now
+
+// Road grid (visual only)
+const grid = new THREE.GridHelper(200, 40, 0x222222, 0x222222);
+grid.position.y = 0.01;
+scene.add(grid);
+
+// Buildings — extruded boxes from layer boundaries
+for (const bldg of buildings) {
+  const { u0, v0, u1, v1 } = bldg.b.params;
+  const w = u1 - u0, d = v1 - v0;
+  const h = 4 + Math.random() * 6;
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: bldg.color })
+  );
+  mesh.position.set((u0 + u1) / 2, h / 2, (v0 + v1) / 2);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.userData.id = bldg.id;
+  scene.add(mesh);
+}
+
+// Character — articulated body (torso + head + 2 arms + 2 legs) for walk cycle
+const heroGroup = new THREE.Group();
+const heroSkin    = new THREE.MeshStandardMaterial({ color: 0xffcc66 });
+const heroPants   = new THREE.MeshStandardMaterial({ color: 0x223377 });
+const heroShirt   = new THREE.MeshStandardMaterial({ color: 0xff5533 });
+const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.4), heroShirt);
+torso.position.y = 1.25; torso.castShadow = true; heroGroup.add(torso);
+const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), heroSkin);
+head.position.y = 1.85; head.castShadow = true; heroGroup.add(head);
+const eye = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.04), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+eye.position.set(0, 1.92, 0.23); heroGroup.add(eye);
+
+function makeLimb(mat, h) {
+  const pivot = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, h, 0.22), mat);
+  m.position.y = -h / 2;       // pivot at top
+  m.castShadow = true;
+  pivot.add(m);
+  return pivot;
+}
+const legL = makeLimb(heroPants, 0.85); legL.position.set(-0.18, 0.85, 0); heroGroup.add(legL);
+const legR = makeLimb(heroPants, 0.85); legR.position.set( 0.18, 0.85, 0); heroGroup.add(legR);
+const armL = makeLimb(heroSkin,  0.7);  armL.position.set(-0.45, 1.6, 0);  heroGroup.add(armL);
+const armR = makeLimb(heroSkin,  0.7);  armR.position.set( 0.45, 1.6, 0);  heroGroup.add(armR);
+scene.add(heroGroup);
+const walkState = { t: 0 };
+
+// Car mesh — body + 4 wheels
+const carGroup = new THREE.Group();
+const carBody = new THREE.Mesh(
+  new THREE.BoxGeometry(2.0, 0.7, 4.0),
+  new THREE.MeshStandardMaterial({ color: 0xc1121f, metalness: 0.3, roughness: 0.4 })
+);
+carBody.position.y = 0.7;
+carBody.castShadow = true;
+carGroup.add(carBody);
+const carRoof = new THREE.Mesh(
+  new THREE.BoxGeometry(1.7, 0.6, 2.0),
+  new THREE.MeshStandardMaterial({ color: 0x780000 })
+);
+carRoof.position.set(0, 1.35, -0.2);
+carRoof.castShadow = true;
+carGroup.add(carRoof);
+for (const wx of [-0.9, 0.9]) for (const wz of [-1.4, 1.4]) {
+  const w = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16),
+    new THREE.MeshStandardMaterial({ color: 0x111111 })
+  );
+  w.rotation.z = Math.PI / 2;
+  w.position.set(wx, 0.35, wz);
+  w.castShadow = true;
+  carGroup.add(w);
+}
+scene.add(carGroup);
+
+// Pickup meshes
+const pickupMeshes = new Map();
+const coinGeo = new THREE.SphereGeometry(0.3, 12, 12);
+const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x554400, metalness: 0.6, roughness: 0.3 });
+for (const pk of pickups) {
+  const m = new THREE.Mesh(coinGeo, coinMat);
+  m.position.set(pk.u, 1.0, pk.v);
+  m.castShadow = true;
+  pickupMeshes.set(pk.id, m);
+  scene.add(m);
+}
+
+// NPC meshes — capsule per NPC
+const npcMeshes = new Map();
+for (const n of NPC_DEFS) {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.35, 0.9, 4, 12),
+    new THREE.MeshStandardMaterial({ color: n.color })
+  );
+  b.position.y = 0.85; b.castShadow = true; g.add(b);
+  scene.add(g);
+  npcMeshes.set(n.id, { group: g, heading: n.heading });
+}
+
+// ---- input ----
+const keys = Object.create(null);
+addEventListener("keydown", (e) => {
+  keys[e.code] = true;
+  // E toggles enter/exit when near the car
+  if (e.code === "KeyE") {
+    const d = Bridge.uvDist(world, "hero", "car");
+    if (!inCar && d < 2.5) inCar = true;
+    else if (inCar) {
+      inCar = false;
+      // Drop hero next to the car
+      const cp = world.players.get("car");
+      const off = { u: cp.u + 1.5 * Math.cos(carState.heading), v: cp.v - 1.5 * Math.sin(carState.heading) };
+      const h = world.players.get("hero");
+      world.setPlayer("hero", h.x, 0, h.z, off.u, off.v);
+    }
+  }
+});
+addEventListener("keyup",   (e) => { keys[e.code] = false; });
+
+let camYaw = 0;
+let camPitch = -0.25;
+
+// Pointer lock for true freelook (GTA-style). Click the canvas to capture, ESC to release.
+let pointerLocked = false;
+renderer.domElement.addEventListener("click", () => {
+  if (!pointerLocked) renderer.domElement.requestPointerLock();
+});
+document.addEventListener("pointerlockchange", () => {
+  pointerLocked = document.pointerLockElement === renderer.domElement;
+});
+
+// Drag fallback (works even without pointer lock)
+let dragging = false;
+let lastMouseX = 0, lastMouseY = 0;
+renderer.domElement.addEventListener("mousedown", (e) => {
+  if (pointerLocked) return;
+  dragging = true; lastMouseX = e.clientX; lastMouseY = e.clientY;
+});
+addEventListener("mouseup", () => { dragging = false; });
+addEventListener("mousemove", (e) => {
+  let dx, dy;
+  if (pointerLocked) {
+    dx = e.movementX; dy = e.movementY;
+  } else {
+    if (!dragging) return;
+    dx = e.clientX - lastMouseX; dy = e.clientY - lastMouseY;
+    lastMouseX = e.clientX; lastMouseY = e.clientY;
+  }
+  camYaw   -= dx * 0.003;
+  camPitch -= dy * 0.003;
+  camPitch = Math.max(-1.2, Math.min(0.4, camPitch));
+});
+
+// ---- physics-lite ----
+let velocityY = 0;
+const GRAVITY = -25;
+const JUMP_V  = 8;
+const WALK    = 5;
+const SPRINT  = 9;
+
+// ---- main loop ----
+const hud = document.getElementById("hud");
+const mini = document.getElementById("minimap").getContext("2d");
+const MINI_HALF = 35; // engine units shown half-extent
+
+function drawMinimap() {
+  const W = 180, H = 180;
+  mini.clearRect(0, 0, W, H);
+  // Background
+  mini.fillStyle = "rgba(40, 70, 50, 0.85)";
+  mini.fillRect(0, 0, W, H);
+  // Center is hero
+  const hero = world.players.get("hero");
+  const u2x = (u) => W/2 + ((u - hero.u) / MINI_HALF) * (W/2);
+  const v2y = (v) => H/2 + ((v - hero.v) / MINI_HALF) * (H/2);
+  // Buildings
+  for (const bldg of buildings) {
+    const { u0, v0, u1, v1 } = bldg.b.params;
+    mini.fillStyle = "#" + bldg.color.toString(16).padStart(6, "0") + "88";
+    const x0 = u2x(u0), y0 = v2y(v0), x1 = u2x(u1), y1 = v2y(v1);
+    mini.fillRect(Math.min(x0,x1), Math.min(y0,y1), Math.abs(x1-x0), Math.abs(y1-y0));
+  }
+  // NPCs
+  for (const n of NPC_DEFS) {
+    const np = world.players.get(n.id);
+    mini.fillStyle = "#" + n.color.toString(16).padStart(6, "0");
+    mini.beginPath(); mini.arc(u2x(np.u), v2y(np.v), 3, 0, Math.PI*2); mini.fill();
+  }
+  // Car
+  const cp = world.players.get("car");
+  mini.fillStyle = "#c1121f";
+  mini.fillRect(u2x(cp.u) - 3, v2y(cp.v) - 4, 6, 8);
+  // Pickups
+  for (const pk of pickups) {
+    if (pk.collected) continue;
+    mini.fillStyle = "#ffd700";
+    mini.beginPath(); mini.arc(u2x(pk.u), v2y(pk.v), 2, 0, Math.PI*2); mini.fill();
+  }
+  // Hero (always center)
+  mini.fillStyle = "#ffd166";
+  mini.beginPath(); mini.arc(W/2, H/2, 4, 0, Math.PI*2); mini.fill();
+  // Compass
+  mini.fillStyle = "#fff"; mini.font = "10px monospace";
+  mini.fillText("N", W/2 - 3, 11); mini.fillText("S", W/2 - 3, H - 3);
+}
+
+let lastT = performance.now();
+
+function tick() {
+  const now = performance.now();
+  const dt  = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+
+  // camera-relative basis projected to ground
+  const forward = { x: -Math.sin(camYaw), y: 0, z: -Math.cos(camYaw) };
+  const right   = { x:  Math.cos(camYaw), y: 0, z: -Math.sin(camYaw) };
+
+  const inputF = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+  const inputR = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
+  const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
+
+  if (inCar) {
+    // Car physics: W/S throttle, A/D steer
+    const throttle = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+    const steerIn  = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
+    const next = Bridge.carPhysicsStep(world, "car", carState, throttle, steerIn, dt);
+    carState.speed = next.speed; carState.heading = next.heading;
+    // Hero rides in the car
+    const cp = world.players.get("car");
+    world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
+  } else {
+    Bridge.applyCameraRelativeMove(world, "hero", inputF, inputR, forward, right, speed, dt);
+  }
+
+  // Drive NPCs — wander step + soft arena clamp
+  for (const n of NPC_DEFS) {
+    const m = npcMeshes.get(n.id);
+    m.heading = Bridge.wanderStep(world, n.id, m.heading, 2.2, dt);
+    Bridge.clampToArena(world, n.id, 30);
+    const np = Bridge.engineToRenderPos(world.players.get(n.id));
+    m.group.position.set(np.x, np.y, np.z);
+    m.group.rotation.y = m.heading;
+  }
+
+  // jump + gravity (engine.y is the height channel)
+  const hero = world.players.get("hero");
+  if (keys["Space"] && hero.y <= 0.001) velocityY = JUMP_V;
+  velocityY += GRAVITY * dt;
+  let newY = hero.y + velocityY * dt;
+  if (newY < 0) { newY = 0; velocityY = 0; }
+  world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
+
+  // layer transition check
+  const insideNow = world.boundaryAt(hero.u, hero.v, buildings.map(b => b.b));
+  const targetLayer = insideNow ? insideNow.targetLayerId : 1;
+  if (targetLayer !== world.layerId) {
+    world.logTransition("hero", world.layerId, targetLayer, "phase_shift");
+  }
+
+  // --- render ---
+  // Car render
+  const cp = world.players.get("car");
+  const cpRender = Bridge.engineToRenderPos(cp);
+  carGroup.position.set(cpRender.x, cpRender.y, cpRender.z);
+  carGroup.rotation.y = carState.heading;
+
+  const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
+  heroGroup.visible = !inCar;
+  heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
+
+  // Walk cycle — drive limb swing by ground speed
+  const groundSpeed = inCar ? 0 : Math.hypot(inputF, inputR) * speed;
+  const wc = Bridge.walkCyclePhase(walkState, dt, groundSpeed);
+  legL.rotation.x =  wc.swing;
+  legR.rotation.x = -wc.swing;
+  armL.rotation.x = -wc.swing * 0.7;
+  armR.rotation.x =  wc.swing * 0.7;
+  torso.position.y = 1.25 + wc.bob;
+  // face the direction of last input (or camera-forward if idle)
+  if (inputF !== 0 || inputR !== 0) {
+    const fx = forward.x * inputF + right.x * inputR;
+    const fz = forward.z * inputF + right.z * inputR;
+    heroGroup.rotation.y = Math.atan2(fx, fz);
+  }
+
+  // chase camera — wider when in car
+  const dist = inCar ? 11 : 7;
+  const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + 1.2, heroPos.z);
+  const camOff = new THREE.Vector3(
+    -Math.sin(camYaw) * Math.cos(camPitch) * dist,
+     Math.sin(-camPitch) * dist + 1.2,
+    -Math.cos(camYaw) * Math.cos(camPitch) * dist
+  );
+  camera.position.copy(camTarget.clone().add(camOff));
+  camera.lookAt(camTarget);
+
+  const dToCar = Bridge.uvDist(world, "hero", "car");
+  const bldgName = (id) => ({2:"shop",3:"tower",4:"house",5:"garage",6:"diner",7:"bank",8:"park",9:"studio"}[id] || `L${id}`);
+  hud.innerHTML =
+    `pos <b>(${heroPos.x.toFixed(1)}, ${heroPos.y.toFixed(1)}, ${heroPos.z.toFixed(1)})</b>` +
+    `<br>engine.uv <b>(${hero.u.toFixed(2)}, ${hero.v.toFixed(2)})</b>` +
+    `<br>layer <b>${world.layerId}</b>` +
+    (insideNow ? `<br>inside <b>${bldgName(insideNow.targetLayerId)}</b>` : "") +
+    (inCar ? `<br><b>IN CAR</b> speed=${carState.speed.toFixed(1)} m/s` :
+             (dToCar < 2.5 ? `<br>press <b>E</b> to enter car` : ""));
+
+  // pickups (collect within 1.2 units; bob coin meshes)
+  const collected = Bridge.collectPickup(world, "hero", pickups, 1.2);
+  if (collected) {
+    score++;
+    const m = pickupMeshes.get(collected);
+    if (m) scene.remove(m);
+  }
+  for (const pk of pickups) {
+    if (pk.collected) continue;
+    const m = pickupMeshes.get(pk.id);
+    m.position.y = 1.0 + Math.sin(now / 300 + pk.u) * 0.15;
+    m.rotation.y += dt * 2;
+  }
+
+  // day-night cycle (60s full day for demo speed) — drives sky shader + sun
+  const dn = Bridge.dayNightPhase(now / 1000, 60);
+  // Top-of-sky color: blue at noon, dark at night, warm orange at sunrise/sunset
+  const sunsetMix = Math.max(0, 1 - Math.abs(dn.sun.y - 0.0) * 5) * (dn.sun.y < 0.3 ? 1 : 0);
+  skyUniforms.topColor.value.setRGB(
+    0.05 + 0.48 * dn.dayMix + 0.4 * sunsetMix,
+    0.07 + 0.73 * dn.dayMix + 0.18 * sunsetMix,
+    0.18 + 0.74 * dn.dayMix
+  );
+  skyUniforms.bottomColor.value.setRGB(
+    0.10 + 0.85 * dn.dayMix + 0.5 * sunsetMix,
+    0.15 + 0.70 * dn.dayMix + 0.25 * sunsetMix,
+    0.30 + 0.50 * dn.dayMix
+  );
+  scene.fog.color.setRGB(dn.sky.r, dn.sky.g, dn.sky.b);
+  sun.position.set(dn.sun.x * 30, Math.max(2, dn.sun.y * 30), dn.sun.z * 30);
+  sun.intensity = 0.3 + 1.0 * dn.dayMix;
+
+  // append objective + score to HUD
+  hud.innerHTML += `<br>coins <b>${score}/${pickups.length}</b>` +
+    (score === pickups.length ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "");
+
+  // mini-map (top-right)
+  drawMinimap();
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
