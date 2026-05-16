@@ -34,16 +34,17 @@
 | 25   | custom_worlds.js: JSON manifest load/export round-trip         | 33    | iter25  |
 | 26   | subworlds.js: nested impossible interiors per conviction.pdf   | 24    | iter26  |
 | 27   | character.js: 8 slots + presets + randomize + persistence      | 39    | iter27  |
+| 28   | computer.js: in-game PC entity, sit/stand/launch + fileSystem  | 39    | iter28  |
+| 29   | app_framework.js: register/instantiate/render/input/ipc        | 23    | iter29  |
+| 30   | apps/object_studio.js + apps/friend_finder.js (with IPC)       | 27    | iter30  |
 
-**Total: 584/584 tests passing.**
+**Total: 673/673 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 28** — In-game computer entity (sit + screen takeover).
-- **iter 29** — App framework (registry of apps).
-- **iter 30** — First 2 apps (ObjectStudio + FriendFinder).
 - **iter 31** — Survival mode integration.
 - **iter 32** — Creative mode integration.
+- **iter 33+** — Optimization & polish.
 
 ## Wakeup checklist
 
