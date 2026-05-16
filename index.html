@@ -1440,8 +1440,13 @@ for (const n of NPC_DEFS) {
     new THREE.MeshStandardMaterial({ color: n.color })
   );
   b.position.y = 0.85; b.castShadow = true; g.add(b);
+  // Interaction ring (glow under NPC feet — visible when nearby)
+  const ringGeo = new THREE.RingGeometry(0.45, 0.60, 24);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; g.add(ring);
   scene.add(g);
-  npcMeshes.set(n.id, { group: g, heading: n.heading });
+  npcMeshes.set(n.id, { group: g, heading: n.heading, ring });
 }
 
 // Enemy meshes — one group per enemy def
@@ -2819,6 +2824,27 @@ function drawMinimap() {
   mini.fillText("W", 5, CY + 3);
   mini.textAlign = "left";
 
+  // Spawn points — pulsing cyan diamonds
+  const spGlow = 0.5 + 0.5 * Math.sin(Date.now() / 400);
+  for (const sp of _spawnPoints) {
+    const sx = u2x(sp.u), sy = v2y(sp.v);
+    mini.save();
+    mini.globalAlpha = 0.5 + 0.4 * spGlow;
+    mini.fillStyle = "#00ffaa";
+    mini.translate(sx, sy); mini.rotate(Math.PI / 4);
+    mini.fillRect(-3, -3, 6, 6);
+    mini.restore();
+  }
+
+  // NPC dialog target — bright ring
+  if (_nearNpc) {
+    const np = world.players.get(_nearNpc.id);
+    if (np) {
+      mini.strokeStyle = "rgba(0,255,170,0.9)"; mini.lineWidth = 1.5;
+      mini.beginPath(); mini.arc(u2x(np.u), v2y(np.v), 5, 0, Math.PI * 2); mini.stroke();
+    }
+  }
+
   // Advance sweep
   _mmSweepAngle = (_mmSweepAngle + 0.05) % (Math.PI * 2);
 }
@@ -2925,7 +2951,8 @@ function _tryShoot() {
 let lastT = performance.now();
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 let _reloading = false, _reloadStart = 0;
-let _recoilPitch = 0;   // temporary pitch kick from firing; springs back to 0
+let _recoilPitch = 0;
+let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
@@ -3084,6 +3111,16 @@ function tick() {
     );
   }
 
+  // Footstep SFX — tick when grounded and moving
+  if (!inCar && !buildMode && onGround && (inputF !== 0 || inputR !== 0)) {
+    const stepInterval = keys["ShiftLeft"] ? 0.28 : 0.42;
+    if (now / 1000 - _lastFootstepT > stepInterval) {
+      _lastFootstepT = now / 1000;
+      const freq = 180 + Math.random() * 40;
+      playSfx(`tone:${Math.round(freq)}:18:sine`, 0.08);
+    }
+  }
+
   // Recoil spring — decays back to 0, applies kick to camPitch
   if (_recoilPitch !== 0) {
     camPitch += _recoilPitch;
@@ -3221,6 +3258,13 @@ function tick() {
     const m = npcMeshes.get(n.id);
     if (!_npcDialogOpen) m.heading = Bridge.wanderStep(world, n.id, m.heading, n.wanderSpeed || 2.2, dt);
     Bridge.clampToArena(world, n.id, 30);
+    // Ring glow based on proximity
+    if (m.ring) {
+      const np2 = world.players.get(n.id);
+      const distToHero = Math.hypot(heroNow.u - np2.u, heroNow.v - np2.v);
+      const ringTarget = distToHero < 2.5 ? (0.5 + 0.3 * Math.sin(now / 300)) : 0;
+      m.ring.material.opacity += (ringTarget - m.ring.material.opacity) * Math.min(1, dt * 6);
+    }
     const np = Bridge.engineToRenderPos(world.players.get(n.id));
     m.group.position.set(np.x, np.y, np.z);
     m.group.rotation.y = m.heading;
@@ -3259,15 +3303,17 @@ function tick() {
 
   // jump + gravity — frozen in build mode so the character stands still
   const hero = world.players.get("hero");
+  let onGround = false;
   if (!buildMode) {
     const support = _platformUnder(hero.u, hero.v, hero.y);
     const onSupport = hero.y <= support.topY + 0.001;
+    onGround = onSupport;
     if (keys["Space"] && onSupport) velocityY = JUMP_V;
     velocityY += GRAVITY * dt;
     let newY = hero.y + velocityY * dt;
     const supportAfter = _platformUnder(hero.u, hero.v, Math.max(newY, hero.y));
-    if (newY < supportAfter.topY) { newY = supportAfter.topY; velocityY = 0; }
-    if (newY < 0) { newY = 0; velocityY = 0; }
+    if (newY < supportAfter.topY) { newY = supportAfter.topY; velocityY = 0; onGround = true; }
+    if (newY < 0) { newY = 0; velocityY = 0; onGround = true; }
     world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
   }
 
