@@ -99,6 +99,8 @@
 | 89   | coop_missions.js: vclock sync + per-obj merge + late-join catchup | 45  | iter89  |
 | 90   | mod_sandbox.js: signed mods + capability gate + vm exec          | 36   | iter90  |
 | 91   | replay_export.js: delta encode + JSON/gzip + roundtrip (11% size)| 45   | iter91  |
+| 92   | stats.js: 13 default kinds + lifetime + 30-day rollups + topByKind | 46  | iter92  |
+| 93   | notifications.js: 5 cats + 4 prios + sticky + mute + onClick     | 47   | iter93  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -109,12 +111,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 92** — Stat aggregator (kills/distance/missions/playtime).
-- **iter 93** — Notification system (toast queue + 5 categories).
 - **iter 94** — Voice chat envelopes (push-to-talk + spatial falloff).
 - **iter 95** — Friend system (add/accept/block + online status).
 - **iter 96** — Clan/crew system (registry + ranks + shared resources).
 - **iter 97** — Trading post (p2p item trades + escrow).
+- **iter 98** — Weather forecast (predict next-N-min window + RNG).
+- **iter 99** — Currency exchange (ccy-to-ccy market + bid/ask).
 
 ## Wakeup checklist
 
