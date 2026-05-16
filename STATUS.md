@@ -64,14 +64,16 @@
 | 55   | quests.js: 5 objective kinds + chains + repeatable + custom    | 40    | iter55  |
 | 56   | player_profile.js: 11 stats + 8 achievements + level + persist | 57    | iter56  |
 | 57   | fog_of_war.js: visible/explored grid + waypoints + TTL         | 44    | iter57  |
+| 58   | minigames.js: hub + tic-tac-toe + coin-flip + RPS register     | 34    | iter58  |
+| 59   | leaderboard.js: per-stat boards + Hub broadcast + ts dedup     | 46    | iter59  |
 
-**Total: 1534/1534 tests passing.**
+**Total: 1614/1614 tests passing.**
 
 ## Up next
 
-- **iter 58** — Mini-game framework + leaderboards.
-- **iter 59** — Anti-cheat (server-authoritative validation).
-- **iter 60** — Economy/currency conversion across worlds.
+- **iter 60** — Anti-cheat (server-authoritative validation).
+- **iter 61** — Economy/currency conversion across worlds.
+- **iter 62** — NPC schedules (work/sleep cycle).
 
 ## Wakeup checklist
 
