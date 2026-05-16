@@ -4,24 +4,39 @@
 <meta charset="utf-8" />
 <title>5DEngine — third person on multi_dim_engine</title>
 <style>
-  body { margin: 0; background: #87ceeb; overflow: hidden; font-family: system-ui, sans-serif; }
-  #hud {
-    position: fixed; top: 36px; left: 8px; padding: 8px 10px;
-    background: rgba(0,0,0,0.55); color: #eee; font-size: 12px;
-    border-radius: 6px; line-height: 1.4; pointer-events: none;
-    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  :root {
+    --holo-bg: rgba(2,8,22,0.84);
+    --holo-border: rgba(0,200,255,0.32);
+    --holo-glow: 0 0 14px rgba(0,200,255,0.22), inset 0 0 8px rgba(0,200,255,0.04);
+    --holo-text: #b8e8ff;
+    --holo-accent: #00ccff;
+    --holo-warn: #ffd166;
+    --holo-green: #00ffaa;
+    --holo-red: #ff4466;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
   }
-  #hud b { color: #ffd166; }
+  body { margin: 0; background: #020c1b; overflow: hidden; font-family: system-ui, sans-serif; }
+  #hud {
+    position: fixed; top: 36px; left: 8px; padding: 8px 12px;
+    background: var(--holo-bg); color: var(--holo-text); font-size: 11px;
+    border-radius: 6px; line-height: 1.5; pointer-events: none;
+    font-family: var(--mono);
+    border: 1px solid var(--holo-border);
+    box-shadow: var(--holo-glow);
+  }
+  #hud b { color: var(--holo-warn); }
   #help {
-    position: fixed; bottom: 8px; left: 8px; padding: 8px 10px;
-    background: rgba(0,0,0,0.55); color: #eee; font-size: 12px;
+    position: fixed; bottom: 8px; left: 8px; padding: 8px 12px;
+    background: var(--holo-bg); color: var(--holo-text); font-size: 11px;
     border-radius: 6px; pointer-events: none;
+    border: 1px solid var(--holo-border); box-shadow: var(--holo-glow);
   }
   #minimap {
     position: fixed; top: 8px; right: 8px;
     width: 180px; height: 180px;
-    background: rgba(0,0,0,0.55);
-    border: 1px solid #666; border-radius: 6px;
+    background: rgba(0,8,20,0.80);
+    border: 1px solid var(--holo-border); border-radius: 6px;
+    box-shadow: var(--holo-glow);
   }
   #damageFlash {
     position: fixed; inset: 0; pointer-events: none; z-index: 999;
@@ -32,16 +47,17 @@
   #crosshair {
     position: fixed; left: 50%; top: 50%;
     transform: translate(-50%, -50%);
-    width: 14px; height: 14px;
+    width: 16px; height: 16px;
     pointer-events: none;
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0,200,255,0.7);
     border-radius: 50%;
-    transition: border-color 80ms ease-out;
+    transition: border-color 80ms ease-out, transform 80ms ease-out;
+    box-shadow: 0 0 6px rgba(0,200,255,0.4);
   }
-  #crosshair.hit { border-color: #ff4444; transform: translate(-50%, -50%) scale(1.4); }
+  #crosshair.hit { border-color: var(--holo-red); transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 10px rgba(255,68,102,0.5); }
   #crosshair::after {
     content: ''; position: absolute; left: 50%; top: 50%;
-    width: 3px; height: 3px; background: #ffd166;
+    width: 3px; height: 3px; background: var(--holo-accent);
     transform: translate(-50%, -50%);
     border-radius: 50%;
   }
@@ -78,37 +94,56 @@
   #appWindow h4 { margin: 0 0 10px 0; color: #ffd166; }
   #appWindow pre { background: #0a1626; padding: 10px; border-radius: 6px; color: #88c; font-size: 11px; white-space: pre-wrap; }
   #inventory .panel {
-    background: #1a1a1a; color: #eee; padding: 16px 18px; border-radius: 10px;
-    border: 1px solid #444; min-width: 480px;
-    font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px;
+    background: var(--holo-bg); color: var(--holo-text); padding: 18px 20px; border-radius: 10px;
+    border: 1px solid var(--holo-border); min-width: 500px;
+    font-family: var(--mono); font-size: 12px;
+    box-shadow: 0 0 40px rgba(0,200,255,0.18), var(--holo-glow);
   }
-  #inventory h3 { margin: 0 0 10px 0; font-weight: 500; color: #ffd166; }
+  #inventory h3 { margin: 0 0 12px 0; font-weight: 500; color: var(--holo-accent); letter-spacing: 0.1em; }
   #inventory .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
   #inventory .slot {
-    background: #2a2a2a; border: 1px solid #444; border-radius: 4px;
+    background: rgba(0,20,50,0.6); border: 1px solid rgba(0,200,255,0.18); border-radius: 4px;
     height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-size: 10px; padding: 4px;
+    font-size: 10px; padding: 4px; transition: border-color 100ms;
   }
-  #inventory .slot.active { border-color: #ffd166; }
-  #inventory .slot.hotbar { background: #2f2a1a; }
-  #inventory .slot .qty { color: #aaa; }
-  #inventory .empty { color: #555; }
+  #inventory .slot.active { border-color: var(--holo-warn); box-shadow: 0 0 8px rgba(255,209,102,0.3); }
+  #inventory .slot.hotbar { background: rgba(30,20,0,0.5); }
+  #inventory .slot .qty { color: #778899; }
+  #inventory .empty { color: #334455; }
   /* FPS counter */
   #fpsCounter {
     position: fixed; top: 8px; left: 8px;
-    background: rgba(0,0,0,0.6); color: #44ff88;
-    font-family: ui-monospace, Consolas, monospace; font-size: 13px; font-weight: bold;
-    padding: 3px 7px; border-radius: 4px; pointer-events: none; z-index: 200;
-    letter-spacing: 0.04em;
+    background: var(--holo-bg); color: var(--holo-green);
+    font-family: var(--mono); font-size: 12px; font-weight: bold;
+    padding: 3px 8px; border-radius: 4px; pointer-events: none; z-index: 200;
+    letter-spacing: 0.08em;
+    border: 1px solid rgba(0,255,160,0.22);
   }
-  /* Ammo HUD bottom-left */
-  #ammoHud {
-    position: fixed; bottom: 48px; left: 8px;
-    background: rgba(0,0,0,0.6); color: #ffd166;
-    font-family: ui-monospace, Consolas, monospace; font-size: 18px; font-weight: bold;
-    padding: 5px 10px; border-radius: 5px; pointer-events: none; z-index: 200;
-    letter-spacing: 0.04em;
+  /* Weapon panel — bottom right */
+  #weaponPanel {
+    position: fixed; bottom: 52px; right: 8px;
+    background: var(--holo-bg); border: 1px solid var(--holo-border);
+    border-radius: 6px; padding: 8px 14px; text-align: right;
+    box-shadow: var(--holo-glow); pointer-events: none; z-index: 200;
+    font-family: var(--mono);
   }
+  #wpName { color: var(--holo-accent); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; }
+  #wpAmmo { color: var(--holo-warn); font-size: 22px; font-weight: bold; line-height: 1.1; }
+  #wpReserve { font-size: 13px; color: #556677; }
+  /* Health bar — bottom right below weapon panel */
+  #healthBar {
+    position: fixed; bottom: 8px; right: 8px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--holo-bg); border: 1px solid var(--holo-border);
+    border-radius: 6px; padding: 5px 14px;
+    box-shadow: var(--holo-glow); pointer-events: none; z-index: 200;
+  }
+  #hbLabel { color: var(--holo-accent); font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; }
+  #hbTrack { width: 110px; height: 5px; background: rgba(0,40,70,0.7); border: 1px solid rgba(0,200,255,0.18); border-radius: 3px; overflow: hidden; }
+  #hbFill { height: 100%; border-radius: 3px; transition: width 150ms ease-out, background 400ms; }
+  #hbVal { color: #ddf; font-family: var(--mono); font-size: 11px; font-weight: bold; min-width: 28px; text-align: right; }
+  /* Old ammo HUD — hidden, replaced by #weaponPanel */
+  #ammoHud { display: none; }
   /* Reload circle */
   #reloadCircle {
     position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -198,8 +233,42 @@
 <body>
 <div id="fpsCounter">-- FPS</div>
 <div id="hud">loading…</div>
-<div id="ammoHud">12 / 60</div>
-<div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#ffd166" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
+<div id="ammoHud" style="display:none">12 / 60</div>
+<div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#00ccff" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
+
+<!-- Holographic weapon panel (bottom right) -->
+<div id="weaponPanel">
+  <div id="wpName">PISTOL</div>
+  <div id="wpAmmo">12<span id="wpReserve"> / 60</span></div>
+</div>
+
+<!-- Holographic health bar (bottom right, below weapon panel) -->
+<div id="healthBar">
+  <div id="hbLabel">HP</div>
+  <div id="hbTrack"><div id="hbFill" style="width:100%;background:linear-gradient(90deg,#00ffaa,#00ccff)"></div></div>
+  <div id="hbVal">100</div>
+</div>
+
+<!-- Character editor panel (build mode, toggled with P) -->
+<div id="charEditor" style="display:none;position:fixed;right:8px;top:200px;width:240px;
+  background:rgba(2,8,22,0.90);border:1px solid rgba(0,200,255,0.4);border-radius:8px;
+  padding:14px;font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#b8e8ff;
+  box-shadow:0 0 24px rgba(0,200,255,0.2);z-index:60;">
+  <div style="color:#00ccff;font-size:10px;letter-spacing:0.18em;margin-bottom:10px">CHARACTER EDITOR</div>
+  <div style="margin-bottom:8px;color:#778899">Drag a .glb / .obj onto the viewport to replace the hero model</div>
+  <div id="charModelName" style="color:#ffd166;margin-bottom:10px">hero (primitive)</div>
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">ANIMATIONS</div>
+  <div id="charClipList" style="max-height:160px;overflow-y:auto">
+    <div style="color:#334455">no clips loaded</div>
+  </div>
+  <div style="margin-top:10px;color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">TRANSFORM</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <label style="color:#778899;font-size:9px">Scale
+      <input id="charScale" type="range" min="0.1" max="5" step="0.05" value="1"
+        style="width:80px;accent-color:#00ccff" oninput="heroGroup.scale.setScalar(+this.value)">
+    </label>
+  </div>
+</div>
 
 <!-- Hotbar (build mode) -->
 <div id="hotbar">
@@ -721,6 +790,86 @@ gunGroup.position.set(0, -0.7, 0.2);   // at the tip of the arm, slightly forwar
 armR.add(gunGroup);
 scene.add(heroGroup);
 const walkState = { t: 0 };
+
+// ---- Hero animation system (AnimationMixer) --------------------------------
+// heroMixer is null until a GLB is dropped. When a GLB is loaded it replaces
+// the primitive mesh and its clips are available via _heroClips.
+let heroMixer    = null;
+let _heroClips   = {};         // clip name → AnimationAction
+let _heroModelName = "primitive";
+
+function _loadHeroGLB(url, nameHint) {
+  if (!window.AssetLoader || !window.AssetLoader.loadUrl) return;
+  window.AssetLoader.loadUrl(url, nameHint || "hero_model", (obj) => {
+    // Strip old primitive children
+    while (heroGroup.children.length) heroGroup.remove(heroGroup.children[0]);
+    obj.scale.setScalar(1);
+    obj.position.set(0, 0, 0);
+    heroGroup.add(obj);
+    // AnimationMixer
+    heroMixer = new THREE.AnimationMixer(obj);
+    _heroClips = {};
+    const srcClips = obj.animations || (obj._gltf && obj._gltf.animations) || [];
+    for (const clip of srcClips) {
+      _heroClips[clip.name] = heroMixer.clipAction(clip);
+    }
+    _heroModelName = nameHint || url.split("/").pop();
+    _refreshCharEditor();
+  });
+}
+
+function _refreshCharEditor() {
+  const panel = document.getElementById("charEditor");
+  if (!panel || panel.style.display === "none") return;
+  const nameEl = document.getElementById("charModelName");
+  if (nameEl) nameEl.textContent = _heroModelName;
+  const clipList = document.getElementById("charClipList");
+  if (!clipList) return;
+  const names = Object.keys(_heroClips);
+  if (names.length === 0) {
+    clipList.innerHTML = `<div style="color:#334455">no clips loaded</div>`;
+    return;
+  }
+  clipList.innerHTML = names.map(n => `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+      <span style="color:#b8e8ff;font-size:10px">${n}</span>
+      <span style="display:flex;gap:4px">
+        <button onclick="window._heroPlayClip('${n}')"
+          style="background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.3);
+          color:#00ccff;border-radius:3px;padding:1px 6px;font-size:9px;cursor:pointer">▶</button>
+        <button onclick="window._heroStopClip('${n}')"
+          style="background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.3);
+          color:#ff4466;border-radius:3px;padding:1px 6px;font-size:9px;cursor:pointer">■</button>
+      </span>
+    </div>`).join("");
+}
+
+window._heroPlayClip = (name) => {
+  const action = _heroClips[name];
+  if (!action) return;
+  heroMixer.stopAllAction();
+  action.reset().play();
+};
+window._heroStopClip = (name) => {
+  const action = _heroClips[name];
+  if (action) action.stop();
+};
+
+// GLB drop onto canvas → replace hero model (only when char editor is open)
+renderer.domElement.addEventListener("dragover", (e) => e.preventDefault());
+renderer.domElement.addEventListener("drop", (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const ext = file.name.split(".").pop().toLowerCase();
+  if (!["glb","gltf","obj","fbx"].includes(ext)) return;
+  const charEd = document.getElementById("charEditor");
+  if (charEd && charEd.style.display !== "none") {
+    // Replace hero
+    const url = URL.createObjectURL(file);
+    _loadHeroGLB(url, file.name);
+  }
+});
 
 // Vehicle meshes — one group per VEHICLE_DEFS entry, built from the def's params
 function _makeVehicleMesh(vDef) {
@@ -1687,6 +1836,24 @@ addEventListener("keydown", (e) => {
   if (buildMode && e.code === "KeyG" && window._builderGroupSelected) {
     window._builderGroupSelected(); e.preventDefault(); return;
   }
+  // R key: toggle pointer-lock fly-cam in build mode
+  if (buildMode && e.code === "KeyR") {
+    if (document.pointerLockElement) document.exitPointerLock();
+    else renderer.domElement.requestPointerLock();
+    e.preventDefault();
+    return;
+  }
+  // P key: toggle character editor panel in build mode
+  if (buildMode && e.code === "KeyP") {
+    const ced = document.getElementById("charEditor");
+    if (ced) {
+      const show = ced.style.display === "none";
+      ced.style.display = show ? "block" : "none";
+      if (show) _refreshCharEditor();
+    }
+    e.preventDefault();
+    return;
+  }
   // B toggles BUILD MODE (freecam + editor)
   if (e.code === "KeyB" && window.Builder) {
     buildMode = !buildMode;
@@ -1882,9 +2049,11 @@ document.addEventListener("pointerlockchange", () => {
 });
 
 // Pointer lock for true freelook (GTA-style). Click the canvas to capture, ESC to release.
+// In build mode the lock is NOT requested on click (UI needs mouse freedom);
+// press R instead to toggle fly-cam lock while in build mode.
 let pointerLocked = false;
 renderer.domElement.addEventListener("click", () => {
-  if (!pointerLocked) renderer.domElement.requestPointerLock();
+  if (!pointerLocked && !buildMode) renderer.domElement.requestPointerLock();
 });
 document.addEventListener("pointerlockchange", () => {
   pointerLocked = document.pointerLockElement === renderer.domElement;
@@ -2371,7 +2540,7 @@ function tick() {
   // Drive NPCs — wander step + soft arena clamp
   for (const n of NPC_DEFS) {
     const m = npcMeshes.get(n.id);
-    m.heading = Bridge.wanderStep(world, n.id, m.heading, 2.2, dt);
+    m.heading = Bridge.wanderStep(world, n.id, m.heading, n.wanderSpeed || 2.2, dt);
     Bridge.clampToArena(world, n.id, 30);
     const np = Bridge.engineToRenderPos(world.players.get(n.id));
     m.group.position.set(np.x, np.y, np.z);
@@ -2635,7 +2804,7 @@ function tick() {
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
     (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "") +
     (mouseMode ? `<br><b style="color:#ffff00">🖱 MOUSE MODE</b> <span style="color:#888">— ESC or M to exit</span>` : "") +
-    (buildMode ? `<br><b style="color:#66ff66">🛠 BUILD MODE</b> <span style="color:#888">— drop .glb/.obj/.fbx · click select · Del remove · arrows move</span>` : "") +
+    (buildMode ? `<br><b style="color:#00ccff">BUILD MODE</b> <span style="color:#556677">WASD fly · RMB drag or R lock mouse · P char editor · Tab library · Del remove</span>` : "") +
     (reloadMsgUntil > performance.now() ? `<br><b style="color:#ffd166">↻ ${reloadMsg}</b>` : "");
 
   // Hit marker crosshair flash
@@ -2716,6 +2885,35 @@ function tick() {
       ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.stroke();
       if (activeMouseScreen.texture) activeMouseScreen.texture.needsUpdate = true;
     }
+  }
+
+  // Hero animation mixer (active once a GLB is loaded)
+  if (heroMixer) heroMixer.update(dt);
+
+  // Holographic health bar update
+  const hbFill = document.getElementById("hbFill");
+  const hbVal  = document.getElementById("hbVal");
+  if (hbFill || hbVal) {
+    const hpFrac = Math.max(0, heroHp / HERO_MAX_HP);
+    if (hbFill) {
+      hbFill.style.width = (hpFrac * 100).toFixed(1) + "%";
+      hbFill.style.background = hpFrac > 0.5
+        ? "linear-gradient(90deg,#00ffaa,#00ccff)"
+        : (hpFrac > 0.25 ? "linear-gradient(90deg,#ffd166,#ff8800)" : "linear-gradient(90deg,#ff4466,#cc0033)");
+    }
+    if (hbVal) hbVal.textContent = Math.ceil(heroHp);
+  }
+
+  // Holographic weapon panel update
+  const wpNameEl = document.getElementById("wpName");
+  const wpAmmoEl = document.getElementById("wpAmmo");
+  const wpResEl  = document.getElementById("wpReserve");
+  if (wpNameEl || wpAmmoEl) {
+    const _wp = getWeapon();
+    if (wpNameEl) wpNameEl.textContent = (_wp.name || _wp.id || "weapon").toUpperCase();
+    const reserve = Inv.countItem(heroInv, _wp.ammoItem || "pistol_9mm");
+    if (wpAmmoEl) wpAmmoEl.childNodes[0].textContent = pistolAmmo;
+    if (wpResEl)  wpResEl.textContent = " / " + reserve;
   }
 
   renderer.render(scene, camera);
