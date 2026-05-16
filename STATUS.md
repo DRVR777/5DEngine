@@ -40,15 +40,18 @@
 | 31   | game_mode.js: survival/creative/peaceful as data rules         | 34    | iter31  |
 | 32   | interest.js: 3-tier interest mgmt (80m/300m/∞ at 60/5/1Hz)     | 28    | iter32  |
 | 33   | domain.js: sector grid + HINT/PREPARE/COMMIT handoff           | 27    | iter33  |
+| 34   | manifest.js: signed content-addressed manifests + dep graph    | 32    | iter34  |
+| 35   | sidecar.js: capability-checked storage/pubsub/identity         | 30    | iter35  |
+| 36   | app_store.js + chat.js + world_browser.js (publish/install)    | 41    | iter36  |
 
-**Total: 762/762 tests passing.**
+**Total: 865/865 tests passing.**
 
-## Up next (continuing roadmap — optimization & polish)
+## Up next (continuing optimization & polish)
 
-- **iter 34** — Manifest signing (Ed25519 placeholder per CWP v1.0).
-- **iter 35** — Content-addressed assets (blake3 placeholder).
-- **iter 36** — App store / discovery for the in-game computer.
-- **iter 37+** — Browser integration + visual polish in index.html.
+- **iter 37** — Browser visual integration (wire new modules into index.html).
+- **iter 38** — Packet replay + debug tooling.
+- **iter 39** — More apps (music player, settings, file manager).
+- **iter 40+** — Integration tests across modules; performance tuning.
 
 ## Wakeup checklist
 
