@@ -95,6 +95,8 @@
 | 85   | photo_export.js: pure-JS PNG encode + tEXt metadata + clipboard  | 35   | iter85  |
 | 86   | leaderboards.js: per-board high/low + 5 time windows + filters   | 44   | iter86  |
 | 87   | daily_challenges.js: deterministic-by-day picks + grant ledger   | 41   | iter87  |
+| 88   | minigame.js: 3 modes + retry budget + leaderboard/daily hooks    | 44   | iter88  |
+| 89   | coop_missions.js: vclock sync + per-obj merge + late-join catchup | 45  | iter89  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -105,12 +107,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 88** — Minigame harness (start/finish/score events + arcade + retry).
-- **iter 89** — Cooperative missions (shared mission progress sync).
 - **iter 90** — Mod loader (signed manifests + sandboxed exec via vm).
 - **iter 91** — Replay export (serialize ride_along buffer + reimport).
 - **iter 92** — Stat aggregator (kills/distance/missions/playtime).
 - **iter 93** — Notification system (toast queue + categories).
+- **iter 94** — Voice chat envelopes (push-to-talk + spatial falloff).
+- **iter 95** — Friend system (add/accept/block + online status).
 
 ## Wakeup checklist
 
