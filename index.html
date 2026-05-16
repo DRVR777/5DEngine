@@ -305,11 +305,27 @@
   <div style="color:#00ccff;font-size:10px;letter-spacing:0.18em;margin-bottom:10px">CHARACTER EDITOR</div>
   <div style="margin-bottom:8px;color:#778899">Drag a .glb / .obj onto the viewport to replace the hero model</div>
   <div id="charModelName" style="color:#ffd166;margin-bottom:10px">hero (primitive)</div>
-  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">ANIMATIONS</div>
-  <div id="charClipList" style="max-height:160px;overflow-y:auto">
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">ANIMATION STATE MACHINE</div>
+  <div id="charStateMachine" style="margin-bottom:10px"></div>
+  <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+    <label style="color:#778899;font-size:9px">Blend
+      <input id="charBlendTime" type="range" min="0.0" max="1.0" step="0.05" value="0.2"
+        style="width:70px;accent-color:#00ccff"
+        oninput="window._heroSMBlend=+this.value;document.getElementById('charBlendVal').textContent=this.value+'s'">
+    </label>
+    <span id="charBlendVal" style="color:#ffd166;font-size:9px">0.2s</span>
+    <label style="color:#778899;font-size:9px;margin-left:6px">Speed
+      <input id="charTimeScale" type="range" min="0.1" max="3" step="0.05" value="1"
+        style="width:60px;accent-color:#00ccff"
+        oninput="window._heroSMTimeScale=+this.value;document.getElementById('charTSVal').textContent=this.value+'×'">
+    </label>
+    <span id="charTSVal" style="color:#ffd166;font-size:9px">1×</span>
+  </div>
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">ALL CLIPS</div>
+  <div id="charClipList" style="max-height:110px;overflow-y:auto;margin-bottom:10px">
     <div style="color:#334455">no clips loaded</div>
   </div>
-  <div style="margin-top:10px;color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">TRANSFORM</div>
+  <div style="color:#00ccff;font-size:9px;letter-spacing:0.15em;margin-bottom:6px">TRANSFORM</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">
     <label style="color:#778899;font-size:9px">Scale
       <input id="charScale" type="range" min="0.1" max="5" step="0.05" value="1"
@@ -539,6 +555,7 @@
 </div>
 
 <script src="./local_db_bridge.js"></script>
+<script src="./particle_system.js"></script>
 <script src="./game_config.js"></script>
 <script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
@@ -1021,6 +1038,9 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 40, 140);
 
+// Initialize ParticleSystem module with the live scene
+if (typeof ParticleSystem !== "undefined") ParticleSystem.init(THREE, scene);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
@@ -1230,6 +1250,42 @@ let heroMixer    = null;
 let _heroClips   = {};         // clip name → AnimationAction
 let _heroModelName = "primitive";
 
+// Animation state machine
+// Maps game state names → clip name strings (set via character editor UI)
+window._heroSMMap = { idle: "", walk: "", run: "", jump: "", attack: "", die: "" };
+window._heroSMBlend     = 0.2;   // crossfade duration in seconds
+window._heroSMTimeScale = 1.0;   // global playback speed multiplier
+let _heroSMCurrent = "";         // currently playing state key
+
+function _heroSMTransition(stateKey) {
+  if (!heroMixer || _heroSMCurrent === stateKey) return;
+  const clipName = window._heroSMMap[stateKey];
+  if (!clipName || !_heroClips[clipName]) return;
+  const incoming = _heroClips[clipName];
+  incoming.timeScale = window._heroSMTimeScale;
+  if (window._heroSMBlend > 0) {
+    for (const [, action] of Object.entries(_heroClips)) {
+      if (action !== incoming && action.isRunning()) action.crossFadeTo(incoming, window._heroSMBlend, true);
+    }
+    incoming.reset().play();
+  } else {
+    heroMixer.stopAllAction();
+    incoming.reset().play();
+  }
+  _heroSMCurrent = stateKey;
+}
+
+function _heroSMTick(onGround, moving, sprinting, jumping, dead) {
+  if (!heroMixer) return;
+  let target;
+  if (dead)                    target = "die";
+  else if (!onGround || jumping) target = "jump";
+  else if (moving && sprinting)  target = "run";
+  else if (moving)               target = "walk";
+  else                           target = "idle";
+  _heroSMTransition(target);
+}
+
 function _loadHeroGLB(url, nameHint) {
   if (!window.AssetLoader || !window.AssetLoader.loadUrl) return;
   window.AssetLoader.loadUrl(url, nameHint || "hero_model", (obj) => {
@@ -1255,6 +1311,30 @@ function _refreshCharEditor() {
   if (!panel || panel.style.display === "none") return;
   const nameEl = document.getElementById("charModelName");
   if (nameEl) nameEl.textContent = _heroModelName;
+
+  // State machine UI
+  const smEl = document.getElementById("charStateMachine");
+  if (smEl) {
+    const clipNames = Object.keys(_heroClips);
+    const optionHtml = ["<option value=''>-- none --</option>",
+      ...clipNames.map(n => `<option value="${n}">${n}</option>`)].join("");
+    const states = Object.keys(window._heroSMMap);
+    smEl.innerHTML = states.map(s => {
+      const cur = window._heroSMMap[s] || "";
+      const isActive = _heroSMCurrent === s;
+      return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+        <span style="color:${isActive?"#00ffaa":"#778899"};font-size:9px;width:42px;text-align:right">${s}</span>
+        <select data-sm-state="${s}"
+          style="flex:1;background:rgba(0,8,20,0.9);border:1px solid rgba(0,200,255,0.25);
+          color:#b8e8ff;border-radius:3px;font-size:9px;padding:1px 3px"
+          onchange="window._heroSMMap['${s}']=this.value;_heroSMCurrent=''">
+          ${optionHtml.replace(`value="${cur}"`, `value="${cur}" selected`)}
+        </select>
+      </div>`;
+    }).join("");
+  }
+
+  // All-clips list
   const clipList = document.getElementById("charClipList");
   if (!clipList) return;
   const names = Object.keys(_heroClips);
@@ -1263,15 +1343,15 @@ function _refreshCharEditor() {
     return;
   }
   clipList.innerHTML = names.map(n => `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-      <span style="color:#b8e8ff;font-size:10px">${n}</span>
-      <span style="display:flex;gap:4px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="color:#b8e8ff;font-size:10px;overflow:hidden;text-overflow:ellipsis;max-width:120px" title="${n}">${n}</span>
+      <span style="display:flex;gap:3px">
         <button onclick="window._heroPlayClip('${n}')"
           style="background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.3);
-          color:#00ccff;border-radius:3px;padding:1px 6px;font-size:9px;cursor:pointer">▶</button>
+          color:#00ccff;border-radius:3px;padding:1px 5px;font-size:9px;cursor:pointer">▶</button>
         <button onclick="window._heroStopClip('${n}')"
           style="background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.3);
-          color:#ff4466;border-radius:3px;padding:1px 6px;font-size:9px;cursor:pointer">■</button>
+          color:#ff4466;border-radius:3px;padding:1px 5px;font-size:9px;cursor:pointer">■</button>
       </span>
     </div>`).join("");
 }
@@ -2984,6 +3064,7 @@ function _tryShoot() {
   setAmmo(pistolAmmo);
   playSfx("tone:1200:60:square", 0.25);
   const hp = world.players.get("hero");
+  if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: 1.6, z: hp.v });
   // Raycast through crosshair to get base aim direction
   const aimRay = new THREE.Raycaster();
   aimRay.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -3204,6 +3285,7 @@ function tick() {
 
   // Tick particles
   _tickParticles(dt);
+  if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
 
   // Tick bullets (substep dt to avoid tunneling past enemy)
   pistolCooldown = Math.max(0, pistolCooldown - dt);
@@ -3225,6 +3307,7 @@ function tick() {
           hitMarkerUntil = now + 120;
           playSfx("blip", 0.2);
           _spawnParticles(b.posU, b.posY, b.posV, 5, "red", 4, 0.25);
+          if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("impact", { x: b.posU, y: b.posY, z: b.posV });
           if (en.hp === 0) {
             en.dead = true;
             en.respawnT = now / 1000;
@@ -3235,6 +3318,7 @@ function tick() {
             if (enemyKills >= 3) completeQuestStep("combat", 1);
             _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
             _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
+            if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("sparks", { x: ep.u, y: 1.2, z: ep.v });
             playSfx("tone:880:80:sine", 0.4);
           }
           hitEnemy = true; break;
@@ -3711,8 +3795,19 @@ function tick() {
     }
   }
 
-  // Hero animation mixer (active once a GLB is loaded)
-  if (heroMixer) heroMixer.update(dt);
+  // Hero animation state machine + mixer
+  if (heroMixer) {
+    const isMoving = (inputF !== 0 || inputR !== 0) && !buildMode;
+    const isSprinting = !!keys["ShiftLeft"];
+    const isDead = heroHp <= 0;
+    _heroSMTick(onGround, isMoving, isSprinting, !onGround && velocityY > 0.5, isDead);
+    heroMixer.update(dt);
+    // Keep active action timeScale synced
+    if (_heroSMCurrent && window._heroSMMap[_heroSMCurrent]) {
+      const a = _heroClips[window._heroSMMap[_heroSMCurrent]];
+      if (a) a.timeScale = window._heroSMTimeScale;
+    }
+  }
 
   // Scripted world objects — run each managed mesh's script if present
   if (window.ScriptRunner && worldBuilder && worldBuilder.getManagedMap) {
