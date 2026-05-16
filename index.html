@@ -165,7 +165,7 @@
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
   &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload
-  &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode
+  &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
 </div>
 
@@ -184,6 +184,7 @@
 <script src="./gltf_loader.js"></script>
 <script src="./audio.js"></script>
 <script src="./audio_webaudio.js"></script>
+<script src="./builder.js"></script>
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
@@ -723,6 +724,19 @@ _spawnMedia({ id: "usb_work", kind: "usb", label: "WORK_USB",
                        "/passwords.txt": "dont put real passwords on USBs that respawn" } },
             { u: -1, v: 2.5, y: 1.0 });
 
+// ---- world-builder (builder.js) ------------------------------------
+// Lazy-init after the lazy three.js loaders settle. The builder doesn't
+// strictly need them for click-select / move / delete — only drag-drop.
+let worldBuilder = null;
+setTimeout(() => {
+  if (!window.Builder) return;
+  worldBuilder = window.Builder.createBuilder({
+    THREE, scene, camera, domEl: renderer.domElement,
+    loaders: Loaders,
+  });
+  worldBuilder.attachDragDrop();
+}, 250);
+
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
 // Single shared mixer drives all in-world sound — bus speakers, gunshots,
 // click feedback. WebAudio context auto-resumes on first user gesture.
@@ -852,10 +866,13 @@ if (window.ScreenMesh) {
                    80, sc.resolutionH - 10);
     },
   });
-  const jumboMesh = SM.bindToThree(THREE, jumbotronScreen, { doubleSided: false });
+  const jumboMesh = SM.bindToThree(THREE, jumbotronScreen, { doubleSided: true });
   if (jumboMesh) {
-    jumboMesh.position.set(20, jumbotronScreen.heightM / 2 + 1, 18);
-    jumboMesh.rotation.y = -Math.PI / 2.2;
+    // Place out in open space (was clipping inside a building before) —
+    // 30m east + 25m north of spawn, raised so its bottom edge sits 1m
+    // off the ground, facing toward player spawn.
+    jumboMesh.position.set(30, jumbotronScreen.heightM / 2 + 1, 25);
+    jumboMesh.rotation.y = Math.PI;   // face -z (toward spawn at origin)
     scene.add(jumboMesh);
     worldScreens.set(jumbotronScreen.id, { screen: jumbotronScreen, mesh: jumboMesh });
   }
@@ -949,6 +966,33 @@ addEventListener("keydown", (e) => {
     if (e.code === "KeyV") { snapZoomTarget = window.CameraSpine.zoomForZone("THIRD_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
     if (e.code === "KeyZ") { snapZoomTarget = window.CameraSpine.zoomForZone("BIRD_VIEW")    * CAM_DIST_MAX; e.preventDefault(); return; }
   }
+  // B toggles BUILD MODE — drag-drop assets, click-select, arrows move, Del deletes
+  if (e.code === "KeyB" && window.Builder) {
+    buildMode = !buildMode;
+    if (worldBuilder) worldBuilder.setActive(buildMode);
+    if (buildMode && document.pointerLockElement) document.exitPointerLock();
+    e.preventDefault();
+    return;
+  }
+  // Build-mode-only keybinds
+  if (buildMode && worldBuilder) {
+    const sel = worldBuilder.getSelected();
+    if (sel) {
+      const step = (e.shiftKey ? 1.0 : 0.25);
+      if (e.code === "ArrowUp")    { worldBuilder.translate(0, 0, -step); e.preventDefault(); return; }
+      if (e.code === "ArrowDown")  { worldBuilder.translate(0, 0,  step); e.preventDefault(); return; }
+      if (e.code === "ArrowLeft")  { worldBuilder.translate(-step, 0, 0); e.preventDefault(); return; }
+      if (e.code === "ArrowRight") { worldBuilder.translate( step, 0, 0); e.preventDefault(); return; }
+      if (e.code === "PageUp")     { worldBuilder.translate(0,  step, 0); e.preventDefault(); return; }
+      if (e.code === "PageDown")   { worldBuilder.translate(0, -step, 0); e.preventDefault(); return; }
+      if (e.code === "BracketLeft")  { worldBuilder.rotateY(-Math.PI/16); e.preventDefault(); return; }
+      if (e.code === "BracketRight") { worldBuilder.rotateY( Math.PI/16); e.preventDefault(); return; }
+      if (e.code === "Equal" || e.code === "NumpadAdd") { worldBuilder.scaleBy(1.1); e.preventDefault(); return; }
+      if (e.code === "Minus" || e.code === "NumpadSubtract") { worldBuilder.scaleBy(1/1.1); e.preventDefault(); return; }
+      if (e.code === "Delete" || e.code === "Backspace") { worldBuilder.deleteSelected(); e.preventDefault(); return; }
+    }
+  }
+
   // M toggles mouse-mode — releases pointer lock + lets you drive the screen cursor.
   // When entering mouse-mode without a target screen, we pick the nearest one.
   if (e.code === "KeyM") {
@@ -979,22 +1023,28 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // R reloads pistol from inventory
+  // R reloads pistol from inventory (with audible feedback + HUD flash)
   if (e.code === "KeyR") {
     const PISTOL_MAG = 12;
     const need = PISTOL_MAG - pistolAmmo;
-    if (need > 0) {
-      const slot = heroInv.items.find ? heroInv.items.find(i => i && i.id === "pistol_9mm") : null;
-      // Inventory API is { items[], ... } — try a safe direct lookup:
-      let invAmmo = 0;
-      for (const it of heroInv.items || []) {
-        if (it && it.id === "pistol_9mm") invAmmo += it.qty || 0;
-      }
-      const take = Math.min(need, invAmmo);
-      if (take > 0) {
-        try { Inv.removeItem(heroInv, "pistol_9mm", take); } catch (_) {}
-        pistolAmmo += take;
-      }
+    if (need <= 0) {
+      reloadMsg = "already full"; reloadMsgUntil = performance.now() + 1200;
+      e.preventDefault(); return;
+    }
+    const invAmmo = Inv.countItem(heroInv, "pistol_9mm");
+    const take = Math.min(need, invAmmo);
+    if (take > 0) {
+      Inv.removeItem(heroInv, "pistol_9mm", take);
+      pistolAmmo += take;
+      // Reset any stuck cooldown that could lock shooting
+      pistolCooldown = 0;
+      playSfx("tone:200:120:square", 0.5); playSfx("click", 0.5);
+      reloadMsg = "+" + take + " (mag " + pistolAmmo + "/" + PISTOL_MAG + ")";
+      reloadMsgUntil = performance.now() + 1200;
+    } else {
+      playSfx("noise", 0.2);
+      reloadMsg = "no 9mm in bag — pick some up";
+      reloadMsgUntil = performance.now() + 1500;
     }
     e.preventDefault();
     return;
@@ -1031,6 +1081,10 @@ let snapZoomTarget = null;      // Q/Z/V keybinds: lerp camDist toward this
 let mouseMode = false;          // M toggles — cursor controls in-world screen cursor
 let activeMouseScreen = null;   // which screen we're driving in mouse-mode
 const mouseModeCursor = { x: 0, y: 0 };  // current cursor pos in screen canvas pixels
+let reloadMsg = "";             // transient HUD line for reload feedback
+let reloadMsgUntil = 0;
+let buildMode = false;          // B toggles world-builder mode
+let buildSelected = null;       // currently selected mesh (for move/delete)
 
 function beginComputerEntry() {
   computerEntering = true;
@@ -1177,6 +1231,19 @@ function drawMinimap() {
 // In mouse-mode we instead route LMB to the active screen's hit-test.
 renderer.domElement.addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
+  // BUILD MODE: LMB picks a managed mesh under the cursor
+  if (buildMode && worldBuilder) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const ndc = {
+      x: ((e.clientX - rect.left) / rect.width)  * 2 - 1,
+      y: -((e.clientY - rect.top)  / rect.height) * 2 + 1,
+    };
+    const picked = worldBuilder.pickAt(ndc);
+    worldBuilder.select(picked);   // may be null (deselect by clicking empty)
+    playSfx("click", 0.3);
+    e.preventDefault();
+    return;
+  }
   if (mouseMode && activeMouseScreen && window.ScreenMesh) {
     // Convert screen-pixel cursor → UV (flip Y for THREE convention)
     const uv = {
@@ -1195,9 +1262,24 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   pistolAmmo--;
   playSfx("tone:1200:60:square", 0.25);  // gunshot pop
   const hp = world.players.get("hero");
-  // Fire forward (same direction W moves): +sin/+cos
-  const dirU = Math.sin(camYaw);
-  const dirV = Math.cos(camYaw);
+  // Aim where the CROSSHAIR points (raycast from camera through screen
+  // center into the world). This fixes the 3rd-person aim drift where
+  // bullets went where the BODY faced instead of where the crosshair was.
+  const aimRay = new THREE.Raycaster();
+  aimRay.setFromCamera(new THREE.Vector2(0, 0), camera);
+  // Intersect a horizontal plane at hero shoulder height; that's the
+  // best proxy for "where you actually pointed in screen space".
+  let aimX = hp.u + Math.sin(camYaw) * 30;
+  let aimZ = hp.v + Math.cos(camYaw) * 30;
+  const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.5);
+  const aimPoint = new THREE.Vector3();
+  if (aimRay.ray.intersectPlane(aimPlane, aimPoint)) {
+    aimX = aimPoint.x; aimZ = aimPoint.z;
+  }
+  const dxA = aimX - hp.u, dzA = aimZ - hp.v;
+  const mag = Math.hypot(dxA, dzA) || 1;
+  const dirU = dxA / mag;
+  const dirV = dzA / mag;
   const mesh = new THREE.Mesh(bulletGeo, bulletMat);
   mesh.position.set(hp.u, 1.5, hp.v);
   scene.add(mesh);
@@ -1470,22 +1552,30 @@ function tick() {
   heroGroup.visible = !inCar && (spine ? spine.params.heroVisible : !firstPerson);
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
-  // Camera offset back from hero: -sin(yaw), -cos(yaw) × dist
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
   const sx = Math.cos(camYaw), sz = -Math.sin(camYaw);   // right vector
-  // Side offset shrinks as we zoom in; zero at FP
-  const sideAmt = firstPerson ? 0 : Math.min(0.8, dist * 0.18) * camSide;
-  const camOff = new THREE.Vector3(
-    -fx * Math.cos(camPitch) * dist + sx * sideAmt,
-     Math.sin(-camPitch) * dist + (firstPerson ? 0 : 1.2),
-    -fz * Math.cos(camPitch) * dist + sz * sideAmt
-  );
-  camera.position.copy(camTarget.clone().add(camOff));
-  // In first-person, look forward (where hero is facing). Otherwise look at hero head.
+
   if (firstPerson) {
-    const look = camTarget.clone().add(new THREE.Vector3(fx * 10, -Math.sin(camPitch) * 10, fz * 10));
+    // FP CAMERA — locked to hero head. Pitch ONLY changes look direction,
+    // NEVER the camera position (fixes the "height drifts as you pitch"
+    // and "looks up when you pull mouse down" bugs).
+    camera.position.set(heroPos.x, heroPos.y + 1.78, heroPos.z);
+    const look = camera.position.clone().add(new THREE.Vector3(
+      fx * Math.cos(camPitch),
+      Math.sin(camPitch),     // mouse-down (pitch ↓) → look y ↓ → look DOWN
+      fz * Math.cos(camPitch)
+    ).multiplyScalar(10));
     camera.lookAt(look);
   } else {
+    // 3rd-person orbit. Side offset pushes the hero into one screen-third
+    // (was barely visible at 0.8m max — bumped to actually be noticeable).
+    const sideAmt = Math.min(2.2, dist * 0.38) * camSide;
+    const camOff = new THREE.Vector3(
+      -fx * Math.cos(camPitch) * dist + sx * sideAmt,
+       Math.sin(-camPitch) * dist + 1.2,
+      -fz * Math.cos(camPitch) * dist + sz * sideAmt
+    );
+    camera.position.copy(camTarget.clone().add(camOff));
     camera.lookAt(camTarget);
   }
 
@@ -1567,7 +1657,9 @@ function tick() {
     (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
     (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "") +
-    (mouseMode ? `<br><b style="color:#ffff00">🖱 MOUSE MODE</b> <span style="color:#888">— ESC or M to exit</span>` : "");
+    (mouseMode ? `<br><b style="color:#ffff00">🖱 MOUSE MODE</b> <span style="color:#888">— ESC or M to exit</span>` : "") +
+    (buildMode ? `<br><b style="color:#66ff66">🛠 BUILD MODE</b> <span style="color:#888">— drop .glb/.obj/.fbx · click select · Del remove · arrows move</span>` : "") +
+    (reloadMsgUntil > performance.now() ? `<br><b style="color:#ffd166">↻ ${reloadMsg}</b>` : "");
 
   // Clear damage-flash overlay after its lifetime
   if (damageFlashUntil > 0 && performance.now() > damageFlashUntil) {
@@ -1683,8 +1775,8 @@ const APPS = {
     title: "💰 Wallet",
     body: () => {
       const ammo = pistolAmmo;
-      let bagAmmo = 0; for (const it of (heroInv.items || [])) if (it && it.id === "pistol_9mm") bagAmmo += it.qty || 0;
-      const meds = (heroInv.items || []).filter(i=>i && i.id==="medkit").reduce((s,i)=>s+(i.qty||0),0);
+      const bagAmmo = Inv.countItem(heroInv, "pistol_9mm");
+      const meds    = Inv.countItem(heroInv, "medkit");
       const hp = (typeof heroHealth.hp === "number") ? heroHealth.hp : 100;
       return `<pre>player:    hero
 score:     ${score} coins

@@ -20,6 +20,24 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 7 (camera fixes + world builder, iter 136)
+User-reported issues:
+- [x] **FP camera no longer inverts pitch or drifts height** — camera position is locked to hero head; only the look direction uses pitch. `+Math.sin(camPitch)` for look-y (was `-sin`, that was the inversion). Mouse-down now looks down, as expected.
+- [x] **Shoulder swap (L) actually moves the character now** — sideAmt cap raised from 0.8m to 2.2m and slope from 0.18 to 0.38; hero visibly sits in a screen-third.
+- [x] **Shoot-where-aimed in 3rd-person** — gunshot now raycasts from camera through screen center, intersects a shoulder-height plane, and fires the bullet toward that world point. No more "bullets go where the body faces, not where the crosshair is."
+- [x] **Reload works** — root cause: I was iterating `heroInv.items` but the inventory module uses `.slots[]`. Switched to `Inv.countItem` / `Inv.removeItem`. Also resets stuck `pistolCooldown` and shows HUD feedback ("+12 (mag 12/12)" / "no 9mm in bag") plus audio.
+- [x] **Wallet app ammo count** had the same `.items` bug; fixed via `Inv.countItem`.
+- [x] **Jumbotron moved out of the building** — repositioned to open space at (30, _, 25) facing spawn, double-sided so it's readable from both sides.
+
+World builder (new):
+- [x] **`builder.js`** module + **B** to toggle build mode.
+- [x] **Click-select** any managed mesh → yellow wireframe outline.
+- [x] **Arrows / PgUp / PgDn / [] / +-** for translate / Y-rotate / scale; **Del** removes.
+- [x] **Drag-and-drop** `.glb` / `.obj` / `.fbx` from your OS onto the window → loads + spawns at hero position.
+- [x] **localStorage persistence** — every mutation saves the scene state; rehydrates on next page load.
+- [x] BUILD MODE HUD indicator with cheat-sheet.
+- [x] 26 tests passing.
+
 ## ✅ Done — Session 6 (sound + storage media UX, iter 135)
 - [x] **Audio actually plays** — WebAudio adapter for the existing audio.js mixer. Synth tones from string specs ("beep", "beep:440", "click", "blip", "noise", "tone:F:MS:type"). Bus → spk1 inbox → mixer dispatch happens every tick.
 - [x] **Spatial attenuation** — sound volume scales by distance from hero to speaker (0 at 30m).
