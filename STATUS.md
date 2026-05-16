@@ -22,15 +22,18 @@
 | 13   | Inventory popup UI (I to toggle), HUD shows hp/ammo            | (visual) | iter13 |
 | 14   | AI enemies (FSM: idle→seek→attack→dead) + patrol               | 19    | iter14  |
 | 15   | tickBullets (bullet→target hits) + loot drop on death          | 16    | iter15  |
+| 16   | vehicle.js: 11 parts + buildVehicle + compatibility/cost       | 26    | iter16  |
+| 17   | crafting.js: 5 recipes + workbench tiers + overflow refund     | 23    | iter17  |
+| 18   | planePhysicsStep: throttle/pitch/yaw/altitude + plane build    | 13    | iter18  |
 
-**Total: 261/261 tests passing.**
+**Total: 323/323 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 16** — Car parts as facets (engine/body/wheel combine).
-- **iter 17** — Workbench: combine parts → craft new entity.
-- **iter 18** — Planes (3rd vehicle type, same `vehicle` facet).
 - **iter 19** — Shop entity — buy/sell vehicles for in-game currency.
+- **iter 20** — WS server (CWP v1.0 envelope) — multiplayer foundation.
+- **iter 21** — Multi-client world (other players visible).
+- **iter 22** — Friends list (sidecar identity stub).
 
 ## Wakeup checklist
 

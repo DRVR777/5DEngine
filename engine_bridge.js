@@ -80,6 +80,35 @@
     };
   }
 
+  // Plane physics: throttle (forward), pitch (up/down), yaw (turn).
+  // state = { speed, heading, pitch, altitude }
+  // Returns updated state.
+  function planePhysicsStep(world, id, state, throttle, pitch, yaw, dt) {
+    const ACCEL = 18, DRAG = 0.6, MAX_S = 60, MAX_PITCH = 0.6, MAX_TURN = 1.0;
+    const LIFT_FACTOR = 0.4;   // altitude change per (speed * pitch * dt)
+    let speed   = state.speed   || 0;
+    let heading = state.heading || 0;
+    let pitchA  = state.pitch   || 0;
+    let altitude= state.altitude|| 0;
+    speed += throttle * ACCEL * dt;
+    speed *= Math.exp(-DRAG * dt);
+    if (speed > MAX_S) speed = MAX_S;
+    if (speed < 0) speed = 0;
+    pitchA += pitch * 0.8 * dt;
+    if (pitchA >  MAX_PITCH) pitchA =  MAX_PITCH;
+    if (pitchA < -MAX_PITCH) pitchA = -MAX_PITCH;
+    heading += yaw * MAX_TURN * dt * (speed / MAX_S);
+    altitude += pitchA * speed * LIFT_FACTOR * dt;
+    if (altitude < 0) altitude = 0;
+    const p = world.players.get(id);
+    if (p) {
+      const du = Math.sin(heading) * speed * dt;
+      const dv = Math.cos(heading) * speed * dt;
+      world.setPlayer(id, p.x, altitude, p.z, p.u + du, p.v + dv);
+    }
+    return { speed, heading, pitch: pitchA, altitude };
+  }
+
   // Bullet vs targetable entity hit test. Returns array of {bullet, target}
   // pairs that hit this tick. Caller decides what damage flow to run.
   // Removes hit bullets from the input array in-place.
@@ -236,6 +265,7 @@
     dayNightPhase,
     walkCyclePhase,
     tickBullets,
-    VERSION: "0.13.0-iter15",
+    planePhysicsStep,
+    VERSION: "0.15.0-iter18",
   };
 });
