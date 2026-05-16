@@ -117,6 +117,8 @@
 | 107  | codex.js: lore entries + auto-unlock by event + refs + search   | 55   | iter107 |
 | 108  | difficulty_scaler.js: 4-metric performance score + DDA mults    | 39   | iter108 |
 | 109  | reputation.js: 7 tiers + ally/enemy cascades + decay + clamps   | 53   | iter109 |
+| 110  | caravan.js: NPC convoys + 6-state machine + ambush + escort     | 50   | iter110 |
+| 111  | env_hazards.js: fire/flood/shock/gas + spread + extinguish      | 37   | iter111 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -127,12 +129,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 110** — Trade caravan AI (NPC merchant convoys + escort).
-- **iter 111** — Environmental hazards (lightning fires + flooding).
 - **iter 112** — Weather-mood music driver (radio + weather wire).
 - **iter 113** — NPC schedule system (daily work/eat/sleep cycles).
 - **iter 114** — Crime/police response (bounty + heat + chase).
 - **iter 115** — Vendor restock cycle (inventory + dynamic pricing).
+- **iter 116** — Banking system (deposit + interest + loans).
+- **iter 117** — Housing/real estate (player-buyable properties).
 
 ## Wakeup checklist
 
