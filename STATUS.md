@@ -121,6 +121,8 @@
 | 111  | env_hazards.js: fire/flood/shock/gas + spread + extinguish      | 37   | iter111 |
 | 112  | weather_music_bridge.js: forecast→radio + hysteresis switching | 36   | iter112 |
 | 113  | npc_routine.js: schedule windows + transitions + census + atLoc | 51   | iter113 |
+| 114  | crime_police.js: 7 crimes + 6 tiers + chase/arrest/escape       | 67   | iter114 |
+| 115  | vendor_restock.js: dynamic pricing + linear/exp restock + buy   | 53   | iter115 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -131,12 +133,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 114** — Crime/police response (bounty + heat + chase).
-- **iter 115** — Vendor restock cycle (inventory + dynamic pricing).
 - **iter 116** — Banking system (deposit + interest + loans).
 - **iter 117** — Housing/real estate (player-buyable properties).
 - **iter 118** — Fishing minigame (cast + reel + catch + bait).
 - **iter 119** — Cooking system (recipes + ingredients + buffs).
+- **iter 120** — Farming system (plant + harvest + seasons).
+- **iter 121** — Pet/companion AI (follow + fetch + bond).
 
 ## Wakeup checklist
 
