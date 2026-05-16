@@ -115,6 +115,8 @@
 | 105  | mission_generator.js: 6 objective templates + diff curve + seed | 46   | iter105 |
 | 106  | achievements.js: 5 kinds + chains + 5 rarities + claim reward   | 46   | iter106 |
 | 107  | codex.js: lore entries + auto-unlock by event + refs + search   | 55   | iter107 |
+| 108  | difficulty_scaler.js: 4-metric performance score + DDA mults    | 39   | iter108 |
+| 109  | reputation.js: 7 tiers + ally/enemy cascades + decay + clamps   | 53   | iter109 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -125,12 +127,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 108** — Difficulty scaler (auto-adjust enemy HP/damage).
-- **iter 109** — Reputation system (per-faction standing).
 - **iter 110** — Trade caravan AI (NPC merchant convoys + escort).
 - **iter 111** — Environmental hazards (lightning fires + flooding).
 - **iter 112** — Weather-mood music driver (radio + weather wire).
 - **iter 113** — NPC schedule system (daily work/eat/sleep cycles).
+- **iter 114** — Crime/police response (bounty + heat + chase).
+- **iter 115** — Vendor restock cycle (inventory + dynamic pricing).
 
 ## Wakeup checklist
 
