@@ -70,14 +70,16 @@
 | 61   | economy.js: per-world currencies + rates + tax + cross-convert | 52    | iter61  |
 | 62   | npc_schedule.js: 3 templates + activityAt + day/night routines | 45    | iter62  |
 | 63   | trade.js: P2P escrow + counter + lock + atomic swap + timeout  | 45    | iter63  |
+| 64   | factions.js: 6 rep tiers + cross-faction cascades + access     | 52    | iter64  |
+| 65   | chat.js: rooms + @ mentions + mute + history + broadcast       | 52    | iter65  |
 
-**Total: 1793/1793 tests passing.**
+**Total: 1897/1897 tests passing.**
 
 ## Up next
 
-- **iter 64** — Reputation/factions (per-faction rep + tiers + relations).
-- **iter 65** — Player chat with @ mentions and rooms.
 - **iter 66** — Mod marketplace (paid mods + revenue split).
+- **iter 67** — Portal generator (procedural world connections).
+- **iter 68** — Weather damage + lightning strikes.
 
 ## Wakeup checklist
 
