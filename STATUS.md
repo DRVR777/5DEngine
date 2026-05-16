@@ -52,14 +52,16 @@
 | 43   | apps/calculator + apps/terminal (REPL with custom commands)    | 44    | iter43  |
 | 44   | mod_loader.js: signed manifests + sandbox + quarantine         | 29    | iter44  |
 | 45   | save_load.js: world snapshot/restore + slot manager + signed   | 33    | iter45  |
+| 46   | audio.js: 4-route mixer + adapter + spatialization + events    | 44    | iter46  |
+| 47   | particles.js: emit/tick/retire + 4 presets + bounce + cap      | 30    | iter47  |
 
-**Total: 1068/1068 tests passing.**
+**Total: 1142/1142 tests passing.**
 
 ## Up next
 
-- **iter 46** — Audio system stub (sidecar-mediated SFX + music).
-- **iter 47** — Visual polish (particle effects: muzzle flash, hit, explosions).
 - **iter 48** — Boss battle (special enemy with attack patterns).
+- **iter 49** — Ped pathfinding (A* navmesh).
+- **iter 50+** — Network monitor app, motorcycle, weather, voice chat stub.
 
 ## Wakeup checklist
 
