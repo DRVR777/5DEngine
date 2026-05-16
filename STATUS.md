@@ -76,14 +76,16 @@
 | 67   | portal_gen.js: 6 strategies (ring/star/MST/full/weighted/kNN)  | 41    | iter67  |
 | 68   | weather_damage.js: lightning + flood + hail + height bonus     | 30    | iter68  |
 | 69   | visibility.js: ambient + light field + carry-torch + classify  | 38    | iter69  |
+| 70   | music_selector.js: 6 contexts + palette + crossfade + fallbacks | 48   | iter70  |
+| 71   | apps/minimap_markers: 6 kinds + filters + add/remove/select    | 35    | iter71  |
 
-**Total: 2066/2066 tests passing.**
+**Total: 2149/2149 tests passing.**
 
 ## Up next
 
-- **iter 70** — Ambient music selector (per-world soundtrack).
-- **iter 71** — Minimap markers app.
-- **iter 72** — Emoji + emote system.
+- **iter 72** — Emoji + emote system (player gestures).
+- **iter 73** — Building destruction physics.
+- **iter 74** — Procedural city generator (WFC tiles).
 
 ## Wakeup checklist
 
