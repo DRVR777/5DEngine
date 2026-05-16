@@ -68,6 +68,31 @@
 </head>
 <body>
 <div id="hud">loading…</div>
+<script>
+  // If we're still on "loading…" after 8s, surface the error.
+  setTimeout(() => {
+    var hud = document.getElementById("hud");
+    if (hud && hud.innerHTML.indexOf("loading") === 0) {
+      hud.innerHTML = "<b style='color:#ff5d5d'>load failed</b><br>" +
+        "Check the JS console (F12). Most likely:<br>" +
+        "• Three.js CDN unreachable<br>" +
+        "• A script (./engine_browser.js etc.) returned 404<br>" +
+        "• You opened via file:// — try `python -m http.server 8000` then http://localhost:8000/";
+    }
+  }, 8000);
+  // Catch unhandled errors and show them in the HUD.
+  window.addEventListener("error", function (e) {
+    var hud = document.getElementById("hud");
+    if (hud) hud.innerHTML = "<b style='color:#ff5d5d'>JS ERROR</b><br>" +
+      (e.message || "(no message)") + "<br>" +
+      "<small>" + (e.filename || "") + ":" + (e.lineno || "?") + "</small>";
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    var hud = document.getElementById("hud");
+    if (hud) hud.innerHTML = "<b style='color:#ff5d5d'>PROMISE REJECTED</b><br>" +
+      (e.reason && e.reason.message || e.reason || "(no reason)");
+  });
+</script>
 <canvas id="minimap" width="180" height="180"></canvas>
 <div id="crosshair"></div>
 <div id="damageFlash"></div>
@@ -92,7 +117,9 @@
 <script src="./guns.js"></script>
 <script src="./health.js"></script>
 <script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.161.0/build/three.module.js" } }
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"
+} }
 </script>
 <script type="module">
 import * as THREE from "three";

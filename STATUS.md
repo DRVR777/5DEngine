@@ -79,14 +79,20 @@
 | 70   | music_selector.js: 6 contexts + palette + crossfade + fallbacks | 48   | iter70  |
 | 71   | apps/minimap_markers: 6 kinds + filters + add/remove/select    | 35    | iter71  |
 | 72   | emotes.js: 13 emotes + 20 emojis + trigger/cancel/tick/expire  | 46    | iter72  |
+| 73   | destruction.js: 6 materials + collapse + debris + repair       | 47    | iter73  |
 
-**Total: 2195/2195 tests passing.**
+**Total: 2242/2242 tests passing.**
+
+## Demo serving
+
+The demo uses ES modules which browsers block over `file://`. Run:
+`python -m http.server 8765` (in 5DEngine/) → http://localhost:8765/index.html
 
 ## Up next
 
-- **iter 73** — Building destruction physics.
 - **iter 74** — Procedural city generator (WFC tiles).
 - **iter 75** — Cinematics system (cutscene timeline).
+- **iter 76** — Photo mode.
 
 ## Wakeup checklist
 
