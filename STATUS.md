@@ -43,15 +43,17 @@
 | 34   | manifest.js: signed content-addressed manifests + dep graph    | 32    | iter34  |
 | 35   | sidecar.js: capability-checked storage/pubsub/identity         | 30    | iter35  |
 | 36   | app_store.js + chat.js + world_browser.js (publish/install)    | 41    | iter36  |
+| 37   | Browser viz: AI enemy + computer entity + hp bar + prompts     | (visual) | iter37 |
+| 38   | debug.js: packet recorder + replay + hub instrumentation       | 28    | iter38  |
+| 39   | apps/music_player + settings + file_manager (with IPC)         | 38    | iter39  |
 
-**Total: 865/865 tests passing.**
+**Total: 931/931 tests passing.**
 
 ## Up next (continuing optimization & polish)
 
-- **iter 37** — Browser visual integration (wire new modules into index.html).
-- **iter 38** — Packet replay + debug tooling.
-- **iter 39** — More apps (music player, settings, file manager).
-- **iter 40+** — Integration tests across modules; performance tuning.
+- **iter 40** — Integration tests across modules (full session smoke).
+- **iter 41** — Performance: spatial-grid + interest-tier benchmarks.
+- **iter 42** — Browser polish: gun aim line, bullet impact, damage flash.
 
 ## Wakeup checklist
 

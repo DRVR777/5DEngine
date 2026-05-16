@@ -133,6 +133,28 @@ world.setPlayer("car", 0, 0, 0, 4, 6);
 const carState = { speed: 0, heading: 0 };
 let inCar = false;
 
+// AI enemy: a hostile NPC that seeks the hero (uses the iter 14 ai.js logic
+// inlined here so the demo doesn't need a require — browser keeps it simple)
+const enemy = {
+  id: "enemy1", color: 0xff0044, u: 14, v: -14, heading: 0,
+  hp: 80, maxHp: 80, sightRange: 10, attackRange: 1.6, moveSpeed: 2.4,
+  damage: 6, lastAttackT: -Infinity, dead: false,
+};
+world.setPlayer(enemy.id, 0, 0, 0, enemy.u, enemy.v);
+
+// In-game computer entity (iter 28). Walk near + press E to "use" (we
+// just toast a banner — full sit/screen takeover is iter 28 logic ready
+// to wire in iter 38+).
+const computerEntity = { id: "pc1", u: -4, v: 4, y: 0, color: 0x666666 };
+
+// Hero hp (iter 10) — visible bar in HUD
+let heroHp = 100; const HERO_MAX_HP = 100;
+let heroLastDamageT = -Infinity; const HERO_REGEN_DELAY = 5; const HERO_REGEN_RATE = 4;
+
+// Computer prompt state
+let nearComputer = false;
+let computerOpen = false;
+
 // Pickups (coins) — 8 scattered around the world, the objective is to collect them all.
 const pickups = [
   { id: "coin1", u:  4, v:  -8, collected: false },
@@ -328,6 +350,40 @@ for (const n of NPC_DEFS) {
   npcMeshes.set(n.id, { group: g, heading: n.heading });
 }
 
+// Enemy mesh — taller, redder, with a hp bar overhead
+const enemyGroup = new THREE.Group();
+const enemyBody = new THREE.Mesh(
+  new THREE.CapsuleGeometry(0.4, 1.1, 4, 12),
+  new THREE.MeshStandardMaterial({ color: enemy.color, emissive: 0x440000 })
+);
+enemyBody.position.y = 1.0; enemyBody.castShadow = true; enemyGroup.add(enemyBody);
+const enemyHpBg = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.0, 0.12),
+  new THREE.MeshBasicMaterial({ color: 0x222222 })
+);
+enemyHpBg.position.y = 2.3; enemyGroup.add(enemyHpBg);
+const enemyHpFg = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.0, 0.10),
+  new THREE.MeshBasicMaterial({ color: 0x00cc44 })
+);
+enemyHpFg.position.y = 2.3; enemyHpFg.position.z = 0.001; enemyGroup.add(enemyHpFg);
+scene.add(enemyGroup);
+
+// Computer mesh — gray box with a glowing screen front
+const compGroup = new THREE.Group();
+const deskBox = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 1.2, 0.6),
+  new THREE.MeshStandardMaterial({ color: 0x333333 })
+);
+deskBox.position.y = 0.6; deskBox.castShadow = true; compGroup.add(deskBox);
+const screenFront = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.0, 0.7),
+  new THREE.MeshBasicMaterial({ color: 0x44ccff })
+);
+screenFront.position.set(0, 1.0, 0.31); compGroup.add(screenFront);
+compGroup.position.set(computerEntity.u, 0, computerEntity.v);
+scene.add(compGroup);
+
 // ---- input ----
 const keys = Object.create(null);
 const invDiv = document.getElementById("inventory");
@@ -352,6 +408,12 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyI" || (e.code === "Escape" && invDiv.classList.contains("open"))) {
     invDiv.classList.toggle("open", !invDiv.classList.contains("open"));
     if (invDiv.classList.contains("open")) renderInventory();
+    e.preventDefault();
+    return;
+  }
+  // E near computer → "open" (iter 38 wires the actual takeover screen)
+  if (e.code === "KeyE" && nearComputer) {
+    computerOpen = !computerOpen;
     e.preventDefault();
     return;
   }
@@ -489,6 +551,49 @@ function tick() {
     );
   }
 
+  // Drive enemy AI — seek + attack hero
+  if (!enemy.dead) {
+    const ep = world.players.get(enemy.id);
+    const hp = world.players.get("hero");
+    const dx = hp.u - ep.u, dz = hp.v - ep.v;
+    const dist = Math.hypot(dx, dz);
+    if (dist <= enemy.sightRange) {
+      enemy.heading = Math.atan2(dx, dz);
+      if (dist > enemy.attackRange) {
+        const m = dist || 1;
+        const newU = ep.u + (dx / m) * enemy.moveSpeed * dt;
+        const newV = ep.v + (dz / m) * enemy.moveSpeed * dt;
+        world.setPlayer(enemy.id, ep.x, 0, 0, newU, newV);
+      } else {
+        // Attack: 1s cooldown
+        if (now / 1000 - enemy.lastAttackT > 1.0) {
+          enemy.lastAttackT = now / 1000;
+          heroHp = Math.max(0, heroHp - enemy.damage);
+          heroLastDamageT = now / 1000;
+        }
+      }
+    }
+    enemyGroup.position.set(ep.u, 0, ep.v);
+    enemyGroup.rotation.y = enemy.heading;
+    const hpFrac = enemy.hp / enemy.maxHp;
+    enemyHpFg.scale.x = Math.max(0.001, hpFrac);
+    enemyHpFg.position.x = -(1 - hpFrac) / 2;
+  } else {
+    enemyGroup.visible = false;
+  }
+
+  // Hero hp regen after no-damage delay
+  if (heroHp < HERO_MAX_HP && (now / 1000 - heroLastDamageT) > HERO_REGEN_DELAY) {
+    heroHp = Math.min(HERO_MAX_HP, heroHp + HERO_REGEN_RATE * dt);
+  }
+
+  // Computer proximity check — within 2.5 units
+  const heroNow = world.players.get("hero");
+  const dToPC = Math.hypot(heroNow.u - computerEntity.u, heroNow.v - computerEntity.v);
+  nearComputer = dToPC < 2.5;
+  // Pulse the screen color so player notices
+  screenFront.material.color.setHSL((now / 2000) % 1, 0.5, 0.55);
+
   // Drive NPCs — wander step + soft arena clamp
   for (const n of NPC_DEFS) {
     const m = npcMeshes.get(n.id);
@@ -594,10 +699,22 @@ function tick() {
   sun.intensity = 0.3 + 1.0 * dn.dayMix;
 
   // append objective + score to HUD
+  // hp bar (rendered as block string — quick + readable)
+  const hpFrac = heroHp / HERO_MAX_HP;
+  const hpBarLen = 16;
+  const hpFilled = Math.round(hpBarLen * hpFrac);
+  const hpBar = "▰".repeat(hpFilled) + "▱".repeat(hpBarLen - hpFilled);
+  const hpColor = hpFrac > 0.5 ? "#5dff5d" : (hpFrac > 0.25 ? "#ffd166" : "#ff5d5d");
+
   hud.innerHTML += `<br>coins <b>${score}/${pickups.length}</b>` +
     (score === pickups.length ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "") +
-    `<br>hp <b>${heroHealth.current.toFixed(0)}/${heroHealth.max}</b>` +
-    `<br>9mm <b>${Inv.countItem(heroInv, "pistol_9mm")}</b>`;
+    `<br>hp <b style="color:${hpColor}">${heroHp.toFixed(0)}/${HERO_MAX_HP}</b> ` +
+    `<span style="color:${hpColor};font-family:monospace">${hpBar}</span>` +
+    `<br>9mm <b>${Inv.countItem(heroInv, "pistol_9mm")}</b>` +
+    (enemy.dead ? `<br><span style="color:#888">enemy dead</span>` :
+                  `<br>enemy <b>${enemy.hp}/${enemy.maxHp}</b>`) +
+    (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
+    (computerOpen ? `<br><span style="color:#44ccff">★ computer open (iter38 wires takeover)</span>` : "");
 
   // mini-map (top-right)
   drawMinimap();
