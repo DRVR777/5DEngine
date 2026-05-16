@@ -80,6 +80,9 @@
 | 71   | apps/minimap_markers: 6 kinds + filters + add/remove/select    | 35    | iter71  |
 | 72   | emotes.js: 13 emotes + 20 emojis + trigger/cancel/tick/expire  | 46    | iter72  |
 | 73   | destruction.js: 6 materials + collapse + debris + repair       | 47    | iter73  |
+| 73.5 | Fix TDZ renderer bug — move click-to-shoot after const renderer | (loadtest) | tdzfix |
+| 74   | city_gen.js: WFC-lite + tile palette + deterministic-by-seed   | 17    | iter74  |
+| 75   | cinematics.js: cutscene timeline + 5 tracks + Director + easings | 32  | iter75  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -90,9 +93,11 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 74** — Procedural city generator (WFC tiles).
-- **iter 75** — Cinematics system (cutscene timeline).
-- **iter 76** — Photo mode.
+- **iter 76** — Photo mode (screenshot capture + filters).
+- **iter 77** — Input remapping (key/controller bindings).
+- **iter 78** — Accessibility (colorblind modes + subtitles).
+- **iter 79** — Ride-along (spectate friend's gameplay).
+- **iter 80** — Streaming overlay (chat/donations).
 
 ## Wakeup checklist
 
