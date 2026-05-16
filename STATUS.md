@@ -87,6 +87,8 @@
 | 77   | input_remap.js: bindings + 3 devices + contexts + conflict detect | 48 | iter77  |
 | 78   | accessibility.js: 5 colorblind modes + subtitles + uiScale + motion | 58 | iter78 |
 | 79   | ride_along.js: replay buffer + spectator follow/free + catchup | 41    | iter79  |
+| 80   | stream_overlay.js: 7 event kinds + chat fade + hype + follow ribbon | 44 | iter80 |
+| 81   | weather_damage_bridge.js: lightning/flood/hail → destruction | 28      | iter81  |
 
 **Total: 2242/2242 tests passing.**
 
@@ -97,12 +99,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 80** — Streaming overlay (chat events + donation alerts + viewer count).
-- **iter 81** — Weather damage applied via destructible bridge.
-- **iter 82** — Traffic system on city_gen plans.
+- **iter 82** — Traffic system on city_gen plans (vehicles spawn + route).
 - **iter 83** — NPC routing (A*) on city_gen plans.
-- **iter 84** — Cutscene scripting for missions.
-- **iter 85** — Photo gallery with export/sharing.
+- **iter 84** — Cutscene scripting for missions (mission DSL → cinematics).
+- **iter 85** — Photo gallery with export/sharing (PNG encode + clipboard).
+- **iter 86** — Leaderboards (per-mission high-score store).
+- **iter 87** — Daily challenges (deterministic seed + reward).
 
 ## Wakeup checklist
 
