@@ -1,0 +1,18 @@
+{
+  "comment": "Manifest mapping in-game asset SLOTS to .glb file paths relative to /assets/. If a file is missing the engine falls back to its placeholder box mesh. Slots not listed here are silently ignored. Asset sourcing guide: ASSET_LIST.md at repo root.",
+  "slots": {
+    "pistol":     { "path": "weapons/pistol.glb",   "scale": 1.0, "mountTo": "armR", "offset": [0, -0.7, 0.2] },
+    "car":        { "path": "vehicles/sedan.glb",   "scale": 1.0 },
+    "hero":       { "path": "characters/hero.glb",  "scale": 1.0 },
+    "tree":       { "path": "props/tree_oak.glb",   "scale": 1.0 },
+    "lamp":       { "path": "props/lamp_post.glb",  "scale": 1.0 },
+    "computer":   { "path": "props/computer.glb",   "scale": 1.0 },
+    "monitor":    { "path": "props/monitor.glb",    "scale": 1.0 },
+    "speaker":    { "path": "props/speaker.glb",    "scale": 1.0 },
+    "radio":      { "path": "props/walkie.glb",     "scale": 1.0 },
+    "usb":        { "path": "props/usb_stick.glb",  "scale": 1.0 },
+    "cd":         { "path": "props/cd.glb",         "scale": 1.0 },
+    "coin":       { "path": "props/coin.glb",       "scale": 1.0 },
+    "antenna":    { "path": "props/antenna.glb",    "scale": 1.0 }
+  }
+}

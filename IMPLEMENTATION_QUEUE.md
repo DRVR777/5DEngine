@@ -20,6 +20,15 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
 - [x] Asset list per the two PDFs
 
+## ✅ Done — Session 5 (mouse-mode cursor + GLTF scaffold, iter 133)
+- [x] **TDZ bug fixed** — `worldScreens` was used before declaration (user-reported JS error); hoisted to before the device-graph block.
+- [x] **Full mouse-mode cursor on big screens** — press E on the jumbotron (or M near it) → enter mouse mode. Mouse movement drives a yellow crosshair cursor painted on the screen. LMB invokes the region under the cursor.
+- [x] **HUD shows "🖱 MOUSE MODE"** indicator with ESC/M-to-exit hint.
+- [x] **GLTFLoader scaffold** — `gltf_loader.js` module with `parseManifest`, `load`, `onSlotReady`, `replacePlaceholder` API. Wired into index.html via the importmap `three/addons/`. Pistol / car body / coins auto-swap when .glb files appear.
+- [x] **assets/manifest.json** — 13 slots mapped to expected .glb paths.
+- [x] **assets/README.md** — instructions for the user.
+- [x] **iter 133 test suite** — 32 passing (manifest parsing + screen-click round-trip).
+
 ## ✅ Done — Session 4 (interactive screens + snap-zoom + mon1 mirror, iter 132)
 - [x] **E + raycast → click in-world screens** — `tryClickWorldScreen()` shoots a ray through the crosshair, finds the screen + UV, invokes the region's onClick.
 - [x] **Jumbotron has 3 clickable buttons** — HYPE (counter), 📻 RF (broadcasts on radioA), + COIN (gives score)

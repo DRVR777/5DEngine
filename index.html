@@ -181,13 +181,22 @@
 <script src="./wires.js"></script>
 <script src="./camera_spine.js"></script>
 <script src="./screen_mesh.js"></script>
+<script src="./gltf_loader.js"></script>
 <script type="importmap">
 { "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
 } }
 </script>
 <script type="module">
 import * as THREE from "three";
+// GLTFLoader — pulled lazily so demo still runs if the CDN is down.
+// We use a .then chain (no top-level await) so the inline module also
+// loads cleanly in vm-based test sandboxes that don't support TLA.
+let GLTFLoader = null;
+import("three/addons/loaders/GLTFLoader.js")
+  .then((mod) => { GLTFLoader = mod.GLTFLoader; })
+  .catch((e) => { console.warn("GLTFLoader unavailable, asset loading skipped:", e.message); });
 
 // ---- engine state ----
 const { WorldState, LayerBoundary } = window.GTAEngine;
@@ -564,6 +573,12 @@ function _rebuildDeviceWires() {
   }
 }
 
+// Hoist worldScreens here so the mon1-mirror code below can populate it
+// (the rest of the in-world screen setup happens further down).
+const worldScreens = new Map();
+let jumbotronScreen = null;
+let skyScreen = null;
+
 if (deviceBus) {
   const PC_POS  = { u: computerEntity.u, v: computerEntity.v, y: 1.1 };
   const MON_POS = { u: computerEntity.u, v: computerEntity.v - 0.0, y: 1.6 };  // on top of the desk
@@ -681,19 +696,37 @@ function tryClickWorldScreen() {
   if (!hit || !hit.screen) return false;
   // Range limit — must be within 50m
   if (hit.distance > 50) return false;
+  // If we're hitting a BIG screen (jumbotron / sky / any >5m wide), enter
+  // mouse-mode on it instead of treating E as a click. User sees a cursor
+  // they can move with the mouse; LMB invokes the region's onClick.
+  if (hit.screen.widthM >= 5 && !mouseMode) {
+    enterScreenMouseMode(hit.screen, hit.uv);
+    return true;
+  }
   const region = window.ScreenMesh.hitTest(hit.screen, hit.uv);
   if (!region) return false;
   if (typeof region.onClick === "function") region.onClick(hit.screen);
   return true;
 }
 
+function enterScreenMouseMode(screen, uv) {
+  activeMouseScreen = screen;
+  mouseMode = true;
+  // Seed cursor at the raycast UV (in canvas pixel coords)
+  mouseModeCursor.x = (uv ? uv.x : 0.5) * screen.resolutionW;
+  mouseModeCursor.y = (uv ? (1 - uv.y) : 0.5) * screen.resolutionH;
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function exitScreenMouseMode() {
+  activeMouseScreen = null;
+  mouseMode = false;
+}
+
 // ---- in-world screens (screen_mesh.js) -------------------------------
 // Two giant screens per user spec: a 50ft jumbotron and a 1000ft sky screen.
 // Both render live game state into a canvas texture; press E within range
 // to interact (raycast UV → DOM hit-test). Wired to device-graph monitors.
-const worldScreens = new Map();
-let jumbotronScreen = null;
-let skyScreen = null;
+// worldScreens / jumbotronScreen / skyScreen are hoisted above.
 if (window.ScreenMesh) {
   const SM = window.ScreenMesh;
   // 50ft jumbotron — place at the city edge, facing the player spawn.
@@ -855,10 +888,27 @@ addEventListener("keydown", (e) => {
     if (e.code === "KeyV") { snapZoomTarget = window.CameraSpine.zoomForZone("THIRD_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
     if (e.code === "KeyZ") { snapZoomTarget = window.CameraSpine.zoomForZone("BIRD_VIEW")    * CAM_DIST_MAX; e.preventDefault(); return; }
   }
-  // M toggles mouse-mode — releases pointer lock + lets you drive the screen cursor
+  // M toggles mouse-mode — releases pointer lock + lets you drive the screen cursor.
+  // When entering mouse-mode without a target screen, we pick the nearest one.
   if (e.code === "KeyM") {
-    mouseMode = !mouseMode;
-    if (mouseMode && document.pointerLockElement) document.exitPointerLock();
+    if (mouseMode) { exitScreenMouseMode(); }
+    else {
+      // pick nearest screen within 50m, biased toward big ones
+      let best = null, bestD = 50;
+      const hp = world.players.get("hero");
+      for (const [id, entry] of worldScreens) {
+        const pos = entry.mesh.position;
+        const d = Math.hypot(pos.x - hp.u, pos.z - hp.v);
+        if (entry.screen.widthM >= 5 && d < bestD) { best = entry.screen; bestD = d; }
+      }
+      if (best) enterScreenMouseMode(best, { x: 0.5, y: 0.5 });
+    }
+    e.preventDefault();
+    return;
+  }
+  // ESC exits mouse-mode
+  if (e.code === "Escape" && mouseMode) {
+    exitScreenMouseMode();
     e.preventDefault();
     return;
   }
@@ -919,6 +969,7 @@ const COMPUTER_ENTRY_DUR = 0.45; // seconds
 let snapZoomTarget = null;      // Q/Z/V keybinds: lerp camDist toward this
 let mouseMode = false;          // M toggles — cursor controls in-world screen cursor
 let activeMouseScreen = null;   // which screen we're driving in mouse-mode
+const mouseModeCursor = { x: 0, y: 0 };  // current cursor pos in screen canvas pixels
 
 function beginComputerEntry() {
   computerEntering = true;
@@ -982,6 +1033,19 @@ renderer.domElement.addEventListener("mousedown", (e) => {
 });
 addEventListener("mouseup", () => { dragging = false; });
 addEventListener("mousemove", (e) => {
+  // Mouse-mode on a big screen: mouse movement drives the screen cursor
+  // (not the camera). Sensitivity scales with screen resolution so it
+  // feels consistent on a 50ft vs 1000ft canvas.
+  if (mouseMode && activeMouseScreen) {
+    const mx = (typeof e.movementX === "number") ? e.movementX : 0;
+    const my = (typeof e.movementY === "number") ? e.movementY : 0;
+    const sens = 1.5;
+    mouseModeCursor.x = Math.max(0, Math.min(activeMouseScreen.resolutionW,
+      mouseModeCursor.x + mx * sens));
+    mouseModeCursor.y = Math.max(0, Math.min(activeMouseScreen.resolutionH,
+      mouseModeCursor.y + my * sens));
+    return;
+  }
   let dx, dy;
   if (pointerLocked) {
     dx = e.movementX; dy = e.movementY;
@@ -1048,9 +1112,21 @@ function drawMinimap() {
   mini.fillText("N", W/2 - 3, 11); mini.fillText("S", W/2 - 3, H - 3);
 }
 
-// Click to shoot (registered after renderer/scene/camYaw all exist)
+// Click to shoot (registered after renderer/scene/camYaw all exist).
+// In mouse-mode we instead route LMB to the active screen's hit-test.
 renderer.domElement.addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
+  if (mouseMode && activeMouseScreen && window.ScreenMesh) {
+    // Convert screen-pixel cursor → UV (flip Y for THREE convention)
+    const uv = {
+      x: mouseModeCursor.x / activeMouseScreen.resolutionW,
+      y: 1 - mouseModeCursor.y / activeMouseScreen.resolutionH,
+    };
+    const region = window.ScreenMesh.hitTest(activeMouseScreen, uv);
+    if (region && typeof region.onClick === "function") region.onClick(activeMouseScreen);
+    e.preventDefault();
+    return;
+  }
   if (!pointerLocked) return;   // only shoot when looking around
   if (invDiv.classList.contains("open")) return;
   if (pistolCooldown > 0 || pistolAmmo <= 0) return;
@@ -1410,7 +1486,8 @@ function tick() {
                   `<br>enemy <b>${enemy.hp}/${enemy.maxHp}</b>`) +
     (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
-    (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "");
+    (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "") +
+    (mouseMode ? `<br><b style="color:#ffff00">🖱 MOUSE MODE</b> <span style="color:#888">— ESC or M to exit</span>` : "");
 
   // Clear damage-flash overlay after its lifetime
   if (damageFlashUntil > 0 && performance.now() > damageFlashUntil) {
@@ -1449,12 +1526,49 @@ function tick() {
         window.ScreenMesh.update(entry.screen);
       }
     }
+    // Mouse-mode cursor overlay — paint a crosshair on the active screen
+    // AFTER the regular paint so it stays on top.
+    if (mouseMode && activeMouseScreen && activeMouseScreen.canvas) {
+      const ctx = activeMouseScreen.canvas.getContext("2d");
+      const cx = mouseModeCursor.x, cy = mouseModeCursor.y;
+      ctx.fillStyle = "rgba(255, 255, 0, 0.35)";
+      ctx.fillRect(cx - 12, cy - 1, 24, 3);
+      ctx.fillRect(cx - 1, cy - 12, 3, 24);
+      ctx.strokeStyle = "#ffff00";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.stroke();
+      if (activeMouseScreen.texture) activeMouseScreen.texture.needsUpdate = true;
+    }
   }
 
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
+
+// ───── GLTF asset loading (gltf_loader.js) ─────
+// Fire-and-forget — if assets/manifest.json + .glb files exist they replace
+// placeholders; if not, the demo runs identically with the primitives.
+if (GLTFLoader && window.GLTFAssets) {
+  window.GLTFAssets.load(THREE, GLTFLoader).then((r) => {
+    if (!r || !r.ok) {
+      console.info("GLTF: manifest load skipped/failed:", r && r.reason);
+      return;
+    }
+    // Replace pistol placeholder on armR when it resolves
+    window.GLTFAssets.replacePlaceholder("pistol", armR, gunGroup, { position: { x: 0, y: -0.7, z: 0.2 } });
+    // Replace car body placeholder
+    window.GLTFAssets.replacePlaceholder("car", carGroup, carBody, { position: { x: 0, y: 0.7, z: 0 } });
+    // Coins
+    if (typeof pickupMeshes !== "undefined") {
+      for (const pk of pickups) {
+        const m = pickupMeshes.get(pk.id);
+        window.GLTFAssets.replacePlaceholder("coin", scene, m, { position: { x: pk.u, y: 1.0, z: pk.v } });
+      }
+    }
+    console.info("GLTF: load kicked off,", r.slotCount, "slots");
+  }).catch((e) => console.warn("GLTF: load threw:", e.message));
+}
 
 // ───── Desktop OS app wiring ─────
 // Each app reads live engine state when opened. Adding a new app =
