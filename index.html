@@ -6,7 +6,7 @@
 <style>
   body { margin: 0; background: #87ceeb; overflow: hidden; font-family: system-ui, sans-serif; }
   #hud {
-    position: fixed; top: 8px; left: 8px; padding: 8px 10px;
+    position: fixed; top: 36px; left: 8px; padding: 8px 10px;
     background: rgba(0,0,0,0.55); color: #eee; font-size: 12px;
     border-radius: 6px; line-height: 1.4; pointer-events: none;
     font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -91,10 +91,36 @@
   #inventory .slot.hotbar { background: #2f2a1a; }
   #inventory .slot .qty { color: #aaa; }
   #inventory .empty { color: #555; }
+  /* FPS counter */
+  #fpsCounter {
+    position: fixed; top: 8px; left: 8px;
+    background: rgba(0,0,0,0.6); color: #44ff88;
+    font-family: ui-monospace, Consolas, monospace; font-size: 13px; font-weight: bold;
+    padding: 3px 7px; border-radius: 4px; pointer-events: none; z-index: 200;
+    letter-spacing: 0.04em;
+  }
+  /* Ammo HUD bottom-left */
+  #ammoHud {
+    position: fixed; bottom: 48px; left: 8px;
+    background: rgba(0,0,0,0.6); color: #ffd166;
+    font-family: ui-monospace, Consolas, monospace; font-size: 18px; font-weight: bold;
+    padding: 5px 10px; border-radius: 5px; pointer-events: none; z-index: 200;
+    letter-spacing: 0.04em;
+  }
+  /* Reload circle */
+  #reloadCircle {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    display: none; pointer-events: none; z-index: 201;
+  }
+  #reloadCircle svg { transform-origin: center; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+<div id="fpsCounter">-- FPS</div>
 <div id="hud">loading…</div>
+<div id="ammoHud">12 / 60</div>
+<div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#ffd166" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
 <script>
   // If we're still on "loading…" after 8s, surface the error.
   setTimeout(() => {
@@ -375,9 +401,9 @@ let pistolAmmo = 12;
 let pistolCooldown = 0;
 const PISTOL_FIRE_RATE = 5; // shots/sec
 const PISTOL_DAMAGE = 20;
-const PISTOL_RANGE = 25;
-const PISTOL_SPEED = 50;
-const bulletGeo = new THREE.SphereGeometry(0.08, 6, 6);
+const PISTOL_RANGE = 30;
+const PISTOL_SPEED = 80;
+const bulletGeo = new THREE.SphereGeometry(0.04, 6, 4);
 const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffee55 });
 
 const damageFlashEl = document.getElementById("damageFlash");
@@ -576,6 +602,20 @@ for (const wx of [-0.9, 0.9]) for (const wz of [-1.4, 1.4]) {
 }
 scene.add(carGroup);
 
+// Ammo pickups dropped by killed enemies
+const ammoPickups = [];  // [{ mesh, u, v, qty, collected }]
+const ammoPickupGeo = new THREE.BoxGeometry(0.18, 0.08, 0.28);
+const ammoPickupMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.5, roughness: 0.4 });
+
+function _spawnAmmoPickup(u, v, qty) {
+  qty = qty || 12;
+  const mesh = new THREE.Mesh(ammoPickupGeo, ammoPickupMat);
+  mesh.position.set(u, 0.4, v);
+  mesh.castShadow = true;
+  scene.add(mesh);
+  ammoPickups.push({ mesh, u, v, qty, collected: false });
+}
+
 // Pickup meshes
 const pickupMeshes = new Map();
 const coinGeo = new THREE.SphereGeometry(0.3, 12, 12);
@@ -732,7 +772,7 @@ if (deviceBus) {
         }
       },
     });
-    const monMesh = window.ScreenMesh.bindToThree(THREE, monScreen, { doubleSided: false });
+    const monMesh = window.ScreenMesh.bindToThree(THREE, monScreen, { doubleSided: true });
     if (monMesh) {
       monMesh.position.set(MON_POS.u, MON_POS.y, MON_POS.v + 0.1);
       monMesh.rotation.y = Math.PI; // face the player
@@ -813,12 +853,12 @@ setTimeout(() => {
   });
   worldBuilder.attachDragDrop();
 
-  // Spawn-primitive buttons
+  // Spawn-primitive buttons — blur after click so Space doesn't re-fire them
   document.querySelectorAll(".b-spawn").forEach((btn) => {
     btn.addEventListener("click", () => {
+      btn.blur();
       const kind = btn.dataset.kind;
       const hp = world.players.get("hero");
-      // Spawn 2m in front of hero at hip height
       const fwdX = Math.sin(camYaw) * 2;
       const fwdZ = Math.cos(camYaw) * 2;
       worldBuilder.spawnPrimitive(kind, { x: hp.u + fwdX, y: 1.0, z: hp.v + fwdZ });
@@ -1285,29 +1325,26 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // R reloads pistol from inventory (with audible feedback + HUD flash)
+  // R reloads pistol — starts animated reload circle, ammo added after delay
   if (e.code === "KeyR") {
-    const PISTOL_MAG = 12;
-    const need = PISTOL_MAG - pistolAmmo;
+    if (_reloading) { e.preventDefault(); return; }  // already reloading
+    const need = PISTOL_MAG_CAP - pistolAmmo;
     if (need <= 0) {
       reloadMsg = "already full"; reloadMsgUntil = performance.now() + 1200;
       e.preventDefault(); return;
     }
     const invAmmo = Inv.countItem(heroInv, "pistol_9mm");
-    const take = Math.min(need, invAmmo);
-    if (take > 0) {
-      Inv.removeItem(heroInv, "pistol_9mm", take);
-      pistolAmmo += take;
-      // Reset any stuck cooldown that could lock shooting
-      pistolCooldown = 0;
-      playSfx("tone:200:120:square", 0.5); playSfx("click", 0.5);
-      reloadMsg = "+" + take + " (mag " + pistolAmmo + "/" + PISTOL_MAG + ")";
-      reloadMsgUntil = performance.now() + 1200;
-    } else {
+    if (invAmmo <= 0) {
       playSfx("noise", 0.2);
-      reloadMsg = "no 9mm in bag — pick some up";
+      reloadMsg = "no 9mm — pick some up";
       reloadMsgUntil = performance.now() + 1500;
+      e.preventDefault(); return;
     }
+    // Start reload animation
+    _reloading = true;
+    _reloadStart = performance.now();
+    playSfx("tone:200:120:square", 0.5); playSfx("click", 0.5);
+    reloadMsg = "reloading…"; reloadMsgUntil = performance.now() + RELOAD_DUR;
     e.preventDefault();
     return;
   }
@@ -1382,11 +1419,14 @@ renderer.domElement.addEventListener("wheel", (e) => {
 // and the arms raise to a sighting pose.
 renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
 renderer.domElement.addEventListener("mousedown", (e) => {
-  if (e.button === 2) { aiming = true; e.preventDefault(); }
+  if (e.button === 2 && !buildMode) { aiming = true; e.preventDefault(); }
 });
 addEventListener("mouseup", (e) => {
   if (e.button === 2) aiming = false;
-  if (e.button === 0 && buildMode && worldBuilder) worldBuilder.dragEnd();
+  if (e.button === 0 && buildMode && worldBuilder) {
+    worldBuilder.dragEnd();
+    worldBuilder.endAxisDrag();
+  }
 });
 // Releasing pointer lock should also drop the aim
 document.addEventListener("pointerlockchange", () => {
@@ -1411,15 +1451,15 @@ renderer.domElement.addEventListener("mousedown", (e) => {
 });
 addEventListener("mouseup", () => { dragging = false; });
 addEventListener("mousemove", (e) => {
-  // BUILD MODE: if dragging a selected object, slide it along the ground.
-  if (buildMode && worldBuilder && worldBuilder.isDragging()) {
+  // BUILD MODE: axis drag or ground-plane drag
+  if (buildMode && worldBuilder) {
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = {
       x: ((e.clientX - rect.left) / rect.width)  * 2 - 1,
       y: -((e.clientY - rect.top)  / rect.height) * 2 + 1,
     };
-    worldBuilder.dragMove(ndc);
-    return;
+    if (worldBuilder.isAxisDragging()) { worldBuilder.updateAxisDrag(ndc); return; }
+    if (worldBuilder.isDragging())     { worldBuilder.dragMove(ndc); return; }
   }
   // Mouse-mode on a big screen: mouse movement drives the screen cursor
   // (not the camera). Sensitivity scales with screen resolution so it
@@ -1450,7 +1490,7 @@ addEventListener("mousemove", (e) => {
 // ---- physics-lite ----
 let velocityY = 0;
 const GRAVITY = -25;
-const JUMP_V  = 8;
+const JUMP_V  = 13;
 const WALK    = 5;
 const SPRINT  = 9;
 
@@ -1504,15 +1544,22 @@ function drawMinimap() {
 // In mouse-mode we instead route LMB to the active screen's hit-test.
 renderer.domElement.addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
-  // BUILD MODE: LMB picks under the cursor; if it hits the already-selected
-  // object, start a click-drag move; otherwise just select (or deselect).
+  // BUILD MODE: check gizmo axis first, then LMB picks scene objects.
   if (buildMode && worldBuilder) {
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = {
       x: ((e.clientX - rect.left) / rect.width)  * 2 - 1,
       y: -((e.clientY - rect.top)  / rect.height) * 2 + 1,
     };
-    const picked = worldBuilder.pickAt(ndc);
+    // Gizmo axis arrow clicked → start axis-locked drag
+    const axis = worldBuilder.pickGizmoAxis(ndc);
+    if (axis) {
+      worldBuilder.startAxisDrag(axis, ndc);
+      e.preventDefault();
+      return;
+    }
+    // Regular pick: raycast against ALL scene objects (buildings, car, spawned meshes)
+    const picked = worldBuilder.pickAt(ndc, { allScene: true });
     const wasSelected = worldBuilder.getSelected();
     if (picked && picked === wasSelected) {
       worldBuilder.dragStart();
@@ -1536,6 +1583,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   }
   if (!pointerLocked) return;   // only shoot when looking around
   if (invDiv.classList.contains("open")) return;
+  if (_reloading) return;   // can't shoot while reloading
   if (pistolCooldown > 0 || pistolAmmo <= 0) return;
   pistolCooldown = 1 / PISTOL_FIRE_RATE;
   pistolAmmo--;
@@ -1570,11 +1618,55 @@ renderer.domElement.addEventListener("mousedown", (e) => {
 });
 
 let lastT = performance.now();
+let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
+let _reloading = false, _reloadStart = 0;
+const RELOAD_DUR = 1200;  // ms
+const PISTOL_MAG_CAP = 12;
 
 function tick() {
   const now = performance.now();
   const dt  = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
+
+  // FPS counter
+  _fpsFrames++;
+  if (now - _fpsWindowT >= 1000) {
+    _fpsDisplay = Math.round(_fpsFrames * 1000 / (now - _fpsWindowT));
+    _fpsFrames = 0;
+    _fpsWindowT = now;
+  }
+  const fpsEl = document.getElementById("fpsCounter");
+  if (fpsEl) fpsEl.textContent = _fpsDisplay + " FPS";
+
+  // Ammo HUD
+  const ammoEl = document.getElementById("ammoHud");
+  if (ammoEl) {
+    const reserve = Inv.countItem(heroInv, "pistol_9mm");
+    ammoEl.textContent = pistolAmmo + " / " + reserve;
+    ammoEl.style.color = pistolAmmo === 0 ? "#ff5d5d" : "#ffd166";
+  }
+
+  // Reload circle: show while _reloading, hide when done
+  const reloadCircleEl = document.getElementById("reloadCircle");
+  if (reloadCircleEl) {
+    if (_reloading && now < _reloadStart + RELOAD_DUR) {
+      reloadCircleEl.style.display = "block";
+    } else {
+      if (_reloading && now >= _reloadStart + RELOAD_DUR) {
+        _reloading = false;
+        // Finish the reload
+        const need = PISTOL_MAG_CAP - pistolAmmo;
+        const invAmmo = Inv.countItem(heroInv, "pistol_9mm");
+        const take = Math.min(need, invAmmo);
+        if (take > 0) {
+          Inv.removeItem(heroInv, "pistol_9mm", take);
+          pistolAmmo += take;
+          pistolCooldown = 0;
+        }
+      }
+      reloadCircleEl.style.display = "none";
+    }
+  }
 
   // Aim-mode: smoothly interpolate aimAmt toward target. While aiming we
   // shrink camDist by ~40% — feels like a scope-zoom without changing FOV.
@@ -1669,7 +1761,10 @@ function tick() {
         const ep = world.players.get(enemy.id);
         if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
           enemy.hp = Math.max(0, enemy.hp - b.damage);
-          if (enemy.hp === 0) enemy.dead = true;
+          if (enemy.hp === 0) {
+            enemy.dead = true;
+            _spawnAmmoPickup(ep.u, ep.v);  // drop ammo at kill location
+          }
           scene.remove(b.mesh); bullets3D.splice(i, 1);
           continue;
         }
@@ -1846,8 +1941,9 @@ function tick() {
     ).multiplyScalar(10));
     camera.lookAt(look);
   } else {
-    // 3rd-person orbit. Side offset pushes the hero into one screen-third
-    // (was barely visible at 0.8m max — bumped to actually be noticeable).
+    // 3rd-person orbit. Camera position offsets behind + beside hero.
+    // lookAt targets a point ~18m FORWARD along hero heading so the crosshair
+    // points where the hero shoots (not at the hero's back).
     const sideAmt = Math.min(2.2, dist * 0.38) * camSide;
     const camOff = new THREE.Vector3(
       -fx * Math.cos(camPitch) * dist + sx * sideAmt,
@@ -1855,7 +1951,14 @@ function tick() {
       -fz * Math.cos(camPitch) * dist + sz * sideAmt
     );
     camera.position.copy(camTarget.clone().add(camOff));
-    camera.lookAt(camTarget);
+    // Look at a point ahead of the hero along the current yaw + pitch
+    const aimDist = 18;
+    const aimTarget = new THREE.Vector3(
+      heroPos.x + fx * aimDist * Math.cos(camPitch) + sx * sideAmt * 0.5,
+      heroPos.y + 1.2 + Math.sin(camPitch) * aimDist,
+      heroPos.z + fz * aimDist * Math.cos(camPitch) + sz * sideAmt * 0.5
+    );
+    camera.lookAt(aimTarget);
   }
 
   const dToCar = Bridge.uvDist(world, "hero", "car");
@@ -1883,6 +1986,21 @@ function tick() {
         m.mesh.rotation.y += dt * 1.5;
         m.mesh.position.y = (m.kind === "cd" ? 1.0 : 1.0) + Math.sin(now / 350 + (m.id.length || 1)) * 0.12;
       }
+    }
+  }
+
+  // Ammo pickups — walk over to collect
+  for (const ap of ammoPickups) {
+    if (ap.collected) continue;
+    const d = Math.hypot(heroNow.u - ap.u, heroNow.v - ap.v);
+    if (d < 1.2) {
+      ap.collected = true;
+      scene.remove(ap.mesh);
+      Inv.addItem(heroInv, "pistol_9mm", ap.qty);
+      playSfx("blip", 0.5);
+    } else {
+      ap.mesh.rotation.y += dt * 2.5;
+      ap.mesh.position.y = 0.4 + Math.sin(now / 280 + ap.u) * 0.08;
     }
   }
 
