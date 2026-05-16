@@ -74,14 +74,16 @@
 | 65   | chat.js: rooms + @ mentions + mute + history + broadcast       | 52    | iter65  |
 | 66   | mod_marketplace.js: list/buy/settle + revenue split + reviews  | 60    | iter66  |
 | 67   | portal_gen.js: 6 strategies (ring/star/MST/full/weighted/kNN)  | 41    | iter67  |
+| 68   | weather_damage.js: lightning + flood + hail + height bonus     | 30    | iter68  |
+| 69   | visibility.js: ambient + light field + carry-torch + classify  | 38    | iter69  |
 
-**Total: 1998/1998 tests passing.**
+**Total: 2066/2066 tests passing.**
 
 ## Up next
 
-- **iter 68** — Weather damage + lightning strikes.
-- **iter 69** — Day/night NPC visibility (peds disappear at night).
 - **iter 70** — Ambient music selector (per-world soundtrack).
+- **iter 71** — Minimap markers app.
+- **iter 72** — Emoji + emote system.
 
 ## Wakeup checklist
 
