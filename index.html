@@ -538,6 +538,7 @@
   &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag=move · Del remove · arrows nudge · Tab=library · N=spawn point · K=config · P=char editor</i>
 </div>
 
+<script src="./local_db_bridge.js"></script>
 <script src="./game_config.js"></script>
 <script src="./world_data.js"></script>
 <script src="./engine_browser.js"></script>
@@ -3773,6 +3774,7 @@ requestAnimationFrame(tick);
 const SAVE_KEY = "5DEngine_save";
 
 function _saveGame() {
+  const heroNow = world.getPlayer ? world.getPlayer("hero") : { u: 0, v: 0, y: 0 };
   const data = {
     score,
     enemyKills,
@@ -3782,31 +3784,65 @@ function _saveGame() {
     timestamp: Date.now(),
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (_) {}
+  // Cloud/local-db dual write (fire-and-forget — never blocks the frame)
+  if (typeof LocalDb !== "undefined" && LocalDb.isOnline()) {
+    LocalDb.saveSession({
+      score, enemyKills, heroHp,
+      heroMaxHp: HERO_MAX_HP,
+      heroU: heroNow.u, heroV: heroNow.v, heroY: heroNow.y || 0,
+      weaponId: currentWeaponId,
+      inventory: (typeof _inventory !== "undefined") ? [..._inventory] : [],
+      questProgress: data.questProgress,
+    }).catch(() => {});
+    LocalDb.syncQuestProgress(_quests).catch(() => {});
+  }
 }
 
-function _loadGame() {
+function _applyGameData(data, source) {
+  if (data.score) score = data.score;
+  if (data.enemy_kills != null) enemyKills = data.enemy_kills;
+  else if (data.enemyKills) enemyKills = data.enemyKills;
+  if (data.hero_hp != null) heroHp = Math.min(data.hero_hp, HERO_MAX_HP);
+  else if (data.heroHp) heroHp = Math.min(data.heroHp, HERO_MAX_HP);
+  const spawnPts = data.spawn_points || data.spawnPoints;
+  if (Array.isArray(spawnPts)) {
+    for (const sp of spawnPts) _addSpawnPoint(sp.u, sp.v);
+  }
+  const qp = data.quest_progress || data.questProgress;
+  if (Array.isArray(qp)) {
+    for (const entry of qp) {
+      const q = _quests.find(q => q.id === (entry.id || entry.quest_id));
+      if (!q) continue;
+      const steps = entry.steps || entry.steps_done;
+      if (Array.isArray(steps)) {
+        for (let i = 0; i < steps.length && i < q.steps.length; i++) {
+          if (steps[i]) q.steps[i].done = true;
+        }
+      }
+    }
+    _renderQuests();
+  }
+  const age = data.saved_at
+    ? Math.round((Date.now() - new Date(data.saved_at).getTime()) / 60000)
+    : (data.timestamp ? Math.round((Date.now() - data.timestamp) / 60000) : 0);
+  showToast(`Save loaded from ${source} (${age}m ago) — score:${score} kills:${enemyKills}`, "info", 4000);
+}
+
+async function _loadGame() {
+  // Try local PostgreSQL server first, fall back to localStorage
+  if (typeof LocalDb !== "undefined") {
+    try {
+      const online = await LocalDb.ping();
+      if (online) {
+        const dbData = await LocalDb.loadLatestSession();
+        if (dbData) { _applyGameData(dbData, "DB"); return; }
+      }
+    } catch (_) {}
+  }
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
-    const data = JSON.parse(raw);
-    if (data.score) score = data.score;
-    if (data.enemyKills) enemyKills = data.enemyKills;
-    if (data.heroHp) heroHp = Math.min(data.heroHp, HERO_MAX_HP);
-    if (Array.isArray(data.spawnPoints)) {
-      for (const sp of data.spawnPoints) _addSpawnPoint(sp.u, sp.v);
-    }
-    if (Array.isArray(data.questProgress)) {
-      for (const qp of data.questProgress) {
-        const q = _quests.find(q => q.id === qp.id);
-        if (!q) continue;
-        for (let i = 0; i < qp.steps.length && i < q.steps.length; i++) {
-          if (qp.steps[i]) q.steps[i].done = true;
-        }
-      }
-      _renderQuests();
-    }
-    const age = Math.round((Date.now() - data.timestamp) / 60000);
-    showToast(`Save loaded (${age}m ago) — score:${score} kills:${enemyKills}`, "info", 4000);
+    _applyGameData(JSON.parse(raw), "localStorage");
   } catch (_) {}
 }
 
