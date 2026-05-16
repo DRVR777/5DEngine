@@ -127,7 +127,10 @@
   <div class="desktop">
     <div class="titlebar">
       <span><b style="color:#88ddff">DWRLD OS</b> <span style="color:#888">v0.1 — 5DEngine integration</span></span>
-      <span style="color:#888">[ESC] close</span>
+      <span>
+        <span style="color:#888;margin-right:14px">[ESC] close</span>
+        <span id="computerClose" style="cursor:pointer;color:#ff5d5d;font-weight:bold;font-size:16px;padding:2px 10px;background:#3a0a0a;border-radius:4px;border:1px solid #ff5d5d44">✕</span>
+      </span>
     </div>
     <div id="appHome">
       <div class="grid">
@@ -158,8 +161,11 @@
   </div>
 </div>
 <div id="help">
-  <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump
-  &nbsp;·&nbsp; <b>E</b> car/PC &nbsp;·&nbsp; <b>I</b> inventory &nbsp;·&nbsp; <b>click</b> freelook+shoot
+  <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
+  &nbsp;·&nbsp; <b>E</b> car/PC &nbsp;·&nbsp; <b>I</b> inventory
+  &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim
+  &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload
+  &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
 </div>
 
 <script src="./engine_browser.js"></script>
@@ -170,6 +176,8 @@
 <script src="./inventory.js"></script>
 <script src="./guns.js"></script>
 <script src="./health.js"></script>
+<script src="./devices.js"></script>
+<script src="./wires.js"></script>
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"
@@ -524,6 +532,83 @@ screenFront.position.set(0, 1.0, 0.31); compGroup.add(screenFront);
 compGroup.position.set(computerEntity.u, 0, computerEntity.v);
 scene.add(compGroup);
 
+// ---- device graph (devices.js + wires.js) ----------------------------
+// Build a small in-world hardware setup adjacent to the computer pickup:
+// PC ── video → Monitor (placed on top of the desk)
+// PC ── audio → Speaker (placed to the right)
+// PC ── data  ← USB stick (sitting in usb_a)
+// Two radios: one at the desk, one across the map at the same frequency
+// (so a packet sent from one literally appears in the other's inbox).
+const deviceBus = (window.Devices && window.Devices.createBus)
+  ? window.Devices.createBus()
+  : null;
+const wireMeshes = new Map();   // wireId → THREE.Mesh
+const devicePositions = new Map();  // deviceId → THREE.Vector3 (for refresh)
+
+function _rebuildDeviceWires() {
+  if (!deviceBus || !window.Wires) return;
+  // Tear down old meshes
+  for (const m of wireMeshes.values()) scene.remove(m);
+  wireMeshes.clear();
+  const map = window.Wires.buildAllWireMeshes(THREE, deviceBus,
+    (id) => {
+      const v = devicePositions.get(id);
+      return v ? { x: v.x, y: v.y, z: v.z } : null;
+    });
+  for (const [wireId, mesh] of map) {
+    scene.add(mesh);
+    wireMeshes.set(wireId, mesh);
+  }
+}
+
+if (deviceBus) {
+  const PC_POS  = { u: computerEntity.u, v: computerEntity.v, y: 1.1 };
+  const MON_POS = { u: computerEntity.u, v: computerEntity.v - 0.0, y: 1.6 };  // on top of the desk
+  const SPK_POS = { u: computerEntity.u + 1.0, v: computerEntity.v - 0.2, y: 0.8 };
+  const USB_POS = { u: computerEntity.u - 0.4, v: computerEntity.v + 0.1, y: 1.0 };
+  const RADIO_A = { u: computerEntity.u + 0.3, v: computerEntity.v - 0.2, y: 1.4 };
+  const RADIO_B = { u: 10, v: 8, y: 1.0 };
+
+  deviceBus.makeComputer({ id: "pc1", position: PC_POS,
+    files: { "/boot.txt": "DWRLD OS v0.1", "/readme": "wire stuff together!" } });
+  deviceBus.makeMonitor({ id: "mon1", position: MON_POS, size: "small" });
+  deviceBus.makeSpeaker({ id: "spk1", position: SPK_POS });
+  deviceBus.makeStorageMedia({ id: "usb1", mediaKind: "usb", position: USB_POS,
+    files: { "/notes.txt": "your personal stash" }, label: "MY_USB" });
+  deviceBus.makeRadio({ id: "radioA", position: RADIO_A, frequency: 94.7,
+    txRange: 80, rxRange: 80 });
+  deviceBus.makeRadio({ id: "radioB", position: RADIO_B, frequency: 94.7,
+    txRange: 80, rxRange: 80 });
+
+  deviceBus.connect("pc1", "video_out", "mon1", "video_in", "video");
+  deviceBus.connect("pc1", "audio_out", "spk1", "audio_in", "audio");
+  deviceBus.insertMedia("pc1", "usb_a", "usb1");
+
+  // Place small visual proxies in the world (so you can SEE them)
+  function _proxy(color, w, h, d, pos) {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshStandardMaterial({ color: color, metalness: 0.4, roughness: 0.4 })
+    );
+    m.position.set(pos.u, pos.y, pos.v); m.castShadow = true;
+    scene.add(m); return m;
+  }
+  _proxy(0x222244, 0.7, 0.5, 0.05, MON_POS);     // monitor screen-ish
+  _proxy(0x553311, 0.3, 0.5, 0.3, SPK_POS);      // speaker box
+  _proxy(0xcccccc, 0.08, 0.25, 0.05, USB_POS);   // USB
+  _proxy(0x222233, 0.18, 0.25, 0.12, RADIO_A);   // walkie A
+  _proxy(0x222233, 0.18, 0.25, 0.12, RADIO_B);   // walkie B
+
+  devicePositions.set("pc1",    new THREE.Vector3(PC_POS.u,  PC_POS.y,  PC_POS.v));
+  devicePositions.set("mon1",   new THREE.Vector3(MON_POS.u, MON_POS.y, MON_POS.v));
+  devicePositions.set("spk1",   new THREE.Vector3(SPK_POS.u, SPK_POS.y, SPK_POS.v));
+  devicePositions.set("usb1",   new THREE.Vector3(USB_POS.u, USB_POS.y, USB_POS.v));
+  devicePositions.set("radioA", new THREE.Vector3(RADIO_A.u, RADIO_A.y, RADIO_A.v));
+  devicePositions.set("radioB", new THREE.Vector3(RADIO_B.u, RADIO_B.y, RADIO_B.v));
+
+  _rebuildDeviceWires();
+}
+
 // ---- input ----
 const keys = Object.create(null);
 const invDiv = document.getElementById("inventory");
@@ -551,17 +636,22 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // E near computer → open desktop OS
-  if (e.code === "KeyE" && nearComputer) {
-    computerOpen = !computerOpen;
-    document.getElementById("computerOverlay").classList.toggle("open", computerOpen);
-    e.preventDefault();
+  // When computer is OPEN, the only keys the game consumes are Escape (close)
+  // and Tab (cycle apps). EVERYTHING else (incl. KeyE!) flows to the overlay so
+  // the user can type "E" inside textboxes without the game eating it.
+  if (computerOpen) {
+    if (e.code === "Escape") {
+      closeComputer();
+      e.preventDefault();
+    }
+    // Any other key: let the DOM handle it (textboxes, buttons, etc.)
     return;
   }
-  // ESC closes the computer overlay
-  if (e.code === "Escape" && computerOpen) {
-    computerOpen = false;
-    document.getElementById("computerOverlay").classList.remove("open");
+  // E near computer → open desktop OS (cinematic dolly first, then overlay).
+  // E only OPENS — closing happens via Escape or the X button only, so that
+  // typing "E" inside the computer's apps doesn't slam the overlay shut.
+  if (e.code === "KeyE" && nearComputer && !computerEntering) {
+    beginComputerEntry();
     e.preventDefault();
     return;
   }
@@ -613,12 +703,56 @@ let camDist = 7;          // 0..0.5 = first-person, > 0.5 = third-person
 let camSide = 1;          // +1 = right shoulder, -1 = left shoulder
 const CAM_DIST_MIN = 0;
 const CAM_DIST_MAX = 15;
+let camDistBeforeEntry = 7;     // restore zoom when leaving computer
+let aiming = false;             // RMB-hold zoom-aim state
+let aimAmt = 0;                 // smoothed [0..1] aim multiplier
+let computerEntering = false;   // playing cinematic-entry animation
+let computerEntryT = 0;         // 0..1 progress
+const COMPUTER_ENTRY_DUR = 0.45; // seconds
+
+function beginComputerEntry() {
+  computerEntering = true;
+  computerEntryT = 0;
+  camDistBeforeEntry = camDist;
+  // Release pointer lock so the user can interact with the overlay
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function finishComputerEntry() {
+  computerEntering = false;
+  computerOpen = true;
+  document.getElementById("computerOverlay").classList.add("open");
+}
+function closeComputer() {
+  computerOpen = false;
+  document.getElementById("computerOverlay").classList.remove("open");
+  // Reset app pane back to home
+  const aw = document.getElementById("appWindow");
+  if (aw) aw.classList.remove("open");
+  const ah = document.getElementById("appHome");
+  if (ah) ah.style.display = "block";
+  // Restore zoom level
+  camDist = camDistBeforeEntry;
+}
 
 // Scroll-wheel zoom: shrinks camDist into first-person, expands into pull-back.
 renderer.domElement.addEventListener("wheel", (e) => {
   e.preventDefault();
   camDist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camDist + e.deltaY * 0.01));
 }, { passive: false });
+
+// Right-click hold to aim — pulls the camera in tight, narrows FOV slightly,
+// and the arms raise to a sighting pose.
+renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
+renderer.domElement.addEventListener("mousedown", (e) => {
+  if (e.button === 2) { aiming = true; e.preventDefault(); }
+});
+addEventListener("mouseup", (e) => {
+  if (e.button === 2) aiming = false;
+});
+// Releasing pointer lock should also drop the aim
+document.addEventListener("pointerlockchange", () => {
+  if (!document.pointerLockElement) aiming = false;
+});
 
 // Pointer lock for true freelook (GTA-style). Click the canvas to capture, ESC to release.
 let pointerLocked = false;
@@ -733,6 +867,36 @@ function tick() {
   const dt  = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
 
+  // Aim-mode: smoothly interpolate aimAmt toward target. While aiming we
+  // shrink camDist by ~40% — feels like a scope-zoom without changing FOV.
+  const aimTarget = aiming && !computerOpen && !computerEntering ? 1 : 0;
+  aimAmt += (aimTarget - aimAmt) * Math.min(1, dt * 12);
+
+  // Cinematic computer entry — dolly the camera toward a tight near-screen
+  // shot over COMPUTER_ENTRY_DUR seconds, then flip the overlay on.
+  if (computerEntering) {
+    computerEntryT += dt / COMPUTER_ENTRY_DUR;
+    if (computerEntryT >= 1) {
+      computerEntryT = 1;
+      finishComputerEntry();
+    } else {
+      const k = computerEntryT;
+      // ease-in-out (smoothstep)
+      const ease = k * k * (3 - 2 * k);
+      camDist = camDistBeforeEntry * (1 - ease) + 0.35 * ease;
+    }
+  }
+
+  // While computer is open, freeze the player — no movement, no shooting.
+  if (computerOpen) {
+    // Still render scene + HUD, but skip movement/physics
+    const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
+    heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+    return;
+  }
+
   // camera-relative basis projected to ground.
   // Camera sits at hero + (-sin(yaw), -cos(yaw)) * dist (behind hero),
   // so forward (the direction W should move = away from camera) is
@@ -741,7 +905,9 @@ function tick() {
   const right   = { x: Math.cos(camYaw), y: 0, z: -Math.sin(camYaw) };
 
   const inputF = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-  const inputR = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
+  // A/D were inverted on screen — user said W/S correct but A/D reversed.
+  // Flip sign so A = move world-left (screen-left), D = move world-right.
+  const inputR = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
   const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
 
   if (inCar) {
@@ -906,13 +1072,20 @@ function tick() {
   // hero visibility is set below after firstPerson is computed
   heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
 
-  // Walk cycle — drive limb swing by ground speed
+  // Walk cycle — drive limb swing by ground speed. Amplified vs. the bridge's
+  // default so the legs visibly pump while walking (rotation around hip pivot).
   const groundSpeed = inCar ? 0 : Math.hypot(inputF, inputR) * speed;
   const wc = Bridge.walkCyclePhase(walkState, dt, groundSpeed);
-  legL.rotation.x =  wc.swing;
-  legR.rotation.x = -wc.swing;
-  armL.rotation.x = -wc.swing * 0.7;
-  armR.rotation.x =  wc.swing * 0.7;
+  const SWING = 1.5;     // visual amplifier
+  legL.rotation.x =  wc.swing * SWING;
+  legR.rotation.x = -wc.swing * SWING;
+  // Arms: swing oppositely to legs while walking, but when AIMING they raise
+  // straight forward into a two-handed shooting pose (with aimAmt easing).
+  const aimRaise = -Math.PI / 2 * aimAmt;       // rotate forward
+  const walkArmL = -wc.swing * SWING * 0.7;
+  const walkArmR =  wc.swing * SWING * 0.7;
+  armL.rotation.x = walkArmL * (1 - aimAmt) + aimRaise;
+  armR.rotation.x = walkArmR * (1 - aimAmt) + aimRaise;
   torso.position.y = 1.25 + wc.bob;
   // face the direction of last input (or camera-forward if idle)
   if (inputF !== 0 || inputR !== 0) {
@@ -924,7 +1097,9 @@ function tick() {
   // Camera: pulls back along the inverse of `forward` vector (so we sit
   // behind the hero). camDist=0 → first-person at head; >0.5 → 3rd person
   // with a side offset (GTA-style over-the-shoulder). L toggles shoulder.
-  const dist = inCar ? Math.max(camDist, 6) : camDist;
+  // Aim-mode pulls camera in (~60% as far) for an over-the-shoulder ADS feel.
+  const aimMul = 1 - 0.4 * aimAmt;
+  const dist = inCar ? Math.max(camDist, 6) : camDist * aimMul;
   const firstPerson = !inCar && dist < 0.5;
   // Hero is hidden in first person so we don't see our own head from inside
   heroGroup.visible = !inCar && !firstPerson;
@@ -1094,9 +1269,49 @@ car: (${world.players.get("car").u.toFixed(1)}, ${world.players.get("car").v.toF
   },
   radio: {
     title: "📻 Radio",
-    body: () => `<pre>tuned to: 94.7 MHz "DWRLD FM"
-now playing: ambient_clear (placeholder)
-note: wire to radio.js + weather_music_bridge.js next iter</pre>`,
+    body: () => {
+      if (!deviceBus) return `<pre>device bus not loaded</pre>`;
+      const rA = deviceBus.getDevice("radioA");
+      const rB = deviceBus.getDevice("radioB");
+      const inbox = deviceBus.peek("radioB", "rf").slice(-6);
+      const inboxStr = inbox.length ? inbox.map(p => "  • " + JSON.stringify(p.payload)).join("\n") : "  (silence)";
+      return `<pre>tuned to: ${rA ? rA.state.frequency : "?"} MHz
+yourRadio:   pos (${rA.position.u.toFixed(1)}, ${rA.position.v.toFixed(1)})
+remoteRadio: pos (${rB.position.u.toFixed(1)}, ${rB.position.v.toFixed(1)}) — listening on same freq
+
+Last messages remoteRadio heard:
+${inboxStr}</pre>
+<div style="margin-top:10px">
+  <input id="rfMsg" type="text" placeholder="say something..." style="flex:1;background:#0a1626;border:1px solid #4488cc55;color:#eee;padding:6px;border-radius:4px;font-family:inherit;font-size:12px;width:60%">
+  <button id="rfSend" style="background:#4488cc;border:0;color:#fff;padding:6px 14px;border-radius:4px;cursor:pointer">📡 Broadcast</button>
+</div>`;
+    },
+  },
+  devices: {
+    title: "🔌 Devices",
+    body: () => {
+      if (!deviceBus) return `<pre>device bus not loaded</pre>`;
+      const stats = deviceBus.stats();
+      const devs = deviceBus.listDevices();
+      const wires = deviceBus.listWires();
+      const devLines = devs.map(d => {
+        const portStrs = Object.values(d.ports).map(p =>
+          `${p.name}[${p.direction}/${p.kind}]`
+        ).join(", ");
+        return `  ${d.id}  (${d.kind})  ports: ${portStrs}`;
+      }).join("\n");
+      const wireLines = wires.map(w =>
+        `  ${w.kind.padEnd(6)} ${w.a.deviceId}.${w.a.port}  →  ${w.b.deviceId}.${w.b.port}`
+      ).join("\n") || "  (no wires)";
+      return `<pre>bus stats: ${stats.deviceCount} devices, ${stats.wireCount} wires
+kinds: ${JSON.stringify(stats.kinds)}
+
+== devices ==
+${devLines}
+
+== wires ==
+${wireLines}</pre>`;
+    },
   },
   browser: {
     title: "🌐 Browser",
@@ -1109,19 +1324,30 @@ note: wire to radio.js + weather_music_bridge.js next iter</pre>`,
   },
 };
 
-// Add Browser app icon to the home grid (extends iter 38 placeholder)
-(function addBrowserIcon() {
+// Add dynamic app icons to the home grid (extends iter 38 placeholder)
+(function addDynamicIcons() {
   const grid = document.querySelector("#computerOverlay .grid");
   if (!grid) return;
-  if (grid.querySelector('[data-app="browser"]')) return;
-  const div = document.createElement("div");
-  div.className = "app"; div.dataset.app = "browser";
-  div.innerHTML = '<div class="icon">🌐</div><div class="label">Browser</div>';
-  grid.appendChild(div);
+  const extras = [
+    { id: "browser", icon: "🌐", label: "Browser" },
+    { id: "devices", icon: "🔌", label: "Devices" },
+  ];
+  for (const e of extras) {
+    if (grid.querySelector('[data-app="' + e.id + '"]')) continue;
+    const div = document.createElement("div");
+    div.className = "app"; div.dataset.app = e.id;
+    div.innerHTML = '<div class="icon">' + e.icon + '</div><div class="label">' + e.label + '</div>';
+    grid.appendChild(div);
+  }
 })();
 
-// Click handlers: app icon → load that app's body into the window pane
+// Click handlers: app icon → load that app's body into the window pane,
+// X-button → close, anywhere else → ignore.
 document.getElementById("computerOverlay").addEventListener("click", (e) => {
+  if (e.target && e.target.id === "computerClose") {
+    closeComputer();
+    return;
+  }
   const app = e.target.closest(".app");
   if (!app) return;
   const id = app.dataset.app;
@@ -1138,7 +1364,21 @@ document.getElementById("computerOverlay").addEventListener("click", (e) => {
       document.getElementById("browserFrame").src = document.getElementById("browserUrl").value;
     });
   }
+  // Radio app: wire the broadcast button (re-wires on each rebuild)
+  if (id === "radio") wireRadioApp();
 });
+
+function wireRadioApp() {
+  const sendBtn = document.getElementById("rfSend");
+  if (!sendBtn || !deviceBus) return;
+  sendBtn.addEventListener("click", () => {
+    const msg = (document.getElementById("rfMsg") || {}).value || "(blank)";
+    deviceBus.send("radioA", "rf", { kind: "audio", payload: { msg } });
+    // Re-render the radio app body so the new entry shows up + re-wire
+    document.getElementById("appBody").innerHTML = APPS.radio.body();
+    wireRadioApp();
+  });
+}
 </script>
 </body>
 </html>

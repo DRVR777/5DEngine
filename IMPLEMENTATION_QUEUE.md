@@ -4,7 +4,7 @@ Running list of everything the user has asked for, plus architectural pieces fro
 
 ---
 
-## ✅ Done this session
+## ✅ Done — Session 1 (camera/gun/computer/car gears)
 - [x] Fix W/S inversion (W was walking *toward* camera)
 - [x] Fix bullet direction (was firing opposite to aim)
 - [x] Car becomes blocker so hero can't walk through it
@@ -16,24 +16,39 @@ Running list of everything the user has asked for, plus architectural pieces fro
 - [x] **R** reloads pistol from inventory bag
 - [x] Computer opens a real desktop UI (8 apps wired + Browser iframe)
 - [x] Browser app — sandboxed iframe inside the in-game computer
+- [x] Stackable platforms abstraction — jump on hood, then on roof, then on any future object
+- [x] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox
+- [x] Asset list per the two PDFs
 
-## 🔥 In-flight (this session, before next commit)
-- [ ] Stackable platforms abstraction — jump on hood, then on roof, then on any future object
-- [ ] Real interaction test — simulates keypresses + clicks via jsdom-style sandbox, catches "computer opens but is empty"-type bugs without you having to test by hand
+## ✅ Done — Session 2 (devices/wires + UX polish, iter 130)
+- [x] **A/D inversion fixed** (user said W/S correct but A/D reversed)
+- [x] **Right-click to aim** — camera pulls in 40%, arms raise to sighting pose
+- [x] **Walking leg animation amplified** — 1.5× swing visible at the hip pivot
+- [x] **Cinematic computer entry** — camera dollies in over 0.45s before overlay shows
+- [x] **E-close conflict fixed** — when computer open, E flows to DOM (no slam-shut). Close via ESC or red ✕ button only
+- [x] **Mouse cursor freed** on computer entry — exitPointerLock so user can click apps
+- [x] **devices.js + wires.js shipped** — generic typed-port device graph (55 tests)
+- [x] **Computer ↔ Monitor (video) + Computer ↔ Speaker (audio) + Computer ↔ USB (data)** wired and rendered in-world as 3D bezier cables
+- [x] **Two walkie-talkie radios** placed at desk + across map, both on 94.7 MHz
+- [x] **Devices app** in DWRLD OS — shows live device graph
+- [x] **Radio app** — text input + broadcast button; messages physically traverse the bus to the other radio
+- [x] **Cables color-coded by kind** — video=blue, audio=orange, data=green, power=yellow, rf=purple
+
+## 🔥 In-flight
 - [ ] Honest integration audit — which of the 130+ iter modules are actually wired into `index.html` vs sitting orphan
 
 ## 🎯 Next session (queued)
-- [ ] **`devices.js` + `wires.js`** — generic device-graph: typed ports, cable-type matching. Foundation for: computers, monitors, wires, speakers, radios, antennas, CD drives, USB sticks, walkie-talkies. (Maps onto Dreamworld PRD §6.3 Wire System.)
 - [ ] **`screen_mesh.js`** — any 3D surface can be a `screen_surface`. Press E → enter "mouse-mode" on that surface, raycast UV → DOM hit-test, click anything. Big-screen TVs, projector walls, etc. (Maps onto conviction.pdf §6.1.)
 - [ ] **Camera spine — 4 named zones** per conviction.pdf §5.1:
   - INSIDE (0–12%): camera at character center, fades transparent
   - FIRST_PERSON (12–30%): just outside surface, FPS view
   - THIRD_PERSON (30–60%): orbitable, wall-collision raycast
   - BIRD_VIEW (60–100%): far back, flying mode activates
-- [ ] **Storage media** (CD / USB) as inventory items — slot into a device's port → virtual filesystem visible
-- [ ] **Radio frequency pairing** — two radio devices on the same freq + within range = virtual wire (passes audio/data)
+- [ ] **CD / USB as inventory pickups** that you carry — currently devices live in the world. Player should be able to pick up a USB, walk to a computer, insert it via UI.
 - [ ] **GLTFLoader integration** + `assets/` dir — replace placeholder block meshes with the `.glb` files from `ASSET_LIST.md`
 - [ ] **In-world screens** that anyone can wire to a computer (extra-large meshes the user mentioned: 50ft, 1000ft)
+- [ ] **FP camera reticle / FOV widen on aim** (currently only camDist shrinks; FOV is static)
+- [ ] **test_iter_109.js flaky decay/clamp** — reputation system clamps right but timing of `_applyDecay` between `standing()` and the actual `delta` is causing intermittent mismatches under load. Fix: hoist `now` once per call and reuse.
 
 ## 📚 Architectural debt from the two PDFs (medium-term)
 - [ ] **Universal Packet protocol** (conviction.pdf §3) — every interaction is a `{header, body}` packet. Already roughly aligned with `cwp:"1.0"` envelope from `net.js` (iter 20). Formalize.
@@ -63,6 +78,12 @@ Running list of everything the user has asked for, plus architectural pieces fro
 > "everything I'm saying make sure you add it to what you need to implement and look above to"
 
 > "you should have known that the computer doesn't actually open up because you're supposed to have tests, right... figure out what you would have to do for the tests to actually verify without having a visual"
+
+> "a and d are reversed but s and w are correct, make the legs actually move when you walk, make a way to right click hold to aim your gun, and then your camera should zoom in a little bit, and make it so that when you click E to like get to the computer make it so it like zooms in..."
+
+> "make it so that E, once you're in the computer, it automatically frees up your mouse. And also that once you're in the computer, that it doesn't use E to close the computer and it uses like, it uses just like the mouse or like a different button. Because when you get in the computer and you want to type E while you're in the computer just like closes the computer and you can never type E while you're in the computer"
+
+> "Fix the wires, CDs, speakers. You know, all that stuff. Just keep fixing shit keep doing everything you should have started on devices and wires without asking me loop infinitely and keep bashing so that you keep going"
 
 ---
 
