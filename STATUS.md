@@ -135,6 +135,8 @@
 | 125  | emote_wheel.js: 8-slot wheel + 3 selectors + cooldown          | 46   | iter125 |
 | 126  | mounts.js: 3 species + 5 gaits + stamina + tame + summon       | 55   | iter126 |
 | 127  | weather_missions.js: gate quests by kind/intensity/tod/season  | 45   | iter127 |
+| 128  | diving.js: breath gauge + currents + wreck loot + risk/reward  | 46   | iter128 |
+| 129  | treasure_map.js: clue chain + dig validate + reward grant      | 47   | iter129 |
 
 **Total: 2242/2242 tests passing.**
 
@@ -145,12 +147,12 @@ The demo uses ES modules which browsers block over `file://`. Run:
 
 ## Up next
 
-- **iter 128** — Shipwreck/diving (sunken loot + diving mechanics).
-- **iter 129** — Treasure-map clue chain + buried digging.
 - **iter 130** — Ranged ballistics (drop + windage + zero).
 - **iter 131** — Stealth detection (LOS cones + noise).
 - **iter 132** — Archery/bow combat (draw + accuracy + quiver).
 - **iter 133** — Magic spell system (mana + cooldowns + elements).
+- **iter 134** — Climbing/parkour (ledge grab + wall run).
+- **iter 135** — Swimming/water physics (buoyancy + depth).
 
 ## Wakeup checklist
 
