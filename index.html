@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>gta_demo — 3rd person on multi_dim_engine</title>
+<title>5DEngine — third person on multi_dim_engine</title>
 <style>
   body { margin: 0; background: #87ceeb; overflow: hidden; font-family: system-ui, sans-serif; }
   #hud {
@@ -22,6 +22,26 @@
     width: 180px; height: 180px;
     background: rgba(0,0,0,0.55);
     border: 1px solid #666; border-radius: 6px;
+  }
+  #damageFlash {
+    position: fixed; inset: 0; pointer-events: none; z-index: 999;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(255,0,0,0.6) 100%);
+    opacity: 0; transition: opacity 100ms ease-out;
+  }
+  #damageFlash.active { opacity: 1; transition: opacity 50ms ease-in; }
+  #crosshair {
+    position: fixed; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+  }
+  #crosshair::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    width: 3px; height: 3px; background: #ffd166;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
   }
   #inventory {
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
@@ -49,6 +69,8 @@
 <body>
 <div id="hud">loading…</div>
 <canvas id="minimap" width="180" height="180"></canvas>
+<div id="crosshair"></div>
+<div id="damageFlash"></div>
 <div id="inventory">
   <div class="panel">
     <h3>Inventory <span style="color:#888;font-weight:normal;">— press I or Esc to close</span></h3>
@@ -58,7 +80,7 @@
 </div>
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump
-  &nbsp;·&nbsp; <b>E</b> car &nbsp;·&nbsp; <b>I</b> inventory &nbsp;·&nbsp; <b>click</b> freelook
+  &nbsp;·&nbsp; <b>E</b> car/PC &nbsp;·&nbsp; <b>I</b> inventory &nbsp;·&nbsp; <b>click</b> freelook+shoot
 </div>
 
 <script src="./engine_browser.js"></script>
@@ -154,6 +176,46 @@ let heroLastDamageT = -Infinity; const HERO_REGEN_DELAY = 5; const HERO_REGEN_RA
 // Computer prompt state
 let nearComputer = false;
 let computerOpen = false;
+
+// Shooting state
+const bullets3D = [];       // [{ mesh, posU, posV, posY, dirU, dirV, speed, traveled, range, damage }]
+let pistolAmmo = 12;
+let pistolCooldown = 0;
+const PISTOL_FIRE_RATE = 5; // shots/sec
+const PISTOL_DAMAGE = 20;
+const PISTOL_RANGE = 25;
+const PISTOL_SPEED = 50;
+const bulletGeo = new THREE.SphereGeometry(0.08, 6, 6);
+const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffee55 });
+
+const damageFlashEl = document.getElementById("damageFlash");
+let damageFlashUntil = 0;
+function flashDamage() {
+  damageFlashEl.classList.add("active");
+  damageFlashUntil = performance.now() + 180;
+}
+
+// Click to shoot (only when not in inventory + has ammo + cooldown elapsed)
+renderer && renderer.domElement.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return;
+  if (!pointerLocked) return;   // only shoot when looking around
+  if (invDiv.classList.contains("open")) return;
+  if (pistolCooldown > 0 || pistolAmmo <= 0) return;
+  pistolCooldown = 1 / PISTOL_FIRE_RATE;
+  pistolAmmo--;
+  // Spawn bullet at hero head height, heading where camera faces
+  const hp = world.players.get("hero");
+  const dirU = -Math.sin(camYaw);
+  const dirV = -Math.cos(camYaw);
+  const mesh = new THREE.Mesh(bulletGeo, bulletMat);
+  mesh.position.set(hp.u, 1.5, hp.v);
+  scene.add(mesh);
+  bullets3D.push({
+    mesh, posU: hp.u, posV: hp.v, posY: 1.5,
+    dirU, dirV, speed: PISTOL_SPEED, traveled: 0,
+    range: PISTOL_RANGE, damage: PISTOL_DAMAGE,
+  });
+});
 
 // Pickups (coins) — 8 scattered around the world, the objective is to collect them all.
 const pickups = [
@@ -551,6 +613,31 @@ function tick() {
     );
   }
 
+  // Tick bullets (substep dt to avoid tunneling past enemy)
+  pistolCooldown = Math.max(0, pistolCooldown - dt);
+  const substeps = 5;
+  const subDt = dt / substeps;
+  for (let s = 0; s < substeps && bullets3D.length > 0; s++) {
+    for (let i = bullets3D.length - 1; i >= 0; i--) {
+      const b = bullets3D[i];
+      b.posU += b.dirU * b.speed * subDt;
+      b.posV += b.dirV * b.speed * subDt;
+      b.traveled += b.speed * subDt;
+      // Hit enemy?
+      if (!enemy.dead) {
+        const ep = world.players.get(enemy.id);
+        if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
+          enemy.hp = Math.max(0, enemy.hp - b.damage);
+          if (enemy.hp === 0) enemy.dead = true;
+          scene.remove(b.mesh); bullets3D.splice(i, 1);
+          continue;
+        }
+      }
+      if (b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
+      b.mesh.position.set(b.posU, b.posY, b.posV);
+    }
+  }
+
   // Drive enemy AI — seek + attack hero
   if (!enemy.dead) {
     const ep = world.players.get(enemy.id);
@@ -570,6 +657,7 @@ function tick() {
           enemy.lastAttackT = now / 1000;
           heroHp = Math.max(0, heroHp - enemy.damage);
           heroLastDamageT = now / 1000;
+          flashDamage();
         }
       }
     }
@@ -715,6 +803,12 @@ function tick() {
                   `<br>enemy <b>${enemy.hp}/${enemy.maxHp}</b>`) +
     (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open (iter38 wires takeover)</span>` : "");
+
+  // Clear damage-flash overlay after its lifetime
+  if (damageFlashUntil > 0 && performance.now() > damageFlashUntil) {
+    damageFlashEl.classList.remove("active");
+    damageFlashUntil = 0;
+  }
 
   // mini-map (top-right)
   drawMinimap();

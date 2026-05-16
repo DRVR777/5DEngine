@@ -47,19 +47,17 @@
 | 38   | debug.js: packet recorder + replay + hub instrumentation       | 28    | iter38  |
 | 39   | apps/music_player + settings + file_manager (with IPC)         | 38    | iter39  |
 | 40   | Full-session integration test (12 modules end-to-end)          | 24    | iter40  |
+| 41   | Performance benchmarks across 7 hot paths                      | 7     | iter41  |
+| 42   | Browser polish: crosshair + click-to-shoot + bullets + flash   | (visual) | iter42 |
+| 43   | apps/calculator + apps/terminal (REPL with custom commands)    | 44    | iter43  |
 
-**Total: 955/955 tests passing.**
-
-iter 40 caught 2 real bugs:
-  - Loot id collision (same-ms deaths overwrote drops) → fixed with monotonic counter.
-  - Hero self-shooting (bullets had null ownerId → matched no exclusion) → fix tests
-    to set instance.ownerId before firing.
+**Total: 1006/1006 tests passing.**
 
 ## Up next
 
-- **iter 41** — Performance benchmarks (spatial grid + interest tiers + AABB).
-- **iter 42** — Browser polish: gun aim line, bullet impact, damage flash.
-- **iter 43+** — More apps + mod loading + save/load.
+- **iter 44** — Mod loading via signed manifests (sandbox).
+- **iter 45** — Save/load game state through manifest store.
+- **iter 46+** — More apps, more biomes, more vehicle types.
 
 ## Wakeup checklist
 
