@@ -25,11 +25,17 @@
   }
 
   class WorldState {
-    constructor(layerId) {
+    constructor(layerId, opts) {
+      opts = opts || {};
       this.layerId = layerId;
       this.players = new Map();          // legacy fast-path (iter 1-6)
       this.entities = new Map();         // iter 7+ — envelope-based
       this.transitions = []; // {pid, from, to, kind, t}
+      // iter 9: every world has its own physics profile + own coordinate
+      // origin (per conviction.pdf — worlds are graph nodes, not points).
+      this.physicsProfile = opts.physicsProfile || { name: "earth", gravity: -25, timeScale: 1, walkSpeed: 5, sprintSpeed: 9, jumpVelocity: 8 };
+      this.origin = opts.origin || { x: 0, y: 0, z: 0, u: 0, v: 0 };
+      this.worldId = opts.worldId || `world_${Math.random().toString(36).slice(2, 8)}`;
     }
     addEntity(id, entity) { this.entities.set(id, entity); return entity; }
     getEntity(id) { return this.entities.get(id); }

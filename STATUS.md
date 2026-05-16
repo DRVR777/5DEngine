@@ -14,16 +14,17 @@
 | 6    | Articulated character + procedural ground + sky shader        | 6     | iter6   |
 | 7    | ECS-lite: entity envelope + facet/type/app registries          | 23    | iter7   |
 | 8    | AABB hitboxes + substepped collision (no tunneling, slide)     | 17    | iter8   |
+| 8.5  | Wire collision into index.html (no-walk-thru-walls in browser) | (visual) | iter8.5 |
+| 9    | Per-world physics profile (earth/moon/underwater/dreamworld)   | 20    | iter9   |
 
-**Total: 92/92 tests passing.**
+**Total: 112/112 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 8.5** — Wire collision into index.html (buildings get hitboxes,
-  hero blocked from walking into them). Visual integration of iter 8 API.
-- **iter 9** — Per-world physics profile (gravity, time scale).
 - **iter 10** — Health facet + damage events.
 - **iter 11** — 7 gun types as data; bullet entity facet.
+- **iter 12** — 4 ammo types as facets; pickup→inventory.
+- **iter 13** — Inventory popup UI.
 
 ## Wakeup checklist
 

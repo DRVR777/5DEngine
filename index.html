@@ -35,6 +35,9 @@
 
 <script src="./engine_browser.js"></script>
 <script src="./engine_bridge.js"></script>
+<script src="./physics.js"></script>
+<script src="./entity.js"></script>
+<script src="./registry.js"></script>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.161.0/build/three.module.js" } }
 </script>
@@ -44,9 +47,21 @@ import * as THREE from "three";
 // ---- engine state ----
 const { WorldState, LayerBoundary } = window.GTAEngine;
 const Bridge = window.GTABridge;
+const Phys   = window.GTAPhysics;
+const Entity = window.GTAEntity;
+const Reg    = window.GTARegistry.createRegistry();
+const HERO_HITBOX = { w: 0.8, d: 0.8, h: 1.8 };
 
 const world = new WorldState(1);
 world.setPlayer("hero", 0, 0, 0, 0, 0);
+
+// Build blockers (AABB hitboxes) from the same building rects so collision
+// uses the exact footprint as rendering. Stored as plain objects: physics
+// reads {u, v, hitbox:{w,d}}; the LayerBoundary still drives layer transitions.
+function rectToBlocker(b) {
+  const { u0, v0, u1, v1 } = b.params;
+  return { u: (u0+u1)/2, v: (v0+v1)/2, hitbox: { w: Math.abs(u1-u0), d: Math.abs(v1-v0), h: 6 }, y: 0 };
+}
 
 // Some buildings as layer boundaries (rect in u-v plane). 8 buildings = small downtown.
 const buildings = [
@@ -68,6 +83,9 @@ const NPC_DEFS = [
   { id: "npc_white", color: 0xeeeeee, u: -3, v:-10, heading: 4.7 },
 ];
 for (const n of NPC_DEFS) world.setPlayer(n.id, 0, 0, 0, n.u, n.v);
+
+// Pre-built blocker list for collision (recomputed never — buildings are static)
+const buildingBlockers = buildings.map(rectToBlocker);
 
 // Car — also a player in the engine
 world.setPlayer("car", 0, 0, 0, 4, 6);
@@ -401,7 +419,10 @@ function tick() {
     const cp = world.players.get("car");
     world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
   } else {
-    Bridge.applyCameraRelativeMove(world, "hero", inputF, inputR, forward, right, speed, dt);
+    Bridge.applyCameraRelativeMove(
+      world, "hero", inputF, inputR, forward, right, speed, dt,
+      { blockers: buildingBlockers, heroHitbox: HERO_HITBOX }
+    );
   }
 
   // Drive NPCs — wander step + soft arena clamp
