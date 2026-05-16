@@ -32,7 +32,9 @@
 
   // Apply a camera-relative movement to a player in the world.
   // forward/right are unit vectors in the ground plane (y=0 component dropped).
-  function applyCameraRelativeMove(world, id, inputF, inputR, forward, right, speed, dt) {
+  // If `opts.blockers` is supplied with the mover's hitbox in `opts.heroHitbox`,
+  // the move is resolved against AABB blockers (no walking through walls).
+  function applyCameraRelativeMove(world, id, inputF, inputR, forward, right, speed, dt, opts) {
     const p = world.players.get(id);
     if (!p) return null;
     let dx = forward.x * inputF + right.x * inputR;
@@ -43,6 +45,16 @@
       dz = (dz / mag) * speed * dt;
     } else {
       dx = 0; dz = 0;
+    }
+    if (opts && opts.blockers && opts.heroHitbox) {
+      const Phys = (typeof require === "function") ? require("./physics.js") :
+        (typeof self !== "undefined" ? self.GTAPhysics : null);
+      if (Phys) {
+        const mover = { u: p.u, v: p.v, hitbox: opts.heroHitbox };
+        const applied = Phys.resolveAABBMove(mover, dx, dz, opts.blockers);
+        world.setPlayer(id, p.x, p.y, p.z, mover.u, mover.v);
+        return { du: applied.dU, dv: applied.dV };
+      }
     }
     world.setPlayer(id, p.x, p.y, p.z, p.u + dx, p.v + dz);
     return { du: dx, dv: dz };
@@ -189,6 +201,6 @@
     collectPickup,
     dayNightPhase,
     walkCyclePhase,
-    VERSION: "0.6.0-iter7",
+    VERSION: "0.7.0-iter8",
   };
 });

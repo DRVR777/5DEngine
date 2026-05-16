@@ -12,17 +12,18 @@
 | 4    | Drivable car (bicycle physics) + mini-map                     | 11    | iter4   |
 | 5    | 8 collectible coins + objective + day/night cycle             | 13    | iter5   |
 | 6    | Articulated character + procedural ground + sky shader        | 6     | iter6   |
+| 7    | ECS-lite: entity envelope + facet/type/app registries          | 23    | iter7   |
+| 8    | AABB hitboxes + substepped collision (no tunneling, slide)     | 17    | iter8   |
 
-**Foundation total: 52/52 tests passing.**
+**Total: 92/92 tests passing.**
 
 ## Up next (from MASTER_PLAN.md)
 
-- **iter 7** — ECS-lite registry: one entity table, `$header/$facets`
-  envelope. Refactor hero/car/NPCs/coins onto it. (FOUNDATION — required
-  for all later iters.)
-- **iter 8** — AABB hitboxes + collision response (no walking through walls).
+- **iter 8.5** — Wire collision into index.html (buildings get hitboxes,
+  hero blocked from walking into them). Visual integration of iter 8 API.
 - **iter 9** — Per-world physics profile (gravity, time scale).
 - **iter 10** — Health facet + damage events.
+- **iter 11** — 7 gun types as data; bullet entity facet.
 
 ## Wakeup checklist
 
