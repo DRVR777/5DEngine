@@ -46,14 +46,20 @@
 | 37   | Browser viz: AI enemy + computer entity + hp bar + prompts     | (visual) | iter37 |
 | 38   | debug.js: packet recorder + replay + hub instrumentation       | 28    | iter38  |
 | 39   | apps/music_player + settings + file_manager (with IPC)         | 38    | iter39  |
+| 40   | Full-session integration test (12 modules end-to-end)          | 24    | iter40  |
 
-**Total: 931/931 tests passing.**
+**Total: 955/955 tests passing.**
 
-## Up next (continuing optimization & polish)
+iter 40 caught 2 real bugs:
+  - Loot id collision (same-ms deaths overwrote drops) → fixed with monotonic counter.
+  - Hero self-shooting (bullets had null ownerId → matched no exclusion) → fix tests
+    to set instance.ownerId before firing.
 
-- **iter 40** — Integration tests across modules (full session smoke).
-- **iter 41** — Performance: spatial-grid + interest-tier benchmarks.
+## Up next
+
+- **iter 41** — Performance benchmarks (spatial grid + interest tiers + AABB).
 - **iter 42** — Browser polish: gun aim line, bullet impact, damage flash.
+- **iter 43+** — More apps + mod loading + save/load.
 
 ## Wakeup checklist
 

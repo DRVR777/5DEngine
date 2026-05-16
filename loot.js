@@ -31,6 +31,7 @@
 
   // Spawn pickup entities at the dead entity's position. Caller supplies
   // entity factory (so we don't import it; modular).
+  let _idCounter = 0;
   function dropLoot(world, deadEntity, createEntity, idPrefix, rng) {
     if (!deadEntity || !deadEntity.loot || !deadEntity.position) return [];
     const drops = roll(deadEntity.loot, rng);
@@ -39,7 +40,9 @@
     for (const d of drops) {
       const ang = (rng || Math.random)() * Math.PI * 2;
       const r   = (rng || Math.random)() * deadEntity.loot.radius;
-      const id = `${idPrefix || "loot"}_${Date.now()}_${i++}`;
+      // Combine timestamp + monotonic counter so same-ms drops don't collide
+      _idCounter = (_idCounter + 1) >>> 0;
+      const id = `${idPrefix || "loot"}_${Date.now()}_${_idCounter}_${i++}`;
       const e = createEntity("pickup", {
         position: {
           u: deadEntity.position.u + Math.cos(ang) * r,
