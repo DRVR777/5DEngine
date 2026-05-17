@@ -438,6 +438,7 @@
   <span id="waveDetail" style="color:#b8e8ff;margin-left:8px"></span>
   <span id="heroLevelHud" style="color:#ffd700;margin-left:10px;font-weight:bold"></span>
   <div id="waveChallengeHud" style="color:#ffd166;font-size:10px;margin-top:2px;letter-spacing:0.08em"></div>
+  <span id="difficultyBadge" style="display:none;position:absolute;top:4px;right:8px;font-size:9px;font-weight:bold;letter-spacing:0.12em;opacity:0.75"></span>
 </div>
 
 <!-- Rain canvas (layered below HUD, above 3D scene) -->
@@ -1284,6 +1285,7 @@ function _heroRespawn() {
 // Difficulty multipliers — set by difficulty selection screen, persist across respawns
 let _diffHpMul  = 1.0;
 let _diffDmgMul = 1.0;
+let _diffLabel  = "";  // e.g. "NORMAL", shown as badge in wave HUD
 
 // Hero hp (iter 10) — visible bar in HUD
 const HERO_MAX_HP    = CFG.heroMaxHp    || 100;
@@ -2376,6 +2378,14 @@ if (typeof WaveManager !== "undefined") {
       _diffHpMul  = parseFloat(btn.dataset.hp);
       _diffDmgMul = parseFloat(btn.dataset.dmg);
       const _label = btn.querySelector("div").textContent;
+      _diffLabel = _label.toUpperCase();
+      const _diffBadge = document.getElementById("difficultyBadge");
+      if (_diffBadge) {
+        const _diffColors = { EASY: "#88ff66", NORMAL: "#66aaff", HARD: "#ffaa44", NIGHTMARE: "#ff4444" };
+        _diffBadge.textContent = _diffLabel;
+        _diffBadge.style.color = _diffColors[_diffLabel] || "#aaa";
+        _diffBadge.style.display = "inline";
+      }
       _dScr.style.display = "none";
       showToast(`Difficulty: ${_label}`, "info", 2500);
       const _cv = document.querySelector("canvas");
