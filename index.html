@@ -3056,10 +3056,18 @@ function _spawnWeaponPickup(u, v, weaponId) {
   );
   grip.position.set(-0.1, -0.1, 0);
   grp.add(body); grp.add(grip);
+  // Light pillar — tall transparent cylinder beacon
+  const _pillarCol = col;
+  const pillar = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.04, 6, 6),
+    new THREE.MeshBasicMaterial({ color: _pillarCol, transparent: true, opacity: 0.35, depthWrite: false })
+  );
+  pillar.position.set(0, 3, 0);
+  grp.add(pillar);
   grp.position.set(u, 0.35, v);
   grp.rotation.y = Math.random() * Math.PI * 2;
   scene.add(grp);
-  weaponPickups.push({ mesh: grp, u, v, weaponId, collected: false });
+  weaponPickups.push({ mesh: grp, u, v, weaponId, collected: false, pillar });
 }
 
 // Grenade crates — static supply caches that restock grenades
@@ -6888,6 +6896,7 @@ function tick() {
     if (wp.collected) continue;
     wp.mesh.rotation.y += dt * 1.8;
     wp.mesh.position.y = 0.35 + Math.sin(now / 350 + wp.u) * 0.1;
+    if (wp.pillar) wp.pillar.material.opacity = 0.25 + 0.15 * Math.sin(now / 400 + wp.u);
     if (Math.hypot(heroNow.u - wp.u, heroNow.v - wp.v) < 1.2) {
       wp.collected = true;
       scene.remove(wp.mesh);
