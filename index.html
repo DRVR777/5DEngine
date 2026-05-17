@@ -2275,6 +2275,8 @@ if (typeof WaveManager !== "undefined") {
   WaveManager.init({
     onWaveStart: (w) => {
       showToast(`Wave ${w} incoming!`, "danger", 3000);
+      // Respawn all broken loot crates at wave start
+      if (w >= 2) for (const _cr of crates) { if (_cr.broken) { _cr.broken = false; _cr.hp = _cr.maxHp; _cr.mesh.visible = true; } }
       if (w >= 2) {
         const _oAng = Math.random() * Math.PI * 2, _oDist = 4 + Math.random() * 6;
         _spawnSpeedOrb(Math.cos(_oAng) * _oDist, Math.sin(_oAng) * _oDist);
