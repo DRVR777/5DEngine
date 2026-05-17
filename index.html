@@ -5702,11 +5702,16 @@ function tick() {
         if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
           const headshot = b.posY > 1.35;
           const _wResist = (_DMG_MUL[en.type] || {})[b.weaponId || "pistol"] || 1.0;
-          const dmg = Math.round(b.damage * (headshot ? 1.85 : 1) * _wResist);
+          const isCrit = !headshot && Math.random() < 0.10;
+          const dmg = Math.round(b.damage * (headshot ? 1.85 : isCrit ? 2.5 : 1) * _wResist);
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
           _shotsHit++; _damageDealt += dmg;
-          hitMarkerUntil = now + (headshot ? 200 : 120);
+          hitMarkerUntil = now + (headshot ? 200 : isCrit ? 180 : 120);
+          if (isCrit) {
+            _spawnDamageNumber(ep.u, b.posY + 0.4, ep.v, `★ ${dmg}`, "#ffd166");
+            playSfx("tone:1400:50:sine", 0.18);
+          }
           if (headshot) {
             showToast("HEADSHOT!", "danger", 600);
             playSfx("tone:1200:40:sine", 0.4);
