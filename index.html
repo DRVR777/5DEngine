@@ -5279,6 +5279,26 @@ function tick() {
                 playSfx("tone:600:40:sine", 0.3);
               }
             }
+            // Heavy grenade throw — lobs a grenade every 4s when 3.5–12m away with LOS
+            if (en.type === "heavy" && canSee && dist > 3.5 && dist < 12) {
+              if (!en._grenadeT || now / 1000 - en._grenadeT > 4.0) {
+                en._grenadeT = now / 1000;
+                const tof = 1.5;
+                const hspeed = dist / tof;
+                const throwAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
+                const gMesh = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.15, 6, 5),
+                  new THREE.MeshStandardMaterial({ color: 0x222200, roughness: 0.8, metalness: 0.5 })
+                );
+                gMesh.position.set(ep.u, ep.y + 1.2, ep.v);
+                scene.add(gMesh);
+                grenades3D.push({ mesh: gMesh, fuse: tof + 0.3, u: ep.u, y: ep.y + 1.2, v: ep.v,
+                  velU: Math.sin(throwAng) * hspeed,
+                  velY: Math.abs(GRAVITY) * tof / 2,
+                  velV: Math.cos(throwAng) * hspeed });
+                playSfx("tone:150:80:triangle", 0.22);
+              }
+            }
           },
           onPatrol: (ctx) => {
             en._patrolAngle = (en._patrolAngle || 0) + dt * 0.35;
