@@ -4083,7 +4083,7 @@ function _tryShoot() {
   const dxA = aimX - hp.u, dzA = aimZ - hp.v;
   const baseAngle = Math.atan2(dxA, dzA);
   const pellets = wep.pellets || 1;
-  const spread  = wep.spread  || 0;
+  const spread  = (wep.spread || 0) + _moveSpread * 0.12; // accuracy penalty while moving
   for (let p = 0; p < pellets; p++) {
     const ang = baseAngle + (Math.random() - 0.5) * spread * 2;
     const dirU = Math.sin(ang), dirV = Math.cos(ang);
@@ -4190,6 +4190,11 @@ function tick() {
   _sprintFovAmt += (sprintFovTarget - _sprintFovAmt) * Math.min(1, dt * 8);
   camera.fov = 60 + _sprintFovAmt * 8;
   camera.updateProjectionMatrix();
+
+  // Movement accuracy penalty — grows while moving, recovers when still/aiming
+  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
+  const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? 0.45 : 0));
+  _moveSpread += (moveSpreadTarget - _moveSpread) * Math.min(1, dt * 5);
 
   // Snap-zone keybinds — lerp camDist toward snapZoomTarget if set
   if (snapZoomTarget != null && window.CameraSpine) {
@@ -5145,11 +5150,14 @@ function tick() {
     (buildMode ? `<br><b style="color:#00ccff">BUILD MODE</b> <span style="color:#556677">WASD fly · R=lock mouse · P=char · K=config · N=spawn point · Tab=library</span>` : "") +
     (reloadMsgUntil > performance.now() ? `<br><b style="color:#ffd166">↻ ${reloadMsg}</b>` : "");
 
-  // Hit marker crosshair flash
+  // Hit marker crosshair flash + spread expansion
   const crosshairEl = document.getElementById("crosshair");
   if (crosshairEl) {
-    if (now < hitMarkerUntil) crosshairEl.classList.add("hit");
-    else crosshairEl.classList.remove("hit");
+    const hitNow = now < hitMarkerUntil;
+    const spreadScale = 1 + _moveSpread * 0.6;
+    const scale = hitNow ? 1.5 : spreadScale;
+    crosshairEl.style.transform = `translate(-50%,-50%) scale(${scale.toFixed(2)})`;
+    crosshairEl.style.borderColor = hitNow ? "var(--holo-red)" : `rgba(0,200,255,${(0.7 - _moveSpread * 0.3).toFixed(2)})`;
   }
 
   // Directional damage indicator — red wedge pointing at attacker
