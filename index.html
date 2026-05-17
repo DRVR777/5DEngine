@@ -1778,6 +1778,22 @@ function _throwGrenade() {
 }
 function _explodeGrenade(g) {
   scene.remove(g.mesh);
+  if (g._isBossRock) {
+    // Boss rock impact — dust + rubble, smaller blast
+    _spawnParticles(g.u, 0.2, g.v, 60, "orange", 12, 1.5);
+    _spawnParticles(g.u, 0.5, g.v, 30, "white", 8, 1.2);
+    playSfx("tone:60:300:sawtooth", 0.8);
+    const hr = world.players.get("hero");
+    const hd = Math.hypot(hr.u - g.u, hr.v - g.v);
+    if (hd < 3.5) {
+      _applyScreenShake(0.5 * (1 - hd / 3.5));
+      if (_dodgeT <= 0 && !_heroDead && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+        const impDmg = Math.round(45 * (1 - hd / 3.5));
+        if (impDmg > 0) { let d = impDmg; if (heroArmor > 0) { const a = Math.min(heroArmor, d * ARMOR_ABSORB); heroArmor -= a; d -= a; } heroHp = Math.max(0, heroHp - d); heroLastDamageT = performance.now() / 1000; flashDamage(); if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen(); }
+      }
+    }
+    return;
+  }
   _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 200, "orange", 28, 3.2);
   _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 80,  "white",  20, 4.5);
   _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 60,  "red",    22, 2.0);
@@ -5806,6 +5822,27 @@ function tick() {
                   velY: Math.abs(GRAVITY) * tof / 2,
                   velV: Math.cos(throwAng) * hspeed });
                 playSfx("tone:150:80:triangle", 0.22);
+              }
+            }
+            // Boss rock throw — hurls a slow boulder every 6s at 5-15m range
+            if (en.type === "boss" && canSee && dist >= 5 && dist < 15) {
+              if (!en._rockT || now / 1000 - en._rockT > 6.0) {
+                en._rockT = now / 1000;
+                const tof = 1.8;
+                const rspeed = dist / tof;
+                const throwAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
+                const rMesh = new THREE.Mesh(
+                  new THREE.DodecahedronGeometry(0.42, 0),
+                  new THREE.MeshStandardMaterial({ color: 0x555544, roughness: 1.0, metalness: 0.1 })
+                );
+                rMesh.position.set(ep.u, ep.y + 2.0, ep.v);
+                scene.add(rMesh);
+                grenades3D.push({ mesh: rMesh, fuse: tof + 0.5, u: ep.u, y: ep.y + 2.0, v: ep.v,
+                  velU: Math.sin(throwAng) * rspeed,
+                  velY: Math.abs(GRAVITY) * tof / 2,
+                  velV: Math.cos(throwAng) * rspeed, _isBossRock: true });
+                playSfx("tone:80:200:sawtooth", 0.55);
+                _applyScreenShake(0.2);
               }
             }
             // Boss ground slam — AoE shockwave every 5s when within 4m
