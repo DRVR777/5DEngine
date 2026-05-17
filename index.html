@@ -323,6 +323,12 @@
     <circle cx="50" cy="50" r="42" fill="none" stroke="#ff2222" stroke-width="4" opacity="0.85" stroke-dasharray="264"/>
   </svg>
 </div>
+<!-- Kill combo multiplier HUD (top-right, below minimap) -->
+<div id="comboHud" style="display:none;position:fixed;top:200px;right:8px;pointer-events:none;z-index:200;font-family:ui-monospace,monospace;text-align:right;min-width:56px">
+  <div id="comboMulText" style="font-size:30px;font-weight:900;color:#ffd166;text-shadow:0 0 14px #ff8800cc;letter-spacing:0.04em;line-height:1">x1</div>
+  <div style="font-size:9px;color:#aaa;letter-spacing:0.14em;margin-top:-2px">COMBO</div>
+  <div style="height:3px;background:rgba(255,200,0,0.15);border-radius:2px;margin-top:5px;overflow:hidden"><div id="comboFill" style="height:100%;background:linear-gradient(90deg,#ff8800,#ffd166);width:100%"></div></div>
+</div>
 <div id="scopeOverlay" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:1050">
   <!-- Black vignette with hole punched by radial gradient -->
   <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, transparent 35%, rgba(0,0,0,0.96) 37.5%)"></div>
@@ -1060,6 +1066,9 @@ let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
 const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
+let _comboCount = 0;      // kills in current combo (resets if gap > _COMBO_DECAY)
+let _comboLastT = 0;      // timestamp of most recent combo kill
+const _COMBO_DECAY = 3.5; // seconds without a kill to break the combo
 let _recentKillPos = [];    // morale tracker: [{u, v, t}] of recent kills
 let _panicBroadcastT = -99; // last rout broadcast time (prevents spam)
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
@@ -1161,7 +1170,7 @@ function _heroRespawn() {
   heroLastDamageT = -999;
   velocityY = 0;
   _stamina = STAMINA_MAX;
-  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0;
+  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
   playSfx("tone:440:120:sine", 0.5);
   if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp });
   // Re-lock pointer
@@ -1178,7 +1187,7 @@ function _heroRespawn() {
     if (vEl) vEl.style.display = "none";
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
-    score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0;
+    score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
   });
 })();
 
@@ -1811,6 +1820,7 @@ function _explodeGrenade(g) {
       en.hp = Math.max(0, en.hp - dmg);
       if (en.hp <= 0 && !en.dead) {
         en.dead = true; en.respawnT = performance.now() / 1000; enemyKills++;
+        _comboCount++; _comboLastT = performance.now() / 1000;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         _addKillFeedEntry(`★ GRENADE KILL #${enemyKills} — ${en.type}`, "#ff8800");
         _trackKillAndPanic(ep.u, ep.v);
@@ -2321,6 +2331,7 @@ function _explodeBarrel(u, v) {
       en.hp = Math.max(0, en.hp - Math.round(MAX_DMG * (1 - d / RADIUS)));
       if (en.hp <= 0 && !en.dead) {
         en.dead = true; en.respawnT = nowMs / 1000; enemyKills++;
+        _comboCount++; _comboLastT = nowMs / 1000;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         _addKillFeedEntry(`★ BARREL KILL #${enemyKills} — ${en.type}`, "#ff6600");
         _trackKillAndPanic(ep.u, ep.v);
@@ -4381,11 +4392,13 @@ addEventListener("keydown", (e) => {
         playSfx("tone:200:60:sawtooth", 0.3);
         if (en.hp === 0 && !en.dead) {
           en.dead = true; en.respawnT = performance.now() / 1000; en._wasChasing = false;
-          enemyKills++; _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
+          enemyKills++; _comboCount++; _comboLastT = performance.now() / 1000;
+          _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
           _addKillFeedEntry(`★ MELEE KILL #${enemyKills} — ${en.type}`, "#ff8800");
           _trackKillAndPanic(ep.u, ep.v);
           _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
           if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
+          { const _mCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _mCoinMul); }
         }
       }
     }
@@ -5497,6 +5510,8 @@ function tick() {
               _streakCount = 1;
             }
             _lastKillT = nowSec;
+            // Combo multiplier tracking
+            _comboCount++; _comboLastT = nowSec;
             const streakMsgs = { 3: "TRIPLE KILL! +3 bonus coins", 5: "RAMPAGE! +5 bonus coins", 10: "UNSTOPPABLE! +10 bonus coins" };
             if (streakMsgs[_streakCount]) {
               const bonusCoins = _streakCount === 3 ? 3 : _streakCount === 5 ? 5 : 10;
@@ -5514,7 +5529,9 @@ function tick() {
             _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
             if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
             const coinVal = _COIN_BY_TYPE[en.type] || 1;
-            _spawnCoinDrop(ep.u, ep.v, coinVal);
+            const _bCoinMul = Math.min(8, _comboCount);
+            if (_bCoinMul > 1) _spawnDamageNumber(ep.u, 2.4, ep.v, `x${_bCoinMul}`, "#ffd166");
+            _spawnCoinDrop(ep.u, ep.v, coinVal * _bCoinMul);
             if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
             // Boss/heavy/robot death — big explosion + screen flash
             if (en.type === "boss" || en.type === "heavy" || en.type === "robot") {
@@ -6780,6 +6797,35 @@ function tick() {
     stFillEl.style.background = _stamina < STAMINA_LOCKOUT
       ? "linear-gradient(90deg,#ff4444,#ff8844)"
       : "linear-gradient(90deg,#44aaff,#00ccff)";
+  }
+
+  // Kill combo multiplier HUD
+  {
+    const _cNow = now / 1000;
+    if (_comboCount > 0 && _cNow - _comboLastT > _COMBO_DECAY) _comboCount = 0;
+    const comboHudEl = document.getElementById("comboHud");
+    const comboMulEl = document.getElementById("comboMulText");
+    const comboFillEl = document.getElementById("comboFill");
+    if (comboHudEl) {
+      if (_comboCount >= 2) {
+        comboHudEl.style.display = "block";
+        const mul = Math.min(8, _comboCount);
+        if (comboMulEl) {
+          comboMulEl.textContent = `x${mul}`;
+          const hue = mul >= 6 ? "#ff4466" : mul >= 4 ? "#ff8800" : "#ffd166";
+          comboMulEl.style.color = hue;
+          comboMulEl.style.textShadow = `0 0 14px ${hue}cc`;
+          const pulse = 1 + 0.08 * Math.sin(_cNow * 12);
+          comboMulEl.style.transform = `scale(${pulse.toFixed(3)})`;
+        }
+        if (comboFillEl) {
+          const frac = Math.max(0, 1 - (_cNow - _comboLastT) / _COMBO_DECAY);
+          comboFillEl.style.width = (frac * 100).toFixed(1) + "%";
+        }
+      } else {
+        comboHudEl.style.display = "none";
+      }
+    }
   }
 
   // Holographic weapon panel update
