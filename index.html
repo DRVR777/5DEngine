@@ -8407,11 +8407,17 @@ function tick() {
       // Count alive enemies chasing hero
       const aliveChasing = enemies.filter(e => !e.dead && e._wasChasing).length;
       const bossAlive = enemies.some(e => !e.dead && e.type === "boss");
-      // Combat tension — fades in with enemy count
-      const tensionVol = Math.min(0.05, aliveChasing * 0.008);
-      _setAmbient("tension", bossAlive ? 38 : 55, "sine", tensionVol, 1.8);
+      const anyAlive   = enemies.some(e => !e.dead && e.id.startsWith("en_spawned_"));
+      // Calm pad — minor chord (root + minor 3rd) when no enemies are chasing between waves
+      const calmVol = (!anyAlive || aliveChasing === 0) && !bossAlive && !_heroDead ? 0.024 : 0;
+      _setAmbient("calm",  110,   "sine", calmVol,          3.2);
+      _setAmbient("calm2", 130.8, "sine", calmVol * 0.65,   3.2); // minor 3rd (110 × 1.189)
+      // Combat tension — fades in with enemy count; second detuned osc creates beating
+      const tensionVol = Math.min(0.055, aliveChasing * 0.010);
+      _setAmbient("tension",  bossAlive ? 38 : 55, "sine",     tensionVol,         1.8);
+      _setAmbient("tension2", bossAlive ? 42 : 58, "triangle", tensionVol * 0.55,  1.8);
       // Boss rumble — deep low freq pulse when boss is alive
-      _setAmbient("bossRumble", 28, "square", bossAlive ? 0.015 : 0, 2.0);
+      _setAmbient("bossRumble", 28, "square", bossAlive ? 0.018 : 0, 2.0);
     }
   }
 
