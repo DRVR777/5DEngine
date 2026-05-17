@@ -4249,11 +4249,6 @@ function tick() {
   const crosshairDiv = document.getElementById("crosshair");
   if (crosshairDiv) crosshairDiv.style.visibility = isSniperScope ? "hidden" : "visible";
 
-  // Movement accuracy penalty — grows while moving, recovers when still/aiming
-  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
-  const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? 0.45 : 0));
-  _moveSpread += (moveSpreadTarget - _moveSpread) * Math.min(1, dt * 5);
-
   // Snap-zone keybinds — lerp camDist toward snapZoomTarget if set
   if (snapZoomTarget != null && window.CameraSpine) {
     camDist = window.CameraSpine.lerpZoom(camDist, snapZoomTarget, dt, 8);
@@ -4322,6 +4317,11 @@ function tick() {
   const inputF = (buildMode || _heroDead) ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
   const inputR = (buildMode || _heroDead) ? 0 : ((keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0));
   const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
+
+  // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
+  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
+  const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? 0.45 : 0));
+  _moveSpread += (moveSpreadTarget - _moveSpread) * Math.min(1, dt * 5);
 
   if (!buildMode && inCar && activeVehicleId) {
     // Per-vehicle physics — all params come from the vehicle def
