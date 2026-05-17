@@ -2230,6 +2230,26 @@ function _throwGrenade(cookedFuse) {
 let _heroBlindT = 0; // seconds of white-out flash from flashbang
 function _explodeGrenade(g) {
   scene.remove(g.mesh);
+  if (g._isFireball) {
+    // Incendiary fire bomb — creates a fire patch and deals minor impact damage
+    _spawnFirePatch(g.u, g.v, 2.2, 6.0);
+    _spawnParticles(g.u, 0.5, g.v, 40, "orange", 12, 0.9);
+    _spawnParticles(g.u, 1.0, g.v, 20, "white", 8, 0.5);
+    playSfx("tone:200:180:sawtooth", 0.6); playSfx("tone:400:100:sawtooth", 0.4);
+    _applyScreenShake(0.3);
+    const _hFb = world.players.get("hero");
+    const _hFbD = Math.hypot(_hFb.u - g.u, _hFb.v - g.v);
+    if (_hFbD < 2.5 && !_heroDead && _dodgeT <= 0 && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+      let _fbDmg = Math.round(18 * (1 - _hFbD / 2.5));
+      if (_fbDmg > 0) {
+        if (heroArmor > 0) { const _fa = Math.min(heroArmor, _fbDmg * ARMOR_ABSORB); heroArmor = Math.max(0, heroArmor - _fa); _fbDmg -= _fa; }
+        heroHp = Math.max(0, heroHp - _fbDmg); heroLastDamageT = performance.now() / 1000;
+        flashDamage(); if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
+        showToast(`FIRE BOMB! -${_fbDmg} HP`, "danger", 1000);
+      }
+    }
+    return;
+  }
   if (g._isFlash) {
     // Flashbang — bright white burst, blind nearby enemies + hero
     _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 40, "white", 20, 0.5);
@@ -7285,6 +7305,29 @@ function tick() {
                   velV: Math.cos(throwAng) * rspeed, _isBossRock: true, _warnRing: _rWarnRing });
                 playSfx("tone:80:200:sawtooth", 0.55);
                 _applyScreenShake(0.2);
+              }
+            }
+            // Incendiary fire bomb throw — lobs a flaming ball every 5s at 4-12m range
+            if (en.type === "incendiary" && canSee && dist > 4 && dist < 12) {
+              if (!en._fireT || now / 1000 - en._fireT > 5.0) {
+                en._fireT = now / 1000;
+                const tof = 1.4;
+                const fspeed = dist / tof;
+                const throwAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
+                const fMesh = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.18, 6, 5),
+                  new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff3300, emissiveIntensity: 1.5, roughness: 0.5 })
+                );
+                fMesh.position.set(ep.u, ep.y + 1.2, ep.v); scene.add(fMesh);
+                const _fWarnMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.65, depthWrite: false });
+                const _fWarnRing = new THREE.Mesh(_warnRingGeo, _fWarnMat);
+                _fWarnRing.position.set(ep.u, 0.05, ep.v); scene.add(_fWarnRing);
+                grenades3D.push({ mesh: fMesh, fuse: tof + 0.3, u: ep.u, y: ep.y + 1.2, v: ep.v,
+                  velU: Math.sin(throwAng) * fspeed,
+                  velY: Math.abs(GRAVITY) * tof / 2,
+                  velV: Math.cos(throwAng) * fspeed,
+                  _warnRing: _fWarnRing, _isFireball: true });
+                playSfx("tone:400:60:sawtooth", 0.3);
               }
             }
             // Boss ground slam — AoE shockwave every 5s when within 4m
