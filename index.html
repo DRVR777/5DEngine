@@ -384,7 +384,7 @@
 <!-- Holographic health bar (bottom right, below weapon panel) -->
 <div id="healthBar">
   <div id="hbLabel">HP</div>
-  <div id="hbTrack"><div id="hbFill" style="width:100%;background:linear-gradient(90deg,#00ffaa,#00ccff)"></div></div>
+  <div id="hbTrack" style="position:relative"><div id="hbGhost" style="position:absolute;top:0;left:0;height:100%;border-radius:3px;background:rgba(255,90,50,0.45);width:100%;pointer-events:none"></div><div id="hbFill" style="position:relative;width:100%;background:linear-gradient(90deg,#00ffaa,#00ccff)"></div></div>
   <div id="hbVal">100</div>
 </div>
 <div id="armorBar" style="display:none;position:fixed;bottom:88px;right:12px;display:flex;align-items:center;gap:6px;background:rgba(2,5,14,0.75);border:1px solid rgba(255,200,0,0.4);border-radius:4px;padding:4px 8px;pointer-events:none;z-index:200;font-family:var(--mono);font-size:11px">
@@ -5372,6 +5372,7 @@ function _tryDroneShoot() {
 let lastT = performance.now();
 let _bulletTimeLeft = 0;  // seconds remaining of bullet-time slow (sniper shot trigger)
 let _heartbeatT = 0;      // countdown to next low-HP heartbeat thud
+let _hpGhost = 100;       // lagging HP ghost bar — catches up slowly after damage
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
@@ -7553,6 +7554,9 @@ function tick() {
   }
 
   // Holographic health bar update
+  _hpGhost += (heroHp - _hpGhost) * Math.min(1, dt * 2.2);
+  const hbGhostEl = document.getElementById("hbGhost");
+  if (hbGhostEl) hbGhostEl.style.width = (Math.max(0, _hpGhost / HERO_MAX_HP) * 100).toFixed(1) + "%";
   const hbFill = document.getElementById("hbFill");
   const hbVal  = document.getElementById("hbVal");
   if (hbFill || hbVal) {
