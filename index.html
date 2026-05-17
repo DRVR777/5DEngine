@@ -7793,6 +7793,7 @@ function tick() {
       const gained = Math.min(hp2.amount, HERO_MAX_HP - heroHp);
       heroHp = Math.min(HERO_MAX_HP, heroHp + hp2.amount);
       playSfx("tone:660:120:sine", 0.6);
+      _spawnDamageNumber(hp2.u, 1.5, hp2.v, `+${Math.round(gained)} HP`, "#00ff88");
       if (gained > 0) showToast(`+${Math.round(gained)} HP`, "success", 1800);
     } else {
       hp2.mesh.rotation.x += dt * 1.5;
@@ -7836,6 +7837,7 @@ function tick() {
       const gained = Math.min(_as.amount, HERO_MAX_ARMOR - heroArmor);
       heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + _as.amount);
       playSfx("tone:880:80:triangle", 0.45); playSfx("tone:1100:60:triangle", 0.3);
+      _spawnDamageNumber(_as.u, 1.5, _as.v, `+${Math.round(gained)} ARM`, "#ffd166");
       if (gained > 0) showToast(`+${Math.round(gained)} ARMOR`, "success", 1800);
     } else {
       _as.mesh.rotation.y += dt * 3.0;
