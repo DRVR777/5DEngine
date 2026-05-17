@@ -6024,16 +6024,21 @@ function tick() {
           const headshot = b.posY > 1.35;
           const _bsDot = b.dirU * Math.sin(en.heading) + b.dirV * Math.cos(en.heading);
           const backstab = !headshot && _bsDot > 0.55;
+          const _frontalBlock = !headshot && !backstab && _bsDot < -0.55 && (en.type === "boss" || en.type === "heavy");
           const _wResist = (_DMG_MUL[en.type] || {})[b.weaponId || "pistol"] || 1.0;
-          const isCrit = !headshot && !backstab && Math.random() < 0.10;
-          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : isCrit ? 2.5 : 1) * _wResist);
+          const isCrit = !headshot && !backstab && !_frontalBlock && Math.random() < 0.10;
+          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist);
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
           _shotsHit++; _damageDealt += dmg;
-          hitMarkerUntil = now + (headshot ? 200 : backstab ? 160 : isCrit ? 180 : 120);
+          hitMarkerUntil = now + (headshot ? 200 : backstab ? 160 : _frontalBlock ? 80 : isCrit ? 180 : 120);
           if (backstab) {
             _spawnDamageNumber(ep.u, b.posY + 0.5, ep.v, `⮕ ${dmg}`, "#ff88ff");
             playSfx("tone:900:40:sine", 0.22);
+          }
+          if (_frontalBlock) {
+            _spawnDamageNumber(ep.u, b.posY + 0.4, ep.v, `🛡 ${dmg}`, "#aaaacc");
+            playSfx("tone:220:60:sawtooth", 0.28); playSfx("tone:180:40:square", 0.15);
           }
           if (isCrit) {
             _spawnDamageNumber(ep.u, b.posY + 0.4, ep.v, `★ ${dmg}`, "#ffd166");
