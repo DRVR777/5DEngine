@@ -335,6 +335,12 @@
   <div id="waveClearTitle" style="font-family:ui-monospace,monospace;font-size:38px;font-weight:900;letter-spacing:0.18em;color:#00ffcc;text-shadow:0 0 24px #00ffccaa,0 2px 0 #004433">WAVE CLEAR</div>
   <div id="waveClearSub" style="font-family:ui-monospace,monospace;font-size:16px;color:#ffd166;margin-top:4px;letter-spacing:0.1em"></div>
 </div>
+<!-- Between-wave perk picker overlay -->
+<div id="perkPicker" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:600;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:ui-monospace,monospace">
+  <div style="font-size:22px;font-weight:900;color:#ffd166;letter-spacing:0.18em;text-shadow:0 0 16px #ffd166aa">CHOOSE A PERK</div>
+  <div style="font-size:13px;color:#aaa">Wave <span id="perkWaveNum">0</span> reward &nbsp;·&nbsp; auto-select in <span id="perkTimer">10</span>s</div>
+  <div id="perkCards" style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:700px"></div>
+</div>
 <!-- Boss HP bar (top-center, below kill feed) -->
 <div id="bossHpBar" style="display:none;position:fixed;top:75px;left:50%;transform:translateX(-50%);width:340px;pointer-events:none;z-index:202;text-align:center;font-family:ui-monospace,monospace">
   <div id="bossName" style="font-size:10px;font-weight:900;color:#ff4444;letter-spacing:0.22em;text-transform:uppercase;margin-bottom:4px;text-shadow:0 0 8px #ff0000aa">BOSS</div>
@@ -1145,9 +1151,76 @@ const _COMBO_DECAY = 3.5; // seconds without a kill to break the combo
 let _comboAnnouncedMul = 0; // last combo milestone (2/4/6/8) with audio+toast played
 let _recentKillPos = [];    // morale tracker: [{u, v, t}] of recent kills
 let _panicBroadcastT = -99; // last rout broadcast time (prevents spam)
+// Between-wave perk system
+let _perkDmgMul    = 1.0;   // stacks multiplicatively with kill-level damage
+let _perkReloadMul = 1.0;   // < 1 = faster reload
+let _perkMaxHpBonus = 0;    // added to effective max HP
+let _perkLifesteal  = false; // kills restore 3 HP
+let _perkRegenBonus = 0;    // hp/s bonus stacked onto regen rate
+let _perkSpeedBonus = 0;    // m/s added to sprint speed
+let _perkTimerInt   = null;  // interval id for countdown display
+const _PERKS = [
+  { id:"dmg",      label:"Power Shot",   desc:"+15% weapon damage",          color:"#ff8844", apply:() => { _perkDmgMul *= 1.15; } },
+  { id:"speed",    label:"Sprinter",     desc:"+1 m/s sprint speed",          color:"#44ffcc", apply:() => { _perkSpeedBonus += 1; } },
+  { id:"regen",    label:"Battle Medic", desc:"+3 HP/s regen rate",           color:"#44ff88", apply:() => { _perkRegenBonus += 3; } },
+  { id:"reload",   label:"Quick Hands",  desc:"15% faster reloads",           color:"#88aaff", apply:() => { _perkReloadMul *= 0.85; } },
+  { id:"maxhp",    label:"Resilient",    desc:"+25 max HP, heal 15",          color:"#ff4466", apply:() => { _perkMaxHpBonus += 25; heroHp = Math.min(heroHp + 15, HERO_MAX_HP + _perkMaxHpBonus); } },
+  { id:"grenades", label:"Grenadier",    desc:"+3 frag grenades",             color:"#ff6600", apply:() => { grenadeCount = Math.min(9, grenadeCount + 3); } },
+  { id:"smoke",    label:"Smoke Screen", desc:"+2 smoke grenades",            color:"#aaaacc", apply:() => { smokeGrenadeCount = Math.min(9, smokeGrenadeCount + 2); } },
+  { id:"armor",    label:"Fortified",    desc:"+30 armor",                    color:"#88ccff", apply:() => { heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 30); } },
+  { id:"vampire",  label:"Vampire",      desc:"Kills restore 3 HP",           color:"#cc44cc", apply:() => { _perkLifesteal = true; } },
+  { id:"ammo",     label:"Ammo Dump",    desc:"+40 ammo for active weapon",   color:"#ffd166", apply:() => { Inv.addItem(heroInv, getWeapon().ammoItem || "pistol_9mm", 40); } },
+];
+function _showPerkPicker(waveNum) {
+  const overlay = document.getElementById("perkPicker");
+  if (!overlay) return;
+  // Pick 3 unique random perks
+  const pool = [..._PERKS].sort(() => Math.random() - 0.5).slice(0, 3);
+  const cards = document.getElementById("perkCards");
+  const timerEl = document.getElementById("perkTimer");
+  const waveEl  = document.getElementById("perkWaveNum");
+  if (waveEl) waveEl.textContent = waveNum;
+  if (cards) {
+    cards.innerHTML = "";
+    pool.forEach(perk => {
+      const card = document.createElement("div");
+      card.style.cssText = `width:180px;padding:16px 14px;background:rgba(10,10,20,0.92);border:2px solid ${perk.color};border-radius:10px;cursor:pointer;text-align:center;transition:transform 0.12s,box-shadow 0.12s;box-shadow:0 0 10px ${perk.color}44;`;
+      card.innerHTML = `<div style="font-size:15px;font-weight:900;color:${perk.color};letter-spacing:0.08em;margin-bottom:6px">${perk.label}</div><div style="font-size:12px;color:#ccc;line-height:1.4">${perk.desc}</div>`;
+      card.onmouseenter = () => { card.style.transform = "scale(1.07)"; card.style.boxShadow = `0 0 22px ${perk.color}88`; };
+      card.onmouseleave = () => { card.style.transform = ""; card.style.boxShadow = `0 0 10px ${perk.color}44`; };
+      card.onclick = () => { _applyPerk(perk, waveNum); };
+      cards.appendChild(card);
+    });
+  }
+  overlay.style.display = "flex";
+  document.exitPointerLock && document.exitPointerLock();
+  let secs = 10;
+  if (_perkTimerInt) clearInterval(_perkTimerInt);
+  _perkTimerInt = setInterval(() => {
+    secs--;
+    if (timerEl) timerEl.textContent = secs;
+    if (secs <= 0) { clearInterval(_perkTimerInt); _perkTimerInt = null; _applyPerk(pool[Math.floor(Math.random() * pool.length)], waveNum); }
+  }, 1000);
+}
+function _applyPerk(perk, waveNum) {
+  if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
+  const overlay = document.getElementById("perkPicker");
+  if (overlay) overlay.style.display = "none";
+  perk.apply();
+  showToast(`★ PERK: ${perk.label} — ${perk.desc}`, "success", 3000);
+  _addKillFeedEntry(`★ PERK (W${waveNum}): ${perk.label}`, "#ffd166");
+  playSfx("tone:880:80:sine", 0.5); playSfx("tone:1100:60:sine", 0.4);
+  // Re-lock pointer so the game continues
+  const canvas = document.getElementById("gameCanvas") || document.querySelector("canvas");
+  if (canvas && canvas.requestPointerLock) canvas.requestPointerLock();
+}
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
 function _trackKillAndPanic(killU, killV) {
   const t = performance.now() / 1000;
+  if (_perkLifesteal && !_heroDead) {
+    heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + 3);
+    _spawnDamageNumber(killU, 2.0, killV, "+3 HP", "#cc44cc");
+  }
   _recentKillPos.push({ u: killU, v: killV, t });
   _recentKillPos = _recentKillPos.filter(k => t - k.t < 4.0);
   if (_recentKillPos.length >= 3 && t - _panicBroadcastT > 4.0) {
@@ -1281,6 +1354,9 @@ function _heroRespawn() {
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
     _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false;
+    _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0;
+    if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
+    const _ppOv = document.getElementById("perkPicker"); if (_ppOv) _ppOv.style.display = "none";
     const _lvlEl = document.getElementById("heroLevelHud"); if (_lvlEl) _lvlEl.textContent = "";
   });
 })();
@@ -2365,6 +2441,8 @@ if (typeof WaveManager !== "undefined") {
         const _chEl = document.getElementById("waveChallengeHud");
         if (_chEl) _chEl.textContent = "";
       }
+      // Perk picker — show 3s after wave clear banner fades
+      setTimeout(() => _showPerkPicker(w), 3200);
       // Reset accuracy counters for next wave
       _shotsFired = 0; _shotsHit = 0;
       // Respawn exploded barrels between waves
@@ -5892,7 +5970,7 @@ const STAMINA_REGEN  = 14;  // per second when not sprinting
 const STAMINA_LOCKOUT = 15; // minimum stamina required to re-enter sprint
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
-const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
+const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _perkReloadMul);
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
 
 function tick() {
@@ -6109,7 +6187,7 @@ function tick() {
     }
   }
   const _speedBoostMul = _speedBoostT > 0 ? 1.5 : 1.0;
-  const _baseSpeed = canSprint ? (SPRINT + _heroLvlSpeedBonus) : (WALK + _heroLvlSpeedBonus * 0.5) * crouchSpeedMul;
+  const _baseSpeed = canSprint ? (SPRINT + _heroLvlSpeedBonus + _perkSpeedBonus) : (WALK + _heroLvlSpeedBonus * 0.5) * crouchSpeedMul;
   const speed = _baseSpeed * _speedBoostMul;
 
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
@@ -6405,7 +6483,7 @@ function tick() {
           const _wResist = (_DMG_MUL[en.type] || {})[b.weaponId || "pistol"] || 1.0;
           const isCrit = !headshot && !backstab && !_frontalBlock && Math.random() < 0.10;
           const _falloffMul = b.falloff ? Math.max(0.15, 1 - (b.traveled / (b.range || 1)) * b.falloff) : 1;
-          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul * _falloffMul);
+          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul * _perkDmgMul * _falloffMul);
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
           en._hitFlashT = 0.08;
@@ -7459,8 +7537,8 @@ function tick() {
   }
 
   // Hero hp regen after no-damage delay
-  if (heroHp < HERO_MAX_HP && (now / 1000 - heroLastDamageT) > HERO_REGEN_DELAY) {
-    heroHp = Math.min(HERO_MAX_HP, heroHp + HERO_REGEN_RATE * dt);
+  if (heroHp < HERO_MAX_HP + _perkMaxHpBonus && (now / 1000 - heroLastDamageT) > HERO_REGEN_DELAY) {
+    heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + (HERO_REGEN_RATE + _perkRegenBonus) * dt);
   }
   if (heroHp > 15) _nearDeathFired = false; // allow re-trigger if healed above threshold
 
