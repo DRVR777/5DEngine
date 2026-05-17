@@ -513,6 +513,18 @@
 <canvas id="minimap" width="180" height="180"></canvas>
 <div id="crosshair"></div>
 <div id="damageFlash"></div>
+
+<!-- Dev console (` key) -->
+<div id="devConsole" style="display:none;position:fixed;bottom:0;left:0;right:0;height:220px;background:rgba(0,6,14,0.94);border-top:1px solid rgba(0,200,255,0.35);z-index:2000;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12px;flex-direction:column">
+  <div id="devConsoleLogs" style="flex:1;overflow-y:auto;padding:6px 10px;color:#88ccdd;line-height:1.5;max-height:172px"></div>
+  <div style="display:flex;align-items:center;border-top:1px solid rgba(0,200,255,0.2);padding:4px 8px;gap:6px">
+    <span style="color:#00ccff;font-size:11px">›</span>
+    <input id="devConsoleInput" type="text" autocomplete="off" spellcheck="false"
+      style="flex:1;background:transparent;border:none;outline:none;color:#e0f0ff;font-family:inherit;font-size:12px"
+      placeholder="god | noclip | spawn <type> | tp <u> <v> | wave <n> | heal | ammo | help">
+  </div>
+</div>
+
 <div id="deathOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1200;align-items:center;justify-content:center;flex-direction:column;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;color:#eee;text-align:center;">
   <div style="font-size:52px;font-weight:bold;color:#ff3333;text-shadow:0 0 30px #ff0000aa;letter-spacing:0.08em;margin-bottom:16px">YOU DIED</div>
   <div id="deathStats" style="font-size:15px;color:#aaa;margin-bottom:24px;line-height:2"></div>
@@ -1061,6 +1073,112 @@ let heroLastDamageT = -Infinity;
 let heroArmor = 0;          // 0..75; absorbs 60% of incoming damage
 const HERO_MAX_ARMOR = 75;
 const ARMOR_ABSORB   = 0.6; // fraction of hit taken from armor instead of HP
+
+// Engine debug namespace (godMode, noclip checks are guarded by typeof Engine)
+window.Engine = window.Engine || {};
+window.Engine.debug = window.Engine.debug || { godMode: false, noclip: false };
+
+// ---- Dev console (` key) ----
+(function() {
+  const _con = document.getElementById("devConsole");
+  const _log = document.getElementById("devConsoleLogs");
+  const _inp = document.getElementById("devConsoleInput");
+  if (!_con || !_log || !_inp) return;
+
+  let _open = false;
+  const _hist = [], _histIdx = { v: -1 };
+
+  function _conPrint(msg, color) {
+    const line = document.createElement("div");
+    line.style.color = color || "#88ccdd";
+    line.textContent = msg;
+    _log.appendChild(line);
+    if (_log.children.length > 80) _log.removeChild(_log.firstChild);
+    _log.scrollTop = _log.scrollHeight;
+  }
+
+  function _conExec(raw) {
+    const parts = raw.trim().split(/\s+/);
+    const cmd = (parts[0] || "").toLowerCase();
+    _conPrint("› " + raw, "#4488aa");
+    switch (cmd) {
+      case "god":
+        window.Engine.debug.godMode = !window.Engine.debug.godMode;
+        _conPrint("God mode: " + (window.Engine.debug.godMode ? "ON" : "OFF"), "#ffd166");
+        break;
+      case "noclip":
+        window.Engine.debug.noclip = !window.Engine.debug.noclip;
+        _conPrint("Noclip: " + (window.Engine.debug.noclip ? "ON" : "OFF"), "#ffd166");
+        break;
+      case "heal":
+        if (typeof heroHp !== "undefined") { heroHp = HERO_MAX_HP; heroArmor = HERO_MAX_ARMOR; _conPrint("HP + Armor full.", "#00ff88"); }
+        break;
+      case "ammo":
+        if (typeof weaponAmmo !== "undefined" && typeof CFG !== "undefined") {
+          for (const w of (CFG.weapons || [])) { weaponAmmo.set(w.id, w.magCap); }
+          if (typeof pistolAmmo !== "undefined") pistolAmmo = getWeapon().magCap;
+          _conPrint("All weapon ammo refilled.", "#00ff88");
+        }
+        break;
+      case "spawn": {
+        const type = parts[1] || "grunt";
+        if (typeof window._spawnEnemyAtHero === "function") {
+          window._spawnEnemyAtHero(type);
+          _conPrint(`Spawned ${type}.`, "#aaffcc");
+        } else { _conPrint("Spawn not available.", "#ff4466"); }
+        break;
+      }
+      case "tp": {
+        const tu = parseFloat(parts[1]), tv = parseFloat(parts[2]);
+        if (!isNaN(tu) && !isNaN(tv) && typeof world !== "undefined") {
+          const hp = world.players.get("hero");
+          world.setPlayer("hero", hp.x, hp.y, hp.z, tu, tv);
+          _conPrint(`Teleported to (${tu}, ${tv}).`, "#aaffcc");
+        } else { _conPrint("Usage: tp <u> <v>", "#ff8844"); }
+        break;
+      }
+      case "wave": {
+        const wn = parseInt(parts[1], 10);
+        if (!isNaN(wn) && typeof waveManager !== "undefined") {
+          waveManager.wave = wn - 1; waveManager.phase = "spawn";
+          _conPrint(`Wave set to ${wn}.`, "#aaffcc");
+        } else { _conPrint("Usage: wave <n>", "#ff8844"); }
+        break;
+      }
+      case "help":
+        _conPrint("Commands: god  noclip  heal  ammo  spawn <type>  tp <u> <v>  wave <n>", "#aaddff");
+        _conPrint("Enemy types: grunt fast heavy poisoner incendiary robot", "#556677");
+        break;
+      default:
+        if (cmd) _conPrint("Unknown command. Type 'help' for list.", "#ff6644");
+    }
+  }
+
+  document.addEventListener("keydown", function(e) {
+    if (e.code === "Backquote") {
+      _open = !_open;
+      _con.style.display = _open ? "flex" : "none";
+      if (_open) { setTimeout(() => _inp.focus(), 10); document.exitPointerLock && document.exitPointerLock(); }
+      e.preventDefault(); return;
+    }
+    if (!_open) return;
+    if (e.code === "Enter") {
+      const v = _inp.value.trim();
+      if (v) { _hist.unshift(v); _histIdx.v = -1; _conExec(v); _inp.value = ""; }
+      e.preventDefault();
+    } else if (e.code === "ArrowUp") {
+      _histIdx.v = Math.min(_histIdx.v + 1, _hist.length - 1);
+      _inp.value = _hist[_histIdx.v] || ""; e.preventDefault();
+    } else if (e.code === "ArrowDown") {
+      _histIdx.v = Math.max(_histIdx.v - 1, -1);
+      _inp.value = _histIdx.v >= 0 ? _hist[_histIdx.v] : ""; e.preventDefault();
+    } else if (e.code === "Escape") {
+      _open = false; _con.style.display = "none";
+    }
+  });
+
+  _conPrint("5DEngine dev console ready. Type 'help' for commands.", "#00ccff");
+})();
 
 // StatusEffects entity hooks — called by status_effects.js onTick callbacks
 window._entityDamage = function(entityId, amount, _type) {
@@ -4879,7 +4997,9 @@ function tick() {
     }).filter(Boolean);
     Bridge.applyCameraRelativeMove(
       world, "hero", inputF, inputR, forward, right, speed, dt,
-      { blockers: buildingBlockers.concat(vehicleBlockers), heroHitbox: HERO_HITBOX }
+      (window.Engine && window.Engine.debug.noclip)
+        ? {}
+        : { blockers: buildingBlockers.concat(vehicleBlockers), heroHitbox: HERO_HITBOX }
     );
   }
 
