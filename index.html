@@ -4159,19 +4159,27 @@ function _tryShoot() {
   playSfx("tone:1200:60:square", 0.25);
   const hp = world.players.get("hero");
   if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: hp.y + 1.6, z: hp.v });
-  // Bullet direction: horizontal component of camera world direction (independent of pitch/recoil)
+  // Bullet direction: full 3D camera world direction, normalized
+  const _aimVec = new THREE.Vector3();
+  camera.getWorldDirection(_aimVec); // already normalized
   const baseAngle = _getAimAngle();
   const pellets = wep.pellets || 1;
   const spread  = (wep.spread || 0) + _moveSpread * 0.12;
   for (let p = 0; p < pellets; p++) {
     const ang = baseAngle + (Math.random() - 0.5) * spread * 2;
-    const dirU = Math.sin(ang), dirV = Math.cos(ang);
+    // Horizontal spread applied in XZ; vertical component from camera pitch
+    const hcos = Math.cos(camPitch);
+    const dirU = Math.sin(ang) * hcos;
+    const dirY = Math.sin(camPitch);
+    const dirV = Math.cos(ang) * hcos;
     const mesh = new THREE.Mesh(bulletGeo, bulletMat);
-    mesh.rotation.y = -ang;
+    // Orient bullet tracer to face travel direction
+    const _bDir = new THREE.Vector3(dirU, dirY, dirV).normalize();
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), _bDir);
     const bulletY = hp.y + 1.5;
     mesh.position.set(hp.u, bulletY, hp.v);
     scene.add(mesh);
-    bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
+    bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirY, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
   }
   const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
   _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
@@ -4517,6 +4525,7 @@ function tick() {
       const b = bullets3D[i];
       b.posU += b.dirU * b.speed * subDt;
       b.posV += b.dirV * b.speed * subDt;
+      if (b.dirY) b.posY += b.dirY * b.speed * subDt;
       b.traveled += b.speed * subDt;
       // Hit any enemy?
       let hitEnemy = false;
