@@ -3775,10 +3775,27 @@ function closeComputer() {
   }, 50);
 }
 
-// Scroll-wheel zoom: shrinks camDist into first-person, expands into pull-back.
+// Scroll wheel: switch weapons in play mode, zoom camera in build mode.
 renderer.domElement.addEventListener("wheel", (e) => {
   e.preventDefault();
-  camDist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camDist + e.deltaY * 0.01));
+  if (buildMode) {
+    camDist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camDist + e.deltaY * 0.01));
+    return;
+  }
+  if (computerOpen || computerEntering || _heroDead) return;
+  const weps = CFG.weapons || [];
+  if (weps.length < 2) return;
+  const idx = weps.findIndex(w => w.id === currentWeaponId);
+  const dir = e.deltaY > 0 ? 1 : -1;
+  const next = ((idx + dir) % weps.length + weps.length) % weps.length;
+  weaponAmmo.set(currentWeaponId, pistolAmmo);
+  currentWeaponId = weps[next].id;
+  const nw = weps[next];
+  pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
+  _switchGunMesh(currentWeaponId);
+  playSfx("click", 0.4);
+  reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 800;
+  _showWeaponSelector();
 }, { passive: false });
 
 // Right-click hold to aim — pulls the camera in tight, narrows FOV slightly,
