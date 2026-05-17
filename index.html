@@ -2293,6 +2293,16 @@ if (typeof WaveManager !== "undefined") {
   WaveManager.init({
     onWaveStart: (w) => {
       showToast(`Wave ${w} incoming!`, "danger", 3000);
+      // Per-wave skybox: day(1-3) → sunset(4-6) → night(7-9) → holo(10)
+      const _wn = ((w - 1) % 10) + 1;
+      const _wSkyName = _wn <= 3 ? "day" : _wn <= 6 ? "sunset" : _wn <= 9 ? "night" : "holo";
+      const _wSkyP = _skyboxPresets[_wSkyName];
+      if (_wSkyP) {
+        scene.background = new THREE.Color(_wSkyP.bg);
+        if (scene.fog) { scene.fog.color.set(_wSkyP.fog); scene.fog.near = _wSkyP.fogNear; scene.fog.far = _wSkyP.fogFar; }
+        _ambLight.color.set(_wSkyP.ambColor); _ambLight.intensity = _wSkyP.ambInt;
+        sun.color.set(_wSkyP.sunColor); sun.intensity = _wSkyP.sunInt;
+      }
       // Respawn all broken loot crates at wave start
       if (w >= 2) for (const _cr of crates) { if (_cr.broken) { _cr.broken = false; _cr.hp = _cr.maxHp; _cr.mesh.visible = true; } }
       if (w >= 2) {
