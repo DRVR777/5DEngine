@@ -5178,6 +5178,7 @@ const DODGE_SPEED     = 18;    // units/sec burst
 const DODGE_COOLDOWN  = 1.1;   // seconds before next dodge
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
+let _footstepT = 0;    // seconds until next footstep tick
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -5356,6 +5357,19 @@ function tick() {
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
   const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? 0.45 : 0));
+
+  // Footstep sounds — synthetic tap when hero walks/runs on ground (not in vehicle, not dead)
+  if (isMoving && !_heroDead && pointerLocked) {
+    _footstepT -= dt;
+    if (_footstepT <= 0) {
+      const _fsInterval = canSprint ? 0.26 : (crouching ? 0.55 : 0.38);
+      _footstepT = _fsInterval;
+      const _fsFreq = 80 + Math.random() * 40;
+      playSfx(`tone:${Math.round(_fsFreq)}:30:triangle`, 0.08);
+    }
+  } else {
+    _footstepT = 0;
+  }
   _moveSpread += (moveSpreadTarget - _moveSpread) * Math.min(1, dt * 5);
 
   if (!buildMode && inCar && activeVehicleId) {
