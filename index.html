@@ -2230,6 +2230,24 @@ function _throwGrenade(cookedFuse) {
 let _heroBlindT = 0; // seconds of white-out flash from flashbang
 function _explodeGrenade(g) {
   scene.remove(g.mesh);
+  if (g._isAcidSpit) {
+    // Poisoner acid spit — creates a poison puddle and deals minor splash damage
+    _spawnPoisonPuddle(g.u, g.v);
+    _spawnParticles(g.u, 0.3, g.v, 20, "green", 5, 0.6);
+    playSfx("tone:300:120:sine", 0.35);
+    const _hAs = world.players.get("hero");
+    const _hAsD = Math.hypot(_hAs.u - g.u, _hAs.v - g.v);
+    if (_hAsD < 1.5 && !_heroDead && _dodgeT <= 0 && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+      let _asDmg = Math.round(8 * (1 - _hAsD / 1.5));
+      if (_asDmg > 0) {
+        if (heroArmor > 0) { const _aa = Math.min(heroArmor, _asDmg * ARMOR_ABSORB); heroArmor = Math.max(0, heroArmor - _aa); _asDmg -= _aa; }
+        heroHp = Math.max(0, heroHp - _asDmg); heroLastDamageT = performance.now() / 1000;
+        flashDamage(); if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
+        if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison");
+      }
+    }
+    return;
+  }
   if (g._isFireball) {
     // Incendiary fire bomb — creates a fire patch and deals minor impact damage
     _spawnFirePatch(g.u, g.v, 2.2, 6.0);
@@ -7305,6 +7323,29 @@ function tick() {
                   velV: Math.cos(throwAng) * rspeed, _isBossRock: true, _warnRing: _rWarnRing });
                 playSfx("tone:80:200:sawtooth", 0.55);
                 _applyScreenShake(0.2);
+              }
+            }
+            // Poisoner acid spit — lobs a toxic glob every 4s at 3-10m range, creates poison puddle
+            if (en.type === "poisoner" && canSee && dist > 3 && dist < 10) {
+              if (!en._acidT || now / 1000 - en._acidT > 4.0) {
+                en._acidT = now / 1000;
+                const tof = 1.1;
+                const aspeed = dist / tof;
+                const throwAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
+                const aMesh = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.14, 6, 5),
+                  new THREE.MeshStandardMaterial({ color: 0x44dd44, emissive: 0x22bb00, emissiveIntensity: 1.2, roughness: 0.4 })
+                );
+                aMesh.position.set(ep.u, ep.y + 1.2, ep.v); scene.add(aMesh);
+                const _aWarnMat = new THREE.MeshBasicMaterial({ color: 0x44cc44, transparent: true, opacity: 0.55, depthWrite: false });
+                const _aWarnRing = new THREE.Mesh(_warnRingGeo, _aWarnMat);
+                _aWarnRing.position.set(ep.u, 0.05, ep.v); scene.add(_aWarnRing);
+                grenades3D.push({ mesh: aMesh, fuse: tof + 0.25, u: ep.u, y: ep.y + 1.2, v: ep.v,
+                  velU: Math.sin(throwAng) * aspeed,
+                  velY: Math.abs(GRAVITY) * tof / 2,
+                  velV: Math.cos(throwAng) * aspeed,
+                  _warnRing: _aWarnRing, _isAcidSpit: true });
+                playSfx("tone:600:50:sine", 0.22);
               }
             }
             // Incendiary fire bomb throw — lobs a flaming ball every 5s at 4-12m range
