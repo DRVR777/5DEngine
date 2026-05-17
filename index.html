@@ -5791,7 +5791,7 @@ function _tryShoot() {
     const bulletY = hp.y + 1.5;
     mesh.position.set(hp.u, bulletY, hp.v);
     scene.add(mesh);
-    bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirY, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage, weaponId: currentWeaponId });
+    bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirY, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage, falloff: wep.falloff || 0, weaponId: currentWeaponId });
     _shotsFired++; _lastHeroShotT = performance.now() / 1000;
   }
   // Gunshot alert — enemies within 9m without LOS start converging on shot position for 3s
@@ -6345,7 +6345,8 @@ function tick() {
           const _frontalBlock = !headshot && !backstab && _bsDot < -0.55 && (en.type === "boss" || en.type === "heavy");
           const _wResist = (_DMG_MUL[en.type] || {})[b.weaponId || "pistol"] || 1.0;
           const isCrit = !headshot && !backstab && !_frontalBlock && Math.random() < 0.10;
-          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul);
+          const _falloffMul = b.falloff ? Math.max(0.15, 1 - (b.traveled / (b.range || 1)) * b.falloff) : 1;
+          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul * _falloffMul);
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
           en._hitFlashT = 0.08;

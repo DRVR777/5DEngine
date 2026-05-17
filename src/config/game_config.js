@@ -53,6 +53,7 @@
       reloadDuration: 2800,
       pellets: 9,
       spread: 0.14,
+      falloff: 0.85,               // damage drops to 15% at max range
       automatic: false,
     },
     {
