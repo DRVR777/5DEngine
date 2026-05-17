@@ -4282,15 +4282,6 @@ function tick() {
   // check can safely reference it (will be false until the block below assigns it)
   let onGround = false;
 
-  // Footstep SFX — tick when grounded and moving
-  if (!inCar && !buildMode && onGround && (inputF !== 0 || inputR !== 0)) {
-    const stepInterval = keys["ShiftLeft"] ? 0.28 : 0.42;
-    if (now / 1000 - _lastFootstepT > stepInterval) {
-      _lastFootstepT = now / 1000;
-      const freq = 180 + Math.random() * 40;
-      playSfx(`tone:${Math.round(freq)}:18:sine`, 0.08);
-    }
-  }
 
   // Recoil spring — decays back to 0, applies kick to camPitch
   if (_recoilPitch !== 0) {
@@ -4689,6 +4680,17 @@ function tick() {
     }
     if (newY < 0) { newY = 0; velocityY = 0; onGround = true; }
     world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
+  }
+
+  // Footstep SFX — triggered by bob cycle peak (every half-period) while grounded
+  if (!inCar && !buildMode && !_heroDead && onGround && (inputF !== 0 || inputR !== 0)) {
+    const stepInterval = isSprinting ? 0.26 : 0.40;
+    const nowSec = now / 1000;
+    if (nowSec - _lastFootstepT > stepInterval) {
+      _lastFootstepT = nowSec;
+      const freq = 120 + Math.random() * 60;
+      playSfx(`tone:${Math.round(freq)}:22:triangle`, 0.06);
+    }
   }
 
   // layer transition check + ambient zone change
