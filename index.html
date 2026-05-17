@@ -4100,7 +4100,7 @@ function _tryShoot() {
   _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
   _triggerMuzzleFlash(mfx, mfy, mfz);
   // Camera kick — brief upward pitch jolt that decays via spring
-  _recoilPitch = -(wep.pellets > 1 ? 0.06 : 0.025);
+  _recoilPitch += wep.pellets > 1 ? 0.035 : 0.015; // additive upward kick
   // Gun visual kick — push barrel back then spring forward
   _gunKickZ = wep.pellets > 1 ? -0.14 : -0.08;
 }
@@ -4112,6 +4112,7 @@ let _recoilPitch = 0;
 let _gunKickZ = 0;      // offset applied to _gunMount.position.z each frame
 let _gunReloadX = 0;   // spring: tilts gun down during reload window
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
+let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
@@ -4307,7 +4308,7 @@ function tick() {
     const vehicleBlockers = VEHICLE_DEFS.map(v => {
       const vp = world.players.get(v.id);
       const hb = v.hitbox || { w: 2, d: 4 };
-      return { u: vp.u, v: vp.v, y: 0, hitbox: { w: hb.w, d: hb.d, h: 1.4 } };
+      return { u: vp.u, v: vp.v, y: 0, hitbox: { w: hb.w, d: hb.d, h: 0.75 } };
     });
     Bridge.applyCameraRelativeMove(
       world, "hero", inputF, inputR, forward, right, speed, dt,
@@ -4320,10 +4321,11 @@ function tick() {
   let onGround = false;
 
 
-  // Recoil spring — decays back to 0, applies kick to camPitch
+  // Recoil spring — _recoilPitch is a displacement that springs back to 0
+  // Each shot adds to it; spring recovers over ~0.25s. Applied as camPitch offset.
   if (_recoilPitch !== 0) {
-    camPitch += _recoilPitch;
-    _recoilPitch *= Math.pow(0.001, dt);   // exponential decay to ~0 within ~0.15s
+    camPitch += _recoilPitch * dt * 8;             // smooth out the application
+    _recoilPitch += (0 - _recoilPitch) * Math.min(1, dt * 8);
     if (Math.abs(_recoilPitch) < 0.0001) _recoilPitch = 0;
   }
 
@@ -4833,7 +4835,7 @@ function tick() {
       vGrp.rotation.z += (tiltAmt * (keys["KeyD"] ? -1 : keys["KeyA"] ? 1 : 0) - vGrp.rotation.z) * Math.min(1, dt * 6);
     } else if (vDef.type === "mech") {
       vGrp.rotation.y = vst ? vst.heading : 0;
-      vGrp.visible = !(inCar && activeVehicleId === vDef.id);
+      vGrp.visible = true; // mech stays visible when piloting
       // Animate mech legs based on speed
       if (vGrp._legs && vst) {
         const mechWalk = (vst._walkT = (vst._walkT || 0) + dt * Math.abs(vst.speed) * 0.8);
@@ -4849,8 +4851,7 @@ function tick() {
         const spinDelta = (vst.speed / wheelRadius) * dt;
         for (const wh of vGrp._wheels) wh.rotation.y += spinDelta;
       }
-      // Hide car when riding (hero mesh shows in same spot)
-      vGrp.visible = !(inCar && activeVehicleId === vDef.id);
+      vGrp.visible = true; // car stays visible when riding (TP camera shows it)
     }
   }
 
