@@ -37,6 +37,7 @@
     background: rgba(0,8,20,0.80);
     border: 1px solid var(--holo-border); border-radius: 6px;
     box-shadow: var(--holo-glow);
+    pointer-events: none;
   }
   #damageFlash {
     position: fixed; inset: 0; pointer-events: none; z-index: 999;
@@ -5505,12 +5506,12 @@ addEventListener("keydown", (e) => {
       inCar = false;
       const vst = vehicleStates.get(activeVehicleId);
       const cp = world.players.get(activeVehicleId);
-      const off = {
-        u: cp.u + 1.5 * Math.cos(vst.heading),
-        v: cp.v - 1.5 * Math.sin(vst.heading),
-      };
       const h = world.players.get("hero");
-      world.setPlayer("hero", h.x, 0, h.z, off.u, off.v);
+      if (cp && h) {
+        world.setPlayer("hero", h.x, 0, h.z,
+          cp.u + 1.5 * Math.cos(vst.heading),
+          cp.v - 1.5 * Math.sin(vst.heading));
+      }
       activeVehicleId = null;
     }
   }
@@ -5877,6 +5878,7 @@ function drawMinimap() {
   for (const en of enemies) {
     if (en.dead) continue;
     const ep = world.players.get(en.id);
+    if (!ep) continue;
     const ex = u2x(ep.u), ey = v2y(ep.v);
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
     if (en.type === "boss") {
@@ -5900,11 +5902,13 @@ function drawMinimap() {
   if (_aliveEns.length === 1) {
     const _le = _aliveEns[0];
     const _lep = world.players.get(_le.id);
-    const _lex = u2x(_lep.u), _ley = v2y(_lep.v);
-    const _lePulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
-    mini.strokeStyle = `rgba(255,220,0,${0.7 + _lePulse * 0.3})`;
-    mini.lineWidth = 1.5 + _lePulse * 1.0;
-    mini.beginPath(); mini.arc(_lex, _ley, 9 + _lePulse * 4, 0, Math.PI * 2); mini.stroke();
+    if (_lep) {
+      const _lex = u2x(_lep.u), _ley = v2y(_lep.v);
+      const _lePulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+      mini.strokeStyle = `rgba(255,220,0,${0.7 + _lePulse * 0.3})`;
+      mini.lineWidth = 1.5 + _lePulse * 1.0;
+      mini.beginPath(); mini.arc(_lex, _ley, 9 + _lePulse * 4, 0, Math.PI * 2); mini.stroke();
+    }
   }
 
   // Hero — bright centered dot + heading arrow
@@ -6104,18 +6108,22 @@ function _tryShoot() {
   (_wSfx[currentWeaponId] || _wSfx.pistol)();
   const hp = world.players.get("hero");
   if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: hp.y + 1.6, z: hp.v });
-  // Bullet direction: full 3D camera world direction, normalized
+  // Raycast from camera through crosshair → target point, then direct bullet
+  // from gun barrel toward that point (fixes 3rd-person offset mismatch).
   const _aimVec = new THREE.Vector3();
-  camera.getWorldDirection(_aimVec); // already normalized
-  const baseAngle = _getAimAngle();
+  camera.getWorldDirection(_aimVec);
+  const _targetPt = camera.position.clone().addScaledVector(_aimVec, wep.range || 80);
+  const _gunPos   = new THREE.Vector3(hp.u, hp.y + 1.5, hp.v);
+  const _baseDir  = _targetPt.clone().sub(_gunPos).normalize();
+  const baseAngle = Math.atan2(_baseDir.x, _baseDir.z);
+  const _basePitch = Math.asin(Math.max(-1, Math.min(1, _baseDir.y)));
   const pellets = wep.pellets || 1;
   const spread  = (wep.spread || 0) + _moveSpread * 0.12;
   for (let p = 0; p < pellets; p++) {
     const ang = baseAngle + (Math.random() - 0.5) * spread * 2;
-    // Horizontal spread applied in XZ; vertical component from camera pitch
-    const hcos = Math.cos(camPitch);
+    const hcos = Math.cos(_basePitch);
     const dirU = Math.sin(ang) * hcos;
-    const dirY = Math.sin(camPitch);
+    const dirY = Math.sin(_basePitch);
     const dirV = Math.cos(ang) * hcos;
     const mesh = new THREE.Mesh(bulletGeo, bulletMat);
     // Orient bullet tracer to face travel direction
@@ -6188,6 +6196,8 @@ let _strafeRollAmt = 0; // spring [−1..1]: FP camera roll when strafing
 let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
 let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
 let _breathHoldT = 0;    // seconds Shift held while scoped (>1.5s causes trembling)
+let _wasSniperScope = false;
+let _sniperSavedCamDist = 7; // camDist restored when scope is dropped
 let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
 let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
@@ -6297,6 +6307,11 @@ function tick() {
   const sprintFovTarget = (isSprinting && !aiming && !_heroDead && !buildMode && !inCar) ? 1 : 0;
   _sprintFovAmt += (sprintFovTarget - _sprintFovAmt) * Math.min(1, dt * 8);
   const isSniperScope = aiming && currentWeaponId === "sniper" && !buildMode && !computerOpen;
+  // Sniper scope: transition to 1st-person before showing scope view
+  if (isSniperScope && !_wasSniperScope) _sniperSavedCamDist = camDist;
+  if (!isSniperScope && _wasSniperScope) camDist = _sniperSavedCamDist;
+  if (isSniperScope) camDist += (0 - camDist) * Math.min(1, dt * 10);
+  _wasSniperScope = isSniperScope;
   camera.fov = isSniperScope ? 20 : (60 + _sprintFovAmt * 8);
   camera.updateProjectionMatrix();
   // Sniper scope overlay
@@ -6480,6 +6495,7 @@ function tick() {
       const mv = (keys["Space"] ? 1 : 0) - (keys["KeyC"] ? 1 : 0);
       vSt.altY = Math.max(0, Math.min(40, vSt.altY + mv * DRONE_V * dt));
       const cp = world.players.get(activeVehicleId);
+      if (!cp) break;
       const dfx = Math.sin(camYaw), dfz = Math.cos(camYaw);
       const drx = Math.cos(camYaw), drz = -Math.sin(camYaw);
       const du = (dfx * mf + drx * mr) * DRONE_H * dt;
