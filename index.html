@@ -1280,6 +1280,7 @@ function _trackKillAndPanic(killU, killV) {
     for (const en2 of enemies) {
       if (en2.dead || en2._panicT > 0) continue;
       const ep2 = world.players.get(en2.id);
+      if (!ep2) continue;
       for (const k of _recentKillPos) {
         if (Math.hypot(ep2.u - k.u, ep2.v - k.v) < 10) { en2._panicT = 3.0; panicked++; break; }
       }
@@ -1627,7 +1628,7 @@ window._spawnEnemyAtHero = function(typeName) {
     nEn.moveSpeed = (nEn.moveSpeed || 3) * 1.3;
   }
   enemies.push(nEn);
-  world.addPlayer(eid, eu, 0, 0, ev);
+  world.setPlayer(eid, 0, 0, 0, eu, ev);
   enemyMeshes.set(eid, _makeEnemyMesh(nEn));
   // Tint elite enemy gold
   if (nEn._elite) {
@@ -2128,6 +2129,7 @@ function _tickTurrets(dt) {
     for (const en of enemies) {
       if (en.dead) continue;
       const ep = world.players.get(en.id);
+      if (!ep) continue;
       const d = Math.hypot(ep.u - t.u, ep.v - t.v);
       if (d < nearDist) { nearDist = d; nearEp = ep; nearEn = en; }
     }
@@ -2211,6 +2213,7 @@ function _tickMines(dt) {
       for (const en of enemies) {
         if (en.dead) continue;
         const ep = world.players.get(en.id);
+        if (!ep) continue;
         if (Math.hypot(ep.u - mn.u, ep.v - mn.v) < 1.2) {
           // Detonate
           scene.remove(mn.mesh);
@@ -2223,6 +2226,7 @@ function _tickMines(dt) {
           for (const en2 of enemies) {
             if (en2.dead) continue;
             const ep2 = world.players.get(en2.id);
+            if (!ep2) continue;
             const _md = Math.hypot(ep2.u - mn.u, ep2.v - mn.v);
             if (_md < _mBlast) {
               const _mDmg = Math.round(90 * (1 - _md / _mBlast));
@@ -3050,6 +3054,7 @@ function _explodeBarrel(u, v) {
   for (const en of enemies) {
     if (en.dead) continue;
     const ep = world.players.get(en.id);
+    if (!ep) continue;
     const d = Math.hypot(ep.u - u, ep.v - v);
     if (d < RADIUS) {
       en.hp = Math.max(0, en.hp - Math.round(MAX_DMG * (1 - d / RADIUS))); en._hpBarShowT = nowMs / 1000;
@@ -6705,6 +6710,7 @@ function tick() {
       for (const en of enemies) {
         if (en.dead) continue;
         const ep = world.players.get(en.id);
+        if (!ep) continue;
         if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
           const headshot = b.posY > 1.35;
           const _bsDot = b.dirU * Math.sin(en.heading) + b.dirV * Math.cos(en.heading);
@@ -7177,9 +7183,10 @@ function tick() {
       if (en._kbT > 0) {
         en._kbT -= dt;
         const kbEp = world.players.get(en.id);
-        world.setPlayer(en.id, kbEp.x, kbEp.y, kbEp.z, kbEp.u + en._kbU * dt, kbEp.v + en._kbV * dt);
+        if (kbEp) world.setPlayer(en.id, kbEp.x, kbEp.y, kbEp.z, kbEp.u + en._kbU * dt, kbEp.v + en._kbV * dt);
       }
       const ep = world.players.get(en.id);
+      if (!ep) continue;
       const dx = _heroNowAI.u - ep.u, dz = _heroNowAI.v - ep.v;
       const dist = Math.hypot(dx, dz);
       const _effSight = (en.sightRange || 12) * (crouching ? 0.6 : 1.0);
@@ -7762,6 +7769,7 @@ function tick() {
       if (_dElapsed < _COLLAPSE) {
         const f = _dElapsed / _COLLAPSE;           // 0→1 over 0.6s
         const ep2d = world.players.get(en.id);
+        if (!ep2d) { em.group.visible = false; continue; }
         em.group.position.set(ep2d.u, -f * 0.5, ep2d.v);
         em.group.rotation.y = en.heading;
         em.group.rotation.x = f * Math.PI * 0.5;  // topple 90° backward
@@ -7806,9 +7814,11 @@ function tick() {
   for (let ei = 0; ei < enemies.length; ei++) {
     const ea = enemies[ei]; if (ea.dead) continue;
     const pa = world.players.get(ea.id);
+    if (!pa) continue;
     for (let ej = ei + 1; ej < enemies.length; ej++) {
       const eb = enemies[ej]; if (eb.dead) continue;
       const pb = world.players.get(eb.id);
+      if (!pb) continue;
       const dU = pa.u - pb.u, dV = pa.v - pb.v;
       const d = Math.hypot(dU, dV);
       if (d < SEP_DIST && d > 0.001) {
