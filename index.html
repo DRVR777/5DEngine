@@ -1831,6 +1831,62 @@ function _deploySmokeZone(u, v) {
   for (let _si = 0; _si < 18; _si++) _spawnParticles(u, 0.4, v, 2, "white", 2.8, 1.8);
   playSfx("tone:280:300:sine", 0.35);
 }
+// Trap mine system — M key drops proximity mine (1.2m trigger, 90 dmg, 3m radius)
+const _mines = [];
+let _mineCount = 2;
+const _mineGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.08, 12);
+const _mineMat = new THREE.MeshStandardMaterial({ color: 0x333344, roughness: 0.8 });
+function _dropMine() {
+  if (_mineCount <= 0) { showToast("No mines!", "danger", 800); return; }
+  if (buildMode || computerOpen || _heroDead) return;
+  _mineCount--;
+  const hp = world.players.get("hero");
+  const disc = new THREE.Mesh(_mineGeo, _mineMat.clone());
+  disc.position.set(hp.u, 0.04, hp.v);
+  const ledGeo = new THREE.SphereGeometry(0.04, 6, 4);
+  const ledMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
+  const led = new THREE.Mesh(ledGeo, ledMat);
+  led.position.set(0, 0.06, 0);
+  disc.add(led);
+  scene.add(disc);
+  _mines.push({ mesh: disc, led, u: hp.u, v: hp.v, armed: false, armT: 1.2 });
+  playSfx("tone:1200:40:square", 0.22);
+}
+function _tickMines(dt) {
+  const _heroNow = world.players.get("hero");
+  for (let _mi = _mines.length - 1; _mi >= 0; _mi--) {
+    const mn = _mines[_mi];
+    if (!mn.armed) { mn.armT -= dt; if (mn.armT <= 0) mn.armed = true; }
+    if (mn.armed) {
+      mn.led.material.color.setHex((Math.floor(performance.now() / 200) % 2 === 0) ? 0xff2200 : 0x220000);
+      for (const en of enemies) {
+        if (en.dead) continue;
+        const ep = world.players.get(en.id);
+        if (Math.hypot(ep.u - mn.u, ep.v - mn.v) < 1.2) {
+          // Detonate
+          scene.remove(mn.mesh);
+          _mines.splice(_mi, 1);
+          playSfx("tone:80:300:sawtooth", 0.9); playSfx("tone:220:200:sawtooth", 0.7);
+          _spawnParticles(mn.u, 0.3, mn.v, 60, "orange", 10, 1.0);
+          _spawnParticles(mn.u, 0.8, mn.v, 30, "white",  8,  0.7);
+          _applyScreenShake(Math.hypot(_heroNow.u - mn.u, _heroNow.v - mn.v) < 4 ? 0.5 : 0.2);
+          const _mBlast = 3.0;
+          for (const en2 of enemies) {
+            if (en2.dead) continue;
+            const ep2 = world.players.get(en2.id);
+            const _md = Math.hypot(ep2.u - mn.u, ep2.v - mn.v);
+            if (_md < _mBlast) {
+              const _mDmg = Math.round(90 * (1 - _md / _mBlast));
+              en2.hp = Math.max(0, en2.hp - _mDmg);
+              _spawnDamageNumber(ep2.u, 1.0, ep2.v, `${_mDmg}`, "#ffaa00");
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+}
 function _throwSmokeGrenade() {
   if (smokeGrenadeCount <= 0) { showToast("No smoke grenades!", "danger", 800); return; }
   if (buildMode || computerOpen) return;
@@ -4529,6 +4585,10 @@ addEventListener("keydown", (e) => {
   // T key: throw smoke grenade
   if (e.code === "KeyT" && !buildMode && !computerOpen && !_heroDead) {
     _throwSmokeGrenade(); e.preventDefault(); return;
+  }
+  // M key: drop trap mine
+  if (e.code === "KeyM" && !buildMode && !computerOpen && !_heroDead) {
+    _dropMine(); e.preventDefault(); return;
   }
   // G key: start grenade cook (throw on keyup) / group selected (build mode)
   if (e.code === "KeyG") {
@@ -7303,6 +7363,9 @@ function tick() {
     }
   }
 
+  // Trap mines — arm delay, proximity check, detonate
+  _tickMines(dt);
+
   // Smoke zones — decay and spawn continuous white particles
   for (let _szi = smokeZones.length - 1; _szi >= 0; _szi--) {
     const sz = smokeZones[_szi];
@@ -7791,7 +7854,7 @@ function tick() {
       }).join("");
     }
     const grenEl = document.getElementById("wpGrenades");
-    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[G]</span>  ◎ ${smokeGrenadeCount} smoke <span style="color:#555">[T]</span>`;
+    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[G]</span>  ◎ ${smokeGrenadeCount} smoke <span style="color:#555">[T]</span>  ⊠ ${_mineCount} mine${_mineCount !== 1 ? "s" : ""} <span style="color:#555">[M]</span>`;
   }
 
   // Vehicle dashboard
