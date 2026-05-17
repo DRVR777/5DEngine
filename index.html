@@ -5985,6 +5985,8 @@ function tick() {
     g.fuse -= dt;
     g.velY += GRAVITY * dt;
     g.u += g.velU * dt; g.y += g.velY * dt; g.v += g.velV * dt;
+    // Smoke trail while airborne
+    if (g.y > 0.1 && Math.random() < 0.55) _spawnParticles(g.u, g.y, g.v, 1, "white", 0.8, 0.35);
     // Bounce slightly off ground
     if (g.y <= 0) {
       g.y = 0;
