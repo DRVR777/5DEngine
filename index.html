@@ -6065,6 +6065,20 @@ function tick() {
               world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
           },
           onAttack: (ctx) => {
+            // Strafe perpendicular to hero — keeps light enemies mobile while attacking
+            if (en.type !== "sniper" && en.type !== "boss" && en.type !== "robot" && en.type !== "heavy") {
+              if (!en._strafeSwitchT || ctx.now - en._strafeSwitchT > (en._strafeDur || 1.5)) {
+                en._strafeSwitchT = ctx.now;
+                en._strafeDir = Math.random() < 0.5 ? 1 : -1;
+                en._strafeDur  = 1.2 + Math.random() * 1.3;
+              }
+              const _heroAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
+              const _perpAng = _heroAng + Math.PI * 0.5 * en._strafeDir;
+              const _sSpd = en.moveSpeed * 0.5;
+              const _sem = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+              GTAPhysics.resolveAABBMove(_sem, Math.sin(_perpAng) * _sSpd * dt, Math.cos(_perpAng) * _sSpd * dt, buildingBlockers);
+              world.setPlayer(en.id, ep.x, 0, 0, _sem.u, _sem.v);
+            }
             en.lastAttackT = ctx.now;
             { const gFreq = en.type === "robot" ? 220 : en.type === "heavy" ? 70 : 120;
               playSfx(`tone:${gFreq}:90:sawtooth`, 0.18); }
