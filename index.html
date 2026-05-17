@@ -1100,6 +1100,7 @@ const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
 let _comboCount = 0;      // kills in current combo (resets if gap > _COMBO_DECAY)
 let _comboLastT = 0;      // timestamp of most recent combo kill
 const _COMBO_DECAY = 3.5; // seconds without a kill to break the combo
+let _comboAnnouncedMul = 0; // last combo milestone (2/4/6/8) with audio+toast played
 let _recentKillPos = [];    // morale tracker: [{u, v, t}] of recent kills
 let _panicBroadcastT = -99; // last rout broadcast time (prevents spam)
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
@@ -1204,7 +1205,7 @@ function _heroRespawn() {
   heroLastDamageT = -999;
   velocityY = 0;
   _stamina = STAMINA_MAX;
-  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
+  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
   playSfx("tone:440:120:sine", 0.5);
   if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp });
   // Re-lock pointer
@@ -1236,7 +1237,7 @@ function _heroRespawn() {
     for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
-    score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
+    score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
   });
 })();
 
@@ -7704,7 +7705,24 @@ function tick() {
   // Kill combo multiplier HUD
   {
     const _cNow = now / 1000;
-    if (_comboCount > 0 && _cNow - _comboLastT > _COMBO_DECAY) _comboCount = 0;
+    if (_comboCount > 0 && _cNow - _comboLastT > _COMBO_DECAY) { _comboCount = 0; _comboAnnouncedMul = 0; }
+    // Combo milestone audio + toast at x2, x4, x6, x8
+    const _curMul = Math.min(8, _comboCount);
+    if (_curMul >= 2) {
+      const _milestones = [2, 4, 6, 8];
+      for (const _m of _milestones) {
+        if (_curMul >= _m && _comboAnnouncedMul < _m) {
+          _comboAnnouncedMul = _m;
+          const _mLabels = { 2: "DOUBLE KILL!", 4: "QUAD KILL!", 6: "RAMPAGE!", 8: "GODLIKE!" };
+          const _mFreqs  = { 2: 660, 4: 880, 6: 1100, 8: 1400 };
+          const _mColors = { 2: "warning", 4: "danger", 6: "danger", 8: "success" };
+          showToast(`${_mLabels[_m]} x${_m}`, _mColors[_m], 1800);
+          playSfx(`tone:${_mFreqs[_m]}:80:sine`, 0.45);
+          playSfx(`tone:${_mFreqs[_m] * 1.5}:60:sine`, 0.25);
+          break;
+        }
+      }
+    }
     const comboHudEl = document.getElementById("comboHud");
     const comboMulEl = document.getElementById("comboMulText");
     const comboFillEl = document.getElementById("comboFill");
