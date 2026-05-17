@@ -1188,6 +1188,7 @@ window.Engine.debug = window.Engine.debug || { godMode: false, noclip: false };
 window._entityDamage = function(entityId, amount, _type) {
   if (entityId !== "hero") return;
   if (typeof Engine !== "undefined" && Engine.debug.godMode) return;  // god mode
+  if (_dodgeT > 0) return;  // iframes during dodge roll
   if (heroArmor > 0) {
     const armorHit = Math.min(heroArmor, amount * ARMOR_ABSORB);
     heroArmor = Math.max(0, heroArmor - armorHit);
@@ -2162,7 +2163,7 @@ function _explodeBarrel(u, v) {
   const h = world.players.get("hero");
   const hd = Math.hypot(h.u - u, h.v - v);
   _applyScreenShake(Math.max(0, 0.8 * (1 - hd / (RADIUS * 1.5))));
-  if (hd < RADIUS && !_heroDead && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+  if (hd < RADIUS && !_heroDead && _dodgeT <= 0 && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
     const sd = Math.round(MAX_DMG * (1 - hd / RADIUS));
     if (sd > 0) { heroHp = Math.max(0, heroHp - sd); heroLastDamageT = nowMs / 1000; flashDamage(); if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen(); }
   }
@@ -4151,6 +4152,24 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
+  // X key: dodge roll — burst of speed in move direction + brief iframes
+  if (e.code === "KeyX" && !buildMode && !computerOpen && !_heroDead && !inCar && _dodgeCooldown <= 0 && _stamina >= 20) {
+    const hm = world.players.get("hero");
+    // Dodge direction follows current WASD input or, if idle, faces camera forward
+    const _fwd = new THREE.Vector3(); camera.getWorldDirection(_fwd); _fwd.y = 0; _fwd.normalize();
+    const _rgt = new THREE.Vector3(-_fwd.z, 0, _fwd.x);
+    const dfU = _fwd.x * (inputF || 0) + _rgt.x * (inputR || 0);
+    const dfV = _fwd.z * (inputF || 0) + _rgt.z * (inputR || 0);
+    const dm = Math.hypot(dfU, dfV) || 1;
+    _dodgeVelU = (dfU / dm) * DODGE_SPEED;
+    _dodgeVelV = (dfV / dm) * DODGE_SPEED;
+    _dodgeT = DODGE_DURATION;
+    _dodgeCooldown = DODGE_COOLDOWN;
+    _stamina = Math.max(0, _stamina - 20);
+    _applyScreenShake(0.08);
+    playSfx("tone:280:60:square", 0.18);
+    e.preventDefault(); return;
+  }
   // K key: toggle game config editor in build mode
   if (buildMode && e.code === "KeyK") {
     const ced = document.getElementById("cfgEditor");
@@ -4778,6 +4797,13 @@ let _gunKickZ = 0;      // offset applied to _gunMount.position.z each frame
 let _gunReloadX = 0;   // spring: tilts gun down during reload window
 let _meleeSwing = 0;   // spring: lateral swing for melee attack (applied to fpGun roll)
 let _meleeCooldown = 0; // seconds until next melee allowed
+let _dodgeCooldown = 0; // seconds until next dodge allowed
+let _dodgeVelU = 0;     // world-space dodge impulse (u axis)
+let _dodgeVelV = 0;     // world-space dodge impulse (v axis)
+let _dodgeT = 0;        // seconds remaining on active dodge (iframes window)
+const DODGE_DURATION  = 0.25;  // seconds of boost + iframes
+const DODGE_SPEED     = 18;    // units/sec burst
+const DODGE_COOLDOWN  = 1.1;   // seconds before next dodge
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
@@ -5258,7 +5284,7 @@ function tick() {
       b.mesh.position.set(b.posU, b.posY, b.posV);
       const du = _hn.u - b.posU, dv = _hn.v - b.posV, dh = (_hn.y + 1.0) - b.posY;
       if (du*du + dv*dv < 0.36 && Math.abs(dh) < 0.9) {
-        if (!_heroDead && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+        if (!_heroDead && _dodgeT <= 0 && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
           let dmg = b.damage;
           if (heroArmor > 0) { const ah = Math.min(heroArmor, dmg * ARMOR_ABSORB); heroArmor = Math.max(0, heroArmor - ah); dmg -= ah; }
           heroHp = Math.max(0, heroHp - dmg);
@@ -5773,6 +5799,14 @@ function tick() {
   _fpGunGroup.visible = _fpGunActive;
   // Melee cooldown + swing spring
   if (_meleeCooldown > 0) _meleeCooldown -= dt;
+  // Dodge cooldown + impulse application
+  if (_dodgeCooldown > 0) _dodgeCooldown -= dt;
+  if (_dodgeT > 0) {
+    _dodgeT -= dt;
+    const hp = world.players.get("hero");
+    const du = _dodgeVelU * dt, dv = _dodgeVelV * dt;
+    world.setPlayer("hero", hp.x, hp.y, hp.z, hp.u + du, hp.v + dv);
+  }
   _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   if (_fpGunActive) {
     const aimShift = aiming ? -0.08 : 0;
