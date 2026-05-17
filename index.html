@@ -676,7 +676,7 @@
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
-  &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>1/2/3</b> switch weapon
+  &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>F</b> grenade &nbsp;·&nbsp; <b>1-5</b> switch weapon &nbsp;·&nbsp; <b>drone</b>: E to pilot · Space/C=up/down
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>J</b> objectives &nbsp;·&nbsp; <b>H</b> rain &nbsp;·&nbsp; <b>G</b> achievements &nbsp;·&nbsp; <b>C</b> crafting
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode &nbsp;·&nbsp; <b>`</b> dev console
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
@@ -826,6 +826,8 @@ const VEHICLE_DEFS = WD.vehicles || [
   { id: "sedan", type: "sedan", color: 0x4488ff, u: 4, v: 6,
     maxSpeed: 24, acceleration: 8, braking: 18, handling: 1.0, mass: 1400,
     hitbox: { w: 2, d: 4 }, animations: [] },
+  { id: "drone1", type: "drone", color: 0x00bbff, u: -8, v: -8,
+    maxSpeed: 15, hitbox: { w: 1.4, d: 1.4 } },
 ];
 const vehicleStates = new Map();
 for (const v of VEHICLE_DEFS) {
@@ -1899,6 +1901,39 @@ function _makeVehicleMesh(vDef) {
   const d = (vDef.hitbox && vDef.hitbox.d) || 4;
   const col = vDef.color || 0xc1121f;
   const group = new THREE.Group();
+
+  // ---- Drone (quadcopter) ----
+  if (vDef.type === "drone") {
+    const bodyMat = new THREE.MeshStandardMaterial({ color: col, metalness: 0.7, roughness: 0.3 });
+    const armMat  = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, metalness: 0.8 });
+    const rotMat  = new THREE.MeshStandardMaterial({ color: 0x333355, transparent: true, opacity: 0.55 });
+    // Central hex body
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.14, 6), bodyMat);
+    body.position.y = 0.12; body.castShadow = true; group.add(body);
+    // Camera bubble
+    const cam = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0x001133, emissive: 0x0033ff, emissiveIntensity: 0.4 }));
+    cam.position.set(0, 0.06, 0.28); group.add(cam);
+    // 4 diagonal arms + rotors
+    group._rotors = [];
+    const armCorners = [[0.38, 0.38], [-0.38, 0.38], [0.38, -0.38], [-0.38, -0.38]];
+    const armRots    = [-Math.PI/4, Math.PI/4, -3*Math.PI/4, 3*Math.PI/4];
+    for (let i = 0; i < 4; i++) {
+      const [ax, az] = armCorners[i];
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.035, 0.76), armMat);
+      arm.position.set(ax * 0.5, 0.12, az * 0.5);
+      arm.rotation.y = armRots[i]; group.add(arm);
+      // Landing leg
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.1, 0.03), armMat);
+      leg.position.set(ax * 0.5, 0.04, az * 0.5); group.add(leg);
+      // Rotor disc
+      const rotor = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.014, 14), rotMat);
+      rotor.position.set(ax, 0.13, az); group.add(rotor);
+      group._rotors.push(rotor);
+    }
+    group._bodyMesh = body;
+    return group;
+  }
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(w, 0.7, d),
     new THREE.MeshStandardMaterial({ color: col, metalness: 0.3, roughness: 0.4 })
@@ -3825,24 +3860,45 @@ function tick() {
     // Per-vehicle physics — all params come from the vehicle def
     const vDef = VEHICLE_DEFS.find(v => v.id === activeVehicleId);
     const vSt  = vehicleStates.get(activeVehicleId);
-    const throttle  = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-    const steerIn   = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);
-    const handbrake = !!keys["Space"];
-    const next = Bridge.carPhysicsStep(world, activeVehicleId, vSt, throttle, steerIn, dt, {
-      blockers:     buildingBlockers,
-      carHitbox:    vDef ? vDef.hitbox    : { w: 2, d: 4 },
-      handbrake,
-      maxSpeed:     vDef ? vDef.maxSpeed  : 24,
-      acceleration: vDef ? vDef.acceleration : 8,
-      braking:      vDef ? vDef.braking   : 18,
-      handling:     vDef ? vDef.handling  : 1.0,
-    });
-    vSt.speed = next.speed; vSt.heading = next.heading;
-    vSt.gear  = next.gear;  vSt.gearName = next.gearName;
-    // Mirror to carState for any legacy reads
-    Object.assign(carState, vSt);
-    const cp = world.players.get(activeVehicleId);
-    world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
+
+    if (vDef && vDef.type === "drone") {
+      // ---- Drone flight physics (WASD=horizontal, Space=up, C=down) ----
+      if (vSt.altY == null) vSt.altY = 0;
+      const DRONE_H = 15, DRONE_V = 7;
+      const mf = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+      const mr = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
+      const mv = (keys["Space"] ? 1 : 0) - (keys["KeyC"] ? 1 : 0);
+      vSt.altY = Math.max(0, Math.min(40, vSt.altY + mv * DRONE_V * dt));
+      const cp = world.players.get(activeVehicleId);
+      const dfx = Math.sin(camYaw), dfz = Math.cos(camYaw);
+      const drx = Math.cos(camYaw), drz = -Math.sin(camYaw);
+      const du = (dfx * mf + drx * mr) * DRONE_H * dt;
+      const dv = (dfz * mf + drz * mr) * DRONE_H * dt;
+      world.setPlayer(activeVehicleId, 0, vSt.altY, 0, cp.u + du, cp.v + dv);
+      world.setPlayer("hero", 0, vSt.altY, 0, cp.u + du, cp.v + dv);
+      vSt.speed = Math.hypot(du, dv) / dt;
+      vSt.heading = (mf !== 0 || mr !== 0) ? Math.atan2(dfx * mf + drx * mr, dfz * mf + drz * mr) : vSt.heading;
+      Object.assign(carState, vSt);
+    } else {
+      // ---- Ground vehicle physics ----
+      const throttle  = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+      const steerIn   = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);   // D=right, A=left
+      const handbrake = !!keys["Space"];
+      const next = Bridge.carPhysicsStep(world, activeVehicleId, vSt, throttle, steerIn, dt, {
+        blockers:     buildingBlockers,
+        carHitbox:    vDef ? vDef.hitbox    : { w: 2, d: 4 },
+        handbrake,
+        maxSpeed:     vDef ? vDef.maxSpeed  : 24,
+        acceleration: vDef ? vDef.acceleration : 8,
+        braking:      vDef ? vDef.braking   : 18,
+        handling:     vDef ? vDef.handling  : 1.0,
+      });
+      vSt.speed = next.speed; vSt.heading = next.heading;
+      vSt.gear  = next.gear;  vSt.gearName = next.gearName;
+      Object.assign(carState, vSt);
+      const cp = world.players.get(activeVehicleId);
+      world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
+    }
   } else {
     // All parked vehicles become dynamic blockers
     const vehicleBlockers = VEHICLE_DEFS.map(v => {
@@ -4260,15 +4316,28 @@ function tick() {
     if (!vGrp || !vp) continue;
     const vpRender = Bridge.engineToRenderPos(vp);
     vGrp.position.set(vpRender.x, vpRender.y, vpRender.z);
-    vGrp.rotation.y = vst ? vst.heading : 0;
-    // Spin wheels proportional to speed (wheels rotate around their local X axis)
-    if (vGrp._wheels && vst && vst.speed !== 0) {
-      const wheelRadius = 0.35;
-      const spinDelta = (vst.speed / wheelRadius) * dt;
-      for (const wh of vGrp._wheels) wh.rotation.y += spinDelta;
+
+    if (vDef.type === "drone") {
+      // Drone: always visible even when riding; rotors spin; tilts with movement
+      vGrp.visible = true;
+      vGrp.rotation.y = vst ? vst.heading : 0;
+      const rotSpd = (vst && vst.speed > 0.5) ? 28 : 12;
+      if (vGrp._rotors) for (const r of vGrp._rotors) r.rotation.y += dt * rotSpd;
+      // Tilt toward movement direction — smooth lerp
+      const tiltAmt = inCar && activeVehicleId === vDef.id && vst && vst.speed > 0.3 ? 0.18 : 0;
+      vGrp.rotation.x += (tiltAmt * (keys["KeyW"] ? -1 : keys["KeyS"] ? 1 : 0) - vGrp.rotation.x) * Math.min(1, dt * 6);
+      vGrp.rotation.z += (tiltAmt * (keys["KeyD"] ? -1 : keys["KeyA"] ? 1 : 0) - vGrp.rotation.z) * Math.min(1, dt * 6);
+    } else {
+      vGrp.rotation.y = vst ? vst.heading : 0;
+      // Spin wheels proportional to speed
+      if (vGrp._wheels && vst && vst.speed !== 0) {
+        const wheelRadius = 0.35;
+        const spinDelta = (vst.speed / wheelRadius) * dt;
+        for (const wh of vGrp._wheels) wh.rotation.y += spinDelta;
+      }
+      // Hide car when riding (hero mesh shows in same spot)
+      vGrp.visible = !(inCar && activeVehicleId === vDef.id);
     }
-    // Hide the vehicle the hero is riding (hero mesh is in same spot)
-    vGrp.visible = !(inCar && activeVehicleId === vDef.id);
   }
 
   const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
@@ -4319,7 +4388,9 @@ function tick() {
   // (INSIDE + FIRST_PERSON). Falls back to old behavior if spine not loaded.
   const spineZone = spine ? spine.zone : null;
   const firstPerson = !inCar && (spineZone === "INSIDE" || spineZone === "FIRST_PERSON" || dist < 0.5);
-  heroGroup.visible = buildMode || (!inCar && (spine ? spine.params.heroVisible : !firstPerson));
+  const _activeDef = inCar ? VEHICLE_DEFS.find(v => v.id === activeVehicleId) : null;
+  const _isDrone   = _activeDef && _activeDef.type === "drone";
+  heroGroup.visible = buildMode || (_isDrone ? false : (!inCar && (spine ? spine.params.heroVisible : !firstPerson)));
   _shadowBlob.visible = !inCar && !firstPerson && !buildMode;
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
@@ -4669,12 +4740,14 @@ function tick() {
     if (inCar && activeVehicleId) {
       vDash.style.display = "block";
       const vst2 = vehicleStates.get(activeVehicleId);
+      const aVDef = VEHICLE_DEFS.find(v => v.id === activeVehicleId);
+      const isDrone2 = aVDef && aVDef.type === "drone";
       const kmh = vst2 ? Math.abs(vst2.speed * 3.6).toFixed(0) : "0";
-      const gear2 = vst2 ? (vst2.gearName || "N") : "N";
+      const gear2 = isDrone2 ? `ALT ${(vst2.altY || 0).toFixed(1)}m` : (vst2 ? (vst2.gearName || "N") : "N");
       const speedEl = document.getElementById("vdSpeed");
       const gearEl  = document.getElementById("vdGear");
-      if (speedEl) speedEl.textContent = kmh;
-      if (gearEl)  { gearEl.textContent = gear2; gearEl.style.color = gear2 === "R" ? "#ff4466" : "#ffd166"; }
+      if (speedEl) speedEl.textContent = isDrone2 ? `${kmh} km/h` : kmh;
+      if (gearEl)  { gearEl.textContent = gear2; gearEl.style.color = isDrone2 ? "#00bbff" : (gear2 === "R" ? "#ff4466" : "#ffd166"); }
     } else {
       vDash.style.display = "none";
     }
