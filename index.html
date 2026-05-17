@@ -8007,7 +8007,7 @@ function tick() {
       scene.remove(cd.mesh);
       score += cd.value;
       playSfx("blip", 0.55);
-      showToast(`+${cd.value} coin (${score} total)`, "success", 1000);
+      _spawnDamageNumber(cd.u, 0.8, cd.v, `+${cd.value}`, "#ffd166");
     } else {
       cd.mesh.rotation.y += dt * 2.8;
       cd.mesh.position.y = 0.5 + Math.sin(now / 310 + cd.u) * 0.08;
