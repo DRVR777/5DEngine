@@ -5317,6 +5317,7 @@ function _tryDroneShoot() {
 }
 
 let lastT = performance.now();
+let _bulletTimeLeft = 0;  // seconds remaining of bullet-time slow (sniper shot trigger)
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
@@ -5352,8 +5353,13 @@ const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
 
 function tick() {
   const now = performance.now();
-  const dt  = Math.min(0.05, (now - lastT) / 1000);
+  let dt  = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
+  // Bullet time — sniper shot triggers 0.35s at 35% speed
+  if (_bulletTimeLeft > 0) {
+    _bulletTimeLeft = Math.max(0, _bulletTimeLeft - dt);
+    dt *= 0.35;
+  }
 
   // Engine namespace time tick
   if (typeof Engine !== "undefined") Engine.time.tick(now);
@@ -6328,7 +6334,10 @@ function tick() {
                   dirU: Math.sin(sAng), dirV: Math.cos(sAng), dirY: 0, speed: 30, damage: en.damage, traveled: 0, range: 25 });
                 playSfx("tone:2000:80:sawtooth", 0.65); playSfx("tone:800:60:sawtooth", 0.4);
                 _applyScreenShake(0.15);
-                if (dist < 22) showToast("SNIPER SHOT INCOMING!", "danger", 800);
+                if (dist < 22) {
+                  showToast("SNIPER SHOT INCOMING!", "danger", 800);
+                  _bulletTimeLeft = 0.38; // brief bullet-time to allow dodge
+                }
               }
             }
           },
