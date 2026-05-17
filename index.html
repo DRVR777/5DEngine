@@ -6184,6 +6184,7 @@ function tick() {
           const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul);
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
+          en._hitFlashT = 0.08;
           _shotsHit++; _damageDealt += dmg;
           hitMarkerUntil = now + (headshot ? 200 : backstab ? 160 : _frontalBlock ? 80 : isCrit ? 180 : 120);
           if (backstab) {
@@ -7104,6 +7105,29 @@ function tick() {
       // Spin the type indicator gem
       const gem = em.group.getObjectByName("_typeGem");
       if (gem) gem.rotation.y += dt * 2.5;
+      // Hit flash — white emissive burst 0.08s on bullet impact
+      if (en._hitFlashT > 0) {
+        en._hitFlashT -= dt;
+        en._hitFlashWas = true;
+        em.group.traverse(ch => {
+          if (ch.isMesh && ch.material && !ch._isHpBar) {
+            if (ch._origEmissive === undefined) {
+              ch._origEmissive = ch.material.emissive.getHex();
+              ch._origEmissiveInt = ch.material.emissiveIntensity || 0;
+            }
+            ch.material.emissive.setHex(0xffffff);
+            ch.material.emissiveIntensity = 2.0;
+          }
+        });
+      } else if (en._hitFlashWas) {
+        en._hitFlashWas = false;
+        em.group.traverse(ch => {
+          if (ch.isMesh && ch.material && !ch._isHpBar && ch._origEmissive !== undefined) {
+            ch.material.emissive.setHex(ch._origEmissive);
+            ch.material.emissiveIntensity = ch._origEmissiveInt;
+          }
+        });
+      }
       // Blood/oil trail on low-HP enemies — drip particle every 0.12s below 30% HP
       if (en.hp / en.maxHp < 0.30) {
         if (!en._bleedT || now / 1000 - en._bleedT > 0.12) {
