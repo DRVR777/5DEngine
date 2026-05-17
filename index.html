@@ -1787,8 +1787,8 @@ const _SHOP_ITEMS = [
   { id: "smoke_x3",    name: "Smoke Pack ×3",   desc: "+3 smoke grenades (T)",     cost: 4,  action: () => { smokeGrenadeCount = Math.min(9, smokeGrenadeCount + 3); } },
   { id: "flash_x2",    name: "Flashbang ×2",    desc: "+2 flashbangs (U)",         cost: 6,  action: () => { flashbangCount = Math.min(6, flashbangCount + 2); } },
   { id: "mines_x3",    name: "Mine Kit ×3",     desc: "+3 trap mines (M)",         cost: 5,  action: () => { _mineCount = Math.min(9, _mineCount + 3); } },
-  { id: "ammo_smg",    name: "SMG Ammo",        desc: "+40 SMG rounds",            cost: 3,  action: () => { Inv.addItem(heroInv, "smg_9mm", 40); } },
-  { id: "ammo_sniper", name: "Sniper Rounds",   desc: "+10 sniper rounds",         cost: 4,  action: () => { Inv.addItem(heroInv, "sniper_308", 10); } },
+  { id: "ammo_smg",    name: "SMG Ammo",        desc: "+40 rounds (SMG uses pistol ammo)", cost: 3,  action: () => { Inv.addItem(heroInv, "pistol_9mm", 40); } },
+  { id: "ammo_sniper", name: "Sniper Rounds",   desc: "+10 rounds (sniper uses rifle ammo)", cost: 4,  action: () => { Inv.addItem(heroInv, "rifle_556", 10); } },
 ];
 function _openShop() {
   if (computerOpen || buildMode) return;
