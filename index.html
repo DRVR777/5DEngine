@@ -7777,7 +7777,19 @@ function tick() {
           _fpe._fireDmgT = 0.5;
           _fpe.hp = Math.max(0, _fpe.hp - 8);
           _fpe._hpBarShowT = now / 1000;
+          _fpe._hitFlashT = 0.06;
           _spawnDamageNumber(_fpep.u, 1.8, _fpep.v, "8", "#ff6600");
+          if (_fpe.hp <= 0 && !_fpe.dead) {
+            _fpe.dead = true; _fpe.respawnT = now / 1000;
+            enemyKills++; _comboCount++; _comboLastT = now / 1000;
+            _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${_fpe.type}`, "#ff6600");
+            _trackKillAndPanic(_fpep.u, _fpep.v);
+            _spawnDecal(_fpep.u, _fpep.v, "blood");
+            _spawnCoinDrop(_fpep.u, _fpep.v, (_COIN_BY_TYPE[_fpe.type] || 1) * Math.min(8, _comboCount));
+            _spawnAmmoPickup(_fpep.u, _fpep.v, _fpe.dropQty || 12, _fpe.dropAmmo);
+            if (_fpe._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); }
+            if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel);
+          }
         }
       }
     }
