@@ -5518,6 +5518,7 @@ let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approachi
 let _missSndT = 0; // near-miss whiz cooldown (0.5s to avoid spam)
 let _heroShotAlertU = 0, _heroShotAlertV = 0, _heroShotAlertT = 0; // last shot pos alert to nearby enemies
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
+let _slideT = 0, _slideDU = 0, _slideDV = 0, _ctrlWasDown = false; // sprint slide state
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
 const STAMINA_DRAIN  = 22;  // per second while sprinting
@@ -5805,8 +5806,32 @@ function tick() {
       if (_heroNow && _heroNow.y > CAR_BLOCKER_H) return null;
       return { u: vp.u, v: vp.v, y: 0, hitbox: { w: hb.w, d: hb.d, h: CAR_BLOCKER_H } };
     }).filter(Boolean);
+    // Sprint slide — trigger on rising edge of Ctrl while sprinting; 0.6s, 1.5x speed
+    const _ctrlDown = !!(keys["ControlLeft"] || keys["ControlRight"]);
+    if (!_ctrlWasDown && _ctrlDown && canSprint && isMoving && _slideT <= 0 && !_heroDead && !buildMode) {
+      _slideT = 0.6;
+      const _sm = (inputF * forward.x + inputR * right.x);
+      const _sv = (inputF * forward.z + inputR * right.z);
+      const _smag = Math.hypot(_sm, _sv) || 1;
+      _slideDU = (_sm / _smag) * SPRINT * 1.5;
+      _slideDV = (_sv / _smag) * SPRINT * 1.5;
+      playSfx("tone:120:80:triangle", 0.18);
+    }
+    _ctrlWasDown = _ctrlDown;
+    let _effF = inputF, _effR = inputR, _effSpeed = speed;
+    if (_slideT > 0) {
+      _slideT -= dt;
+      const _sDecay = Math.max(0, _slideT / 0.6);
+      const _heroSlP = world.players.get("hero");
+      const _slMover = { u: _heroSlP.u, v: _heroSlP.v, hitbox: HERO_HITBOX };
+      GTAPhysics.resolveAABBMove(_slMover, _slideDU * _sDecay * dt, _slideDV * _sDecay * dt,
+        buildingBlockers.concat(vehicleBlockers));
+      world.setPlayer("hero", _heroSlP.x, _heroSlP.y, _heroSlP.z, _slMover.u, _slMover.v);
+      if (Math.random() < 0.6) _spawnParticles(_heroSlP.u, _heroSlP.y + 0.05, _heroSlP.v, 1, "white", 1.5, 0.15);
+      _effF = 0; _effR = 0; _effSpeed = 0;
+    }
     Bridge.applyCameraRelativeMove(
-      world, "hero", inputF, inputR, forward, right, speed, dt,
+      world, "hero", _effF, _effR, forward, right, _effSpeed, dt,
       (window.Engine && window.Engine.debug.noclip)
         ? {}
         : { blockers: buildingBlockers.concat(vehicleBlockers), heroHitbox: HERO_HITBOX }
