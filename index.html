@@ -60,11 +60,30 @@
     transform: translate(-50%, -50%);
     border-radius: 50%;
   }
-  #inventory, #computerOverlay, #shopOverlay {
+  #inventory, #computerOverlay, #shopOverlay, #settingsOverlay {
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(0,0,0,0.65); z-index: 1000;
   }
-  #inventory.open, #computerOverlay.open, #shopOverlay.open { display: flex; }
+  #inventory.open, #computerOverlay.open, #shopOverlay.open, #settingsOverlay.open { display: flex; }
+  #settingsOverlay .settingsPanel {
+    background: linear-gradient(135deg, #0d1626 0%, #060e1e 100%);
+    color: #b8e8ff; padding: 24px 28px; border-radius: 12px;
+    border: 2px solid rgba(0,200,255,0.5); min-width: 480px; max-width: 600px;
+    font-family: ui-monospace,"Cascadia Code",Consolas,monospace;
+    box-shadow: 0 0 40px rgba(0,200,255,0.2);
+  }
+  #settingsOverlay .sTitle { font-size:14px;font-weight:bold;color:#00ccff;letter-spacing:0.12em;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center; }
+  #settingsOverlay .sSection { margin-bottom:16px; }
+  #settingsOverlay .sLabel { font-size:11px;color:#4488aa;letter-spacing:0.1em;margin-bottom:8px; }
+  #settingsOverlay .sRow { display:flex;align-items:center;gap:12px;margin-bottom:8px;font-size:12px; }
+  #settingsOverlay .sRow label { width:200px;color:#88aacc; }
+  #settingsOverlay input[type=range] { flex:1;accent-color:#00ccff; }
+  #settingsOverlay .sVal { width:36px;text-align:right;color:#00ccff;font-size:11px; }
+  #settingsOverlay .adminLock { background:rgba(0,200,255,0.07);border:1px solid rgba(0,200,255,0.25);border-radius:6px;padding:12px;margin-top:8px; }
+  #settingsOverlay input[type=password], #settingsOverlay input[type=number] { background:#0a1626;border:1px solid rgba(0,200,255,0.3);color:#b8e8ff;padding:4px 8px;border-radius:4px;font-family:inherit;font-size:12px;width:100px; }
+  #settingsOverlay .adminGrid { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px; }
+  #settingsOverlay .adminRow { font-size:11px;color:#88aacc; }
+  #settingsOverlay .adminRow label { display:block;margin-bottom:3px; }
   #shopOverlay .shopPanel {
     background: linear-gradient(135deg, #1a2210 0%, #0d1a08 100%);
     color: #eee; padding: 24px 28px; border-radius: 12px;
@@ -545,6 +564,35 @@
       </span>
     </div>
     <div class="shopGrid" id="shopGrid"></div>
+  </div>
+</div>
+<div id="settingsOverlay">
+  <div class="settingsPanel">
+    <div class="sTitle">
+      <span>⚙ SETTINGS</span>
+      <span id="settingsClose" style="cursor:pointer;color:#ff5d5d;font-weight:bold;font-size:16px;padding:2px 10px;background:#3a0a0a;border-radius:4px;border:1px solid #ff5d5d44">✕</span>
+    </div>
+    <div class="sSection">
+      <div class="sLabel">SENSITIVITY</div>
+      <div class="sRow">
+        <label>Sniper scope sensitivity</label>
+        <input type="range" id="sniperSensSlider" min="1" max="8" step="0.1" value="3">
+        <span class="sVal" id="sniperSensVal">3.0x</span>
+      </div>
+      <div class="sRow" style="font-size:10px;color:#446">Higher = slower scope movement when zoomed in</div>
+    </div>
+    <div class="sSection adminLock">
+      <div class="sLabel" style="color:#ffd166">ADMIN PANEL</div>
+      <div id="adminLockRow" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <input type="password" id="adminPwInput" placeholder="password" style="width:140px">
+        <button id="adminUnlockBtn" style="background:rgba(0,200,255,0.15);border:1px solid rgba(0,200,255,0.4);color:#00ccff;padding:4px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:11px">Unlock</button>
+        <span id="adminLockMsg" style="font-size:10px;color:#f44"></span>
+      </div>
+      <div id="adminContent" style="display:none">
+        <div class="sLabel" style="color:#aef060;margin-bottom:8px">WEAPON TUNING</div>
+        <div id="adminWeaponGrid" class="adminGrid"></div>
+      </div>
+    </div>
   </div>
 </div>
 <div id="builderUI" style="display:none;position:fixed;top:10px;right:200px;width:290px;background:rgba(2,8,22,0.94);border:1px solid rgba(0,200,255,0.4);border-radius:8px;color:#b8e8ff;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12px;padding:12px;z-index:50;box-shadow:0 0 24px rgba(0,200,255,0.18),inset 0 0 12px rgba(0,200,255,0.04)">
@@ -1389,7 +1437,80 @@ document.addEventListener("DOMContentLoaded", () => {
   if (closeBtn) closeBtn.addEventListener("click", _closeShop);
 });
 
-// Grenade system — F key throws, 2.5s fuse, AoE on detonation
+// Settings panel — O key opens, Escape closes
+let settingsOpen = false;
+let sniperScopeSens = 3.0;  // higher = slower scope mouse movement
+const ADMIN_PASSWORD = "5DENGINE";
+let adminUnlocked = false;
+
+function _openSettings() {
+  settingsOpen = true;
+  document.exitPointerLock();
+  const el = document.getElementById("settingsOverlay");
+  if (el) el.classList.add("open");
+  // Sync sniper slider
+  const sl = document.getElementById("sniperSensSlider");
+  if (sl) { sl.value = sniperScopeSens; sl.dispatchEvent(new Event("input")); }
+  // Populate admin weapon grid if unlocked
+  if (adminUnlocked) _renderAdminGrid();
+}
+function _closeSettings() {
+  settingsOpen = false;
+  const el = document.getElementById("settingsOverlay");
+  if (el) el.classList.remove("open");
+  setTimeout(() => { if (!document.pointerLockElement && !buildMode) renderer.domElement.requestPointerLock(); }, 50);
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const closeBtn = document.getElementById("settingsClose");
+  if (closeBtn) closeBtn.addEventListener("click", _closeSettings);
+  const sl = document.getElementById("sniperSensSlider");
+  const sv = document.getElementById("sniperSensVal");
+  if (sl && sv) {
+    sl.addEventListener("input", () => {
+      sniperScopeSens = parseFloat(sl.value);
+      sv.textContent = sniperScopeSens.toFixed(1) + "x";
+    });
+  }
+  const unlockBtn = document.getElementById("adminUnlockBtn");
+  if (unlockBtn) {
+    unlockBtn.addEventListener("click", () => {
+      const pw = document.getElementById("adminPwInput")?.value || "";
+      const msg = document.getElementById("adminLockMsg");
+      if (pw === ADMIN_PASSWORD) {
+        adminUnlocked = true;
+        document.getElementById("adminContent").style.display = "block";
+        document.getElementById("adminLockRow").querySelector("input").style.display = "none";
+        unlockBtn.style.display = "none";
+        if (msg) msg.textContent = "✓ Unlocked";
+        _renderAdminGrid();
+      } else {
+        if (msg) { msg.textContent = "Wrong password"; setTimeout(() => { msg.textContent = ""; }, 1500); }
+      }
+    });
+  }
+});
+function _renderAdminGrid() {
+  const grid = document.getElementById("adminWeaponGrid");
+  if (!grid) return;
+  const weps = (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : [];
+  grid.innerHTML = "";
+  weps.forEach(w => {
+    const row = document.createElement("div");
+    row.className = "adminRow";
+    row.innerHTML = `<label><b style="color:#ffd166">${w.name || w.id}</b></label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="width:50px">DMG</span>
+        <input type="number" value="${w.damage || 0}" min="1" max="9999" style="width:70px"
+          onchange="(function(v){ const idx=(CFG.weapons||[]).findIndex(x=>x.id==='${w.id}');if(idx>=0)CFG.weapons[idx].damage=+v; })(this.value)">
+        <span style="width:50px;margin-left:4px">RPM</span>
+        <input type="number" value="${w.fireRate ? Math.round(w.fireRate*60) : 0}" min="1" max="9999" style="width:70px"
+          onchange="(function(v){ const idx=(CFG.weapons||[]).findIndex(x=>x.id==='${w.id}');if(idx>=0)CFG.weapons[idx].fireRate=v/60; })(this.value)">
+      </div>`;
+    grid.appendChild(row);
+  });
+}
+
+// Grenade system — G key throws, 2.5s fuse, AoE on detonation
 const grenades3D = [];
 let grenadeCount = 3;
 const _grenadesGeo = new THREE.SphereGeometry(0.15, 8, 6);
@@ -3514,8 +3635,9 @@ addEventListener("keydown", (e) => {
     }
     e.preventDefault(); return;
   }
-  // Esc closes shop or creative inventory if open
+  // Esc closes settings, shop, or creative inventory if open
   if (e.code === "Escape") {
+    if (settingsOpen) { _closeSettings(); e.preventDefault(); return; }
     if (shopOpen) { _closeShop(); e.preventDefault(); return; }
     const ci = document.getElementById("creativeInv");
     if (ci && ci.classList.contains("open")) { window._closeCreativeInv && window._closeCreativeInv(); e.preventDefault(); return; }
@@ -3637,10 +3759,14 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // O key: toggle environment/post-FX panel in build mode
-  if (buildMode && e.code === "KeyO") {
-    const ep = document.getElementById("envPanel");
-    if (ep) ep.style.display = ep.style.display === "none" ? "block" : "none";
+  // O key: toggle environment/post-FX panel in build mode, settings in play mode
+  if (e.code === "KeyO") {
+    if (buildMode) {
+      const ep = document.getElementById("envPanel");
+      if (ep) ep.style.display = ep.style.display === "none" ? "block" : "none";
+    } else {
+      if (settingsOpen) _closeSettings(); else _openSettings();
+    }
     e.preventDefault();
     return;
   }
@@ -3918,8 +4044,10 @@ addEventListener("mousemove", (e) => {
     freeCamPitch -= dy * 0.003;
     freeCamPitch = Math.max(-1.4, Math.min(1.4, freeCamPitch));
   } else {
-    camYaw   -= dx * 0.003;
-    camPitch -= dy * 0.003;
+    const isScopedIn = aiming && currentWeaponId === "sniper";
+    const sensMul = isScopedIn ? 1 / sniperScopeSens : 1;
+    camYaw   -= dx * 0.003 * sensMul;
+    camPitch -= dy * 0.003 * sensMul;
     camPitch = Math.max(-1.2, Math.min(0.4, camPitch));
   }
 });
