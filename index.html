@@ -5824,6 +5824,7 @@ let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _footstepT = 0;    // seconds until next footstep tick
 let _gunBobPhase = 0;  // oscillation phase for FP weapon bob
+let _strafeRollAmt = 0; // spring [−1..1]: FP camera roll when strafing
 let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
 let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
 let _breathHoldT = 0;    // seconds Shift held while scoped (>1.5s causes trembling)
@@ -6071,6 +6072,8 @@ function tick() {
   } else {
     _gunBobPhase *= Math.exp(-dt * 8);
   }
+  // Strafe roll spring — tilts FP camera slightly when strafing
+  _strafeRollAmt += (inputR * (aiming ? 0.3 : 1.0) - _strafeRollAmt) * Math.min(1, dt * 8);
   // Sprint trail — orange dust particles at hero feet when running at full sprint
   if (isSprinting && isMoving && !_heroDead && pointerLocked && Math.random() < 0.45) {
     const _spTp = world.players.get("hero");
@@ -7692,6 +7695,7 @@ function tick() {
       fz * Math.cos(camPitch)
     ).multiplyScalar(10));
     camera.lookAt(look);
+    if (!buildMode) camera.rotateZ(-_strafeRollAmt * 0.025);
   } else {
     // 3rd-person orbit. Camera position offsets behind + beside hero.
     // lookAt targets a point ~18m FORWARD along hero heading so the crosshair
