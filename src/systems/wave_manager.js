@@ -33,6 +33,7 @@
 
   let _waves = _defaultWaves.map(w => Object.assign({}, w));
   let _waveIdx   = 0;
+  let _totalWave = 0;          // never resets on loop — used for persistent scaling
   let _phase     = "idle";    // idle | countdown | spawning | waiting | pausing | done
   let _countdown = 0;
   let _pauseLeft = 0;
@@ -75,7 +76,8 @@
 
   function reset() {
     stop();
-    _waveIdx = 0;
+    _waveIdx   = 0;
+    _totalWave = 0;
   }
 
   function _beginCountdown() {
@@ -88,6 +90,7 @@
 
   function _beginSpawning() {
     _phase = "spawning";
+    _totalWave++;                // persistent across loops
     const waveDef = _waves[_waveIdx];
     // Build a flat queue: [{type, remaining}]
     _spawnQueue = (waveDef.enemies || []).map(g => ({ type: g.type, remaining: g.count }));
@@ -185,6 +188,7 @@
   function getState() {
     return {
       wave:       _waveIdx + 1,
+      totalWave:  _totalWave,          // never resets — use for persistent enemy scaling
       totalWaves: _waves.length,
       phase:      _phase,
       countdown:  _phase === "countdown" ? Math.ceil(_countdown) : 0,

@@ -1441,8 +1441,9 @@ window._spawnEnemyAtHero = function(typeName) {
     ? (_ENEMY_TYPES.find(t => t.type === typeName) || _ENEMY_TYPES[0])
     : _ENEMY_TYPES[Math.floor(Math.random() * _ENEMY_TYPES.length)];
   const eid = "en_spawned_" + Date.now();
-  const _wScaleW = typeof WaveManager !== "undefined" ? WaveManager.getState().wave : 1;
-  const _wScale = 1 + (_wScaleW - 1) * 0.05; // +5% stats per wave: Wave1=1.0x, Wave5=1.2x, Wave10=1.45x
+  const _wsState = typeof WaveManager !== "undefined" ? WaveManager.getState() : { wave: 1, totalWave: 1 };
+  const _wScaleW = _wsState.totalWave || _wsState.wave; // persistent across loops
+  const _wScale = 1 + (_wScaleW - 1) * 0.05; // +5% per wave, never resets on loop
   const nEn = Object.assign({}, template, {
     id: eid,
     hp:     Math.round(template.maxHp * _wScale * _diffHpMul),
