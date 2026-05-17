@@ -1175,6 +1175,8 @@ window._enemies = enemies;   // exposed for WaveManager alive-count tracking
 // Keep backwards-compat `enemy` alias pointing to first enemy
 const enemy = enemies[0];
 const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
+// Cached boss ref — set on spawn, check .dead for liveness (avoids O(E) scan every frame)
+let _liveBoss = null;
 let enemyKills = 0;
 let _shotsFired = 0;
 let _shotsHit = 0;
@@ -1661,6 +1663,7 @@ window._spawnEnemyAtHero = function(typeName) {
   _spawnParticles(eu, 0.5, ev, nEn._elite ? 25 : 12, nEn._elite ? "yellow" : "red", 5, 0.4);
   playSfx("tone:300:60:sawtooth", 0.12);
   if (typeName === "boss") {
+    _liveBoss = nEn;
     playSfx("tone:60:800:sawtooth", 0.9);
     playSfx("tone:80:600:sawtooth", 0.7);
     _applyScreenShake(0.5);
@@ -6815,6 +6818,7 @@ function tick() {
             _killMarkerUntil = now + 300; _killMarkerHs = headshot;
             // Type-specific kill confirmation sound
             if (en.type === "boss") {
+              _liveBoss = null;
               playSfx("tone:260:200:sine", 0.6); playSfx("tone:330:180:sine", 0.5); playSfx("tone:440:220:sine", 0.45);
             } else if (en.type === "heavy") {
               playSfx("tone:55:400:sawtooth", 0.5); playSfx("tone:80:200:sawtooth", 0.3);
@@ -8915,7 +8919,7 @@ function tick() {
     const bossHpValEl  = document.getElementById("bossHpVal");
     const bossNameEl   = document.getElementById("bossName");
     if (bossBarEl) {
-      const liveBoss = enemies.find(e => !e.dead && e.type === "boss");
+      const liveBoss = (_liveBoss && !_liveBoss.dead) ? _liveBoss : null;
       if (liveBoss) {
         bossBarEl.style.display = "block";
         const bFrac = Math.max(0, liveBoss.hp / liveBoss.maxHp);
@@ -9044,7 +9048,7 @@ function tick() {
       _setAmbient("wind", 220, "sawtooth", 0.008, 2.5);
       // Count alive enemies chasing hero
       const aliveChasing = enemies.filter(e => !e.dead && e._wasChasing).length;
-      const bossAlive = enemies.some(e => !e.dead && e.type === "boss");
+      const bossAlive = !!(_liveBoss && !_liveBoss.dead);
       const anyAlive   = enemies.some(e => !e.dead && e.id.startsWith("en_spawned_"));
       // Calm pad — minor chord (root + minor 3rd) when no enemies are chasing between waves
       const calmVol = (!anyAlive || aliveChasing === 0) && !bossAlive && !_heroDead ? 0.024 : 0;
