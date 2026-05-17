@@ -1362,10 +1362,13 @@ window._spawnEnemyAtHero = function(typeName) {
   const nEn = Object.assign({}, template, {
     id: eid, hp: template.maxHp, dead: false,
     u: eu, v: ev, heading: 0, respawnT: 0,
+    _spawnT: performance.now() / 1000,   // spawn-in animation start
   });
   enemies.push(nEn);
   world.addPlayer(eid, eu, 0, 0, ev);
   enemyMeshes.set(eid, _makeEnemyMesh(nEn));
+  _spawnParticles(eu, 0.5, ev, 12, "red", 5, 0.4);
+  playSfx("tone:300:60:sawtooth", 0.12);
   if (typeName === "boss") {
     playSfx("tone:60:800:sawtooth", 0.9);
     playSfx("tone:80:600:sawtooth", 0.7);
@@ -6089,6 +6092,22 @@ function tick() {
       if (en._flinchX == null) en._flinchX = 0;
       en._flinchX += (0 - en._flinchX) * Math.min(1, dt * 14);
       em.group.rotation.x = en._flinchX;
+      // Spawn-in scale animation: scale up from 0.05 to 1 over 0.4s
+      if (en._spawnT && (now / 1000 - en._spawnT) < 0.4) {
+        const _sf = Math.min(1, (now / 1000 - en._spawnT) / 0.4);
+        em.group.scale.setScalar(0.05 + _sf * 0.95);
+        // Brief flash on first appear
+        if (_sf < 0.25) {
+          const _fl = 1 - _sf / 0.25;
+          em.group.traverse(ch => { if (ch.isMesh && ch.material && ch.material.emissive) ch.material.emissiveIntensity = _fl * 2.5; });
+        }
+      } else {
+        em.group.scale.setScalar(1);
+        if (en._spawnT) {
+          em.group.traverse(ch => { if (ch.isMesh && ch.material && ch.material.emissive) ch.material.emissiveIntensity = 0; });
+          en._spawnT = null;  // clear once animation completes
+        }
+      }
       em.group.visible = true;
       const hpFrac = en.hp / en.maxHp;
       em.hpFg.scale.x = Math.max(0.001, hpFrac);
