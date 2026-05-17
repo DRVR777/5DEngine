@@ -8294,6 +8294,18 @@ function tick() {
         }
       }
     }
+    // Barrel ignition — fire patches heat nearby barrels, chain to explosion
+    for (const _fpBar of barrels) {
+      if (_fpBar.exploded) continue;
+      if (Math.hypot(_fpBar.u - fp.u, _fpBar.v - fp.v) < fp.radius + 0.4) {
+        _fpBar._fireDmgT = (_fpBar._fireDmgT || 0) - dt;
+        if (_fpBar._fireDmgT <= 0) {
+          _fpBar._fireDmgT = 0.5;
+          _fpBar.hp = Math.max(0, _fpBar.hp - 8);
+          if (_fpBar.hp <= 0) { _fpBar.exploded = true; _fpBar.mesh.visible = false; _explodeBarrel(_fpBar.u, _fpBar.v); }
+        }
+      }
+    }
   }
 
   // Poison puddles — decay, apply poison to hero inside radius
