@@ -1029,7 +1029,30 @@ let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
 const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
+let _recentKillPos = [];    // morale tracker: [{u, v, t}] of recent kills
+let _panicBroadcastT = -99; // last rout broadcast time (prevents spam)
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30 };
+function _trackKillAndPanic(killU, killV) {
+  const t = performance.now() / 1000;
+  _recentKillPos.push({ u: killU, v: killV, t });
+  _recentKillPos = _recentKillPos.filter(k => t - k.t < 4.0);
+  if (_recentKillPos.length >= 3 && t - _panicBroadcastT > 4.0) {
+    _panicBroadcastT = t;
+    let panicked = 0;
+    for (const en2 of enemies) {
+      if (en2.dead || en2._panicT > 0) continue;
+      const ep2 = world.players.get(en2.id);
+      for (const k of _recentKillPos) {
+        if (Math.hypot(ep2.u - k.u, ep2.v - k.v) < 10) { en2._panicT = 3.0; panicked++; break; }
+      }
+    }
+    if (panicked > 0) {
+      _addKillFeedEntry(`⚠ ${panicked} ENEM${panicked > 1 ? "IES" : "Y"} ROUTING!`, "#ffff00");
+      showToast("Enemies routing!", "success", 1800);
+      playSfx("tone:500:120:triangle", 0.3);
+    }
+  }
+}
 let hitMarkerUntil = 0;
 let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
 let _dmgDirUntil = 0;  // performance.now() deadline
@@ -1730,6 +1753,7 @@ function _explodeGrenade(g) {
         en.dead = true; en.respawnT = performance.now() / 1000; enemyKills++;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         _addKillFeedEntry(`★ GRENADE KILL #${enemyKills} — ${en.type}`, "#ff8800");
+        _trackKillAndPanic(ep.u, ep.v);
       }
     }
   }
@@ -2223,6 +2247,7 @@ function _explodeBarrel(u, v) {
         en.dead = true; en.respawnT = nowMs / 1000; enemyKills++;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         _addKillFeedEntry(`★ BARREL KILL #${enemyKills} — ${en.type}`, "#ff6600");
+        _trackKillAndPanic(ep.u, ep.v);
       }
     }
   }
@@ -4245,6 +4270,7 @@ addEventListener("keydown", (e) => {
           en.dead = true; en.respawnT = performance.now() / 1000; en._wasChasing = false;
           enemyKills++; _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
           _addKillFeedEntry(`★ MELEE KILL #${enemyKills} — ${en.type}`, "#ff8800");
+          _trackKillAndPanic(ep.u, ep.v);
           _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
         }
       }
@@ -5347,6 +5373,7 @@ function tick() {
               showToast(`Enemy down — ${enemyKills} kill${enemyKills>1?"s":""}`, "danger", 1800);
             }
             _addKillFeedEntry(`★ KILL #${enemyKills} — ${en.type || "enemy"}`, "#ff4466");
+            _trackKillAndPanic(ep.u, ep.v);
             if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id: en.id, kills: enemyKills });
             completeQuestStep("combat", 0);
             if (enemyKills >= 3) completeQuestStep("combat", 1);
@@ -5554,6 +5581,34 @@ function tick() {
             );
           }
         }
+      }
+
+      // Panic flee — overrides BT for 3s when morale breaks (3+ kills nearby in 4s)
+      if (en._panicT > 0) {
+        en._panicT -= dt;
+        const _hFlee = world.players.get("hero");
+        if (_hFlee) {
+          const _fAng = Math.atan2(ep.u - _hFlee.u, ep.v - _hFlee.v);
+          const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+          GTAPhysics.resolveAABBMove(_em, Math.sin(_fAng)*en.moveSpeed*1.3*_enSpeedMul*dt,
+            Math.cos(_fAng)*en.moveSpeed*1.3*_enSpeedMul*dt, buildingBlockers);
+          world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v);
+          en.heading = _fAng;
+        }
+        if (en.mesh && en.mesh.children) {
+          const _yFlash = 0.5 + 0.5 * Math.sin(now / 70);
+          for (const ch of en.mesh.children) {
+            if (ch.isMesh && ch.material && !ch._isHpBar) {
+              if (!ch._origColor) ch._origColor = ch.material.color.clone();
+              ch.material.color.setRGB(
+                Math.min(1, ch._origColor.r + _yFlash * 0.7),
+                Math.min(1, ch._origColor.g + _yFlash * 0.6),
+                ch._origColor.b * (1 - _yFlash * 0.4)
+              );
+            }
+          }
+        }
+        continue;
       }
 
       if (en._bt && typeof BehaviorTree !== "undefined") {
