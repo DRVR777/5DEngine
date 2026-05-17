@@ -3750,7 +3750,7 @@ function tick() {
 
   // In build mode WASD drives the freecam, not the character
   const inputF = buildMode ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
-  const inputR = buildMode ? 0 : ((keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0));
+  const inputR = buildMode ? 0 : ((keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0));
   const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
 
   if (!buildMode && inCar && activeVehicleId) {
