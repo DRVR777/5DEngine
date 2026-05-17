@@ -2121,6 +2121,13 @@ function _tickDamageNumbers(dt) {
 const _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8);
 scene.add(_muzzleLight);
 let _muzzleLightT = 0;
+
+// Player flashlight — SpotLight that tracks camera, toggled with F key
+const _flashLight = new THREE.SpotLight(0xfff8e0, 0, 22, 0.22, 0.55, 1.6);
+const _flashTarget = new THREE.Object3D();
+scene.add(_flashLight); scene.add(_flashTarget);
+_flashLight.target = _flashTarget;
+let _flashlightOn = false;
 function _triggerMuzzleFlash(x, y, z) {
   _muzzleLight.position.set(x, y, z);
   _muzzleLight.intensity = 4;
@@ -3881,9 +3888,15 @@ addEventListener("keydown", (e) => {
       }
     }
   }
-  // F key: spawn hotbar slot (build mode only)
+  // F key: spawn hotbar slot (build mode) / toggle flashlight (play mode)
   if (e.code === "KeyF") {
     if (buildMode && window._hotbarSpawn) { window._hotbarSpawn(); e.preventDefault(); return; }
+    if (!buildMode && !computerOpen) {
+      _flashlightOn = !_flashlightOn;
+      _flashLight.intensity = _flashlightOn ? 2.8 : 0;
+      showToast(_flashlightOn ? "Flashlight ON" : "Flashlight OFF", "info", 800);
+      e.preventDefault(); return;
+    }
   }
   // G key: throw grenade (non-build mode) / group selected (build mode)
   if (e.code === "KeyG") {
@@ -4840,6 +4853,13 @@ function tick() {
     _muzzleLightT -= dt;
     _muzzleLight.intensity = Math.max(0, (_muzzleLightT / 0.06) * 4);
     if (_muzzleLightT <= 0) _muzzleLight.intensity = 0;
+  }
+  // Flashlight — track camera position and forward direction each frame
+  if (_flashlightOn) {
+    _flashLight.position.copy(camera.position);
+    const _fdir = new THREE.Vector3(); camera.getWorldDirection(_fdir);
+    _flashTarget.position.copy(camera.position).addScaledVector(_fdir, 10);
+    _flashTarget.updateMatrixWorld();
   }
   // Trigger zones — check hero + all enemies
   if (typeof TriggerZones !== "undefined") {
