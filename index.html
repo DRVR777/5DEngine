@@ -1075,13 +1075,20 @@ function _heroShowDeathScreen() {
   const cntEl   = document.getElementById("deathCountdown");
   if (!overlay) return;
   const _acc = _shotsFired > 0 ? Math.round(_shotsHit / _shotsFired * 100) : 0;
+  const _waveNum = typeof WaveManager !== "undefined" ? WaveManager.getState().wave : 0;
+  const _newBest = _checkHighScore(enemyKills, _waveNum, _acc);
+  const _prev = _bestRecord && !_newBest
+    ? `<br><span style="color:#557799;font-size:11px">Best: ${_bestRecord.kills} kills · Wave ${_bestRecord.wave} · ${_bestRecord.acc}% acc</span>`
+    : "";
   if (stats) stats.innerHTML =
+    (_newBest ? `<div style="color:#ffd166;font-size:16px;margin-bottom:6px;animation:pulse 0.8s ease infinite">★ NEW BEST SCORE! ★</div>` : "") +
     `Kills: <b style="color:#ff8888">${enemyKills}</b> &nbsp;|&nbsp; ` +
-    `Wave: <b style="color:#aef060">${typeof WaveManager !== "undefined" ? WaveManager.getState().wave : "—"}</b><br>` +
+    `Wave: <b style="color:#aef060">${_waveNum}</b><br>` +
     `Coins: <b style="color:#ffd166">${score}</b> &nbsp;|&nbsp; ` +
     `Damage dealt: <b style="color:#ff9944">${_damageDealt}</b><br>` +
     `Shots fired: <b style="color:#aaddff">${_shotsFired}</b> &nbsp;|&nbsp; ` +
-    `Accuracy: <b style="color:${_acc >= 50 ? "#aef060" : _acc >= 25 ? "#ffd166" : "#ff8888"}">${_acc}%</b>`;
+    `Accuracy: <b style="color:${_acc >= 50 ? "#aef060" : _acc >= 25 ? "#ffd166" : "#ff8888"}">${_acc}%</b>` +
+    _prev;
   if (cntEl) cntEl.textContent = RESPAWN_DELAY;
   overlay.style.display = "flex";
   _deathCountdownT = RESPAWN_DELAY;
@@ -6446,6 +6453,23 @@ function tick() {
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
+
+// ---- High score (separate from save) ----
+const _HS_KEY = "5DEngine_highscore";
+let _bestRecord = null;
+(function _loadHighScore() {
+  try { _bestRecord = JSON.parse(localStorage.getItem(_HS_KEY)); } catch (_) {}
+})();
+function _checkHighScore(kills, wave, acc) {
+  const score_ = kills * 10 + wave * 50 + acc;
+  const prevBest = _bestRecord ? (_bestRecord.kills * 10 + _bestRecord.wave * 50 + _bestRecord.acc) : -1;
+  if (score_ > prevBest) {
+    _bestRecord = { kills, wave, acc, ts: Date.now() };
+    try { localStorage.setItem(_HS_KEY, JSON.stringify(_bestRecord)); } catch (_) {}
+    return true;
+  }
+  return false;
+}
 
 // ---- Persistent game state (localStorage) ----
 const SAVE_KEY = "5DEngine_save";
