@@ -1938,7 +1938,20 @@ function _tickMines(dt) {
             if (_md < _mBlast) {
               const _mDmg = Math.round(90 * (1 - _md / _mBlast));
               en2.hp = Math.max(0, en2.hp - _mDmg);
+              en2._hitFlashT = 0.08;
               _spawnDamageNumber(ep2.u, 1.0, ep2.v, `${_mDmg}`, "#ffaa00");
+              if (en2.hp <= 0) {
+                en2.dead = true; en2.respawnT = performance.now() / 1000;
+                enemyKills++; _comboCount++; _comboLastT = performance.now() / 1000;
+                _addKillFeedEntry(`⊠ MINE KILL #${enemyKills} — ${en2.type}`, "#ffaa00");
+                _trackKillAndPanic(ep2.u, ep2.v);
+                _spawnCoinDrop(ep2.u, ep2.v, (_COIN_BY_TYPE[en2.type] || 1) * Math.min(8, _comboCount));
+                _spawnAmmoPickup(ep2.u, ep2.v, en2.dropQty || 12, en2.dropAmmo);
+                if (en2.type === "incendiary") _spawnFirePatch(ep2.u, ep2.v);
+                if (_WEAPON_DROP_MAP[en2.type]) _spawnWeaponPickup(ep2.u + 0.5, ep2.v + 0.5, _WEAPON_DROP_MAP[en2.type]);
+                if (en2._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); }
+                if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel);
+              }
             }
           }
           break;
