@@ -286,6 +286,7 @@
   .toast.warn    { border-color: rgba(255,209,102,0.5); color: #ffd166; }
   .toast.danger  { border-color: rgba(255,68,102,0.5); color: #ff4466; }
   @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+  @keyframes waveClearIn { 0%{opacity:0;transform:translateX(-50%) translateY(-30px)} 20%{opacity:1;transform:translateX(-50%) translateY(0)} 75%{opacity:1;transform:translateX(-50%) translateY(0)} 100%{opacity:0;transform:translateX(-50%) translateY(20px)} }
   /* Scene Hierarchy panel (H in build mode) */
   #sceneHierarchy {
     display: none; position: fixed; left: 10px; top: 48px;
@@ -326,6 +327,11 @@
   <svg id="grenadeRing" width="100" height="100" viewBox="0 0 100 100" style="display:block;margin:4px auto">
     <circle cx="50" cy="50" r="42" fill="none" stroke="#ff2222" stroke-width="4" opacity="0.85" stroke-dasharray="264"/>
   </svg>
+</div>
+<!-- Wave clear banner — slides in from top, fades out -->
+<div id="waveClearBanner" style="display:none;position:fixed;top:28%;left:50%;transform:translateX(-50%) translateY(-30px);text-align:center;pointer-events:none;z-index:997;transition:opacity 0.35s,transform 0.35s">
+  <div id="waveClearTitle" style="font-family:ui-monospace,monospace;font-size:38px;font-weight:900;letter-spacing:0.18em;color:#00ffcc;text-shadow:0 0 24px #00ffccaa,0 2px 0 #004433">WAVE CLEAR</div>
+  <div id="waveClearSub" style="font-family:ui-monospace,monospace;font-size:16px;color:#ffd166;margin-top:4px;letter-spacing:0.1em"></div>
 </div>
 <!-- Boss HP bar (top-center, below kill feed) -->
 <div id="bossHpBar" style="display:none;position:fixed;top:75px;left:50%;transform:translateX(-50%);width:340px;pointer-events:none;z-index:202;text-align:center;font-family:ui-monospace,monospace">
@@ -2022,8 +2028,19 @@ if (typeof WaveManager !== "undefined") {
       heroHp = Math.min(HERO_MAX_HP, heroHp + 15);  // small heal on wave clear
       playSfx("tone:800:100:sine", 0.5);
       playSfx("tone:1000:80:sine", 0.45);
+      setTimeout(() => playSfx("tone:1300:160:sine", 0.4), 180);
       showToast(`Wave ${w} clear! +${bonus} coins +15 HP`, "success", 2800);
       _addKillFeedEntry(`★ WAVE ${w} CLEAR — +${bonus} coins`, "#00ffcc");
+      const _wcb = document.getElementById("waveClearBanner");
+      const _wct = document.getElementById("waveClearTitle");
+      const _wcs = document.getElementById("waveClearSub");
+      if (_wcb) {
+        if (_wct) _wct.textContent = `WAVE ${w} CLEAR`;
+        if (_wcs) _wcs.textContent = `+${bonus} coins · +15 HP · next wave in ${typeof WaveManager !== "undefined" ? WaveManager.getState().pauseLeft || "…" : "…"}s`;
+        _wcb.style.display = "block";
+        _wcb.style.animation = "waveClearIn 2.8s ease forwards";
+        setTimeout(() => { _wcb.style.display = "none"; _wcb.style.animation = ""; }, 2900);
+      }
     },
     onAllWaves:  ()  => {
       score += 30;
