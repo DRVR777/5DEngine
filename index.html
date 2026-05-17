@@ -1786,6 +1786,7 @@ function _buildPlaceholderGun(id) {
 
 function _switchGunMesh(weaponId) {
   _gunMeshes.forEach((mesh, id) => { mesh.visible = id === weaponId; });
+  _switchFpGunMesh(weaponId);
 }
 
 // Seed placeholder for every configured weapon; active one visible, others hidden
@@ -1804,6 +1805,50 @@ function _switchGunMesh(weaponId) {
     _gunMount.add(m); _gunMeshes.set("pistol", m);
   }
 })();
+
+// First-person gun overlay — camera-space gun that renders over everything.
+// Mirrors active weapon shape but is a separate object attached to the camera.
+const _fpGunGroup = new THREE.Group();
+_fpGunGroup.visible = false;
+_fpGunGroup.position.set(0.22, -0.24, -0.45);
+camera.add(_fpGunGroup);
+
+const _fpGunMeshes = new Map();  // weaponId → Group in FP view
+
+function _buildFpGun(id) {
+  const mat1 = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.75, roughness: 0.35, depthTest: false });
+  const mat2 = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, depthTest: false });
+  const specs = {
+    pistol:  { body: [0.06, 0.10, 0.20], barrel: [0.04, 0.04, 0.26], bz: 0.21 },
+    rifle:   { body: [0.05, 0.08, 0.36], barrel: [0.03, 0.03, 0.38], bz: 0.35 },
+    shotgun: { body: [0.07, 0.10, 0.28], barrel: [0.06, 0.06, 0.24], bz: 0.25 },
+    smg:     { body: [0.05, 0.08, 0.18], barrel: [0.03, 0.03, 0.18], bz: 0.18 },
+    sniper:  { body: [0.04, 0.07, 0.44], barrel: [0.025, 0.025, 0.50], bz: 0.46 },
+  };
+  const s = specs[id] || specs.pistol;
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(...s.body), mat1);
+  body.renderOrder = 100;
+  const barrel = new THREE.Mesh(new THREE.BoxGeometry(...s.barrel), mat2);
+  barrel.position.z = -s.bz;
+  barrel.renderOrder = 100;
+  g.add(body); g.add(barrel);
+  return g;
+}
+
+(function _initFpGunMeshes() {
+  const weps = (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : ["pistol","rifle","shotgun","smg","sniper"].map(id => ({ id }));
+  weps.forEach(w => {
+    const m = _buildFpGun(w.id);
+    m.visible = w.id === currentWeaponId;
+    _fpGunGroup.add(m);
+    _fpGunMeshes.set(w.id, m);
+  });
+})();
+
+function _switchFpGunMesh(weaponId) {
+  _fpGunMeshes.forEach((m, id) => { m.visible = id === weaponId; });
+}
 
 // Public hook: asset loader or user calls this to replace a placeholder with a real mesh.
 // The new group is positioned/scaled automatically to match the mount.
@@ -5034,6 +5079,14 @@ function tick() {
   const _isDrone   = _activeDef && _activeDef.type === "drone";
   heroGroup.visible = buildMode || (_isDrone ? false : (!inCar && (spine ? spine.params.heroVisible : !firstPerson)));
   _shadowBlob.visible = !inCar && !firstPerson && !buildMode;
+  // FP gun overlay: show when in first-person and not in menus
+  const _fpGunActive = firstPerson && !buildMode && !inCar && !computerOpen && !_heroDead;
+  _fpGunGroup.visible = _fpGunActive;
+  if (_fpGunActive) {
+    const aimShift = aiming ? -0.08 : 0;
+    _fpGunGroup.position.set(0.22 + aimShift, -0.24 + _gunReloadX * 0.15, -0.45 + _gunKickZ * 0.6);
+    _fpGunGroup.rotation.set(_gunReloadX * 0.3, 0, 0);
+  }
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
