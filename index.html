@@ -3174,15 +3174,16 @@ function _spawnCoinDrop(u, v, value) {
 
 // Fire patches — spawned on incendiary death, damage anyone inside
 const firePatches = [];
-function _spawnFirePatch(u, v) {
+function _spawnFirePatch(u, v, radius, duration) {
+  radius = radius || 1.5; duration = duration || 6.0;
   const mesh = new THREE.Mesh(
-    new THREE.CircleGeometry(1.5, 16),
+    new THREE.CircleGeometry(radius, 12),
     new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.55, depthWrite: false })
   );
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set(u, 0.04, v);
   scene.add(mesh);
-  firePatches.push({ mesh, u, v, radius: 1.5, timeLeft: 6.0, dmgT: 0 });
+  firePatches.push({ mesh, u, v, radius, timeLeft: duration, dmgT: 0 });
 }
 
 // Poison puddles — spawned on poisoner death, applies poison status to nearby hero
@@ -5788,6 +5789,13 @@ function tick() {
           const hitColor = en.type === "robot" ? (headshot ? "white" : "cyan") : "red";
           _spawnParticles(b.posU, b.posY, b.posV, headshot ? 10 : 5, hitColor, 4, 0.25);
           if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("impact", { x: b.posU, y: b.posY, z: b.posV });
+          // Hit incendiary that survives — leaves a small fire trail (1.0m, 2.2s), throttled to 1/s
+          if (en.type === "incendiary" && en.hp > 0) {
+            if (!en._trailT || now / 1000 - en._trailT > 1.0) {
+              en._trailT = now / 1000;
+              _spawnFirePatch(ep.u, ep.v, 1.0, 2.2);
+            }
+          }
           if (en.hp === 0) {
             en.dead = true;
             en.respawnT = now / 1000;
