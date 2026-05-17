@@ -5952,6 +5952,8 @@ function tick() {
     if (g.y <= 0) {
       g.y = 0;
       if (g.fuse <= 0) { _explodeGrenade(g); grenades3D.splice(i, 1); continue; }
+      // Metallic tink on significant bounce impacts (fades with each bounce)
+      if (g.velY < -1.0) playSfx("tone:2400:22:triangle", Math.min(0.22, Math.abs(g.velY) / 28));
       g.velY = Math.abs(g.velY) * 0.35;
       g.velU *= 0.6; g.velV *= 0.6;
     }
