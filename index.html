@@ -5229,6 +5229,19 @@ function drawMinimap() {
     mini.fillRect(hx - 1, hy - 4, 2, 8); mini.fillRect(hx - 4, hy - 1, 8, 2);
   }
 
+  // Live grenades — pulsing orange circle blips (danger warning)
+  { const _gPulse = 0.5 + 0.5 * Math.sin(performance.now() / 100);
+    for (const _grd of grenades3D) {
+      const _gx = u2x(_grd.u), _gy = v2y(_grd.v);
+      const _isSmk = _grd._isSmoke;
+      mini.strokeStyle = _isSmk ? `rgba(100,180,100,${0.7 + _gPulse * 0.3})` : `rgba(255,120,0,${0.7 + _gPulse * 0.3})`;
+      mini.lineWidth = 1.5;
+      mini.beginPath(); mini.arc(_gx, _gy, 4 + _gPulse * 2, 0, Math.PI * 2); mini.stroke();
+      mini.fillStyle = _isSmk ? "#88cc88" : "#ff8800";
+      mini.beginPath(); mini.arc(_gx, _gy, 2, 0, Math.PI * 2); mini.fill();
+    }
+  }
+
   // Enemies — type-differentiated blips (boss=large crimson, heavy=orange, robot=cyan, others=red)
   for (const en of enemies) {
     if (en.dead) continue;
