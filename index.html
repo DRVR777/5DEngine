@@ -6642,6 +6642,23 @@ function tick() {
     }
   }
 
+  // Combat-reactive ambient soundscape — updates every second
+  if (!tick._ambT || now / 1000 - tick._ambT > 1.0) {
+    tick._ambT = now / 1000;
+    if (_ambCtx && _ambCtx.state !== "closed") {
+      // Wind drone — always present, quiet high-freq noise simulation
+      _setAmbient("wind", 220, "sawtooth", 0.008, 2.5);
+      // Count alive enemies chasing hero
+      const aliveChasing = enemies.filter(e => !e.dead && e._wasChasing).length;
+      const bossAlive = enemies.some(e => !e.dead && e.type === "boss");
+      // Combat tension — fades in with enemy count
+      const tensionVol = Math.min(0.05, aliveChasing * 0.008);
+      _setAmbient("tension", bossAlive ? 38 : 55, "sine", tensionVol, 1.8);
+      // Boss rumble — deep low freq pulse when boss is alive
+      _setAmbient("bossRumble", 28, "square", bossAlive ? 0.015 : 0, 2.0);
+    }
+  }
+
   if (composer) composer.render(); else renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
