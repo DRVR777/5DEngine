@@ -6316,6 +6316,22 @@ function tick() {
         }
       }
     }
+    // Wave challenge live HUD update — speed timer + headshot counter
+    if (_waveChallenge && (ws.phase === "spawning" || ws.phase === "waiting")) {
+      const _chHud = document.getElementById("waveChallengeHud");
+      if (_chHud) {
+        const _bonus = _waveChallenge.bonus * ws.wave;
+        if (_waveChallenge.type === "speed") {
+          const _chLeft = Math.max(0, (_waveChallenge.limit || 60) - (now / 1000 - _waveChallengeStart));
+          const _urgent = _chLeft < 10;
+          _chHud.style.color = _urgent ? "#ff4444" : "#ffd166";
+          _chHud.textContent = `CHALLENGE: ${_waveChallenge.label} (+${_bonus}) — ${_chLeft.toFixed(1)}s`;
+        } else if (_waveChallenge.type === "hs") {
+          _chHud.style.color = _waveChallengeHits >= 3 ? "#00ff88" : "#ffd166";
+          _chHud.textContent = `CHALLENGE: ${_waveChallenge.label} (+${_bonus}) — ${_waveChallengeHits}/3`;
+        }
+      }
+    }
     // Wave announcement banner — show for 2.5s when wave number increments
     if (ws.started && ws.wave !== _lastWaveNum && ws.phase === "spawning") {
       _lastWaveNum = ws.wave;
