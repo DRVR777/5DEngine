@@ -1830,6 +1830,9 @@ function _explodeGrenade(g) {
         _addKillFeedEntry(`★ GRENADE KILL #${enemyKills} — ${en.type}`, "#ff8800");
         _trackKillAndPanic(ep.u, ep.v);
         { const _gCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _gCoinMul); }
+        _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
+        if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
+        if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
       }
     }
   }
@@ -2342,6 +2345,9 @@ function _explodeBarrel(u, v) {
         _addKillFeedEntry(`★ BARREL KILL #${enemyKills} — ${en.type}`, "#ff6600");
         _trackKillAndPanic(ep.u, ep.v);
         { const _brlCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _brlCoinMul); }
+        _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
+        if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
+        if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
       }
     }
   }
