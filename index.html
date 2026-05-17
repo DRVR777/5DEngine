@@ -6220,7 +6220,8 @@ function tick() {
       const ep = world.players.get(en.id);
       const dx = _heroNowAI.u - ep.u, dz = _heroNowAI.v - ep.v;
       const dist = Math.hypot(dx, dz);
-      const canSee = dist <= (en.sightRange || 12) && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
+      const _effSight = (en.sightRange || 12) * (crouching ? 0.6 : 1.0);
+      const canSee = dist <= _effSight && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
       if (canSee) { en._lastSightT = now / 1000; en._lastHeroPos = { u: _heroNowAI.u, v: _heroNowAI.v }; }
       // Alert bark — plays once when enemy first spots hero (transition patrol→chase)
       if (canSee && !en._wasChasing && dist < 6) {
