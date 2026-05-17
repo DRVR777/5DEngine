@@ -465,6 +465,11 @@
 <canvas id="minimap" width="180" height="180"></canvas>
 <div id="crosshair"></div>
 <div id="damageFlash"></div>
+<div id="deathOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1200;align-items:center;justify-content:center;flex-direction:column;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;color:#eee;text-align:center;">
+  <div style="font-size:52px;font-weight:bold;color:#ff3333;text-shadow:0 0 30px #ff0000aa;letter-spacing:0.08em;margin-bottom:16px">YOU DIED</div>
+  <div id="deathStats" style="font-size:15px;color:#aaa;margin-bottom:24px;line-height:2"></div>
+  <div style="font-size:13px;color:#888">Respawning in <b id="deathCountdown" style="color:#ffd166">5</b>s</div>
+</div>
 <div id="computerOverlay">
   <div class="desktop">
     <div class="titlebar">
@@ -930,14 +935,40 @@ function _getSpawnPoint() {
   return _spawnPoints[Math.floor(Math.random() * _spawnPoints.length)];
 }
 
+let _heroDead = false;
+let _deathCountdownT = 0;
+const RESPAWN_DELAY = 5; // seconds
+
+function _heroShowDeathScreen() {
+  _heroDead = true;
+  document.exitPointerLock && document.exitPointerLock();
+  const overlay = document.getElementById("deathOverlay");
+  const stats   = document.getElementById("deathStats");
+  const cntEl   = document.getElementById("deathCountdown");
+  if (!overlay) return;
+  if (stats) stats.innerHTML =
+    `Kills: <b style="color:#ff8888">${enemyKills}</b><br>` +
+    `Coins: <b style="color:#ffd166">${score}</b><br>` +
+    `Wave: <b style="color:#aef060">${typeof WaveManager !== "undefined" ? WaveManager.getState().wave : "—"}</b>`;
+  if (cntEl) cntEl.textContent = RESPAWN_DELAY;
+  overlay.style.display = "flex";
+  _deathCountdownT = RESPAWN_DELAY;
+}
+
 function _heroRespawn() {
+  _heroDead = false;
+  const overlay = document.getElementById("deathOverlay");
+  if (overlay) overlay.style.display = "none";
   const sp = _getSpawnPoint();
   world.setPlayer("hero", 0, 0, 0, sp.u, sp.v);
   heroHp = HERO_MAX_HP;
   heroLastDamageT = -999;
+  velocityY = 0;
   playSfx("tone:440:120:sine", 0.5);
   if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp });
-  flashDamage();
+  // Re-lock pointer
+  const canvas = typeof renderer !== "undefined" ? renderer.domElement : null;
+  if (canvas) canvas.requestPointerLock();
 }
 
 // Hero hp (iter 10) — visible bar in HUD
@@ -953,8 +984,10 @@ window._entityDamage = function(entityId, amount, _type) {
   if (typeof Engine !== "undefined" && Engine.debug.godMode) return;  // god mode
   heroHp = Math.max(0, heroHp - amount);
   heroLastDamageT = performance.now() / 1000;
-  if (heroHp <= 0 && typeof EventBus !== "undefined")
-    EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: "effect" });
+  if (heroHp <= 0) {
+    if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: "effect" });
+    if (!_heroDead) _heroShowDeathScreen();
+  }
 };
 window._entityHeal = function(entityId, amount) {
   if (entityId !== "hero") return;
@@ -4167,9 +4200,17 @@ function tick() {
   const forward = { x: Math.sin(camYaw), y: 0, z: Math.cos(camYaw) };
   const right   = { x: Math.cos(camYaw), y: 0, z: -Math.sin(camYaw) };
 
-  // In build mode WASD drives the freecam, not the character
-  const inputF = buildMode ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
-  const inputR = buildMode ? 0 : ((keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0));
+  // Death countdown tick
+  if (_heroDead) {
+    _deathCountdownT -= dt;
+    const cntEl = document.getElementById("deathCountdown");
+    if (cntEl) cntEl.textContent = Math.max(0, Math.ceil(_deathCountdownT));
+    if (_deathCountdownT <= 0) _heroRespawn();
+  }
+
+  // In build mode WASD drives the freecam; while dead, all movement blocked
+  const inputF = (buildMode || _heroDead) ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
+  const inputR = (buildMode || _heroDead) ? 0 : ((keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0));
   const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
 
   if (!buildMode && inCar && activeVehicleId) {
@@ -4511,7 +4552,7 @@ function tick() {
             }
             if (heroHp <= 0) {
               if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: en.id });
-              setTimeout(_heroRespawn, 1200);
+              if (!_heroDead) _heroShowDeathScreen();
             }
           },
         });
