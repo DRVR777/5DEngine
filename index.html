@@ -436,6 +436,7 @@
   box-shadow:0 0 18px rgba(0,200,255,0.2);pointer-events:none">
   <span id="waveLabel">WAVE 1</span>
   <span id="waveDetail" style="color:#b8e8ff;margin-left:8px"></span>
+  <div id="waveChallengeHud" style="color:#ffd166;font-size:10px;margin-top:2px;letter-spacing:0.08em"></div>
 </div>
 
 <!-- Rain canvas (layered below HUD, above 3D scene) -->
@@ -1093,6 +1094,11 @@ let enemyKills = 0;
 let _shotsFired = 0;
 let _shotsHit = 0;
 let _damageDealt = 0;
+// Wave bonus challenge
+let _waveChallenge = null;  // { type, label, bonus, limit? }
+let _waveChallengeStart = 0;
+let _waveChallengeHits = 0; // headshots this wave
+let _waveChallengeNoDmg = true; // hero has not taken damage this wave
 let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
@@ -1369,6 +1375,7 @@ window._entityDamage = function(entityId, amount, _type) {
   }
   heroHp = Math.max(0, heroHp - amount);
   heroLastDamageT = performance.now() / 1000;
+  _waveChallengeNoDmg = false; // player took damage — "no damage" challenge failed
   if (heroHp <= 0) {
     if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: "effect" });
     if (!_heroDead) _heroShowDeathScreen();
@@ -2034,6 +2041,7 @@ let _heroEmpT = 0;    // seconds sprinting is disabled (robot EMP burst debuff)
 let _camShakeAmt = 0; // decays to 0; applied to camera position as random offset
 function _applyScreenShake(intensity) { _camShakeAmt = Math.min(1, _camShakeAmt + intensity); }
 function flashDamage() {
+  _waveChallengeNoDmg = false; // hero took hit — "no damage" challenge failed
   _vignetteAmt = 1.0; // instant spike, springs out in tick()
 }
 
@@ -2175,6 +2183,18 @@ if (typeof WaveManager !== "undefined") {
         const _oAng = Math.random() * Math.PI * 2, _oDist = 4 + Math.random() * 6;
         _spawnSpeedOrb(Math.cos(_oAng) * _oDist, Math.sin(_oAng) * _oDist);
       }
+      // Pick a random wave challenge
+      const _cTypes = [
+        { type: "speed",  label: `Clear in ${Math.max(30, 75 - w * 5)}s`, bonus: 8,  limit: Math.max(30, 75 - w * 5) },
+        { type: "nodmg",  label: "No damage taken",                       bonus: 12 },
+        { type: "hs",     label: "3+ headshots",                          bonus: 6  },
+      ];
+      _waveChallenge = _cTypes[Math.floor(Math.random() * _cTypes.length)];
+      _waveChallengeStart = performance.now() / 1000;
+      _waveChallengeHits = 0;
+      _waveChallengeNoDmg = true;
+      const _chEl = document.getElementById("waveChallengeHud");
+      if (_chEl) _chEl.textContent = `CHALLENGE: ${_waveChallenge.label} (+${_waveChallenge.bonus * w} coins)`;
     },
     onWaveEnd:   (w) => {
       const bonus = w * 3; // +3 coins per wave number
@@ -2199,6 +2219,24 @@ if (typeof WaveManager !== "undefined") {
         _wcb.style.display = "block";
         _wcb.style.animation = "waveClearIn 2.8s ease forwards";
         setTimeout(() => { _wcb.style.display = "none"; _wcb.style.animation = ""; }, 2900);
+      }
+      // Wave challenge check
+      if (_waveChallenge) {
+        const _elapsed = performance.now() / 1000 - _waveChallengeStart;
+        let _chMet = false;
+        if (_waveChallenge.type === "speed")  _chMet = _elapsed <= (_waveChallenge.limit || 60);
+        if (_waveChallenge.type === "nodmg")  _chMet = _waveChallengeNoDmg;
+        if (_waveChallenge.type === "hs")     _chMet = _waveChallengeHits >= 3;
+        if (_chMet) {
+          const _chBonus = _waveChallenge.bonus * w;
+          score += _chBonus;
+          playSfx("tone:1800:80:sine", 0.5); playSfx("tone:2200:60:sine", 0.4);
+          showToast(`CHALLENGE MET: ${_waveChallenge.label} +${_chBonus} coins!`, "success", 3500);
+          _addKillFeedEntry(`★ CHALLENGE +${_chBonus}: ${_waveChallenge.label}`, "#ffd166");
+        }
+        _waveChallenge = null;
+        const _chEl = document.getElementById("waveChallengeHud");
+        if (_chEl) _chEl.textContent = "";
       }
       // Reset accuracy counters for next wave
       _shotsFired = 0; _shotsHit = 0;
@@ -6092,6 +6130,7 @@ function tick() {
           if (headshot) {
             showToast("HEADSHOT!", "danger", 600);
             playSfx("tone:1200:40:sine", 0.4);
+            _waveChallengeHits++;
           } else {
             playSfx("blip", 0.2);
           }
