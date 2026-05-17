@@ -4483,6 +4483,7 @@ addEventListener("keydown", (e) => {
         // Restore this weapon's mag ammo (or full mag if never used)
         const nw = weps[idx];
         pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
+        if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
         _switchGunMesh(currentWeaponId);
         _weaponSwitchT = 0.30;
         playSfx("click", 0.4);
@@ -4908,6 +4909,7 @@ renderer.domElement.addEventListener("wheel", (e) => {
   currentWeaponId = weps[next].id;
   const nw = weps[next];
   pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
+  if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
   _switchGunMesh(currentWeaponId);
   playSfx("click", 0.4);
   reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 800;
