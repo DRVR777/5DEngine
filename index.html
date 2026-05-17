@@ -603,6 +603,29 @@
   <div id="victoryStats" style="font-size:15px;color:#aaa;margin-bottom:28px;line-height:2.2"></div>
   <button id="victoryPlayAgain" style="padding:10px 28px;background:rgba(255,209,102,0.15);border:2px solid #ffd166;border-radius:6px;color:#ffd166;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.06em">▶ PLAY AGAIN</button>
 </div>
+<div id="difficultyScreen" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:1300;align-items:center;justify-content:center;flex-direction:column;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;color:#eee;text-align:center;gap:28px">
+  <div style="font-size:40px;font-weight:900;letter-spacing:0.14em;color:#00ffcc;text-shadow:0 0 30px #00ffccaa">SELECT DIFFICULTY</div>
+  <div style="font-size:13px;color:#667;letter-spacing:0.08em">Scales enemy HP and damage for all 10 waves</div>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center">
+    <button class="diffBtn" data-hp="0.65" data-dmg="0.55" style="padding:16px 28px;background:rgba(68,255,136,0.1);border:2px solid #44ff88;border-radius:8px;color:#44ff88;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.08em;min-width:140px;transition:background 0.15s">
+      <div style="font-size:20px;margin-bottom:6px">EASY</div>
+      <div style="font-size:11px;opacity:0.75">65% HP · 55% DMG</div>
+    </button>
+    <button class="diffBtn" data-hp="1.0" data-dmg="1.0" style="padding:16px 28px;background:rgba(0,170,255,0.12);border:2px solid #00aaff;border-radius:8px;color:#00aaff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.08em;min-width:140px;transition:background 0.15s">
+      <div style="font-size:20px;margin-bottom:6px">NORMAL</div>
+      <div style="font-size:11px;opacity:0.75">100% HP · 100% DMG</div>
+    </button>
+    <button class="diffBtn" data-hp="1.5" data-dmg="1.35" style="padding:16px 28px;background:rgba(255,136,0,0.1);border:2px solid #ff8800;border-radius:8px;color:#ff8800;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.08em;min-width:140px;transition:background 0.15s">
+      <div style="font-size:20px;margin-bottom:6px">HARD</div>
+      <div style="font-size:11px;opacity:0.75">150% HP · 135% DMG</div>
+    </button>
+    <button class="diffBtn" data-hp="2.2" data-dmg="1.8" style="padding:16px 28px;background:rgba(255,34,68,0.1);border:2px solid #ff2244;border-radius:8px;color:#ff2244;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.08em;min-width:140px;transition:background 0.15s">
+      <div style="font-size:20px;margin-bottom:6px">NIGHTMARE</div>
+      <div style="font-size:11px;opacity:0.75">220% HP · 180% DMG</div>
+    </button>
+  </div>
+  <div style="font-size:11px;color:#446;letter-spacing:0.06em">WASD · mouse aim · G grenade · T smoke · M mine · ` console</div>
+</div>
 <div id="computerOverlay">
   <div class="desktop">
     <div class="titlebar">
@@ -1258,6 +1281,10 @@ function _heroRespawn() {
   });
 })();
 
+// Difficulty multipliers — set by difficulty selection screen, persist across respawns
+let _diffHpMul  = 1.0;
+let _diffDmgMul = 1.0;
+
 // Hero hp (iter 10) — visible bar in HUD
 const HERO_MAX_HP    = CFG.heroMaxHp    || 100;
 const HERO_REGEN_DELAY = CFG.heroRegenDelay || 5;
@@ -1418,9 +1445,9 @@ window._spawnEnemyAtHero = function(typeName) {
   const _wScale = 1 + (_wScaleW - 1) * 0.05; // +5% stats per wave: Wave1=1.0x, Wave5=1.2x, Wave10=1.45x
   const nEn = Object.assign({}, template, {
     id: eid,
-    hp:     Math.round(template.maxHp * _wScale),
-    maxHp:  Math.round(template.maxHp * _wScale),
-    damage: Math.round((template.damage || 10) * _wScale),
+    hp:     Math.round(template.maxHp * _wScale * _diffHpMul),
+    maxHp:  Math.round(template.maxHp * _wScale * _diffHpMul),
+    damage: Math.round((template.damage || 10) * _wScale * _diffDmgMul),
     dead: false,
     u: eu, v: ev, heading: 0, respawnT: 0,
     _spawnT: performance.now() / 1000,   // spawn-in animation start
@@ -2338,6 +2365,26 @@ if (typeof WaveManager !== "undefined") {
     return `wave=${s.wave}/${s.totalWaves} phase=${s.phase} alive=${s.aliveCount}`;
   });
 }
+
+// Difficulty selection — show screen on first load, start waves after choice
+(function() {
+  const _dScr = document.getElementById("difficultyScreen");
+  if (!_dScr) { if (typeof WaveManager !== "undefined") WaveManager.start(); return; }
+  _dScr.querySelectorAll(".diffBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      _diffHpMul  = parseFloat(btn.dataset.hp);
+      _diffDmgMul = parseFloat(btn.dataset.dmg);
+      const _label = btn.querySelector("div").textContent;
+      _dScr.style.display = "none";
+      showToast(`Difficulty: ${_label}`, "info", 2500);
+      const _cv = document.querySelector("canvas");
+      if (_cv) _cv.requestPointerLock();
+      if (typeof WaveManager !== "undefined") WaveManager.start();
+    });
+    btn.addEventListener("mouseenter", () => { btn.style.background = btn.style.background.replace("0.1", "0.22").replace("0.12", "0.22"); });
+    btn.addEventListener("mouseleave", () => { btn.style.background = btn.style.background.replace("0.22", btn.dataset.hp === "1.0" ? "0.12" : "0.1"); });
+  });
+})();
 
 // Kill leveling — applies buff and shows level-up toast
 function _applyLevelUpBuff(lvl) {
