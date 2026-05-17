@@ -637,6 +637,7 @@
 <script src="./src/core/engine.js"></script>
 <script src="./src/core/dev_console.js"></script>
 <script src="./src/core/event_bus.js"></script>
+<script src="./src/world/day_night.js"></script>
 <script src="./src/render/particle_system.js"></script>
 <script src="./src/systems/trigger_zones.js"></script>
 <script src="./src/audio/sound_zones.js"></script>
@@ -1271,6 +1272,23 @@ sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
 sun.shadow.camera.top  =  40; sun.shadow.camera.bottom = -40;
 scene.add(sun);
 window._sunLight = sun;
+window._renderer = renderer;
+window._scene    = scene;
+
+// Init DayNight cycle (1 game-min per real-second → full day = 24 real minutes)
+if (typeof DayNight !== "undefined") {
+  DayNight.init({ scene, sunLight: sun, ambLight: _ambLight, renderer, speed: 1, startHour: 8 });
+  Engine.register("dayNight", DayNight);
+  // Add console commands for time of day
+  Engine.addCommand("hour", "Get/set hour  hour [0-24]", (args) => {
+    if (args[0] !== undefined) DayNight.setHour(parseFloat(args[0]));
+    return `hour = ${DayNight.getHour().toFixed(2)}`;
+  });
+  Engine.addCommand("dayspeed", "Get/set day cycle speed  dayspeed [n]", (args) => {
+    if (args[0] !== undefined) DayNight.speed = parseFloat(args[0]);
+    return `dayspeed = ${DayNight.speed}`;
+  });
+}
 
 // Skybox presets
 const _skyboxPresets = {
@@ -3591,6 +3609,8 @@ function tick() {
   }
   // Achievement time tracker
   if (typeof Achievements !== "undefined") Achievements.tick(dt);
+  // Day/night cycle
+  if (typeof DayNight !== "undefined") DayNight.tick(dt);
   // Status effects (buffs/debuffs)
   if (typeof StatusEffects !== "undefined") StatusEffects.tick(dt);
 
@@ -4050,18 +4070,26 @@ function tick() {
   sun.position.set(dn.sun.x * 30, Math.max(2, dn.sun.y * 30), dn.sun.z * 30);
   sun.intensity = 0.3 + 1.0 * dn.dayMix;
 
-  // Update day/night clock HUD
+  // Update day/night clock HUD (prefer DayNight module if loaded)
   const clockEl = document.getElementById("clockHud");
   if (clockEl) {
-    const dayFrac = ((now / 1000) % 60) / 60;
-    const gameH = Math.floor(dayFrac * 24);
-    const gameM = Math.floor((dayFrac * 24 - gameH) * 60);
+    let gameH, gameM, dayMix;
+    if (typeof DayNight !== "undefined") {
+      const h = DayNight.getHour();
+      gameH = Math.floor(h);
+      gameM = Math.floor((h - gameH) * 60);
+      dayMix = Math.max(0, Math.min(1, (h >= 6 && h < 19) ? 1 - Math.abs(h - 12.5) / 6.5 : 0));
+    } else {
+      const dayFrac = ((now / 1000) % 60) / 60;
+      gameH = Math.floor(dayFrac * 24); gameM = Math.floor((dayFrac * 24 - gameH) * 60);
+      dayMix = dn.dayMix;
+    }
     const isPM = gameH >= 12;
     const h12 = ((gameH % 12) || 12).toString().padStart(2, "0");
     const mStr = gameM.toString().padStart(2, "0");
-    const icon = dn.dayMix > 0.7 ? "☀" : (dn.dayMix > 0.3 ? "🌤" : "🌙");
+    const icon = dayMix > 0.7 ? "☀" : (dayMix > 0.3 ? "🌤" : "🌙");
     clockEl.textContent = `${icon} ${h12}:${mStr} ${isPM ? "PM" : "AM"}`;
-    clockEl.style.color = dn.dayMix > 0.5 ? "#ffd166" : "#6699cc";
+    clockEl.style.color = dayMix > 0.5 ? "#ffd166" : "#6699cc";
   }
 
   // append objective + score to HUD

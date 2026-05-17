@@ -69,6 +69,7 @@ const CONTRACTS = {
   "src/systems/cutscene.js":         ["define", "play", "stop", "isPlaying", "tick"],
   "src/core/engine.js":              ["register", "get", "has", "list", "time", "debug", "addCommand", "runCommand"],
   "src/core/dev_console.js":         ["init", "print", "toggle"],
+  "src/world/day_night.js":          ["init", "tick", "setHour", "getHour", "pause"],
 };
 
 const ROOT = path.resolve(__dirname, "..");
