@@ -913,7 +913,7 @@
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
   &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>G</b> grenade &nbsp;·&nbsp; <b>1-5</b> switch weapon &nbsp;·&nbsp; <b>drone</b>: E to pilot · Space/C=up/down
-  &nbsp;·&nbsp; <b>H</b> medkit &nbsp;·&nbsp; <b>N</b> melee &nbsp;·&nbsp; <b>T</b> smoke &nbsp;·&nbsp; <b>U</b> flash &nbsp;·&nbsp; <b>M</b> mine &nbsp;·&nbsp; <b>Tab</b> shop &nbsp;·&nbsp; <b>J</b> quests &nbsp;·&nbsp; <b>C</b> crafting &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>L</b> shoulder
+  &nbsp;·&nbsp; <b>H</b> medkit &nbsp;·&nbsp; <b>N</b> melee &nbsp;·&nbsp; <b>T</b> smoke &nbsp;·&nbsp; <b>U</b> flash &nbsp;·&nbsp; <b>M</b> mine &nbsp;·&nbsp; <b>P</b> turret(20¢) &nbsp;·&nbsp; <b>Tab</b> shop &nbsp;·&nbsp; <b>J</b> quests &nbsp;·&nbsp; <b>C</b> crafting &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>L</b> shoulder
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode &nbsp;·&nbsp; <b>`</b> dev console
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
   &nbsp;·&nbsp; <i style="color:#aaa">build: LMB select · drag=move · Del remove · arrows nudge · Tab=library · N=spawn point · K=config · P=char editor</i>
@@ -1363,6 +1363,7 @@ function _heroRespawn() {
     for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
     for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
     for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
+    for (const _tt of _turrets) scene.remove(_tt.group); _turrets.length = 0;
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
@@ -2016,6 +2017,103 @@ function _deploySmokeZone(u, v) {
   for (let _si = 0; _si < 18; _si++) _spawnParticles(u, 0.4, v, 2, "white", 2.8, 1.8);
   playSfx("tone:280:300:sine", 0.35);
 }
+// Deployable turret system — P key places turret for 20 coins (max 2 at a time)
+const _turrets = [];
+const _TURRET_COST  = 20;
+const _TURRET_HP    = 60;
+const _TURRET_AMMO  = 40;
+const _TURRET_RANGE = 10;
+const _TURRET_FIRE_RATE = 1.8; // shots/second
+const _turretBodyMat   = new THREE.MeshStandardMaterial({ color: 0x334455, metalness: 0.8, roughness: 0.35 });
+const _turretBarrelMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.2 });
+function _makeTurretGroup(u, v) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.6, 0.42), _turretBodyMat);
+  body.position.y = 0.3; g.add(body);
+  const head = new THREE.Group(); head.position.y = 0.75; g.add(head);
+  head.add(new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.28, 0.36), _turretBodyMat));
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 8), _turretBarrelMat);
+  barrel.rotation.x = Math.PI / 2; barrel.position.z = 0.38; barrel.position.y = 0;
+  head.add(barrel);
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00ff44 }));
+  led.position.set(0, 0.18, 0.2); head.add(led);
+  g.position.set(u, 0, v); scene.add(g);
+  return { group: g, head, led };
+}
+function _placeTurret() {
+  if (_heroDead || buildMode || inCar || shopOpen) return;
+  const active = _turrets.filter(t => !t.dead).length;
+  if (active >= 2) { showToast("Max 2 turrets already deployed!", "danger", 1400); return; }
+  if (score < _TURRET_COST) { showToast(`Need ${_TURRET_COST} coins to deploy turret!`, "danger", 1400); return; }
+  score -= _TURRET_COST;
+  const hm = world.players.get("hero");
+  const { group, head, led } = _makeTurretGroup(hm.u, hm.v);
+  _turrets.push({ u: hm.u, v: hm.v, group, head, led, hp: _TURRET_HP, maxHp: _TURRET_HP, ammo: _TURRET_AMMO, fireT: 0, dead: false, heading: 0 });
+  showToast(`Turret deployed! (-${_TURRET_COST} coins) ${2 - active - 1} slot${2 - active - 1 !== 1 ? "s" : ""} left`, "success", 2200);
+  _addKillFeedEntry("⚙ TURRET DEPLOYED", "#4499ff");
+  playSfx("tone:400:80:square", 0.4); playSfx("tone:600:40:square", 0.3);
+}
+function _tickTurrets(dt) {
+  for (let _ti = _turrets.length - 1; _ti >= 0; _ti--) {
+    const t = _turrets[_ti];
+    if (t.dead) { _turrets.splice(_ti, 1); continue; }
+    // Find nearest living enemy in range
+    let nearEp = null, nearDist = _TURRET_RANGE, nearEn = null;
+    for (const en of enemies) {
+      if (en.dead) continue;
+      const ep = world.players.get(en.id);
+      const d = Math.hypot(ep.u - t.u, ep.v - t.v);
+      if (d < nearDist) { nearDist = d; nearEp = ep; nearEn = en; }
+    }
+    if (nearEp) {
+      const dx = nearEp.u - t.u, dz = nearEp.v - t.v;
+      t.heading = Math.atan2(dx, dz);
+      t.fireT -= dt;
+      if (t.fireT <= 0 && t.ammo > 0) {
+        t.fireT = 1 / _TURRET_FIRE_RATE;
+        t.ammo--;
+        const dirU = Math.sin(t.heading), dirV = Math.cos(t.heading);
+        const bMesh = new THREE.Mesh(bulletGeo, bulletMat);
+        bMesh.position.set(t.u + dirU * 0.5, 0.85, t.v + dirV * 0.5);
+        scene.add(bMesh);
+        bullets3D.push({ mesh: bMesh, posU: t.u + dirU * 0.5, posV: t.v + dirV * 0.5, posY: 0.85, dirU, dirY: 0, dirV, speed: 90, traveled: 0, range: _TURRET_RANGE * 1.4, damage: 20, falloff: 0, weaponId: "turret" });
+        playSfx("tone:700:18:square", 0.12);
+        // Muzzle flash particle
+        _spawnParticles(t.u + dirU * 0.55, 0.85, t.v + dirV * 0.55, 2, "yellow", 6, 0.08);
+      }
+      // Enemies melee the turret if touching it
+      const _adjDist = nearDist - (nearEn ? (nearEn.attackRange || 1.6) : 1.6);
+      if (_adjDist < 0) {
+        t.hp -= (nearEn ? (nearEn.damage || 6) : 6) * dt * 0.8;
+        if (t.hp <= 0) {
+          t.dead = true;
+          _spawnParticles(t.u, 0.5, t.v, 20, "orange", 8, 0.6);
+          _spawnParticles(t.u, 1.0, t.v, 10, "white", 5, 0.4);
+          scene.remove(t.group);
+          playSfx("tone:80:200:sawtooth", 0.6); playSfx("tone:180:120:square", 0.4);
+          showToast("Turret destroyed!", "danger", 1800);
+          _addKillFeedEntry("⚙ TURRET DESTROYED", "#ff4444");
+          continue;
+        }
+      }
+    } else {
+      t.heading += dt * 0.9; // slowly rotate when idle
+      if (t.ammo <= 0) {
+        t.dead = true; scene.remove(t.group);
+        showToast("Turret out of ammo — removed", "danger", 1400);
+        _addKillFeedEntry("⚙ TURRET AMMO EMPTY", "#888888");
+        continue;
+      }
+    }
+    t.head.rotation.y = t.heading;
+    // LED color: green = active, orange = low ammo, red = damaged
+    const ledColor = t.hp < _TURRET_HP * 0.4 ? 0xff4444 : t.ammo < 10 ? 0xff8800 : 0x00ff44;
+    if (t.led && t.led.material) t.led.material.color.setHex(ledColor);
+    // HP bar above turret (reuse damage number position)
+    // (visual only — handled by spawning a brief indicator on placement)
+  }
+}
+
 // Trap mine system — M key drops proximity mine (1.2m trigger, 90 dmg, 3m radius)
 const _mines = [];
 let _mineCount = 2;
@@ -4996,7 +5094,8 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // P key: toggle character editor panel in build mode
+  // P key: deploy turret (play mode) / toggle character editor (build mode)
+  if (!buildMode && !computerOpen && e.code === "KeyP") { _placeTurret(); e.preventDefault(); return; }
   if (buildMode && e.code === "KeyP") {
     const ced = document.getElementById("charEditor");
     if (ced) {
@@ -8134,6 +8233,8 @@ function tick() {
 
   // Trap mines — arm delay, proximity check, detonate
   _tickMines(dt);
+  // Deployable turrets — rotate to target, fire, take damage from enemies
+  _tickTurrets(dt);
 
   // Smoke zones — decay and spawn continuous white particles
   for (let _szi = smokeZones.length - 1; _szi >= 0; _szi--) {
