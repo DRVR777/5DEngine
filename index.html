@@ -1142,6 +1142,8 @@ for (const v of VEHICLE_DEFS) {
 }
 let inCar = false;
 let activeVehicleId = null;
+// Cached active vehicle def — set on enter, cleared on exit (avoids 3x O(V) scan per frame)
+let _activeVehicleDef = null;
 // carState always mirrors the active vehicle's state (backwards-compat reads)
 const carState = { speed: 0, heading: 0, gear: 0, gearName: "N" };
 
@@ -5505,6 +5507,7 @@ addEventListener("keydown", (e) => {
     }
     if (!inCar && nearestVeh && nearestDist < VDIST) {
       inCar = true; activeVehicleId = nearestVeh.id;
+      _activeVehicleDef = VEHICLE_DEFS.find(v => v.id === nearestVeh.id) || null;
     } else if (inCar && activeVehicleId) {
       inCar = false;
       const vst = vehicleStates.get(activeVehicleId);
@@ -5516,6 +5519,7 @@ addEventListener("keydown", (e) => {
           cp.v - 1.5 * Math.sin(vst.heading));
       }
       activeVehicleId = null;
+      _activeVehicleDef = null;
     }
   }
 });
@@ -6034,7 +6038,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   if (!pointerLocked) return;
   if (invDiv.classList.contains("open")) return;
   if (computerOpen || computerEntering) return;
-  if (inCar && activeVehicleId && (VEHICLE_DEFS.find(v => v.id === activeVehicleId) || {}).type === "drone") { _tryDroneShoot(); return; }
+  if (inCar && activeVehicleId && (_activeVehicleDef || {}).type === "drone") { _tryDroneShoot(); return; }
   _tryShoot();
 });
 
@@ -6271,7 +6275,7 @@ function tick() {
   if (_droneCooldown > 0) _droneCooldown -= dt;
   // Auto-fire for automatic weapons (rifle etc.) — held LMB
   if (_mouseHeld && pointerLocked && !invDiv.classList.contains("open") && !buildMode) {
-    const _isDroneNow = inCar && activeVehicleId && (VEHICLE_DEFS.find(v => v.id === activeVehicleId) || {}).type === "drone";
+    const _isDroneNow = inCar && activeVehicleId && (_activeVehicleDef || {}).type === "drone";
     if (_isDroneNow) { _tryDroneShoot(); }
     else { const _aw = getWeapon(); if (_aw.automatic) _tryShoot(); }
   }
@@ -6486,7 +6490,7 @@ function tick() {
 
   if (!buildMode && inCar && activeVehicleId) {
     // Per-vehicle physics — all params come from the vehicle def
-    const vDef = VEHICLE_DEFS.find(v => v.id === activeVehicleId);
+    const vDef = _activeVehicleDef;
     const vSt  = vehicleStates.get(activeVehicleId);
 
     if (vDef && vDef.type === "drone") {
@@ -8113,7 +8117,7 @@ function tick() {
   // (INSIDE + FIRST_PERSON). Falls back to old behavior if spine not loaded.
   const spineZone = spine ? spine.zone : null;
   const firstPerson = !inCar && (spineZone === "INSIDE" || spineZone === "FIRST_PERSON" || dist < 0.5);
-  const _activeDef = inCar ? VEHICLE_DEFS.find(v => v.id === activeVehicleId) : null;
+  const _activeDef = inCar ? _activeVehicleDef : null;
   const _isDrone   = _activeDef && _activeDef.type === "drone";
   heroGroup.visible = buildMode || (_isDrone ? false : (!inCar && (spine ? spine.params.heroVisible : !firstPerson)));
   _shadowBlob.visible = !inCar && !firstPerson && !buildMode;
@@ -8256,7 +8260,7 @@ function tick() {
     `<br>layer <b>${world.layerId}</b>` +
     (insideNow ? `<br>inside <b>${bldgName(insideNow.targetLayerId)}</b>` : "") +
     (inCar && activeVehicleId
-      ? `<br><b>IN ${(VEHICLE_DEFS.find(v=>v.id===activeVehicleId)||{type:"vehicle"}).type.toUpperCase()}</b> speed=${carState.speed.toFixed(1)} m/s`
+      ? `<br><b>IN ${(_activeVehicleDef||{type:"vehicle"}).type.toUpperCase()}</b> speed=${carState.speed.toFixed(1)} m/s`
       : (_nearVehDist < (CFG.vehicleInteractDist || 3.0)
           ? `<br>press <b>E</b> to enter ${(_nearVehDef||{type:"vehicle"}).type}`
           : ""));
@@ -9027,7 +9031,7 @@ function tick() {
     if (inCar && activeVehicleId) {
       vDash.style.display = "block";
       const vst2 = vehicleStates.get(activeVehicleId);
-      const aVDef = VEHICLE_DEFS.find(v => v.id === activeVehicleId);
+      const aVDef = _activeVehicleDef;
       const isDrone2 = aVDef && aVDef.type === "drone";
       const kmh = vst2 ? Math.abs(vst2.speed * 3.6).toFixed(0) : "0";
       const gear2 = isDrone2 ? `ALT ${(vst2.altY || 0).toFixed(1)}m` : (vst2 ? (vst2.gearName || "N") : "N");
