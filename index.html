@@ -58,6 +58,8 @@
     box-shadow: 0 0 6px rgba(0,200,255,0.4);
   }
   #crosshair.hit { border-color: var(--holo-red); transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 10px rgba(255,68,102,0.5); }
+  #killMarker { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:4px; height:22px; pointer-events:none; z-index:502; display:none; border-radius:1px; transition:opacity 0.18s ease-out; }
+  #killMarker::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg); width:4px; height:22px; background:inherit; border-radius:1px; }
   #crosshair::after {
     content: ''; position: absolute; left: 50%; top: 50%;
     width: 3px; height: 3px; background: var(--holo-accent);
@@ -562,6 +564,7 @@
 </script>
 <canvas id="minimap" width="180" height="180"></canvas>
 <div id="crosshair"></div>
+<div id="killMarker"></div>
 <div id="damageFlash"></div>
 <div id="statusTint"></div>
 
@@ -1254,6 +1257,7 @@ function _trackKillAndPanic(killU, killV) {
   }
 }
 let hitMarkerUntil = 0;
+let _killMarkerUntil = 0, _killMarkerHs = false;
 let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
 let _dmgDirUntil = 0;  // performance.now() deadline
 let _lastWaveNum  = -1; // tracks last shown wave to detect transitions
@@ -6700,6 +6704,8 @@ function tick() {
             en._wasChasing = false;
             // Headshot kill — brief bullet-time reward
             if (headshot) _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.22);
+            // Kill confirmation marker — gold cross for headshot, red for normal
+            _killMarkerUntil = now + 300; _killMarkerHs = headshot;
             // Type-specific kill confirmation sound
             if (en.type === "boss") {
               playSfx("tone:260:200:sine", 0.6); playSfx("tone:330:180:sine", 0.5); playSfx("tone:440:220:sine", 0.45);
@@ -8527,6 +8533,19 @@ function tick() {
     const scale = hitNow ? 1.5 : spreadScale;
     crosshairEl.style.transform = `translate(-50%,-50%) scale(${scale.toFixed(2)})`;
     crosshairEl.style.borderColor = hitNow ? "var(--holo-red)" : `rgba(0,200,255,${(0.7 - _moveSpread * 0.3).toFixed(2)})`;
+  }
+  // Kill confirmation marker — "+" cross, gold for headshot kill, red for normal
+  const killMarkerEl = document.getElementById("killMarker");
+  if (killMarkerEl) {
+    if (now < _killMarkerUntil) {
+      const _kmFade = Math.max(0, (_killMarkerUntil - now) / 300);
+      killMarkerEl.style.display = "block";
+      killMarkerEl.style.background = _killMarkerHs ? "#ffd166" : "#ff2244";
+      killMarkerEl.style.boxShadow = `0 0 6px ${_killMarkerHs ? "#ffd166" : "#ff2244"}`;
+      killMarkerEl.style.opacity = _kmFade.toFixed(2);
+    } else {
+      killMarkerEl.style.display = "none";
+    }
   }
 
   // Directional damage indicator — red wedge pointing at attacker
