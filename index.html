@@ -4547,9 +4547,19 @@ function tick() {
             if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
             const coinVal = _COIN_BY_TYPE[en.type] || 1;
             _spawnCoinDrop(ep.u, ep.v, coinVal);
-            _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
-            if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("sparks", { x: ep.u, y: 1.2, z: ep.v });
-            playSfx("tone:880:80:sine", 0.4);
+            // Heavy/robot death — big explosion + screen flash
+            if (en.type === "heavy" || en.type === "robot") {
+              const blastColor = en.type === "robot" ? "cyan" : "orange";
+              _spawnParticles(ep.u, 0.5, ep.v, 50, blastColor, 14, 1.2);
+              _spawnParticles(ep.u, 1.5, ep.v, 30, "white",     10, 0.8);
+              _vignetteAmt = Math.min(1, _vignetteAmt + 0.4);
+              playSfx(`tone:${en.type==="robot"?300:200}:180:sawtooth`, 0.6);
+              showToast(`${en.type === "robot" ? "ROBOT" : "HEAVY"} ELIMINATED!`, "danger", 2000);
+            } else {
+              _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
+              if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("sparks", { x: ep.u, y: 1.2, z: ep.v });
+              playSfx("tone:880:80:sine", 0.4);
+            }
           }
           hitEnemy = true; break;
         }
