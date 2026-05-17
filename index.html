@@ -1876,6 +1876,8 @@ function _explodeGrenade(g) {
       en._kbU = ((ep.u - g.u) / _bkbLen) * _bkbStr;
       en._kbV = ((ep.v - g.v) / _bkbLen) * _bkbStr;
       en._kbT = 0.28;
+      // Grenade stagger — survivors within 5m stumble for 1.5s
+      if (d < 5) en._staggerT = 1.5;
       if (en.hp <= 0 && !en.dead) {
         en.dead = true; en.respawnT = performance.now() / 1000; enemyKills++;
         _comboCount++; _comboLastT = performance.now() / 1000;
@@ -6208,6 +6210,19 @@ function tick() {
         }
         continue;
       }
+
+      // Grenade stagger — stumble erratically for 1.5s after near-miss blast
+      if (en._staggerT > 0) {
+        en._staggerT -= dt;
+        en._staggerAngle = ((en._staggerAngle || 0) + dt * (Math.PI * 4));
+        en.heading = en._staggerAngle;
+        const _sem = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+        GTAPhysics.resolveAABBMove(_sem, Math.sin(en._staggerAngle) * en.moveSpeed * 0.35 * dt, Math.cos(en._staggerAngle) * en.moveSpeed * 0.35 * dt, buildingBlockers);
+        world.setPlayer(en.id, ep.x, 0, 0, _sem.u, _sem.v);
+        em.group.rotation.z = Math.sin(now / 70) * 0.35;
+        continue;
+      }
+      em.group.rotation.z = 0;
 
       if (en._bt && typeof BehaviorTree !== "undefined") {
         BehaviorTree.run(en._bt, {
