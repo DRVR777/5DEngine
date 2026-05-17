@@ -1821,11 +1821,14 @@ function _renderAdminGrid() {
 const grenades3D = [];
 let grenadeCount = 3;
 let smokeGrenadeCount = 2;   // smoke grenades (T key) — break enemy LOS for 6s
+let flashbangCount = 2;      // flashbangs (U key) — blind enemies 2.5s
 const smokeZones = [];       // active smoke zones [{u,v,radius,timeLeft}]
 const _grenadesGeo = new THREE.SphereGeometry(0.15, 8, 6);
 const _grenadesMat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xcc3300, emissiveIntensity: 0.9 });
 const _smokeGrenGeo = new THREE.SphereGeometry(0.14, 8, 6);
 const _smokeGrenMat = new THREE.MeshStandardMaterial({ color: 0x667755, emissive: 0x223311, emissiveIntensity: 0.5 });
+const _flashGrenGeo = new THREE.SphereGeometry(0.13, 8, 6);
+const _flashGrenMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffcc, emissiveIntensity: 1.2 });
 function _deploySmokeZone(u, v) {
   smokeZones.push({ u, v, radius: 3.5, timeLeft: 6.0 });
   for (let _si = 0; _si < 18; _si++) _spawnParticles(u, 0.4, v, 2, "white", 2.8, 1.8);
@@ -1900,6 +1903,19 @@ function _throwSmokeGrenade() {
     velU: fx * 10, velY: 5, velV: fz * 10, _isSmoke: true });
   playSfx("tone:500:40:square", 0.22);
 }
+function _throwFlashbang() {
+  if (flashbangCount <= 0) { showToast("No flashbangs!", "danger", 800); return; }
+  if (buildMode || computerOpen || _heroDead) return;
+  flashbangCount--;
+  const hp = world.players.get("hero");
+  const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
+  const mesh = new THREE.Mesh(_flashGrenGeo, _flashGrenMat.clone());
+  mesh.position.set(hp.u + fx * 0.5, hp.y + 1.2, hp.v + fz * 0.5);
+  scene.add(mesh);
+  grenades3D.push({ mesh, fuse: 1.8, u: hp.u + fx * 0.5, y: hp.y + 1.2, v: hp.v + fz * 0.5,
+    velU: fx * 11, velY: 5.5, velV: fz * 11, _isFlash: true });
+  playSfx("tone:1800:30:sine", 0.18);
+}
 
 // Grenade arc preview — initialized after scene is created
 const _ARC_DOT_COUNT = 14;
@@ -1918,8 +1934,28 @@ function _throwGrenade(cookedFuse) {
     velU: fx * 13, velY: 6, velV: fz * 13 });
   playSfx("tone:600:60:square", 0.3);
 }
+let _heroBlindT = 0; // seconds of white-out flash from flashbang
 function _explodeGrenade(g) {
   scene.remove(g.mesh);
+  if (g._isFlash) {
+    // Flashbang — bright white burst, blind nearby enemies + hero
+    _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 40, "white", 20, 0.5);
+    playSfx("tone:4000:120:sine", 0.7); playSfx("tone:2000:180:sine", 0.5);
+    const FLASH_R = 6;
+    for (const en of enemies) {
+      if (en.dead) continue;
+      const ep = world.players.get(en.id);
+      const d = Math.hypot(ep.u - g.u, ep.v - g.v);
+      if (d < FLASH_R) en._blindT = 2.5 * (1 - d / FLASH_R) + 0.5;
+    }
+    const hr = world.players.get("hero");
+    const hd = Math.hypot(hr.u - g.u, hr.v - g.v);
+    if (hd < FLASH_R) {
+      _heroBlindT = 2.0 * (1 - hd / FLASH_R) + 0.3;
+      showToast("FLASHBANG!", "warning", 1200);
+    }
+    return;
+  }
   if (g._isBossRock) {
     // Boss rock impact — dust + rubble, smaller blast
     _spawnParticles(g.u, 0.2, g.v, 60, "orange", 12, 1.5);
@@ -4614,6 +4650,10 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyT" && !buildMode && !computerOpen && !_heroDead) {
     _throwSmokeGrenade(); e.preventDefault(); return;
   }
+  // U key: throw flashbang
+  if (e.code === "KeyU" && !buildMode && !computerOpen && !_heroDead) {
+    _throwFlashbang(); e.preventDefault(); return;
+  }
   // M key: drop trap mine
   if (e.code === "KeyM" && !buildMode && !computerOpen && !_heroDead) {
     _dropMine(); e.preventDefault(); return;
@@ -5279,11 +5319,11 @@ function drawMinimap() {
   { const _gPulse = 0.5 + 0.5 * Math.sin(performance.now() / 100);
     for (const _grd of grenades3D) {
       const _gx = u2x(_grd.u), _gy = v2y(_grd.v);
-      const _isSmk = _grd._isSmoke;
-      mini.strokeStyle = _isSmk ? `rgba(100,180,100,${0.7 + _gPulse * 0.3})` : `rgba(255,120,0,${0.7 + _gPulse * 0.3})`;
+      const _isSmk = _grd._isSmoke, _isFlsh = _grd._isFlash;
+      mini.strokeStyle = _isSmk ? `rgba(100,180,100,${0.7+_gPulse*0.3})` : _isFlsh ? `rgba(255,255,200,${0.7+_gPulse*0.3})` : `rgba(255,120,0,${0.7+_gPulse*0.3})`;
       mini.lineWidth = 1.5;
       mini.beginPath(); mini.arc(_gx, _gy, 4 + _gPulse * 2, 0, Math.PI * 2); mini.stroke();
-      mini.fillStyle = _isSmk ? "#88cc88" : "#ff8800";
+      mini.fillStyle = _isSmk ? "#88cc88" : _isFlsh ? "#ffffaa" : "#ff8800";
       mini.beginPath(); mini.arc(_gx, _gy, 2, 0, Math.PI * 2); mini.fill();
     }
   }
@@ -6439,7 +6479,8 @@ function tick() {
       const dist = Math.hypot(dx, dz);
       const _effSight = (en.sightRange || 12) * (crouching ? 0.6 : 1.0);
       const _smokeBlind = smokeZones.some(sz => Math.hypot(ep.u-sz.u, ep.v-sz.v) < sz.radius || Math.hypot(_heroNowAI.u-sz.u, _heroNowAI.v-sz.v) < sz.radius);
-      const canSee = !_smokeBlind && dist <= _effSight && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
+      if (en._blindT > 0) en._blindT -= dt;
+      const canSee = !_smokeBlind && !(en._blindT > 0) && dist <= _effSight && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
       // Gunshot alert — enemies within 9m without LOS move toward last shot position
       if (!canSee && !en._wasChasing && _heroShotAlertT > 0) {
         const _adist = Math.hypot(ep.u - _heroShotAlertU, ep.v - _heroShotAlertV);
@@ -7761,7 +7802,12 @@ function tick() {
       const _sfx = (typeof StatusEffects !== "undefined") ? (StatusEffects.getActive("hero") || []) : [];
       const hasPoisoned = _sfx.some(e => e.id === "poison");
       const hasBurning  = _burnActive || _sfx.some(e => e.id === "burning");
-      if (hasPoisoned || hasBurning) {
+      if (_heroBlindT > 0) {
+        _heroBlindT -= dt;
+        const _bFade = Math.min(1, _heroBlindT * 1.5);
+        stEl.style.background = `rgba(255,255,255,${_bFade.toFixed(2)})`;
+        stEl.style.opacity = "1";
+      } else if (hasPoisoned || hasBurning) {
         const _pulse = 0.12 + 0.08 * Math.sin(now / 220);
         const _r = hasBurning ? 255 : 0, _g = hasPoisoned ? 180 : (hasBurning ? 80 : 0), _b = 0;
         stEl.style.background = `radial-gradient(ellipse at center, transparent 50%, rgba(${_r},${_g},${_b},0.7) 100%)`;
@@ -8028,7 +8074,7 @@ function tick() {
       }).join("");
     }
     const grenEl = document.getElementById("wpGrenades");
-    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[G]</span>  ◎ ${smokeGrenadeCount} smoke <span style="color:#555">[T]</span>  ⊠ ${_mineCount} mine${_mineCount !== 1 ? "s" : ""} <span style="color:#555">[M]</span>`;
+    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} frag <span style="color:#555">[G]</span>  ◎ ${smokeGrenadeCount} smoke <span style="color:#555">[T]</span>  ◈ ${flashbangCount} flash <span style="color:#555">[U]</span>  ⊠ ${_mineCount} mine${_mineCount !== 1 ? "s" : ""} <span style="color:#555">[M]</span>`;
   }
 
   // Vehicle dashboard
