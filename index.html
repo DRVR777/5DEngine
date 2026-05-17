@@ -40,10 +40,9 @@
   }
   #damageFlash {
     position: fixed; inset: 0; pointer-events: none; z-index: 999;
-    background: radial-gradient(ellipse at center, transparent 50%, rgba(255,0,0,0.6) 100%);
-    opacity: 0; transition: opacity 100ms ease-out;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(220,0,0,0.75) 100%);
+    opacity: 0;
   }
-  #damageFlash.active { opacity: 1; transition: opacity 50ms ease-in; }
   #crosshair {
     position: fixed; left: 50%; top: 50%;
     transform: translate(-50%, -50%);
@@ -1398,9 +1397,9 @@ const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });  // bright y
 
 const damageFlashEl = document.getElementById("damageFlash");
 let damageFlashUntil = 0;
+let _vignetteAmt = 0; // spring [0..1]: driven by hit impulses + low-HP pulse
 function flashDamage() {
-  damageFlashEl.classList.add("active");
-  damageFlashUntil = performance.now() + 180;
+  _vignetteAmt = 1.0; // instant spike, springs out in tick()
 }
 
 // Click-to-shoot handler is registered later, after `renderer` is created
@@ -5049,11 +5048,12 @@ function tick() {
     else crosshairEl.classList.remove("hit");
   }
 
-  // Clear damage-flash overlay after its lifetime
-  if (damageFlashUntil > 0 && performance.now() > damageFlashUntil) {
-    damageFlashEl.classList.remove("active");
-    damageFlashUntil = 0;
-  }
+  // Damage vignette — spring out from hit spike; low-HP pulse overlaid
+  const lowHpPulse = heroHp < HERO_MAX_HP * 0.3
+    ? 0.22 + Math.sin(performance.now() / 350) * 0.12 : 0;
+  const vigTarget = Math.max(lowHpPulse, 0);
+  _vignetteAmt += (vigTarget - _vignetteAmt) * Math.min(1, dt * 6);
+  damageFlashEl.style.opacity = _vignetteAmt.toFixed(3);
 
   // mini-map (top-right)
   drawMinimap();
