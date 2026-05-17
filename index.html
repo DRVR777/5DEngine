@@ -2501,6 +2501,49 @@ const _pMatCyan    = new THREE.MeshBasicMaterial({ color: 0x00ccff });
 const _pMatWhite   = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const _pMatsMap    = { yellow:_pMatYellow, orange:_pMatOrange, red:_pMatRed, cyan:_pMatCyan, white:_pMatWhite };
 
+// Shell casings — small brass cylinders ejected sideways on shoot, gravity, bounce once, fade
+const _shellGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.065, 5);
+const _shellMat = new THREE.MeshBasicMaterial({ color: 0xccaa33 });
+const _casings = [];
+const _CASING_MAX = 40;
+function _ejectCasing(x, y, z, yaw) {
+  if (_casings.length >= _CASING_MAX) {
+    const old = _casings.shift();
+    scene.remove(old.mesh);
+  }
+  const mesh = new THREE.Mesh(_shellGeo, _shellMat.clone());
+  mesh.position.set(x, y, z);
+  scene.add(mesh);
+  const ejectAng = yaw + Math.PI * 0.5 + (Math.random() - 0.5) * 0.3;
+  _casings.push({
+    mesh,
+    vx: Math.sin(ejectAng) * (2 + Math.random()),
+    vy: 2.5 + Math.random() * 1.5,
+    vz: Math.cos(ejectAng) * (2 + Math.random()),
+    life: 1.8, bounced: false,
+  });
+}
+function _tickCasings(dt) {
+  for (let i = _casings.length - 1; i >= 0; i--) {
+    const c = _casings[i];
+    c.life -= dt;
+    if (c.life <= 0) { scene.remove(c.mesh); _casings.splice(i, 1); continue; }
+    c.vy -= 9.8 * dt;
+    c.mesh.position.x += c.vx * dt;
+    c.mesh.position.y += c.vy * dt;
+    c.mesh.position.z += c.vz * dt;
+    c.mesh.rotation.z += dt * 18;
+    if (!c.bounced && c.mesh.position.y <= 0.03) {
+      c.mesh.position.y = 0.03;
+      c.vy = Math.abs(c.vy) * 0.35;
+      c.vx *= 0.6; c.vz *= 0.6;
+      c.bounced = true;
+    }
+    c.mesh.material.opacity = Math.min(1, c.life / 0.4);
+    c.mesh.material.transparent = c.life < 0.4;
+  }
+}
+
 // Floating damage numbers — project 3D world pos to screen, rise and fade
 const _dmgNums = [];
 function _spawnDamageNumber(worldX, worldY, worldZ, text, color) {
@@ -5198,6 +5241,7 @@ function _tryShoot() {
   const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
   _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
   _triggerMuzzleFlash(mfx, mfy, mfz);
+  _ejectCasing(hp.u, hp.y + 1.4, hp.v, camYaw);
   _recoilPitch += wep.pellets > 1 ? 0.035 : 0.015;
   _gunKickZ = wep.pellets > 1 ? -0.14 : -0.08;
 }
@@ -5537,6 +5581,7 @@ function tick() {
   // Tick particles + damage numbers
   _tickParticles(dt);
   _tickDamageNumbers(dt);
+  _tickCasings(dt);
   if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
   // Muzzle flash light decay
   if (_muzzleLightT > 0) {
