@@ -4966,11 +4966,20 @@ function tick() {
   _gunMount.position.set(0, -0.7 + wc.bob * 0.3, 0.2 + _gunKickZ);
   _gunMount.rotation.set(_gunReloadX, 0, gunSwayX);
   torso.position.y = 1.25 + wc.bob;
-  // face the direction of last input (or camera-forward if idle)
-  if (inputF !== 0 || inputR !== 0) {
-    const fx = forward.x * inputF + right.x * inputR;
-    const fz = forward.z * inputF + right.z * inputR;
-    heroGroup.rotation.y = Math.atan2(fx, fz);
+  // Hero always faces camYaw — body rotates with mouse so shooting is accurate
+  {
+    const targetY = aiming
+      ? camYaw                                          // snap to camera when aiming
+      : (inputF !== 0 || inputR !== 0)
+          ? Math.atan2(forward.x * inputF + right.x * inputR,
+                       forward.z * inputF + right.z * inputR)  // face movement dir
+          : camYaw;                                     // idle: also face camera
+    // Lerp to avoid snapping (fast when aiming, moderate when idle)
+    const turnRate = aiming ? 25 : 10;
+    let diff = targetY - heroGroup.rotation.y;
+    while (diff >  Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    heroGroup.rotation.y += diff * Math.min(1, dt * turnRate);
   }
 
   // Camera: pulls back along the inverse of `forward` vector (so we sit
