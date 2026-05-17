@@ -4448,6 +4448,14 @@ addEventListener("keydown", (e) => {
     _meleeCooldown = 0.8;
     _meleeSwing = 1.0; // spring that drives the swing animation
     playSfx("tone:120:80:square", 0.25);
+    // Melee arc — cyan particles fanned across 120° at 1.5m
+    { const _hma = world.players.get("hero");
+      for (let _mi = 0; _mi < 8; _mi++) {
+        const _mAng = camYaw + (-Math.PI / 3) + (_mi / 7) * (2 * Math.PI / 3);
+        const _mU = _hma.u + Math.sin(_mAng) * 1.4, _mV = _hma.v + Math.cos(_mAng) * 1.4;
+        _spawnParticles(_mU, _hma.y + 1.0, _mV, 2, "cyan", 6, 0.15);
+      }
+    }
     // Damage any enemy within 1.5m
     const hm = world.players.get("hero");
     for (const en of enemies) {
