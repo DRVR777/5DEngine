@@ -3943,12 +3943,15 @@ function _tryShoot() {
     wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
   // Camera kick — brief upward pitch jolt that decays via spring
   _recoilPitch = -(wep.pellets > 1 ? 0.06 : 0.025);
+  // Gun visual kick — push barrel back then spring forward
+  _gunKickZ = wep.pellets > 1 ? -0.14 : -0.08;
 }
 
 let lastT = performance.now();
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
+let _gunKickZ = 0;      // offset applied to gunGroup.position.z each frame
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
@@ -4616,6 +4619,11 @@ function tick() {
   const walkArmR =  wc.swing * SWING * 0.7;
   armL.rotation.x = walkArmL * (1 - aimAmt) + aimRaise;
   armR.rotation.x = walkArmR * (1 - aimAmt) + aimRaise;
+  // Gun sway: bob left/right slightly while walking, kick back on shoot
+  _gunKickZ += (0 - _gunKickZ) * Math.min(1, dt * 18); // spring back to 0
+  const gunSwayX = Math.sin(wc.t * 2.2 + Math.PI) * wc.speed * 0.018;
+  gunGroup.position.set(0, -0.7 + wc.bob * 0.3, 0.2 + _gunKickZ);
+  gunGroup.rotation.z = gunSwayX;
   torso.position.y = 1.25 + wc.bob;
   // face the direction of last input (or camera-forward if idle)
   if (inputF !== 0 || inputR !== 0) {
