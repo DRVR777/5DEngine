@@ -4113,6 +4113,18 @@ let _mouseHeld = false;
 document.addEventListener("mousedown", (e) => { if (e.button === 0) _mouseHeld = true; });
 document.addEventListener("mouseup",   (e) => { if (e.button === 0) _mouseHeld = false; });
 
+// ---- Aim direction module ----
+// Always derive horizontal bullet direction from camera's world direction projected
+// to XZ. This is decoupled from camPitch, recoil, and camera position — the only
+// input is where the camera is currently pointing horizontally. Spread is added as
+// a radial offset in the XZ plane after this is computed.
+function _getAimAngle() {
+  const d = new THREE.Vector3();
+  camera.getWorldDirection(d);
+  const h = Math.sqrt(d.x * d.x + d.z * d.z);
+  return h > 0.001 ? Math.atan2(d.x, d.z) : camYaw;
+}
+
 function _tryShoot() {
   if (_reloading || shopOpen) return;
   const wep = getWeapon();
@@ -4123,36 +4135,24 @@ function _tryShoot() {
   playSfx("tone:1200:60:square", 0.25);
   const hp = world.players.get("hero");
   if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: hp.y + 1.6, z: hp.v });
-  // Raycast through crosshair to get base aim direction
-  const aimRay = new THREE.Raycaster();
-  aimRay.setFromCamera(new THREE.Vector2(0, 0), camera);
-  let aimX = hp.u + Math.sin(camYaw) * 30;
-  let aimZ = hp.v + Math.cos(camYaw) * 30;
-  const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1.5);
-  const aimPoint = new THREE.Vector3();
-  if (aimRay.ray.intersectPlane(aimPlane, aimPoint)) { aimX = aimPoint.x; aimZ = aimPoint.z; }
-  const dxA = aimX - hp.u, dzA = aimZ - hp.v;
-  const baseAngle = Math.atan2(dxA, dzA);
+  // Bullet direction: horizontal component of camera world direction (independent of pitch/recoil)
+  const baseAngle = _getAimAngle();
   const pellets = wep.pellets || 1;
-  const spread  = (wep.spread || 0) + _moveSpread * 0.12; // accuracy penalty while moving
+  const spread  = (wep.spread || 0) + _moveSpread * 0.12;
   for (let p = 0; p < pellets; p++) {
     const ang = baseAngle + (Math.random() - 0.5) * spread * 2;
     const dirU = Math.sin(ang), dirV = Math.cos(ang);
     const mesh = new THREE.Mesh(bulletGeo, bulletMat);
-    // Orient box tracer to face travel direction (box is built along Z; atan2 gives yaw)
     mesh.rotation.y = -ang;
     const bulletY = hp.y + 1.5;
     mesh.position.set(hp.u, bulletY, hp.v);
     scene.add(mesh);
     bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
   }
-  // Muzzle flash — particles + brief point light at gun tip
   const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
   _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
   _triggerMuzzleFlash(mfx, mfy, mfz);
-  // Camera kick — brief upward pitch jolt that decays via spring
-  _recoilPitch += wep.pellets > 1 ? 0.035 : 0.015; // additive upward kick
-  // Gun visual kick — push barrel back then spring forward
+  _recoilPitch += wep.pellets > 1 ? 0.035 : 0.015;
   _gunKickZ = wep.pellets > 1 ? -0.14 : -0.08;
 }
 
