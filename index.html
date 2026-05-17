@@ -297,6 +297,7 @@
 <div id="hud">loading…</div>
 <div id="ammoHud" style="display:none">12 / 60</div>
 <div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#00ccff" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
+<div id="dmgDirIndicator" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;height:120px;pointer-events:none;z-index:998"></div>
 
 <!-- Holographic weapon panel (bottom right) -->
 <div id="weaponPanel">
@@ -905,6 +906,8 @@ let _lastKillT = 0;
 const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8 };
 let hitMarkerUntil = 0;
+let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
+let _dmgDirUntil = 0;  // performance.now() deadline
 for (const e of enemies) world.setPlayer(e.id, 0, 0, 0, e.u, e.v);
 
 // In-game computer entity (iter 28). Walk near + press E to "use" (we
@@ -4579,6 +4582,13 @@ function tick() {
               heroHp = Math.max(0, heroHp - en.damage);
               heroLastDamageT = ctx.now;
               flashDamage();
+              // Record attacker direction for directional damage indicator
+              const _epAtk = world.players.get(en.id);
+              const _hpAtk = world.players.get("hero");
+              if (_epAtk && _hpAtk) {
+                _dmgDirAngle = Math.atan2(_epAtk.u - _hpAtk.u, _epAtk.v - _hpAtk.v);
+                _dmgDirUntil = performance.now() + 1200;
+              }
               // Type-specific status effects
               if (typeof StatusEffects !== "undefined") {
                 if (en.type === "poisoner"   && Math.random() < 0.55) StatusEffects.apply("hero", "poison");
@@ -5081,6 +5091,23 @@ function tick() {
   if (crosshairEl) {
     if (now < hitMarkerUntil) crosshairEl.classList.add("hit");
     else crosshairEl.classList.remove("hit");
+  }
+
+  // Directional damage indicator — red wedge pointing at attacker
+  const dmgDirEl = document.getElementById("dmgDirIndicator");
+  if (dmgDirEl) {
+    if (performance.now() < _dmgDirUntil) {
+      const relAngle = _dmgDirAngle - camYaw;
+      const fade = Math.max(0, (_dmgDirUntil - performance.now()) / 1200);
+      dmgDirEl.style.display = "block";
+      dmgDirEl.style.opacity = (fade * 0.85).toFixed(2);
+      dmgDirEl.innerHTML = `<svg width="120" height="120" viewBox="-60 -60 120 120">
+        <g transform="rotate(${(relAngle * 180 / Math.PI).toFixed(1)})">
+          <polygon points="0,-42 -10,-26 10,-26" fill="rgba(255,40,40,0.9)" stroke="rgba(255,80,80,0.5)" stroke-width="1"/>
+        </g></svg>`;
+    } else {
+      dmgDirEl.style.display = "none";
+    }
   }
 
   // Damage vignette — spring out from hit spike; low-HP pulse overlaid
