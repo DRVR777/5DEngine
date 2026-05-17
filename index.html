@@ -5735,7 +5735,15 @@ function _tryShoot() {
   pistolCooldown = 1 / wep.fireRate;
   pistolAmmo--;
   setAmmo(pistolAmmo);
-  playSfx("tone:1200:60:square", 0.25);
+  // Per-weapon fire sound
+  const _wSfx = {
+    pistol:  () => { playSfx("tone:1400:45:square", 0.22); },
+    rifle:   () => { playSfx("tone:280:55:sawtooth", 0.35); playSfx("tone:900:35:square", 0.18); },
+    shotgun: () => { playSfx("tone:120:90:sawtooth", 0.55); playSfx("tone:200:60:sawtooth", 0.35); playSfx("tone:80:70:square", 0.4); },
+    smg:     () => { playSfx("tone:1100:35:square", 0.18); },
+    sniper:  () => { playSfx("tone:180:120:sawtooth", 0.7); playSfx("tone:2400:30:sine", 0.3); },
+  };
+  (_wSfx[currentWeaponId] || _wSfx.pistol)();
   const hp = world.players.get("hero");
   if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: hp.y + 1.6, z: hp.v });
   // Bullet direction: full 3D camera world direction, normalized
