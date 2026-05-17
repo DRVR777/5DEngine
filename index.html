@@ -5922,6 +5922,11 @@ function tick() {
               showToast(`Enemy down — ${enemyKills} kill${enemyKills>1?"s":""}`, "danger", 1800);
             }
             _addKillFeedEntry(`★ KILL #${enemyKills} — ${en.type || "enemy"}`, "#ff4466");
+            // Lifesteal on low HP — killing when below 40% HP restores 8 HP
+            if (heroHp < HERO_MAX_HP * 0.4 && !_heroDead) {
+              heroHp = Math.min(HERO_MAX_HP, heroHp + 8);
+              _spawnDamageNumber(ep.u, 2.2, ep.v, "+8 HP", "#00ff88");
+            }
             _trackKillAndPanic(ep.u, ep.v);
             if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id: en.id, kills: enemyKills });
             completeQuestStep("combat", 0);
