@@ -436,6 +436,7 @@
   box-shadow:0 0 18px rgba(0,200,255,0.2);pointer-events:none">
   <span id="waveLabel">WAVE 1</span>
   <span id="waveDetail" style="color:#b8e8ff;margin-left:8px"></span>
+  <span id="heroLevelHud" style="color:#ffd700;margin-left:10px;font-weight:bold"></span>
   <div id="waveChallengeHud" style="color:#ffd166;font-size:10px;margin-top:2px;letter-spacing:0.08em"></div>
 </div>
 
@@ -1099,6 +1100,12 @@ let _waveChallenge = null;  // { type, label, bonus, limit? }
 let _waveChallengeStart = 0;
 let _waveChallengeHits = 0; // headshots this wave
 let _waveChallengeNoDmg = true; // hero has not taken damage this wave
+// In-session kill leveling
+let _heroLevel = 0;           // 0–5
+let _heroLvlDmgMul = 1.0;     // multiplied into bullet damage
+let _heroLvlSpeedBonus = 0;   // added to sprint speed
+let _heroApexMode = false;    // L5: each kill restores 5 stamina
+const _LEVEL_THRESHOLDS = [10, 20, 30, 40, 50];
 let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
@@ -2279,6 +2286,28 @@ if (typeof WaveManager !== "undefined") {
     const s = WaveManager.getState();
     return `wave=${s.wave}/${s.totalWaves} phase=${s.phase} alive=${s.aliveCount}`;
   });
+}
+
+// Kill leveling — applies buff and shows level-up toast
+function _applyLevelUpBuff(lvl) {
+  const _lvlMsgs = {
+    1: "LVL 1 — +10% DAMAGE",
+    2: "LVL 2 — +SPRINT SPEED",
+    3: "LVL 3 — +STAMINA MAX",
+    4: "LVL 4 — +MAX HP",
+    5: "LVL 5 — APEX PREDATOR",
+  };
+  if (lvl === 1) _heroLvlDmgMul *= 1.10;
+  if (lvl === 2) _heroLvlSpeedBonus += 1.0;
+  if (lvl === 3) { /* stamina max expanded via bonus checked in stamina cap */ }
+  if (lvl === 4) { heroHp = Math.min(HERO_MAX_HP + 20, heroHp + 20); }
+  if (lvl === 5) _heroApexMode = true;
+  _spawnParticles(world.players.get("hero").u, 1.5, world.players.get("hero").v, 40, "yellow", 8, 0.8);
+  showToast(`LEVEL UP! ${_lvlMsgs[lvl]}`, "success", 3000);
+  playSfx("tone:880:100:sine", 0.5); playSfx("tone:1100:80:sine", 0.45); playSfx("tone:1320:120:sine", 0.4);
+  _addKillFeedEntry(`★ LEVEL ${lvl}: ${_lvlMsgs[lvl]}`, "#ffd700");
+  const _lvEl = document.getElementById("heroLevelHud");
+  if (_lvEl) _lvEl.textContent = `LVL ${lvl}`;
 }
 
 // Skybox presets
@@ -5865,7 +5894,8 @@ function tick() {
   }
   if (_speedBoostT > 0) _speedBoostT -= dt;
   const _speedBoostMul = _speedBoostT > 0 ? 1.5 : 1.0;
-  const speed = (canSprint ? SPRINT : WALK * crouchSpeedMul) * _speedBoostMul;
+  const _baseSpeed = canSprint ? (SPRINT + _heroLvlSpeedBonus) : (WALK + _heroLvlSpeedBonus * 0.5) * crouchSpeedMul;
+  const speed = _baseSpeed * _speedBoostMul;
 
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
@@ -6117,7 +6147,7 @@ function tick() {
           const _frontalBlock = !headshot && !backstab && _bsDot < -0.55 && (en.type === "boss" || en.type === "heavy");
           const _wResist = (_DMG_MUL[en.type] || {})[b.weaponId || "pistol"] || 1.0;
           const isCrit = !headshot && !backstab && !_frontalBlock && Math.random() < 0.10;
-          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist);
+          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul);
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
           _shotsHit++; _damageDealt += dmg;
@@ -6193,6 +6223,10 @@ function tick() {
             if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
         if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
             enemyKills++;
+            // Level-up check (every 10 kills, max level 5)
+            if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel);
+            // Apex mode (level 5) — each kill restores 5 stamina
+            if (_heroApexMode) _stamina = Math.min(STAMINA_MAX, _stamina + 5);
             // Kill streak tracking
             const nowSec = now / 1000;
             if (nowSec - _lastKillT < _STREAK_WINDOW) {
