@@ -360,6 +360,10 @@
   <div style="width:80px;height:6px;background:rgba(255,200,0,0.15);border-radius:3px;overflow:hidden"><div id="arFill" style="height:100%;background:linear-gradient(90deg,#ffd166,#ffaa00);transition:width 0.15s ease-out;width:0%"></div></div>
   <span id="arVal" style="color:#ffd166;min-width:24px">0</span>
 </div>
+<div id="staminaBar" style="position:fixed;bottom:64px;right:12px;display:flex;align-items:center;gap:6px;background:rgba(2,5,14,0.75);border:1px solid rgba(0,180,255,0.3);border-radius:4px;padding:4px 8px;pointer-events:none;z-index:200;font-family:var(--mono);font-size:11px">
+  <span style="color:#44aaff;letter-spacing:0.1em">ST</span>
+  <div style="width:80px;height:5px;background:rgba(0,150,255,0.15);border-radius:3px;overflow:hidden"><div id="stFill" style="height:100%;background:linear-gradient(90deg,#44aaff,#00ccff);transition:width 0.08s linear;width:100%"></div></div>
+</div>
 
 <!-- Weapon selector bar (fades out after switch) -->
 <div id="weaponSelector" style="display:none;position:fixed;bottom:130px;right:8px;display:flex;flex-direction:column;gap:4px;pointer-events:none;z-index:201"></div>
@@ -4777,6 +4781,11 @@ let _meleeCooldown = 0; // seconds until next melee allowed
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
+let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
+const STAMINA_MAX    = 100;
+const STAMINA_DRAIN  = 22;  // per second while sprinting
+const STAMINA_REGEN  = 14;  // per second when not sprinting
+const STAMINA_LOCKOUT = 15; // minimum stamina required to re-enter sprint
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
@@ -4933,7 +4942,15 @@ function tick() {
   const crouchTarget = crouching ? 1 : 0;
   _crouchAmt += (crouchTarget - _crouchAmt) * Math.min(1, dt * 12);
   const crouchSpeedMul = 1 - _crouchAmt * 0.4; // 60% speed when fully crouched
-  const speed  = ((keys["ShiftLeft"] || keys["ShiftRight"]) && !crouching) ? SPRINT : WALK * crouchSpeedMul;
+  // Stamina — drains while sprinting, regens otherwise; requires STAMINA_LOCKOUT to re-enter sprint
+  const wantsSprint = !!(keys["ShiftLeft"] || keys["ShiftRight"]) && !crouching && !inCar && !_heroDead;
+  const canSprint = wantsSprint && _stamina >= (isSprinting ? 1 : STAMINA_LOCKOUT);
+  if (canSprint && (inputF !== 0 || inputR !== 0)) {
+    _stamina = Math.max(0, _stamina - STAMINA_DRAIN * dt);
+  } else if (!wantsSprint || _stamina <= 0) {
+    _stamina = Math.min(STAMINA_MAX, _stamina + STAMINA_REGEN * dt);
+  }
+  const speed = canSprint ? SPRINT : WALK * crouchSpeedMul;
 
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
@@ -6191,6 +6208,16 @@ function tick() {
     armorBarEl.style.display = heroArmor > 0 ? "flex" : "none";
     if (arFillEl) arFillEl.style.width = `${(heroArmor / HERO_MAX_ARMOR * 100).toFixed(1)}%`;
     if (arValEl)  arValEl.textContent  = Math.ceil(heroArmor);
+  }
+
+  // Stamina bar
+  const stFillEl = document.getElementById("stFill");
+  if (stFillEl) {
+    const stPct = (_stamina / STAMINA_MAX * 100).toFixed(1);
+    stFillEl.style.width = stPct + "%";
+    stFillEl.style.background = _stamina < STAMINA_LOCKOUT
+      ? "linear-gradient(90deg,#ff4444,#ff8844)"
+      : "linear-gradient(90deg,#44aaff,#00ccff)";
   }
 
   // Holographic weapon panel update
