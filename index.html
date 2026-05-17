@@ -7708,6 +7708,7 @@ function tick() {
   }
 
   // Ammo pickups — walk over to collect
+  const _ammoLabels = { pistol_9mm: "9MM", rifle_556: "5.56", smg_9mm: "9MM", sniper_308: ".308", shotgun_12g: "12GA" };
   for (const ap of ammoPickups) {
     if (ap.collected) continue;
     const d = Math.hypot(heroNow.u - ap.u, heroNow.v - ap.v);
@@ -7716,6 +7717,8 @@ function tick() {
       scene.remove(ap.mesh);
       Inv.addItem(heroInv, ap.ammoItem || getWeapon().ammoItem || "pistol_9mm", ap.qty);
       playSfx("blip", 0.5);
+      const _lbl = _ammoLabels[ap.ammoItem] || "AMMO";
+      _spawnDamageNumber(ap.u, 1.5, ap.v, `+${ap.qty} ${_lbl}`, "#ffaa00");
     } else {
       ap.mesh.rotation.y += dt * 2.5;
       ap.mesh.position.y = 0.4 + Math.sin(now / 280 + ap.u) * 0.08;
