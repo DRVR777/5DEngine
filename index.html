@@ -298,6 +298,12 @@
 <div id="ammoHud" style="display:none">12 / 60</div>
 <div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#00ccff" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
 <div id="dmgDirIndicator" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;height:120px;pointer-events:none;z-index:998"></div>
+<div id="waveBanner" style="display:none;position:fixed;left:0;right:0;top:38%;text-align:center;pointer-events:none;z-index:1100;transform:scaleY(0);transition:transform 0.18s cubic-bezier(.4,0,.2,1)">
+  <div style="background:rgba(0,0,0,0.78);border-top:2px solid rgba(0,200,255,0.6);border-bottom:2px solid rgba(0,200,255,0.6);padding:14px 0;">
+    <div id="waveBannerLabel" style="font-family:ui-monospace,monospace;font-size:44px;font-weight:900;color:#00ccff;letter-spacing:0.22em;text-shadow:0 0 30px rgba(0,200,255,0.7)">WAVE 1</div>
+    <div id="waveBannerSub" style="font-family:ui-monospace,monospace;font-size:13px;color:#aef060;letter-spacing:0.2em;margin-top:4px">GET READY</div>
+  </div>
+</div>
 
 <!-- Holographic weapon panel (bottom right) -->
 <div id="weaponPanel">
@@ -908,6 +914,8 @@ const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4,
 let hitMarkerUntil = 0;
 let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
 let _dmgDirUntil = 0;  // performance.now() deadline
+let _lastWaveNum  = -1; // tracks last shown wave to detect transitions
+let _waveBannerUntil = 0;
 for (const e of enemies) world.setPlayer(e.id, 0, 0, 0, e.u, e.v);
 
 // In-game computer entity (iter 28). Walk near + press E to "use" (we
@@ -4359,7 +4367,27 @@ function tick() {
         else if (ws.phase === "pausing") det.textContent = `clear! next in ${ws.pauseLeft}s`;
         else if (ws.phase === "done") det.textContent = `all waves done`;
         else det.textContent = "";
-
+      }
+    }
+    // Wave announcement banner — show for 2.5s when wave number increments
+    if (ws.started && ws.wave !== _lastWaveNum && ws.phase === "spawning") {
+      _lastWaveNum = ws.wave;
+      _waveBannerUntil = performance.now() + 2500;
+      const wbl = document.getElementById("waveBannerLabel");
+      const wbs = document.getElementById("waveBannerSub");
+      const banner = document.getElementById("waveBanner");
+      if (wbl) wbl.textContent = `WAVE ${ws.wave}`;
+      if (wbs) wbs.textContent = ws.wave >= ws.totalWaves ? "FINAL WAVE" : "GET READY";
+      if (banner) { banner.style.display = "block"; banner.style.transform = "scaleY(1)"; }
+      playSfx(`tone:${220 + ws.wave * 20}:120:square`, 0.25);
+    }
+    const nowMs = performance.now();
+    const bannerEl = document.getElementById("waveBanner");
+    if (bannerEl && _waveBannerUntil > 0) {
+      if (nowMs > _waveBannerUntil) {
+        bannerEl.style.transform = "scaleY(0)";
+        setTimeout(() => { bannerEl.style.display = "none"; }, 200);
+        _waveBannerUntil = 0;
       }
     }
   }
