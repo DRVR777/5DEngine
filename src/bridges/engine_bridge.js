@@ -268,6 +268,8 @@
     state.t = (state.t || 0) + dt * FREQ * norm;
     const intensity = Math.min(1, groundSpeed / 4);
     return {
+      t:     state.t,
+      speed: groundSpeed,
       swing: Math.sin(state.t) * MAX_SWING * intensity,
       bob:   Math.abs(Math.sin(state.t)) * 0.08 * intensity,
     };

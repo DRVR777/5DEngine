@@ -4074,6 +4074,7 @@ let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 let _gunKickZ = 0;      // offset applied to _gunMount.position.z each frame
 let _gunReloadX = 0;   // spring: tilts gun down during reload window
+let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
@@ -4144,6 +4145,13 @@ function tick() {
   // shrink camDist by ~40% — feels like a scope-zoom without changing FOV.
   const aimTarget = aiming && !computerOpen && !computerEntering ? 1 : 0;
   aimAmt += (aimTarget - aimAmt) * Math.min(1, dt * 12);
+
+  // Sprint FOV push — widens FOV by 8° when running (ShiftLeft), cancels when aiming
+  const isSprinting = !!(keys["ShiftLeft"] || keys["ShiftRight"]);
+  const sprintFovTarget = (isSprinting && !aiming && !_heroDead && !buildMode && !inCar) ? 1 : 0;
+  _sprintFovAmt += (sprintFovTarget - _sprintFovAmt) * Math.min(1, dt * 8);
+  camera.fov = 60 + _sprintFovAmt * 8;
+  camera.updateProjectionMatrix();
 
   // Snap-zone keybinds — lerp camDist toward snapZoomTarget if set
   if (snapZoomTarget != null && window.CameraSpine) {
