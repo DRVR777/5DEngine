@@ -1231,6 +1231,7 @@ function _heroRespawn() {
     // Clear environmental hazards
     for (const _fp of firePatches) scene.remove(_fp.mesh); firePatches.length = 0;
     for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
+    for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
@@ -2494,6 +2495,26 @@ function _spawnDecal(u, v, type) {
     mesh.visible = false;
     _decalPool.push(mesh);
   }, 45000);
+}
+
+// Wall impact scorch marks — vertical PlaneGeometry on wall face, ring buffer of 50
+const _wallScorches = [];
+const _SCORCH_MAX = 50;
+const _scorchGeo = new THREE.PlaneGeometry(0.28, 0.28);
+const _scorchBaseMat = new THREE.MeshBasicMaterial({ color: 0x221100, transparent: true, opacity: 0.65, depthWrite: false, side: THREE.DoubleSide });
+function _spawnWallScorch(u, y, v, nU, nV) {
+  let mesh;
+  if (_wallScorches.length >= _SCORCH_MAX) {
+    mesh = _wallScorches.shift(); // recycle oldest
+  } else {
+    mesh = new THREE.Mesh(_scorchGeo, _scorchBaseMat.clone());
+    scene.add(mesh);
+  }
+  mesh.visible = true;
+  mesh.material.opacity = 0.65;
+  mesh.position.set(u + nU * 0.025, y, v + nV * 0.025);
+  mesh.rotation.set(0, Math.atan2(nU, nV), 0);
+  _wallScorches.push(mesh);
 }
 
 // Pooled sphere particles for muzzle flash, bullet impact, enemy death.
@@ -5855,7 +5876,21 @@ function tick() {
           hitSolid = true; break;
         }
       }
-      if (hitSolid) { _spawnParticles(b.posU, b.posY, b.posV, 4, "white", 3, 0.2); }
+      if (hitSolid) {
+        _spawnParticles(b.posU, b.posY, b.posV, 4, "yellow", 4, 0.18);
+        // Scorch mark on wall face — find which AABB face was hit
+        const _hitBl = buildingBlockers.find(bl =>
+          Math.abs(b.posU - bl.u) < bl.hitbox.w / 2 &&
+          Math.abs(b.posV - bl.v) < bl.hitbox.d / 2);
+        if (_hitBl) {
+          const _fU = b.posU - _hitBl.u, _fV = b.posV - _hitBl.v;
+          const _pnU = _hitBl.hitbox.w / 2 - Math.abs(_fU);
+          const _pnV = _hitBl.hitbox.d / 2 - Math.abs(_fV);
+          const _nU = _pnU < _pnV ? (_fU > 0 ? 1 : -1) : 0;
+          const _nV = _pnU < _pnV ? 0 : (_fV > 0 ? 1 : -1);
+          _spawnWallScorch(b.posU, b.posY, b.posV, _nU, _nV);
+        }
+      }
       if (hitSolid || b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       b.mesh.position.set(b.posU, b.posY, b.posV);
     }
