@@ -1011,6 +1011,7 @@ const _ENEMY_TYPES = [
   { type: "poisoner",   color: 0x00bb44, hp: 60,  maxHp: 60,  moveSpeed: 2.0, damage: 3,  attackRange: 1.8, sightRange: 12, dropAmmo: "pistol_9mm", dropQty: 8,  dropHealth: 0,  wanderSpeed: 0.8 },
   { type: "incendiary", color: 0xffaa00, hp: 70,  maxHp: 70,  moveSpeed: 2.2, damage: 5,  attackRange: 1.8, sightRange: 12, dropAmmo: "pistol_9mm", dropQty: 10, dropHealth: 0,  wanderSpeed: 0.9 },
   { type: "robot",      color: 0x4466aa, hp: 350, maxHp: 350, moveSpeed: 1.0, damage: 25, attackRange: 2.2, sightRange: 14, dropAmmo: "rifle_556",   dropQty: 20, dropHealth: 40, wanderSpeed: 0.4 },
+  { type: "boss",       color: 0x660022, hp: 1200,maxHp:1200, moveSpeed: 1.8, damage: 40, attackRange: 3.0, sightRange: 20, dropAmmo: "rifle_556",   dropQty: 60, dropHealth: 80, wanderSpeed: 0.5 },
 ];
 const _enemyDefaultDefs = [Object.assign({ id: "enemy1", u: 14, v: -14, heading: 0 }, _ENEMY_TYPES[0])];
 const enemies = (WD.enemies || _enemyDefaultDefs).map(def =>
@@ -1028,7 +1029,7 @@ let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
 const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
-const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8 };
+const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30 };
 let hitMarkerUntil = 0;
 let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
 let _dmgDirUntil = 0;  // performance.now() deadline
@@ -1276,6 +1277,13 @@ window._spawnEnemyAtHero = function(typeName) {
   enemies.push(nEn);
   world.addPlayer(eid, eu, 0, 0, ev);
   enemyMeshes.set(eid, _makeEnemyMesh(nEn));
+  if (typeName === "boss") {
+    playSfx("tone:60:800:sawtooth", 0.9);
+    playSfx("tone:80:600:sawtooth", 0.7);
+    _applyScreenShake(0.5);
+    showToast("☠ BOSS INCOMING — 1200 HP!", "danger", 5000);
+    _addKillFeedEntry("☠ BOSS HAS ARRIVED", "#ff0000");
+  }
 };
 
 // ---- Kill feed ----
@@ -2900,8 +2908,8 @@ const enemyMeshes = new Map();  // enemy.id → { group, hpFg }
 function _makeEnemyMesh(eDef) {
   const group = new THREE.Group();
   // Scale body size by type
-  const bodyRadius = eDef.type === "heavy" ? 0.55 : eDef.type === "fast" ? 0.28 : eDef.type === "robot" ? 0.42 : 0.4;
-  const bodyHeight = eDef.type === "heavy" ? 1.5  : eDef.type === "fast" ? 0.9  : eDef.type === "robot" ? 1.3 : 1.1;
+  const bodyRadius = eDef.type === "boss" ? 0.9 : eDef.type === "heavy" ? 0.55 : eDef.type === "fast" ? 0.28 : eDef.type === "robot" ? 0.42 : 0.4;
+  const bodyHeight = eDef.type === "boss" ? 2.6 : eDef.type === "heavy" ? 1.5  : eDef.type === "fast" ? 0.9  : eDef.type === "robot" ? 1.3 : 1.1;
 
   // Robot enemy: build a boxy mechanized body instead of capsule
   if (eDef.type === "robot") {
@@ -5346,13 +5354,21 @@ function tick() {
             if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
             const coinVal = _COIN_BY_TYPE[en.type] || 1;
             _spawnCoinDrop(ep.u, ep.v, coinVal);
-            // Heavy/robot death — big explosion + screen flash
-            if (en.type === "heavy" || en.type === "robot") {
-              const blastColor = en.type === "robot" ? "cyan" : "orange";
-              _spawnParticles(ep.u, 0.5, ep.v, 50, blastColor, 14, 1.2);
-              _spawnParticles(ep.u, 1.5, ep.v, 30, "white",     10, 0.8);
-              _vignetteAmt = Math.min(1, _vignetteAmt + 0.4);
-              playSfx(`tone:${en.type==="robot"?300:200}:180:sawtooth`, 0.6);
+            // Boss/heavy/robot death — big explosion + screen flash
+            if (en.type === "boss" || en.type === "heavy" || en.type === "robot") {
+              const blastColor = en.type === "robot" ? "cyan" : en.type === "boss" ? "red" : "orange";
+              const pCount = en.type === "boss" ? 150 : 50;
+              _spawnParticles(ep.u, 0.5, ep.v, pCount, blastColor, 14, 1.2);
+              _spawnParticles(ep.u, 1.5, ep.v, pCount / 2, "white", 10, 0.8);
+              if (en.type === "boss") {
+                _spawnParticles(ep.u, 2.5, ep.v, 80, "orange", 18, 2.0);
+                _applyScreenShake(1.0);
+                score += 50; // big boss bonus
+                showToast("★ BOSS DEFEATED! +50 coins!", "success", 4000);
+                _addKillFeedEntry("★★ BOSS DEFEATED ★★", "#ffd166");
+              }
+              _vignetteAmt = Math.min(1, _vignetteAmt + (en.type === "boss" ? 0.9 : 0.4));
+              playSfx(`tone:${en.type==="robot"?300:en.type==="boss"?50:200}:${en.type==="boss"?800:180}:sawtooth`, 0.6);
               showToast(`${en.type === "robot" ? "ROBOT" : "HEAVY"} ELIMINATED!`, "danger", 2000);
             } else {
               _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
@@ -5611,6 +5627,35 @@ function tick() {
                   velY: Math.abs(GRAVITY) * tof / 2,
                   velV: Math.cos(throwAng) * hspeed });
                 playSfx("tone:150:80:triangle", 0.22);
+              }
+            }
+            // Boss ground slam — AoE shockwave every 5s when within 4m
+            if (en.type === "boss" && canSee && dist < 4) {
+              if (!en._slamT || now / 1000 - en._slamT > 5.0) {
+                en._slamT = now / 1000;
+                playSfx("tone:40:500:sawtooth", 1.0);
+                _applyScreenShake(0.6);
+                _spawnParticles(ep.u, 0.1, ep.v, 80, "red", 10, 1.5);
+                _spawnParticles(ep.u, 0.5, ep.v, 40, "orange", 8, 1.2);
+                const slamRadius = 5, slamDmg = 50;
+                const shm = world.players.get("hero");
+                const shd = Math.hypot(shm.u - ep.u, shm.v - ep.v);
+                if (shd < slamRadius && _dodgeT <= 0 && !_heroDead && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+                  const hd2 = Math.round(slamDmg * (1 - shd / slamRadius));
+                  if (hd2 > 0) {
+                    let sdmg = hd2;
+                    if (heroArmor > 0) { const a = Math.min(heroArmor, sdmg * ARMOR_ABSORB); heroArmor = Math.max(0, heroArmor - a); sdmg -= a; }
+                    heroHp = Math.max(0, heroHp - sdmg); heroLastDamageT = now / 1000; flashDamage();
+                    if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
+                  }
+                }
+                for (const en2 of enemies) {
+                  if (en2.dead || en2.id === en.id) continue;
+                  const ep2 = world.players.get(en2.id);
+                  if (Math.hypot(ep2.u - ep.u, ep2.v - ep.v) < slamRadius * 0.6) {
+                    en2.hp = Math.max(0, en2.hp - 30);
+                  }
+                }
               }
             }
           },
