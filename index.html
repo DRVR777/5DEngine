@@ -6792,8 +6792,14 @@ function tick() {
   _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   if (_fpGunActive) {
     const aimShift = aiming ? -0.08 : 0;
-    _fpGunGroup.position.set(0.22 + aimShift, -0.24 + _gunReloadX * 0.15, -0.45 + _gunKickZ * 0.6);
-    _fpGunGroup.rotation.set(_gunReloadX * 0.3, 0, _meleeSwing * 0.9);
+    // Reload drop animation: gun falls down-right in first 20%, holds, snaps back in last 20%
+    let _rdAmt = 0;
+    if (_reloading) {
+      const _rdPct = Math.min(1, (now - _reloadStart) / RELOAD_DUR());
+      _rdAmt = _rdPct < 0.2 ? _rdPct / 0.2 : _rdPct < 0.8 ? 1.0 : 1 - (_rdPct - 0.8) / 0.2;
+    }
+    _fpGunGroup.position.set(0.22 + aimShift + _rdAmt * 0.10, -0.24 - _rdAmt * 0.30, -0.45 + _gunKickZ * 0.6 + _rdAmt * 0.05);
+    _fpGunGroup.rotation.set(_rdAmt * 0.42 + _gunReloadX * 0.05, _rdAmt * -0.22, _meleeSwing * 0.9);
   }
   const _eyeH = firstPerson ? (1.78 - _crouchAmt * 0.75) : (1.2 - _crouchAmt * 0.4);
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + _eyeH, heroPos.z);
