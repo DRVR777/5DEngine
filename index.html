@@ -4873,14 +4873,26 @@ function drawMinimap() {
     mini.fillRect(hx - 1, hy - 4, 2, 8); mini.fillRect(hx - 4, hy - 1, 8, 2);
   }
 
-  // Enemies — red diamond blips (pulse with sweep)
+  // Enemies — type-differentiated blips (boss=large crimson, heavy=orange, robot=cyan, others=red)
   for (const en of enemies) {
     if (en.dead) continue;
     const ep = world.players.get(en.id);
     const ex = u2x(ep.u), ey = v2y(ep.v);
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
-    mini.fillStyle = `rgba(255,40,80,${0.7 + pulse * 0.3})`;
-    mini.beginPath(); mini.moveTo(ex, ey-5); mini.lineTo(ex+4, ey); mini.lineTo(ex, ey+5); mini.lineTo(ex-4, ey); mini.closePath(); mini.fill();
+    if (en.type === "boss") {
+      mini.fillStyle = `rgba(220,0,0,${0.8 + pulse * 0.2})`;
+      mini.beginPath(); mini.moveTo(ex, ey-8); mini.lineTo(ex+6, ey); mini.lineTo(ex, ey+8); mini.lineTo(ex-6, ey); mini.closePath(); mini.fill();
+      mini.strokeStyle = "#ff4444cc"; mini.lineWidth = 1.5; mini.stroke();
+    } else if (en.type === "heavy") {
+      mini.fillStyle = `rgba(255,120,0,${0.75 + pulse * 0.25})`;
+      mini.beginPath(); mini.moveTo(ex, ey-6); mini.lineTo(ex+5, ey); mini.lineTo(ex, ey+6); mini.lineTo(ex-5, ey); mini.closePath(); mini.fill();
+    } else if (en.type === "robot") {
+      mini.fillStyle = `rgba(0,180,255,${0.7 + pulse * 0.3})`;
+      mini.fillRect(ex - 3, ey - 3, 6, 6);
+    } else {
+      mini.fillStyle = `rgba(255,40,80,${0.7 + pulse * 0.3})`;
+      mini.beginPath(); mini.moveTo(ex, ey-5); mini.lineTo(ex+4, ey); mini.lineTo(ex, ey+5); mini.lineTo(ex-4, ey); mini.closePath(); mini.fill();
+    }
   }
 
   // Hero — bright centered dot + heading arrow
