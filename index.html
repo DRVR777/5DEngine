@@ -1824,6 +1824,7 @@ function _explodeGrenade(g) {
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         _addKillFeedEntry(`★ GRENADE KILL #${enemyKills} — ${en.type}`, "#ff8800");
         _trackKillAndPanic(ep.u, ep.v);
+        { const _gCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _gCoinMul); }
       }
     }
   }
@@ -2335,6 +2336,7 @@ function _explodeBarrel(u, v) {
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         _addKillFeedEntry(`★ BARREL KILL #${enemyKills} — ${en.type}`, "#ff6600");
         _trackKillAndPanic(ep.u, ep.v);
+        { const _brlCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _brlCoinMul); }
       }
     }
   }
