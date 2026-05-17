@@ -4158,8 +4158,10 @@ addEventListener("keydown", (e) => {
     // Dodge direction follows current WASD input or, if idle, faces camera forward
     const _fwd = new THREE.Vector3(); camera.getWorldDirection(_fwd); _fwd.y = 0; _fwd.normalize();
     const _rgt = new THREE.Vector3(-_fwd.z, 0, _fwd.x);
-    const dfU = _fwd.x * (inputF || 0) + _rgt.x * (inputR || 0);
-    const dfV = _fwd.z * (inputF || 0) + _rgt.z * (inputR || 0);
+    const _dF = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
+    const _dR = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
+    const dfU = (_fwd.x * _dF + _rgt.x * _dR) || _fwd.x;
+    const dfV = (_fwd.z * _dF + _rgt.z * _dR) || _fwd.z;
     const dm = Math.hypot(dfU, dfV) || 1;
     _dodgeVelU = (dfU / dm) * DODGE_SPEED;
     _dodgeVelV = (dfV / dm) * DODGE_SPEED;
