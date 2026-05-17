@@ -5458,9 +5458,16 @@ function tick() {
   // Sniper scope overlay
   const scopeEl = document.getElementById("scopeOverlay");
   if (scopeEl) scopeEl.style.display = isSniperScope ? "block" : "none";
-  // Hide crosshair while scoped
+  // Hide crosshair while scoped; bloom size driven by _moveSpread when moving
   const crosshairDiv = document.getElementById("crosshair");
-  if (crosshairDiv) crosshairDiv.style.visibility = isSniperScope ? "hidden" : "visible";
+  if (crosshairDiv) {
+    crosshairDiv.style.visibility = isSniperScope ? "hidden" : "visible";
+    const _chBase = aiming ? 10 : 16;
+    const _chBloom = _chBase + _moveSpread * 26;
+    crosshairDiv.style.width  = _chBloom.toFixed(1) + "px";
+    crosshairDiv.style.height = _chBloom.toFixed(1) + "px";
+    crosshairDiv.style.opacity = _heroDead ? "0" : "1";
+  }
 
   // Sniper scope sway — gentle breathing oscillation while scoped (reduced when crouching)
   if (isSniperScope && !_heroDead) {
