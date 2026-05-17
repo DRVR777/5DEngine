@@ -3968,6 +3968,36 @@ addEventListener("keydown", (e) => {
     return;
   }
   // N key: place spawn point at freecam ground position in build mode
+  // N key: melee attack in play mode / spawn point in build mode
+  if (e.code === "KeyN" && !buildMode && !computerOpen && !_heroDead && _meleeCooldown <= 0) {
+    _meleeCooldown = 0.8;
+    _meleeSwing = 1.0; // spring that drives the swing animation
+    playSfx("tone:120:80:square", 0.25);
+    // Damage any enemy within 1.5m
+    const hm = world.players.get("hero");
+    for (const en of enemies) {
+      if (en.dead) continue;
+      const ep = world.players.get(en.id);
+      const d = Math.hypot(ep.u - hm.u, ep.v - hm.v);
+      if (d < 1.5) {
+        const mDmg = 35;
+        en.hp = Math.max(0, en.hp - mDmg);
+        en._kbU = (ep.u - hm.u) * 4; en._kbV = (ep.v - hm.v) * 4; en._kbT = 0.15;
+        en._flinchX = -0.5;
+        hitMarkerUntil = performance.now() + 120;
+        _spawnDamageNumber(ep.u, 1.2, ep.v, `-${mDmg}`, "#ff8800");
+        _spawnParticles(ep.u, 1.2, ep.v, 4, "orange", 4, 0.2);
+        playSfx("tone:200:60:sawtooth", 0.3);
+        if (en.hp === 0 && !en.dead) {
+          en.dead = true; en.respawnT = performance.now() / 1000; en._wasChasing = false;
+          enemyKills++; _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
+          _addKillFeedEntry(`★ MELEE KILL #${enemyKills} — ${en.type}`, "#ff8800");
+          _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
+        }
+      }
+    }
+    e.preventDefault(); return;
+  }
   if (buildMode && e.code === "KeyN") {
     const sp = _addSpawnPoint(freeCamPos.x, freeCamPos.z);
     completeQuestStep("world", 1);
@@ -4600,6 +4630,8 @@ let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 let _gunKickZ = 0;      // offset applied to _gunMount.position.z each frame
 let _gunReloadX = 0;   // spring: tilts gun down during reload window
+let _meleeSwing = 0;   // spring: lateral swing for melee attack (applied to fpGun roll)
+let _meleeCooldown = 0; // seconds until next melee allowed
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
@@ -5553,10 +5585,13 @@ function tick() {
   // FP gun overlay: show when in first-person and not in menus
   const _fpGunActive = firstPerson && !buildMode && !inCar && !computerOpen && !_heroDead;
   _fpGunGroup.visible = _fpGunActive;
+  // Melee cooldown + swing spring
+  if (_meleeCooldown > 0) _meleeCooldown -= dt;
+  _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   if (_fpGunActive) {
     const aimShift = aiming ? -0.08 : 0;
     _fpGunGroup.position.set(0.22 + aimShift, -0.24 + _gunReloadX * 0.15, -0.45 + _gunKickZ * 0.6);
-    _fpGunGroup.rotation.set(_gunReloadX * 0.3, 0, 0);
+    _fpGunGroup.rotation.set(_gunReloadX * 0.3, 0, _meleeSwing * 0.9);
   }
   const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
