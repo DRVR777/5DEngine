@@ -7665,7 +7665,9 @@ function tick() {
     // FP CAMERA — locked to hero head. Pitch ONLY changes look direction,
     // NEVER the camera position (fixes the "height drifts as you pitch"
     // and "looks up when you pull mouse down" bugs).
-    camera.position.set(heroPos.x, heroPos.y + (1.78 - _crouchAmt * 0.75), heroPos.z);
+    const _fpBobScale = aiming ? 0.15 : 1;
+    const _fpBobY = Math.sin(_gunBobPhase) * (canSprint ? 0.028 : 0.014) * _fpBobScale;
+    camera.position.set(heroPos.x, heroPos.y + (1.78 - _crouchAmt * 0.75) + _fpBobY, heroPos.z);
     const look = camera.position.clone().add(new THREE.Vector3(
       fx * Math.cos(camPitch),
       Math.sin(camPitch),     // mouse-down (pitch ↓) → look y ↓ → look DOWN
