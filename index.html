@@ -5738,7 +5738,17 @@ function _getAimAngle() {
 }
 
 function _tryShoot() {
-  if (_reloading || shopOpen) return;
+  if (shopOpen) return;
+  if (_reloading) {
+    // Reload cancel — fire with remaining mag ammo (interrupts reload)
+    if (pistolAmmo > 0) {
+      _reloading = false;
+      reloadMsg = "";
+      reloadMsgUntil = 0;
+    } else {
+      return;
+    }
+  }
   const wep = getWeapon();
   if (pistolCooldown > 0) return;
   if (pistolAmmo <= 0) {
