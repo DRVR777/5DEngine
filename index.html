@@ -5931,6 +5931,17 @@ function tick() {
         playSfx(`tone:${alertFreq}:120:sawtooth`, 0.22);
         en._wasChasing = true;
         en._alertT = 1.6; // show "!" for 1.6s after detection
+        // Alert propagation — wake nearby allies within 8m
+        for (const _ae of enemies) {
+          if (_ae === en || _ae.dead || _ae._wasChasing) continue;
+          const _aep = world.players.get(_ae.id);
+          if (!_aep) continue;
+          if (Math.hypot(_aep.u - ep.u, _aep.v - ep.v) < 8) {
+            _ae._wasChasing = true;
+            _ae._alertT = 1.0;
+            _ae._lastHeroPos = { u: _heroNowAI.u, v: _heroNowAI.v };
+          }
+        }
       } else if (!canSee) {
         en._wasChasing = false;
       }
