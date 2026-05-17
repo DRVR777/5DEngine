@@ -6408,6 +6408,15 @@ function tick() {
     }
   }
 
+  // Enemy HP regen — slow regen when out of combat (no damage taken in 8s + not chasing hero)
+  for (const _re of enemies) {
+    if (_re.dead || _re.hp >= _re.maxHp) continue;
+    const _recentDmg = _re._hpBarShowT && (now / 1000 - _re._hpBarShowT) < 8;
+    if (!_recentDmg && !_re._wasChasing) {
+      _re.hp = Math.min(_re.maxHp, _re.hp + 4 * dt);
+    }
+  }
+
   // Enemy separation — push enemies apart when overlapping (prevents clumping)
   const SEP_DIST = 1.2, SEP_PUSH = 0.6;
   for (let ei = 0; ei < enemies.length; ei++) {
