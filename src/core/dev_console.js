@@ -116,7 +116,7 @@
     titleBar.innerHTML =
       `<span style="color:#00ccff;letter-spacing:0.12em;font-size:10px">⬡ 5DENGINE CONSOLE</span>`+
       `<span id="_consoleFpsBadge" style="color:#00ffaa;font-size:10px;margin-left:auto">-- FPS</span>`+
-      `<span style="color:#445566;font-size:9px">` ` backtick to close</span>`;
+      `<span style="color:#445566;font-size:9px">\` to toggle</span>`;
     _el.appendChild(titleBar);
 
     // Log pane
