@@ -5029,6 +5029,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   if (!pointerLocked) return;
   if (invDiv.classList.contains("open")) return;
   if (computerOpen || computerEntering) return;
+  if (inCar && activeVehicleId && (VEHICLE_DEFS.find(v => v.id === activeVehicleId) || {}).type === "drone") { _tryDroneShoot(); return; }
   _tryShoot();
 });
 
@@ -5087,6 +5088,27 @@ function _tryShoot() {
   _triggerMuzzleFlash(mfx, mfy, mfz);
   _recoilPitch += wep.pellets > 1 ? 0.035 : 0.015;
   _gunKickZ = wep.pellets > 1 ? -0.14 : -0.08;
+}
+
+// Drone weapon — fires 2-bullet burst from drone position, 0.2s cooldown, no ammo cost
+let _droneCooldown = 0;
+const _droneBulletMat = new THREE.MeshBasicMaterial({ color: 0x00eeff });
+function _tryDroneShoot() {
+  if (_droneCooldown > 0) return;
+  _droneCooldown = 0.22;
+  const dp = world.players.get(activeVehicleId);
+  if (!dp) return;
+  const baseAngle = _getAimAngle();
+  const hcos = Math.cos(camPitch);
+  for (let i = 0; i < 2; i++) {
+    const ang = baseAngle + (i === 0 ? -0.04 : 0.04);
+    const dirU = Math.sin(ang) * hcos, dirY = Math.sin(camPitch), dirV = Math.cos(ang) * hcos;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.22, 5), _droneBulletMat);
+    m.position.set(dp.u, dp.y + 0.1, dp.v); scene.add(m);
+    bullets3D.push({ mesh: m, posU: dp.u, posV: dp.v, posY: dp.y + 0.1, dirU, dirY, dirV, speed: 38, traveled: 0, range: 55, damage: 20 });
+  }
+  _spawnParticles(dp.u, dp.y + 0.1, dp.v, 4, "cyan", 6, 0.1);
+  playSfx("tone:900:40:square", 0.18);
 }
 
 let lastT = performance.now();
@@ -5149,11 +5171,14 @@ function tick() {
     ammoEl.style.color = pistolAmmo === 0 ? "#ff5d5d" : "#ffd166";
   }
 
+  if (_droneCooldown > 0) _droneCooldown -= dt;
   // Auto-fire for automatic weapons (rifle etc.) — held LMB
   if (_mouseHeld && pointerLocked && !invDiv.classList.contains("open") && !buildMode) {
-    const _aw = getWeapon();
-    if (_aw.automatic) _tryShoot();
+    const _isDroneNow = inCar && activeVehicleId && (VEHICLE_DEFS.find(v => v.id === activeVehicleId) || {}).type === "drone";
+    if (_isDroneNow) { _tryDroneShoot(); }
+    else { const _aw = getWeapon(); if (_aw.automatic) _tryShoot(); }
   }
+  if (_droneCooldown > 0) _droneCooldown -= dt;
 
   // Reload circle: show while _reloading, hide when done
   const reloadCircleEl = document.getElementById("reloadCircle");
