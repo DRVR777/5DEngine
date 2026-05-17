@@ -1454,7 +1454,7 @@ function _heroRespawn() {
     if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
     const _ppOv = document.getElementById("perkPicker"); if (_ppOv) _ppOv.style.display = "none";
     _activePerkLabels.length = 0; _refreshPerkHud();
-    const _lvlEl = document.getElementById("heroLevelHud"); if (_lvlEl) _lvlEl.textContent = "";
+    const _lvlEl = _dom.heroLevelHud; if (_lvlEl) _lvlEl.textContent = "";
   });
 })();
 
@@ -2633,7 +2633,7 @@ if (typeof WaveManager !== "undefined") {
       _waveChallengeHits = 0;
       _waveChallengeNoDmg = true;
       _eliteSpawnedThisWave = false;
-      const _chEl = document.getElementById("waveChallengeHud");
+      const _chEl = _dom.waveChallengeHud;
       if (_chEl) _chEl.textContent = `CHALLENGE: ${_waveChallenge.label} (+${_waveChallenge.bonus * w} coins)`;
     },
     onWaveEnd:   (w) => {
@@ -2675,7 +2675,7 @@ if (typeof WaveManager !== "undefined") {
           _addKillFeedEntry(`★ CHALLENGE +${_chBonus}: ${_waveChallenge.label}`, "#ffd166");
         }
         _waveChallenge = null;
-        const _chEl = document.getElementById("waveChallengeHud");
+        const _chEl = _dom.waveChallengeHud;
         if (_chEl) _chEl.textContent = "";
       }
       // Perk picker — show 3s after wave clear banner fades
@@ -2766,7 +2766,7 @@ function _applyLevelUpBuff(lvl) {
   showToast(`LEVEL UP! ${_lvlMsgs[lvl]}`, "success", 3000);
   playSfx("tone:880:100:sine", 0.5); playSfx("tone:1100:80:sine", 0.45); playSfx("tone:1320:120:sine", 0.4);
   _addKillFeedEntry(`★ LEVEL ${lvl}: ${_lvlMsgs[lvl]}`, "#ffd700");
-  const _lvEl = document.getElementById("heroLevelHud");
+  const _lvEl = _dom.heroLevelHud;
   if (_lvEl) _lvEl.textContent = `LVL ${lvl}`;
 }
 
@@ -5720,6 +5720,51 @@ const SPRINT  = CFG.sprintSpeed  || 9;
 const hud = document.getElementById("hud");
 const mini = document.getElementById("minimap").getContext("2d");
 const MINI_HALF = CFG.miniMapHalfExtent || 35;
+// ── HUD element cache — initialized once, avoids 40+ DOM traversals per tick
+const _dom = {
+  fpsCounter:       _dom.fpsCounter,
+  ammoHud:          _dom.ammoHud,
+  reloadCircle:     _dom.reloadCircle,
+  scopeOverlay:     _dom.scopeOverlay,
+  crosshair:        document.getElementById("crosshair"),
+  killMarker:       _dom.killMarker,
+  dmgDirIndicator:  _dom.dmgDirIndicator,
+  hbGhost:          _dom.hbGhost,
+  hbFill:           _dom.hbFill,
+  hbVal:            _dom.hbVal,
+  armorBar:         _dom.armorBar,
+  arFill:           _dom.arFill,
+  arVal:            _dom.arVal,
+  stFill:           _dom.stFill,
+  bossHpBar:        _dom.bossHpBar,
+  bossHpFill:       _dom.bossHpFill,
+  bossHpVal:        _dom.bossHpVal,
+  bossName:         _dom.bossName,
+  comboHud:         _dom.comboHud,
+  comboMulText:     _dom.comboMulText,
+  comboFill:        _dom.comboFill,
+  wpName:           _dom.wpName,
+  wpAmmo:           _dom.wpAmmo,
+  wpReserve:        _dom.wpReserve,
+  wpMagBar:         _dom.wpMagBar,
+  wpGrenades:       _dom.wpGrenades,
+  vehicleDash:      _dom.vehicleDash,
+  vdSpeed:          _dom.vdSpeed,
+  vdGear:           _dom.vdGear,
+  waveHud:          _dom.waveHud,
+  waveLabel:        _dom.waveLabel,
+  waveDetail:       _dom.waveDetail,
+  waveBanner:       _dom.waveBanner,
+  waveBannerLabel:  _dom.waveBannerLabel,
+  waveBannerSub:    _dom.waveBannerSub,
+  heroLevelHud:     _dom.heroLevelHud,
+  waveChallengeHud: _dom.waveChallengeHud,
+  statusTint:       _dom.statusTint,
+  statusEffectsHud: _dom.statusEffectsHud,
+  clockHud:         _dom.clockHud,
+  grenadeWarn:      _dom.grenadeWarn,
+  grenCookTimer:    _dom.grenCookTimer,
+};
 
 let _mmSweepAngle = 0;   // rotating radar sweep angle
 function drawMinimap() {
@@ -6260,11 +6305,11 @@ function tick() {
       if (Engine.debug.fpsHistory.length > 60) Engine.debug.fpsHistory.shift();
     }
   }
-  const fpsEl = document.getElementById("fpsCounter");
+  const fpsEl = _dom.fpsCounter;
   if (fpsEl) fpsEl.textContent = _fpsDisplay + " FPS";
 
   // Ammo HUD — shows current weapon mag / reserve
-  const ammoEl = document.getElementById("ammoHud");
+  const ammoEl = _dom.ammoHud;
   if (ammoEl) {
     const _wep = getWeapon();
     const reserve = Inv.countItem(heroInv, _wep.ammoItem || "pistol_9mm");
@@ -6282,7 +6327,7 @@ function tick() {
   if (_droneCooldown > 0) _droneCooldown -= dt;
 
   // Reload circle: show while _reloading, hide when done
-  const reloadCircleEl = document.getElementById("reloadCircle");
+  const reloadCircleEl = _dom.reloadCircle;
   if (reloadCircleEl) {
     if (_reloading && now < _reloadStart + RELOAD_DUR()) {
       reloadCircleEl.style.display = "block";
@@ -6322,10 +6367,10 @@ function tick() {
   camera.fov = isSniperScope ? 20 : (60 + _sprintFovAmt * 8);
   camera.updateProjectionMatrix();
   // Sniper scope overlay
-  const scopeEl = document.getElementById("scopeOverlay");
+  const scopeEl = _dom.scopeOverlay;
   if (scopeEl) scopeEl.style.display = isSniperScope ? "block" : "none";
   // Hide crosshair while scoped; bloom size driven by _moveSpread when moving
-  const crosshairDiv = document.getElementById("crosshair");
+  const crosshairDiv = _dom.crosshair;
   if (crosshairDiv) {
     crosshairDiv.style.visibility = isSniperScope ? "hidden" : "visible";
     const _chBase = aiming ? 10 : 16;
@@ -6652,15 +6697,15 @@ function tick() {
   if (typeof WaveManager !== "undefined") {
     WaveManager.tick(dt);
     const ws = WaveManager.getState();
-    const waveHud = document.getElementById("waveHud");
+    const waveHud = _dom.waveHud;
     if (waveHud) {
       const show = ws.started && ws.phase !== "idle";
       waveHud.style.display = show ? "block" : "none";
       if (show) {
         const _loopNum = ws.totalWave > ws.totalWaves ? Math.floor((ws.totalWave - 1) / ws.totalWaves) + 1 : 1;
-        const wl = document.getElementById("waveLabel");
+        const wl = _dom.waveLabel;
         if (wl) wl.textContent = _loopNum > 1 ? `LOOP ${_loopNum} · WAVE ${ws.wave}/${ws.totalWaves}` : `WAVE ${ws.wave}/${ws.totalWaves}`;
-        const det = document.getElementById("waveDetail");
+        const det = _dom.waveDetail;
         if (!det) { /* no-op */ }
         else if (ws.phase === "countdown") {
           const _prevEn = (ws.enemies || []).map(g => `${g.count}× ${g.type.toUpperCase()}`).join(" · ");
@@ -6676,7 +6721,7 @@ function tick() {
         else if (ws.phase === "done") det.textContent = `all waves done`;
         else det.textContent = "";
         // Kill level progress — live update in wave HUD
-        const _lvHud = document.getElementById("heroLevelHud");
+        const _lvHud = _dom.heroLevelHud;
         if (_lvHud) {
           if (_heroLevel >= 5) {
             _lvHud.textContent = "LVL MAX";
@@ -6689,7 +6734,7 @@ function tick() {
     }
     // Wave challenge live HUD update — speed timer + headshot counter
     if (_waveChallenge && (ws.phase === "spawning" || ws.phase === "waiting")) {
-      const _chHud = document.getElementById("waveChallengeHud");
+      const _chHud = _dom.waveChallengeHud;
       if (_chHud) {
         const _bonus = _waveChallenge.bonus * ws.wave;
         if (_waveChallenge.type === "speed") {
@@ -6708,16 +6753,16 @@ function tick() {
       _lastWaveNum = ws.wave;
       _waveBeepLast = 0;
       _waveBannerUntil = performance.now() + 2500;
-      const wbl = document.getElementById("waveBannerLabel");
-      const wbs = document.getElementById("waveBannerSub");
-      const banner = document.getElementById("waveBanner");
+      const wbl = _dom.waveBannerLabel;
+      const wbs = _dom.waveBannerSub;
+      const banner = _dom.waveBanner;
       if (wbl) wbl.textContent = `WAVE ${ws.wave}`;
       if (wbs) wbs.textContent = ws.wave >= ws.totalWaves ? "FINAL WAVE" : "GET READY";
       if (banner) { banner.style.display = "block"; banner.style.transform = "scaleY(1)"; }
       playSfx(`tone:${220 + ws.wave * 20}:120:square`, 0.25);
     }
     const nowMs = performance.now();
-    const bannerEl = document.getElementById("waveBanner");
+    const bannerEl = _dom.waveBanner;
     if (bannerEl && _waveBannerUntil > 0) {
       if (nowMs > _waveBannerUntil) {
         bannerEl.style.transform = "scaleY(0)";
@@ -7039,7 +7084,7 @@ function tick() {
 
   // Grenade physics + detonation
   // Grenade proximity warning — show when enemy grenade within 6m and fuse < 2s
-  { const _gwEl = document.getElementById("grenadeWarn");
+  { const _gwEl = _dom.grenadeWarn;
     if (_gwEl) {
       const _heroGP = world.players.get("hero");
       let _nearGren = false;
@@ -7141,7 +7186,7 @@ function tick() {
       _arcDots[i].material.opacity = 0.7 * (1 - i / _ARC_DOT_COUNT);
     }
     // Cook timer HUD
-    const _ctEl = document.getElementById("grenCookTimer");
+    const _ctEl = _dom.grenCookTimer;
     if (_ctEl) {
       _ctEl.style.display = "block";
       _ctEl.textContent = _cookDanger ? `COOK: ${_fuseLeft.toFixed(1)}s ⚠` : `FUSE: ${_fuseLeft.toFixed(1)}s`;
@@ -7149,7 +7194,7 @@ function tick() {
     }
   } else {
     if (_arcDots) _arcDots.forEach(d => { d.visible = false; });
-    const _ctEl = document.getElementById("grenCookTimer");
+    const _ctEl = _dom.grenCookTimer;
     if (_ctEl) _ctEl.style.display = "none";
   }
 
@@ -8601,7 +8646,7 @@ function tick() {
   sun.intensity = 0.3 + 1.0 * dn.dayMix;
 
   // Update day/night clock HUD (prefer DayNight module if loaded)
-  const clockEl = document.getElementById("clockHud");
+  const clockEl = _dom.clockHud;
   if (clockEl) {
     let gameH, gameM, dayMix;
     if (typeof DayNight !== "undefined") {
@@ -8645,7 +8690,7 @@ function tick() {
     (reloadMsgUntil > performance.now() ? `<br><b style="color:#ffd166">↻ ${reloadMsg}</b>` : "");
 
   // Hit marker crosshair flash + spread expansion
-  const crosshairEl = document.getElementById("crosshair");
+  const crosshairEl = _dom.crosshair;
   if (crosshairEl) {
     const hitNow = now < hitMarkerUntil;
     const spreadScale = 1 + _moveSpread * 0.6;
@@ -8654,7 +8699,7 @@ function tick() {
     crosshairEl.style.borderColor = hitNow ? "var(--holo-red)" : `rgba(0,200,255,${(0.7 - _moveSpread * 0.3).toFixed(2)})`;
   }
   // Kill confirmation marker — "+" cross, gold for headshot kill, red for normal
-  const killMarkerEl = document.getElementById("killMarker");
+  const killMarkerEl = _dom.killMarker;
   if (killMarkerEl) {
     if (now < _killMarkerUntil) {
       const _kmFade = Math.max(0, (_killMarkerUntil - now) / 300);
@@ -8668,7 +8713,7 @@ function tick() {
   }
 
   // Directional damage indicator — red wedge pointing at attacker
-  const dmgDirEl = document.getElementById("dmgDirIndicator");
+  const dmgDirEl = _dom.dmgDirIndicator;
   if (dmgDirEl) {
     if (performance.now() < _dmgDirUntil) {
       const relAngle = _dmgDirAngle - camYaw;
@@ -8722,7 +8767,7 @@ function tick() {
   }
 
   // Status effect screen tint — green for poison, orange for burning
-  { const stEl = document.getElementById("statusTint");
+  { const stEl = _dom.statusTint;
     const _burnActive = _heroFireT > 0;
     const _sfxList = (typeof StatusEffects !== "undefined") ? (StatusEffects.getActive("hero") || []) : [];
     const hasPoisoned = _sfxList.some(e => e.id === "poison");
@@ -8743,7 +8788,7 @@ function tick() {
       }
     }
     // Status effect HUD pills
-    const _sfxHud = document.getElementById("statusEffectsHud");
+    const _sfxHud = _dom.statusEffectsHud;
     if (_sfxHud) {
       const _pills = [];
       if (hasPoisoned) {
@@ -8881,10 +8926,10 @@ function tick() {
   // Holographic health bar update
   _hpGhost += (heroHp - _hpGhost) * Math.min(1, dt * 2.2);
   const _effMaxHp = HERO_MAX_HP + _perkMaxHpBonus;
-  const hbGhostEl = document.getElementById("hbGhost");
+  const hbGhostEl = _dom.hbGhost;
   if (hbGhostEl) hbGhostEl.style.width = (Math.max(0, _hpGhost / _effMaxHp) * 100).toFixed(1) + "%";
-  const hbFill = document.getElementById("hbFill");
-  const hbVal  = document.getElementById("hbVal");
+  const hbFill = _dom.hbFill;
+  const hbVal  = _dom.hbVal;
   if (hbFill || hbVal) {
     const hpFrac = Math.max(0, heroHp / _effMaxHp);
     if (hbFill) {
@@ -8896,9 +8941,9 @@ function tick() {
     if (hbVal) hbVal.textContent = Math.ceil(heroHp);
   }
   // Armor bar
-  const armorBarEl = document.getElementById("armorBar");
-  const arFillEl   = document.getElementById("arFill");
-  const arValEl    = document.getElementById("arVal");
+  const armorBarEl = _dom.armorBar;
+  const arFillEl   = _dom.arFill;
+  const arValEl    = _dom.arVal;
   if (armorBarEl) {
     armorBarEl.style.display = heroArmor > 0 ? "flex" : "none";
     if (arFillEl) arFillEl.style.width = `${(heroArmor / HERO_MAX_ARMOR * 100).toFixed(1)}%`;
@@ -8906,7 +8951,7 @@ function tick() {
   }
 
   // Stamina bar
-  const stFillEl = document.getElementById("stFill");
+  const stFillEl = _dom.stFill;
   if (stFillEl) {
     const stPct = (_stamina / (STAMINA_MAX + _heroExtraStaminaMax) * 100).toFixed(1);
     stFillEl.style.width = stPct + "%";
@@ -8918,10 +8963,10 @@ function tick() {
   }
 
   // Boss HP bar — shows when a live boss enemy exists
-  { const bossBarEl = document.getElementById("bossHpBar");
-    const bossHpFillEl = document.getElementById("bossHpFill");
-    const bossHpValEl  = document.getElementById("bossHpVal");
-    const bossNameEl   = document.getElementById("bossName");
+  { const bossBarEl = _dom.bossHpBar;
+    const bossHpFillEl = _dom.bossHpFill;
+    const bossHpValEl  = _dom.bossHpVal;
+    const bossNameEl   = _dom.bossName;
     if (bossBarEl) {
       const liveBoss = (_liveBoss && !_liveBoss.dead) ? _liveBoss : null;
       if (liveBoss) {
@@ -8962,9 +9007,9 @@ function tick() {
         }
       }
     }
-    const comboHudEl = document.getElementById("comboHud");
-    const comboMulEl = document.getElementById("comboMulText");
-    const comboFillEl = document.getElementById("comboFill");
+    const comboHudEl = _dom.comboHud;
+    const comboMulEl = _dom.comboMulText;
+    const comboFillEl = _dom.comboFill;
     if (comboHudEl) {
       if (_comboCount >= 2) {
         comboHudEl.style.display = "block";
@@ -8988,9 +9033,9 @@ function tick() {
   }
 
   // Holographic weapon panel update
-  const wpNameEl = document.getElementById("wpName");
-  const wpAmmoEl = document.getElementById("wpAmmo");
-  const wpResEl  = document.getElementById("wpReserve");
+  const wpNameEl = _dom.wpName;
+  const wpAmmoEl = _dom.wpAmmo;
+  const wpResEl  = _dom.wpReserve;
   if (wpNameEl || wpAmmoEl) {
     const _wp = getWeapon();
     if (wpNameEl) wpNameEl.textContent = (_wp.name || _wp.id || "weapon").toUpperCase();
@@ -9010,7 +9055,7 @@ function tick() {
     }
     if (!_isLowAmmo) _lowAmmoWarnedAt = -1;
     // Mag segment bar — one pip per bullet, capped at 30 displayed
-    const magBar = document.getElementById("wpMagBar");
+    const magBar = _dom.wpMagBar;
     if (magBar) {
       const cap = Math.min(_wp.magCap || 12, 30);
       const filled = Math.min(pistolAmmo, cap);
@@ -9021,12 +9066,12 @@ function tick() {
         return `<div style="width:5px;height:10px;background:${clr};border-radius:1px;opacity:${lit||reloading?1:0.4}"></div>`;
       }).join("");
     }
-    const grenEl = document.getElementById("wpGrenades");
+    const grenEl = _dom.wpGrenades;
     if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} frag <span style="color:#555">[G]</span>  ◎ ${smokeGrenadeCount} smoke <span style="color:#555">[T]</span>  ◈ ${flashbangCount} flash <span style="color:#555">[U]</span>  ⊠ ${_mineCount} mine${_mineCount !== 1 ? "s" : ""} <span style="color:#555">[M]</span>`;
   }
 
   // Vehicle dashboard
-  const vDash = document.getElementById("vehicleDash");
+  const vDash = _dom.vehicleDash;
   if (vDash) {
     if (inCar && activeVehicleId) {
       vDash.style.display = "block";
@@ -9035,8 +9080,8 @@ function tick() {
       const isDrone2 = aVDef && aVDef.type === "drone";
       const kmh = vst2 ? Math.abs(vst2.speed * 3.6).toFixed(0) : "0";
       const gear2 = isDrone2 ? `ALT ${(vst2.altY || 0).toFixed(1)}m` : (vst2 ? (vst2.gearName || "N") : "N");
-      const speedEl = document.getElementById("vdSpeed");
-      const gearEl  = document.getElementById("vdGear");
+      const speedEl = _dom.vdSpeed;
+      const gearEl  = _dom.vdGear;
       if (speedEl) speedEl.textContent = isDrone2 ? `${kmh} km/h` : kmh;
       if (gearEl)  { gearEl.textContent = gear2; gearEl.style.color = isDrone2 ? "#00bbff" : (gear2 === "R" ? "#ff4466" : "#ffd166"); }
     } else {
