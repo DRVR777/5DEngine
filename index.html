@@ -5579,6 +5579,11 @@ function tick() {
     _footstepT = 0;
   }
   _moveSpread += (moveSpreadTarget - _moveSpread) * Math.min(1, dt * 5);
+  // Sprint trail — orange dust particles at hero feet when running at full sprint
+  if (isSprinting && isMoving && !_heroDead && pointerLocked && Math.random() < 0.45) {
+    const _spTp = world.players.get("hero");
+    if (_spTp) _spawnParticles(_spTp.u, _spTp.y + 0.08, _spTp.v, 1, "orange", 1.2, 0.22);
+  }
 
   if (!buildMode && inCar && activeVehicleId) {
     // Per-vehicle physics — all params come from the vehicle def
