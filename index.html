@@ -5574,7 +5574,7 @@ function _tryDroneShoot() {
 }
 
 let lastT = performance.now();
-let _bulletTimeLeft = 0;  // seconds remaining of bullet-time slow (sniper shot trigger)
+let _bulletTimeLeft = 0;  // seconds remaining of bullet-time slow (sniper incoming / headshot kill / wave clear)
 let _heartbeatT = 0;      // countdown to next low-HP heartbeat thud
 let _hpGhost = 100;       // lagging HP ghost bar — catches up slowly after damage
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
@@ -6124,6 +6124,8 @@ function tick() {
             en.dead = true;
             en.respawnT = now / 1000;
             en._wasChasing = false;
+            // Headshot kill — brief bullet-time reward
+            if (headshot) _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.22);
             // Type-specific kill confirmation sound
             if (en.type === "boss") {
               playSfx("tone:260:200:sine", 0.6); playSfx("tone:330:180:sine", 0.5); playSfx("tone:440:220:sine", 0.45);
