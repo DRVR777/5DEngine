@@ -2149,6 +2149,7 @@ function flashDamage() {
   _waveChallengeNoDmg = false; // hero took hit — "no damage" challenge failed
   _vignetteAmt = 1.0; // instant spike, springs out in tick()
   playSfx("tone:90:35:sawtooth", 0.18); // low pain grunt
+  _hitPunchPitch = Math.min(0.12, _hitPunchPitch + 0.05 + Math.random() * 0.04); // upward camera kick
   // Near-death reflex — one-time 0.45s bullet-time when HP hits single digits
   if (heroHp > 0 && heroHp <= 10 && !_nearDeathFired) {
     _nearDeathFired = true;
@@ -5848,6 +5849,7 @@ const DODGE_SPEED     = 18;    // units/sec burst
 const DODGE_COOLDOWN  = 1.1;   // seconds before next dodge
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
+let _hitPunchPitch = 0; // spring: upward camera kick when taking damage
 let _footstepT = 0;    // seconds until next footstep tick
 let _gunBobPhase = 0;  // oscillation phase for FP weapon bob
 let _strafeRollAmt = 0; // spring [−1..1]: FP camera roll when strafing
@@ -6204,6 +6206,12 @@ function tick() {
     camPitch += _recoilPitch * dt * 8;             // smooth out the application
     _recoilPitch += (0 - _recoilPitch) * Math.min(1, dt * 8);
     if (Math.abs(_recoilPitch) < 0.0001) _recoilPitch = 0;
+  }
+  // Hit punch spring — applies upward cam kick, springs to 0
+  if (_hitPunchPitch > 0.0001) {
+    camPitch = Math.min(CFG.camPitchMax || 0.4, camPitch + _hitPunchPitch * dt * 10);
+    _hitPunchPitch *= Math.exp(-dt * 14);
+    if (_hitPunchPitch < 0.0001) _hitPunchPitch = 0;
   }
 
   // Rain tick
