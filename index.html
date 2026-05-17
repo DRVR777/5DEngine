@@ -1024,6 +1024,7 @@ let enemyKills = 0;
 let _shotsFired = 0;
 let _shotsHit = 0;
 let _damageDealt = 0;
+let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
 const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
@@ -4898,7 +4899,7 @@ function _tryShoot() {
     mesh.position.set(hp.u, bulletY, hp.v);
     scene.add(mesh);
     bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirY, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
-    _shotsFired++;
+    _shotsFired++; _lastHeroShotT = performance.now() / 1000;
   }
   const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
   _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
@@ -5736,10 +5737,27 @@ function tick() {
     }
   }
 
-  // Drive NPCs — wander step + soft arena clamp (freeze while dialog open)
+  // Drive NPCs — flee on nearby gunshot, otherwise wander
+  const _nowSec = now / 1000;
   for (const n of NPC_DEFS) {
     const m = npcMeshes.get(n.id);
-    if (!_npcDialogOpen) m.heading = Bridge.wanderStep(world, n.id, m.heading, n.wanderSpeed || 2.2, dt);
+    const np_flee = world.players.get(n.id);
+    // Trigger flee when hero fires within 8m
+    if (_nowSec - _lastHeroShotT < 0.12 && Math.hypot(np_flee.u - heroNow.u, np_flee.v - heroNow.v) < 8) {
+      n._fleeT = 2.5;
+      n._fleeAng = Math.atan2(np_flee.u - heroNow.u, np_flee.v - heroNow.v);
+    }
+    if (!_npcDialogOpen) {
+      if (n._fleeT > 0) {
+        n._fleeT -= dt;
+        const np2 = world.players.get(n.id);
+        const fu = Math.sin(n._fleeAng) * 7 * dt, fv = Math.cos(n._fleeAng) * 7 * dt;
+        world.setPlayer(n.id, np2.x, np2.y, np2.z, np2.u + fu, np2.v + fv);
+        m.heading = n._fleeAng;
+      } else {
+        m.heading = Bridge.wanderStep(world, n.id, m.heading, n.wanderSpeed || 2.2, dt);
+      }
+    }
     Bridge.clampToArena(world, n.id, 30);
     // Ring glow based on proximity
     if (m.ring) {
