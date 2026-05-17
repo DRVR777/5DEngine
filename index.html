@@ -2837,6 +2837,29 @@ function _spawnAmmoPickup(u, v, qty, ammoItem) {
   ammoPickups.push({ mesh, u, v, qty, ammoItem, collected: false });
 }
 
+// Weapon pickups — dropped by heavy/robot/boss on death
+const weaponPickups = [];
+const _WEAPON_DROP_MAP = { heavy: "rifle", robot: "smg", boss: "sniper" };
+const _WEAPON_PICKUP_COLORS = { rifle: 0x445566, smg: 0x226699, sniper: 0x224433 };
+function _spawnWeaponPickup(u, v, weaponId) {
+  const col = _WEAPON_PICKUP_COLORS[weaponId] || 0x556677;
+  const grp = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.55, 0.08, 0.14),
+    new THREE.MeshStandardMaterial({ color: col, metalness: 0.75, roughness: 0.3, emissive: col, emissiveIntensity: 0.5 })
+  );
+  const grip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.16, 0.1),
+    new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.4, roughness: 0.7 })
+  );
+  grip.position.set(-0.1, -0.1, 0);
+  grp.add(body); grp.add(grip);
+  grp.position.set(u, 0.35, v);
+  grp.rotation.y = Math.random() * Math.PI * 2;
+  scene.add(grp);
+  weaponPickups.push({ mesh: grp, u, v, weaponId, collected: false });
+}
+
 // Grenade crates — static supply caches that restock grenades
 const grenadeCrates = [];
 (function _spawnGrenadeCrates() {
@@ -4272,6 +4295,7 @@ addEventListener("keydown", (e) => {
           _addKillFeedEntry(`★ MELEE KILL #${enemyKills} — ${en.type}`, "#ff8800");
           _trackKillAndPanic(ep.u, ep.v);
           _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
+          if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
         }
       }
     }
@@ -4734,6 +4758,14 @@ function drawMinimap() {
     if (cr.broken) continue;
     mini.fillStyle = "#aa6622cc";
     mini.fillRect(u2x(cr.u) - 3, v2y(cr.v) - 3, 6, 6);
+  }
+
+  // Weapon pickups — cyan gun blips
+  for (const wp of weaponPickups) {
+    if (wp.collected) continue;
+    mini.fillStyle = "#aaddffcc";
+    mini.fillRect(u2x(wp.u) - 3, v2y(wp.v) - 1, 6, 3);
+    mini.fillRect(u2x(wp.u) - 1, v2y(wp.v) - 3, 3, 7);
   }
 
   // Armor vests — gold shield blips
@@ -5381,6 +5413,7 @@ function tick() {
             if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
             const coinVal = _COIN_BY_TYPE[en.type] || 1;
             _spawnCoinDrop(ep.u, ep.v, coinVal);
+            if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
             // Boss/heavy/robot death — big explosion + screen flash
             if (en.type === "boss" || en.type === "heavy" || en.type === "robot") {
               const blastColor = en.type === "robot" ? "cyan" : en.type === "boss" ? "red" : "orange";
@@ -6203,6 +6236,26 @@ function tick() {
       hp2.mesh.rotation.x += dt * 1.5;
       hp2.mesh.rotation.y += dt * 2.2;
       hp2.mesh.position.y = 0.6 + Math.sin(now / 320 + hp2.u) * 0.1;
+    }
+  }
+
+  // Weapon pickups — walk over to fill mag + get reserve ammo for that weapon
+  for (const wp of weaponPickups) {
+    if (wp.collected) continue;
+    wp.mesh.rotation.y += dt * 1.8;
+    wp.mesh.position.y = 0.35 + Math.sin(now / 350 + wp.u) * 0.1;
+    if (Math.hypot(heroNow.u - wp.u, heroNow.v - wp.v) < 1.2) {
+      wp.collected = true;
+      scene.remove(wp.mesh);
+      const wDef = (CFG.weapons || []).find(w => w.id === wp.weaponId);
+      if (wDef) {
+        weaponAmmo.set(wDef.id, wDef.magCap);
+        Inv.addItem(heroInv, wDef.ammoItem, wDef.magCap * 2);
+      }
+      playSfx("tone:900:80:sine", 0.5); playSfx("tone:1200:60:sine", 0.3);
+      _spawnParticles(wp.u, 0.5, wp.v, 14, "white", 5, 0.4);
+      showToast(`Looted ${wDef ? (wDef.name || wp.weaponId).toUpperCase() : wp.weaponId.toUpperCase()} — mag filled!`, "success", 2400);
+      _addKillFeedEntry(`★ WEAPON LOOTED — ${wp.weaponId.toUpperCase()}`, "#aaddff");
     }
   }
 
