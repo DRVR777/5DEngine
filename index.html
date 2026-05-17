@@ -1166,6 +1166,7 @@ const RESPAWN_DELAY = 5; // seconds
 function _heroShowDeathScreen() {
   _heroDead = true;
   _grenadePressT = 0;
+  _heroKbT = 0;
   document.exitPointerLock && document.exitPointerLock();
   const overlay = document.getElementById("deathOverlay");
   const stats   = document.getElementById("deathStats");
@@ -5315,6 +5316,7 @@ let _footstepT = 0;    // seconds until next footstep tick
 let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
 let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
 let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
+let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -6319,6 +6321,19 @@ function tick() {
                 if (en.type === "poisoner"   && Math.random() < 0.55) StatusEffects.apply("hero", "poison");
                 if (en.type === "incendiary" && Math.random() < 0.45) StatusEffects.apply("hero", "burning");
               }
+              // Knockback burst from heavy/boss melee — push hero away from attacker
+              if (en.type === "heavy" || en.type === "boss") {
+                const _kbEp = world.players.get(en.id);
+                const _kbHp = world.players.get("hero");
+                if (_kbEp && _kbHp) {
+                  const _kbDx = _kbHp.u - _kbEp.u, _kbDz = _kbHp.v - _kbEp.v;
+                  const _kbDm = Math.hypot(_kbDx, _kbDz) || 1;
+                  const _kbSpd = en.type === "boss" ? 14 : 9;
+                  _heroKbU = (_kbDx / _kbDm) * _kbSpd;
+                  _heroKbV = (_kbDz / _kbDm) * _kbSpd;
+                  _heroKbT = 0.22;
+                }
+              }
             }
             if (heroHp <= 0) {
               if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: en.id });
@@ -6703,6 +6718,15 @@ function tick() {
     world.setPlayer("hero", hp.x, hp.y, hp.z, hp.u + du, hp.v + dv);
     // Dodge trail — cyan afterimage particles
     if (Math.random() < 0.7) _spawnParticles(hp.u, hp.y + 0.6, hp.v, 2, "cyan", 2.5, 0.18);
+  }
+  if (_heroKbT > 0) {
+    _heroKbT -= dt;
+    const _kbp = world.players.get("hero");
+    const _kbMover = { u: _kbp.u, v: _kbp.v, hitbox: { w: 0.5, d: 0.5 } };
+    GTAPhysics.resolveAABBMove(_kbMover, _heroKbU * dt, _heroKbV * dt, buildingBlockers);
+    world.setPlayer("hero", _kbp.x, _kbp.y, _kbp.z, _kbMover.u, _kbMover.v);
+    _heroKbU *= Math.max(0, 1 - dt * 8);
+    _heroKbV *= Math.max(0, 1 - dt * 8);
   }
   _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   if (_fpGunActive) {
