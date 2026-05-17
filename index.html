@@ -47,6 +47,27 @@
     position: fixed; inset: 0; pointer-events: none; z-index: 998;
     opacity: 0; transition: background 0.3s ease;
   }
+  #loadingScreen {
+    position: fixed; inset: 0; z-index: 9999; background: #000a14;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.7s ease-out; font-family: var(--mono);
+    pointer-events: all;
+  }
+  #loadTitle {
+    font-size: 52px; font-weight: 900; letter-spacing: 0.32em;
+    color: #00ccff; text-shadow: 0 0 40px #00ccff88, 0 0 80px #00ccff44;
+    margin-bottom: 6px;
+  }
+  #loadSub { font-size: 12px; color: #446677; letter-spacing: 0.14em; margin-bottom: 36px; }
+  #loadBarWrap {
+    width: 280px; height: 3px; background: #0d2233; border-radius: 2px; overflow: hidden;
+    box-shadow: 0 0 8px #00ccff22;
+  }
+  #loadBar {
+    height: 100%; width: 0; background: linear-gradient(90deg, #00ccff, #0088ff);
+    border-radius: 2px; transition: width 0.35s ease-out;
+  }
+  #loadHint { font-size: 10px; color: #223344; margin-top: 16px; letter-spacing: 0.08em; }
   #crosshair {
     position: fixed; left: 50%; top: 50%;
     transform: translate(-50%, -50%);
@@ -318,6 +339,12 @@
 </style>
 </head>
 <body>
+<div id="loadingScreen">
+  <div id="loadTitle">5DENGINE</div>
+  <div id="loadSub">initializing systems…</div>
+  <div id="loadBarWrap"><div id="loadBar"></div></div>
+  <div id="loadHint">browser · three.js · wave combat</div>
+</div>
 <div id="fpsCounter">-- FPS</div>
 <div id="clockHud" style="position:fixed;top:8px;left:68px;background:var(--holo-bg);border:1px solid var(--holo-border);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:11px;color:var(--holo-text);pointer-events:none;z-index:200;letter-spacing:0.05em">☀ 12:00</div>
 <div id="hud">loading…</div>
@@ -538,28 +565,36 @@
   <div id="texDropZone">drop PNG/JPG<br>to add texture</div>
 </div>
 <script>
-  // If we're still on "loading…" after 8s, surface the error.
-  setTimeout(() => {
+  // Loading screen progress bar — animates to 85% while JS parses, then first tick finishes it
+  (function () {
+    var lb = document.getElementById("loadBar");
+    if (!lb) return;
+    var pct = 0;
+    var iv = setInterval(function () {
+      pct = Math.min(85, pct + (85 - pct) * 0.14 + 0.3);
+      lb.style.width = pct.toFixed(1) + "%";
+      if (pct >= 84.9) clearInterval(iv);
+    }, 50);
+  })();
+  function _showLoadError(msg) {
+    var ls = document.getElementById("loadingScreen");
+    var lb = document.getElementById("loadBar");
+    var sub = document.getElementById("loadSub");
+    if (lb) lb.style.background = "#ff3344";
+    if (sub) { sub.style.color = "#ff5d5d"; sub.textContent = msg; }
+    // Also surface in hud for visibility after dismiss
     var hud = document.getElementById("hud");
-    if (hud && hud.innerHTML.indexOf("loading") === 0) {
-      hud.innerHTML = "<b style='color:#ff5d5d'>load failed</b><br>" +
-        "Check the JS console (F12). Most likely:<br>" +
-        "• Three.js CDN unreachable<br>" +
-        "• A script (./engine_browser.js etc.) returned 404<br>" +
-        "• You opened via file:// — try `python -m http.server 8000` then http://localhost:8000/";
-    }
-  }, 8000);
-  // Catch unhandled errors and show them in the HUD.
+    if (hud) hud.innerHTML = "<b style='color:#ff5d5d'>ERR</b> " + msg;
+    if (ls) ls.style.display = "flex"; // re-show if already hidden
+  }
+  // If loading screen not dismissed after 8s, surface error
+  setTimeout(() => { if (!window._loadingDismissed) _showLoadError("load failed — check console (F12)"); }, 8000);
+  // Catch unhandled JS errors
   window.addEventListener("error", function (e) {
-    var hud = document.getElementById("hud");
-    if (hud) hud.innerHTML = "<b style='color:#ff5d5d'>JS ERROR</b><br>" +
-      (e.message || "(no message)") + "<br>" +
-      "<small>" + (e.filename || "") + ":" + (e.lineno || "?") + "</small>";
+    _showLoadError((e.message || "JS error") + " " + (e.filename ? e.filename.split("/").pop() + ":" + e.lineno : ""));
   });
   window.addEventListener("unhandledrejection", function (e) {
-    var hud = document.getElementById("hud");
-    if (hud) hud.innerHTML = "<b style='color:#ff5d5d'>PROMISE REJECTED</b><br>" +
-      (e.reason && e.reason.message || e.reason || "(no reason)");
+    _showLoadError("promise rejected: " + (e.reason && e.reason.message || e.reason || "?"));
   });
 </script>
 <canvas id="minimap" width="180" height="180"></canvas>
@@ -6128,10 +6163,22 @@ let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back t
 const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _perkReloadMul);
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
 
+window._loadingDismissed = false;
 function tick() {
   const now = performance.now();
   let dt  = Math.min(0.05, (now - lastT) / 1000);
   lastT = now;
+  // Dismiss loading screen on first real frame
+  if (!window._loadingDismissed) {
+    window._loadingDismissed = true;
+    const _ls = document.getElementById("loadingScreen");
+    const _lb = document.getElementById("loadBar");
+    if (_lb) _lb.style.width = "100%";
+    if (_ls) setTimeout(function () {
+      _ls.style.opacity = "0";
+      setTimeout(function () { _ls.style.display = "none"; }, 700);
+    }, 300);
+  }
   // Bullet time — sniper shot triggers 0.35s at 35% speed
   if (_bulletTimeLeft > 0) {
     _bulletTimeLeft = Math.max(0, _bulletTimeLeft - dt);
