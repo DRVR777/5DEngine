@@ -1558,9 +1558,14 @@ function _explodeGrenade(g) {
   }
   const h2 = world.players.get("hero");
   const hd = Math.hypot(h2.u - g.u, h2.v - g.v);
-  if (hd < RADIUS && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
-    const sd = Math.round(40 * (1 - hd / RADIUS));
-    if (sd > 0) { heroHp = Math.max(0, heroHp - sd); heroLastDamageT = performance.now() / 1000; flashDamage(); }
+  if (hd < RADIUS) {
+    _applyScreenShake(0.7 * Math.max(0, 1 - hd / RADIUS));
+    if (!(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+      const sd = Math.round(40 * (1 - hd / RADIUS));
+      if (sd > 0) { heroHp = Math.max(0, heroHp - sd); heroLastDamageT = performance.now() / 1000; flashDamage(); }
+    }
+  } else if (hd < RADIUS * 2) {
+    _applyScreenShake(0.25 * Math.max(0, 1 - hd / (RADIUS * 2)));
   }
 }
 // Tracer-style bullet — thin elongated box, rotated to face travel direction
@@ -1570,6 +1575,8 @@ const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });  // bright y
 const damageFlashEl = document.getElementById("damageFlash");
 let damageFlashUntil = 0;
 let _vignetteAmt = 0; // spring [0..1]: driven by hit impulses + low-HP pulse
+let _camShakeAmt = 0; // decays to 0; applied to camera position as random offset
+function _applyScreenShake(intensity) { _camShakeAmt = Math.min(1, _camShakeAmt + intensity); }
 function flashDamage() {
   _vignetteAmt = 1.0; // instant spike, springs out in tick()
 }
@@ -2032,6 +2039,7 @@ function _explodeBarrel(u, v) {
   }
   const h = world.players.get("hero");
   const hd = Math.hypot(h.u - u, h.v - v);
+  _applyScreenShake(Math.max(0, 0.8 * (1 - hd / (RADIUS * 1.5))));
   if (hd < RADIUS && !_heroDead && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
     const sd = Math.round(MAX_DMG * (1 - hd / RADIUS));
     if (sd > 0) { heroHp = Math.max(0, heroHp - sd); heroLastDamageT = nowMs / 1000; flashDamage(); if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen(); }
@@ -5654,6 +5662,14 @@ function tick() {
       heroPos.z + fz * aimDist * Math.cos(camPitch) + sz * sideAmt
     );
     camera.lookAt(aimTarget);
+  }
+  // Camera shake — random positional offset, fast exponential decay
+  if (_camShakeAmt > 0.005) {
+    camera.position.x += (Math.random() - 0.5) * _camShakeAmt * 0.18;
+    camera.position.y += (Math.random() - 0.5) * _camShakeAmt * 0.18;
+    _camShakeAmt *= Math.exp(-dt * 14);
+  } else {
+    _camShakeAmt = 0;
   }
 
   // Find nearest vehicle for proximity prompt
