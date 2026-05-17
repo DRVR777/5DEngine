@@ -1253,6 +1253,8 @@ function _heroRespawn() {
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
+    _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false;
+    const _lvlEl = document.getElementById("heroLevelHud"); if (_lvlEl) _lvlEl.textContent = "";
   });
 })();
 
@@ -2323,13 +2325,13 @@ function _applyLevelUpBuff(lvl) {
   const _lvlMsgs = {
     1: "LVL 1 — +10% DAMAGE",
     2: "LVL 2 — +SPRINT SPEED",
-    3: "LVL 3 — +STAMINA MAX",
+    3: "LVL 3 — +25 STAMINA MAX",
     4: "LVL 4 — +MAX HP",
     5: "LVL 5 — APEX PREDATOR",
   };
   if (lvl === 1) _heroLvlDmgMul *= 1.10;
   if (lvl === 2) _heroLvlSpeedBonus += 1.0;
-  if (lvl === 3) { /* stamina max expanded via bonus checked in stamina cap */ }
+  if (lvl === 3) { _heroExtraStaminaMax = 25; _stamina = Math.min(STAMINA_MAX + 25, _stamina + 25); }
   if (lvl === 4) { heroHp = Math.min(HERO_MAX_HP + 20, heroHp + 20); }
   if (lvl === 5) _heroApexMode = true;
   _spawnParticles(world.players.get("hero").u, 1.5, world.players.get("hero").v, 40, "yellow", 8, 0.8);
@@ -5716,6 +5718,7 @@ let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _slideT = 0, _slideDU = 0, _slideDV = 0, _ctrlWasDown = false; // sprint slide state
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
+let _heroExtraStaminaMax = 0; // bonus from kill level 3
 const STAMINA_DRAIN  = 22;  // per second while sprinting
 const STAMINA_REGEN  = 14;  // per second when not sprinting
 const STAMINA_LOCKOUT = 15; // minimum stamina required to re-enter sprint
@@ -5920,7 +5923,7 @@ function tick() {
   if (canSprint && (inputF !== 0 || inputR !== 0)) {
     _stamina = Math.max(0, _stamina - STAMINA_DRAIN * dt);
   } else if (!wantsSprint || _stamina <= 0) {
-    _stamina = Math.min(STAMINA_MAX, _stamina + STAMINA_REGEN * dt);
+    _stamina = Math.min(STAMINA_MAX + _heroExtraStaminaMax, _stamina + STAMINA_REGEN * dt);
   }
   if (_speedBoostT > 0) _speedBoostT -= dt;
   const _speedBoostMul = _speedBoostT > 0 ? 1.5 : 1.0;
@@ -6256,7 +6259,7 @@ function tick() {
             // Level-up check (every 10 kills, max level 5)
             if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel);
             // Apex mode (level 5) — each kill restores 5 stamina
-            if (_heroApexMode) _stamina = Math.min(STAMINA_MAX, _stamina + 5);
+            if (_heroApexMode) _stamina = Math.min(STAMINA_MAX + _heroExtraStaminaMax, _stamina + 5);
             // Elite kill reward — bonus coins + armor shard
             if (en._elite) {
               score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20);
@@ -8117,7 +8120,7 @@ function tick() {
   // Stamina bar
   const stFillEl = document.getElementById("stFill");
   if (stFillEl) {
-    const stPct = (_stamina / STAMINA_MAX * 100).toFixed(1);
+    const stPct = (_stamina / (STAMINA_MAX + _heroExtraStaminaMax) * 100).toFixed(1);
     stFillEl.style.width = stPct + "%";
     stFillEl.style.background = _stamina < STAMINA_LOCKOUT
       ? "linear-gradient(90deg,#ff4444,#ff8844)"
