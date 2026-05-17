@@ -5806,6 +5806,16 @@ function tick() {
           const hitColor = en.type === "robot" ? (headshot ? "white" : "cyan") : "red";
           _spawnParticles(b.posU, b.posY, b.posV, headshot ? 10 : 5, hitColor, 4, 0.25);
           if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("impact", { x: b.posU, y: b.posY, z: b.posV });
+          // Enemy hurt grunt — audio confirmation when shot lands but doesn't kill; throttled 0.25s/enemy
+          if (en.hp > 0 && (!en._hurtT || now / 1000 - en._hurtT > 0.25)) {
+            en._hurtT = now / 1000;
+            const _hurtFreqs = { grunt: 110, fast: 190, heavy: 55, poisoner: 140, incendiary: 120, robot: 400, boss: 42, sniper: 160 };
+            const _hurtDurs  = { grunt: 45,  fast: 28,  heavy: 85, poisoner: 50,  incendiary: 48,  robot: 32,  boss: 110, sniper: 38  };
+            const _hurtWave  = en.type === "robot" ? "square" : en.type === "boss" ? "sawtooth" : "sawtooth";
+            const _hf = _hurtFreqs[en.type] || 110;
+            const _hd = _hurtDurs[en.type]  || 45;
+            playSfx(`tone:${_hf}:${_hd}:${_hurtWave}`, headshot ? 0.32 : 0.18);
+          }
           // Hit incendiary that survives — leaves a small fire trail (1.0m, 2.2s), throttled to 1/s
           if (en.type === "incendiary" && en.hp > 0) {
             if (!en._trailT || now / 1000 - en._trailT > 1.0) {
