@@ -2176,6 +2176,44 @@ function _explodeBarrel(u, v) {
   }
 }
 
+// Loot crates — shootable/meleeable wooden boxes that drop random loot when destroyed
+const _crateGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+const _crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5c20, roughness: 0.85, metalness: 0.05 });
+const _crateEdgeMat = new THREE.MeshStandardMaterial({ color: 0x5a3a10, roughness: 0.9, metalness: 0.0 });
+const _crateEdgeGeo = new THREE.BoxGeometry(0.92, 0.06, 0.92);
+
+function _makeCrate(u, v) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(_crateGeo, _crateMat);
+  body.position.y = 0.45; body.castShadow = true; g.add(body);
+  // Three wooden slat bands
+  for (const ey of [0.18, 0.45, 0.72]) {
+    const slat = new THREE.Mesh(_crateEdgeGeo, _crateEdgeMat);
+    slat.position.y = ey; g.add(slat);
+  }
+  g.position.set(u, 0, v);
+  g.rotation.y = Math.random() * Math.PI * 2;
+  scene.add(g);
+  return { u, v, hp: 35, maxHp: 35, mesh: g, broken: false };
+}
+
+const _crateLoot = ["ammo", "health", "coin", "coin", "ammo"];
+function _breakCrate(crate) {
+  crate.broken = true; crate.mesh.visible = false;
+  _spawnParticles(crate.u, 0.5, crate.v, 20, "orange", 6, 0.55);
+  playSfx("tone:180:80:square", 0.35);
+  const loot = _crateLoot[Math.floor(Math.random() * _crateLoot.length)];
+  if (loot === "ammo")   _spawnAmmoPickup(crate.u, crate.v, 20, getWeapon().ammoItem);
+  else if (loot === "health") _spawnHealthPickup(crate.u, crate.v, 25);
+  else { score += 2; showToast("+2 coins from crate!", "success", 800); }
+  _spawnDamageNumber(crate.u, 1.0, crate.v, "CRACK!", "#cc8833");
+}
+
+const crates = [
+  {u:6,v:6},{u:-6,v:6},{u:6,v:-6},{u:-6,v:-6},
+  {u:14,v:8},{u:-14,v:8},{u:8,v:-14},{u:-8,v:14}
+].map(p => _makeCrate(p.u, p.v));
+
 // Blood / oil decals — flat circles left on the ground where enemies die (max 30, ring buffer)
 const _decalPool = [];
 const _decalMats = {
@@ -4143,6 +4181,11 @@ addEventListener("keydown", (e) => {
         }
       }
     }
+    // Also break nearby crates with melee
+    for (const cr of crates) {
+      if (cr.broken) continue;
+      if (Math.hypot(cr.u - hm.u, cr.v - hm.v) < 1.5) { cr.hp -= 35; if (cr.hp <= 0) _breakCrate(cr); }
+    }
     e.preventDefault(); return;
   }
   if (buildMode && e.code === "KeyN") {
@@ -4584,6 +4627,13 @@ function drawMinimap() {
     if (!gc.active) continue;
     mini.fillStyle = "#44ff44cc";
     mini.fillRect(u2x(gc.u) - 2, v2y(gc.v) - 2, 5, 5);
+  }
+
+  // Loot crates — brown box blips
+  for (const cr of crates) {
+    if (cr.broken) continue;
+    mini.fillStyle = "#aa6622cc";
+    mini.fillRect(u2x(cr.u) - 3, v2y(cr.v) - 3, 6, 6);
   }
 
   // Armor vests — gold shield blips
@@ -5260,6 +5310,20 @@ function tick() {
         }
       }
       if (hitBarrel) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
+      // Hit a crate?
+      let hitCrate = false;
+      for (const cr of crates) {
+        if (cr.broken) continue;
+        const cdu = cr.u - b.posU, cdv = cr.v - b.posV;
+        if (cdu*cdu + cdv*cdv < 0.25 && b.posY < 0.95) {
+          cr.hp -= b.damage;
+          _spawnParticles(b.posU, b.posY, b.posV, 3, "orange", 3, 0.12);
+          _spawnDamageNumber(b.posU, b.posY + 0.5, b.posV, `-${b.damage}`, "#cc8833");
+          if (cr.hp <= 0) _breakCrate(cr);
+          hitCrate = true; break;
+        }
+      }
+      if (hitCrate) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       // Hit a building?
       let hitSolid = false;
       for (const bl of buildingBlockers) {
