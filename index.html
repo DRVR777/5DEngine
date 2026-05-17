@@ -3404,15 +3404,13 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // When computer is OPEN, the only keys the game consumes are Escape (close)
-  // and Tab (cycle apps). EVERYTHING else (incl. KeyE!) flows to the overlay so
-  // the user can type "E" inside textboxes without the game eating it.
-  if (computerOpen) {
+  // When computer is OPEN or animating in, Escape cancels/closes it.
+  if (computerOpen || computerEntering) {
     if (e.code === "Escape") {
       closeComputer();
       e.preventDefault();
     }
-    // Any other key: let the DOM handle it (textboxes, buttons, etc.)
+    if (computerOpen) return; // let DOM handle other keys while fully open
     return;
   }
   // E near NPC → open dialog (check before computer so NPCs take priority if closer)
@@ -3762,6 +3760,7 @@ function finishComputerEntry() {
 }
 function closeComputer() {
   computerOpen = false;
+  computerEntering = false;
   document.getElementById("computerOverlay").classList.remove("open");
   // Reset app pane back to home
   const aw = document.getElementById("appWindow");
@@ -3770,6 +3769,10 @@ function closeComputer() {
   if (ah) ah.style.display = "block";
   // Restore zoom level
   camDist = camDistBeforeEntry;
+  // Re-acquire pointer lock so game controls resume immediately
+  setTimeout(() => {
+    if (!document.pointerLockElement && !buildMode) renderer.domElement.requestPointerLock();
+  }, 50);
 }
 
 // Scroll-wheel zoom: shrinks camDist into first-person, expands into pull-back.
@@ -3801,7 +3804,7 @@ document.addEventListener("pointerlockchange", () => {
 // press R instead to toggle fly-cam lock while in build mode.
 let pointerLocked = false;
 renderer.domElement.addEventListener("click", () => {
-  if (!pointerLocked && !buildMode) renderer.domElement.requestPointerLock();
+  if (!pointerLocked && !buildMode && !computerOpen && !computerEntering) renderer.domElement.requestPointerLock();
 });
 document.addEventListener("pointerlockchange", () => {
   pointerLocked = document.pointerLockElement === renderer.domElement;
@@ -4108,6 +4111,7 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   }
   if (!pointerLocked) return;
   if (invDiv.classList.contains("open")) return;
+  if (computerOpen || computerEntering) return;
   _tryShoot();
 });
 
