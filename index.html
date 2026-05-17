@@ -317,6 +317,12 @@
 <div id="ammoHud" style="display:none">12 / 60</div>
 <div id="reloadCircle"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#00ccff" stroke-width="4" stroke-dasharray="80 33" stroke-linecap="round"/></svg></div>
 <div id="dmgDirIndicator" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:120px;height:120px;pointer-events:none;z-index:998"></div>
+<div id="grenadeWarn" style="display:none;position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);pointer-events:none;z-index:999;text-align:center">
+  <div style="font-family:ui-monospace,monospace;font-size:22px;font-weight:900;color:#ff2222;letter-spacing:0.12em;text-shadow:0 0 12px #ff0000">⚠ GRENADE!</div>
+  <svg id="grenadeRing" width="100" height="100" viewBox="0 0 100 100" style="display:block;margin:4px auto">
+    <circle cx="50" cy="50" r="42" fill="none" stroke="#ff2222" stroke-width="4" opacity="0.85" stroke-dasharray="264"/>
+  </svg>
+</div>
 <div id="scopeOverlay" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:1050">
   <!-- Black vignette with hole punched by radial gradient -->
   <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, transparent 35%, rgba(0,0,0,0.96) 37.5%)"></div>
@@ -5530,6 +5536,23 @@ function tick() {
   }
 
   // Grenade physics + detonation
+  // Grenade proximity warning — show when enemy grenade within 6m and fuse < 2s
+  { const _gwEl = document.getElementById("grenadeWarn");
+    if (_gwEl) {
+      const _heroGP = world.players.get("hero");
+      let _nearGren = false;
+      for (const _g of grenades3D) {
+        if (_g.fuse < 2.0 && _heroGP && Math.hypot(_g.u - _heroGP.u, _g.v - _heroGP.v) < 6) { _nearGren = true; break; }
+      }
+      _gwEl.style.display = _nearGren ? "block" : "none";
+      if (_nearGren) {
+        const _pulse = 0.5 + 0.5 * Math.sin(now / 100);
+        _gwEl.style.opacity = String(0.6 + _pulse * 0.4);
+        _gwEl.style.transform = `translate(-50%,-50%) scale(${0.92 + _pulse * 0.12})`;
+      }
+    }
+  }
+
   for (let i = grenades3D.length - 1; i >= 0; i--) {
     const g = grenades3D[i];
     g.fuse -= dt;
