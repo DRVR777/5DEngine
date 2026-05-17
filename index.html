@@ -5961,7 +5961,9 @@ function tick() {
           _dmgDirAngle = Math.atan2(-b.dirU, -b.dirV);
           _dmgDirUntil = now + 1200;
           flashDamage();
-          _spawnParticles(b.posU, b.posY, b.posV, 4, "cyan", 3, 0.18);
+          const _bHitColor = b.poisonOnHit ? "white" : "cyan";
+          _spawnParticles(b.posU, b.posY, b.posV, 4, _bHitColor, 3, 0.18);
+          if (b.poisonOnHit && typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison");
           if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
         }
         scene.remove(b.mesh); enemyBullets.splice(i, 1); continue;
@@ -6323,6 +6325,22 @@ function tick() {
                     en2.hp = Math.max(0, en2.hp - 30);
                   }
                 }
+              }
+            }
+            // Poisoner ranged spit — lobs poison glob every 3-4.5s when 4-10m away with LOS
+            if (en.type === "poisoner" && canSee && dist > 3.5 && dist < 10) {
+              if (!en._spitT || now / 1000 - en._spitT > (en._spitInterval || 3.5)) {
+                en._spitT = now / 1000;
+                en._spitInterval = 3.0 + Math.random() * 1.5;
+                const _spAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
+                const _spMesh = new THREE.Mesh(new THREE.SphereGeometry(0.12, 5, 4),
+                  new THREE.MeshBasicMaterial({ color: 0x44cc44 }));
+                _spMesh.position.set(ep.u, ep.y + 1.1, ep.v); scene.add(_spMesh);
+                const _spTof = 0.9 + dist / 14;
+                enemyBullets.push({ mesh: _spMesh, posU: ep.u, posV: ep.v, posY: ep.y + 1.1,
+                  dirU: Math.sin(_spAng), dirV: Math.cos(_spAng), dirY: 0.18,
+                  speed: dist / _spTof, damage: 4, traveled: 0, range: 11, poisonOnHit: true });
+                playSfx("tone:200:70:sawtooth", 0.22);
               }
             }
             // Fast enemy charge dash — burst toward hero at 2.2x extra speed for 0.4s, every 3.5-5.5s
