@@ -2977,6 +2977,18 @@ for (const n of NPC_DEFS) {
 
 // Enemy meshes — one group per enemy def
 const enemyMeshes = new Map();  // enemy.id → { group, hpFg }
+// Shared alert sprite material — "!" canvas texture, reused by all enemies
+const _alertSpriteMat = (function() {
+  const c = document.createElement("canvas"); c.width = 64; c.height = 64;
+  const cx = c.getContext("2d");
+  cx.clearRect(0, 0, 64, 64);
+  cx.fillStyle = "#ffee00";
+  cx.font = "bold 58px monospace";
+  cx.textAlign = "center"; cx.textBaseline = "middle";
+  cx.fillText("!", 32, 34);
+  return new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false });
+})();
+
 function _makeEnemyMesh(eDef) {
   const group = new THREE.Group();
   // Scale body size by type
@@ -3009,6 +3021,7 @@ function _makeEnemyMesh(eDef) {
     const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.10), new THREE.MeshBasicMaterial({ color: 0x00cc44 }));
     hpFg.position.y = hpY; hpFg.position.z = 0.001;
     const hpPivot = new THREE.Group(); hpPivot.add(hpBg); hpPivot.add(hpFg); group.add(hpPivot);
+    const alertS = new THREE.Sprite(_alertSpriteMat.clone()); alertS.scale.set(0.55, 0.55, 1); alertS.position.y = hpY + 0.42; alertS.visible = false; alertS.name = "_alertBubble"; group.add(alertS);
     scene.add(group);
     return { group, hpFg, hpPivot };
   }
@@ -3040,6 +3053,7 @@ function _makeEnemyMesh(eDef) {
   );
   hpFg.position.y = hpY; hpFg.position.z = 0.001;
   const hpPivot = new THREE.Group(); hpPivot.add(hpBg); hpPivot.add(hpFg); group.add(hpPivot);
+  const alertSp = new THREE.Sprite(_alertSpriteMat.clone()); alertSp.scale.set(0.55, 0.55, 1); alertSp.position.y = hpY + 0.42; alertSp.visible = false; alertSp.name = "_alertBubble"; group.add(alertSp);
   scene.add(group);
   return { group, hpFg, hpPivot };
 }
@@ -5636,6 +5650,7 @@ function tick() {
         const alertFreq = en.type === "robot" ? 280 : en.type === "heavy" ? 90 : 160;
         playSfx(`tone:${alertFreq}:120:sawtooth`, 0.22);
         en._wasChasing = true;
+        en._alertT = 1.6; // show "!" for 1.6s after detection
       } else if (!canSee) {
         en._wasChasing = false;
       }
@@ -5861,6 +5876,13 @@ function tick() {
       em.hpFg.position.x = -(1 - hpFrac) / 2;
       // Billboard HP bar — always face camera
       if (em.hpPivot) em.hpPivot.rotation.y = camYaw - en.heading;
+      // Detection "!" sprite — show briefly when enemy spots hero
+      { const _ab = em.group.getObjectByName("_alertBubble");
+        if (_ab) {
+          if (en._alertT > 0) { en._alertT -= dt; _ab.visible = true; const _ps = 0.45 + 0.15 * Math.sin(now / 90); _ab.scale.set(_ps, _ps, 1); }
+          else _ab.visible = false;
+        }
+      }
       // Spin the type indicator gem
       const gem = em.group.getObjectByName("_typeGem");
       if (gem) gem.rotation.y += dt * 2.5;
