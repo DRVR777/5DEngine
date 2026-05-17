@@ -3966,6 +3966,14 @@ function drawMinimap() {
     mini.fillRect(u2x(gc.u) - 2, v2y(gc.v) - 2, 5, 5);
   }
 
+  // Armor vests — gold shield blips
+  for (const av of armorPickups) {
+    if (!av.active) continue;
+    const ax = u2x(av.u), ay = v2y(av.v);
+    mini.fillStyle = "#ffd166cc";
+    mini.beginPath(); mini.moveTo(ax, ay-4); mini.lineTo(ax+3, ay); mini.lineTo(ax, ay+3); mini.lineTo(ax-3, ay); mini.closePath(); mini.fill();
+  }
+
   // Health pickups — green cross blips
   for (const hp of healthPickups) {
     if (hp.collected) continue;
@@ -4300,7 +4308,7 @@ function tick() {
   // so forward (the direction W should move = away from camera) is
   // the opposite vector: (+sin(yaw), +cos(yaw)).
   const forward = { x: Math.sin(camYaw), y: 0, z: Math.cos(camYaw) };
-  const right   = { x: Math.cos(camYaw), y: 0, z: -Math.sin(camYaw) };
+  const right   = { x: -Math.cos(camYaw), y: 0, z: Math.sin(camYaw) };
 
   // Death countdown tick
   if (_heroDead) {
