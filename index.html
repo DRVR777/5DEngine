@@ -4911,8 +4911,10 @@ addEventListener("keydown", (e) => {
       heroHp = Math.min(HERO_MAX_HP, heroHp + 40);
       heroLastDamageT = -999; // reset regen delay
       playSfx("tone:700:120:sine", 0.4);
+      const _mkHero = world.players.get("hero");
+      _spawnDamageNumber(_mkHero.u, 2.1, _mkHero.v, `+${Math.round(healed)} HP`, "#00ff88");
       showToast(`Medkit used — +${Math.round(healed)} HP`, "success", 1200);
-      _spawnParticles(world.players.get("hero").u, 1.2, world.players.get("hero").v, 8, "white", 3, 0.5);
+      _spawnParticles(_mkHero.u, 1.2, _mkHero.v, 8, "white", 3, 0.5);
     } else {
       showToast("No medkits! Buy from shop (Tab)", "danger", 1200);
       playSfx("tone:200:60:sine", 0.2);
