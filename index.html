@@ -6500,6 +6500,7 @@ function tick() {
       }
       if (hitSolid) {
         _spawnParticles(b.posU, b.posY, b.posV, 4, "yellow", 4, 0.18);
+        playSfx("tone:180:28:square", 0.09); // concrete/wall impact thud
         // Scorch mark on wall face — find which AABB face was hit
         const _hitBl = buildingBlockers.find(bl =>
           Math.abs(b.posU - bl.u) < bl.hitbox.w / 2 &&
