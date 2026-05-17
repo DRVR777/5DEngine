@@ -5730,8 +5730,18 @@ function tick() {
             en.dead = true;
             en.respawnT = now / 1000;
             en._wasChasing = false;
-            { const dFreq = en.type === "robot" ? 180 : en.type === "heavy" ? 55 : 90;
-              playSfx(`tone:${dFreq}:350:sawtooth`, 0.25); }
+            // Type-specific kill confirmation sound
+            if (en.type === "boss") {
+              playSfx("tone:260:200:sine", 0.6); playSfx("tone:330:180:sine", 0.5); playSfx("tone:440:220:sine", 0.45);
+            } else if (en.type === "heavy") {
+              playSfx("tone:55:400:sawtooth", 0.5); playSfx("tone:80:200:sawtooth", 0.3);
+            } else if (en.type === "robot") {
+              playSfx("tone:180:120:square", 0.3); playSfx("tone:360:80:square", 0.2);
+            } else if (en.type === "sniper") {
+              playSfx("tone:500:80:sine", 0.25); playSfx("tone:250:120:sine", 0.2);
+            } else {
+              playSfx("tone:90:180:sawtooth", 0.22);
+            }
             _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
             if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
         if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
