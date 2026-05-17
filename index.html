@@ -1418,6 +1418,17 @@ function _heroRespawn() {
     for (const _wp of weaponPickups) scene.remove(_wp.mesh); weaponPickups.length = 0;
     // Reset consumable counts
     grenadeCount = 3; smokeGrenadeCount = 2; flashbangCount = 2; _mineCount = 2;
+    // Reset inventory and weapon ammo to starting state
+    heroInv.slots.fill(null);
+    for (const _riW of (CFG.weapons || [])) {
+      Inv.addItem(heroInv, "gun_" + _riW.id, 1);
+      Inv.addItem(heroInv, _riW.ammoItem || "pistol_9mm", _riW.magCap * 4);
+    }
+    Inv.addItem(heroInv, "medkit", 2);
+    weaponAmmo.clear();
+    for (const _riW2 of (CFG.weapons || [])) weaponAmmo.set(_riW2.id, _riW2.magCap || 12);
+    currentWeaponId = "pistol"; pistolAmmo = (CFG.weapons.find(w => w.id === "pistol") || {magCap: 12}).magCap;
+    if (typeof _switchGunMesh === "function") _switchGunMesh("pistol");
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
