@@ -4884,13 +4884,7 @@ function tick() {
     playSfx(`tone:${insideNow ? 320 : 180}:200:sine`, 0.12);
   }
 
-  // Ambient soundscape — outdoor wind / indoor hum / near-PC hum
-  if (_ambCtx) {
-    const indoors = !!insideNow;
-    _setAmbient("wind", 80,  "sawtooth", indoors ? 0 : 0.025, 2.0);
-    _setAmbient("indoor", 160, "sine",   indoors ? 0.02 : 0,   2.0);
-    _setAmbient("pc",     440, "sine",   nearComputer ? 0.018 : 0, 1.2);
-  }
+  // Ambient soundscape disabled — oscillator hum removed per user request
 
   // --- render ---
   // Vehicle renders — one group per definition
