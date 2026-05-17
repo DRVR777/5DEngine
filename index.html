@@ -397,6 +397,9 @@
   <div style="width:80px;height:5px;background:rgba(0,150,255,0.15);border-radius:3px;overflow:hidden"><div id="stFill" style="height:100%;background:linear-gradient(90deg,#44aaff,#00ccff);transition:width 0.08s linear;width:100%"></div></div>
 </div>
 
+<!-- Status effects HUD — pills shown when poisoned/burning/EMPd -->
+<div id="statusEffectsHud" style="display:none;position:fixed;bottom:96px;right:12px;display:flex;flex-direction:column;gap:3px;pointer-events:none;z-index:200"></div>
+
 <!-- Weapon selector bar (fades out after switch) -->
 <div id="weaponSelector" style="display:none;position:fixed;bottom:130px;right:8px;display:flex;flex-direction:column;gap:4px;pointer-events:none;z-index:201"></div>
 
@@ -8164,10 +8167,10 @@ function tick() {
   // Status effect screen tint — green for poison, orange for burning
   { const stEl = document.getElementById("statusTint");
     const _burnActive = _heroFireT > 0;
+    const _sfxList = (typeof StatusEffects !== "undefined") ? (StatusEffects.getActive("hero") || []) : [];
+    const hasPoisoned = _sfxList.some(e => e.id === "poison");
+    const hasBurning  = _burnActive || _sfxList.some(e => e.id === "burning");
     if (stEl) {
-      const _sfx = (typeof StatusEffects !== "undefined") ? (StatusEffects.getActive("hero") || []) : [];
-      const hasPoisoned = _sfx.some(e => e.id === "poison");
-      const hasBurning  = _burnActive || _sfx.some(e => e.id === "burning");
       if (_heroBlindT > 0) {
         _heroBlindT -= dt;
         const _bFade = Math.min(1, _heroBlindT * 1.5);
@@ -8181,6 +8184,25 @@ function tick() {
       } else {
         stEl.style.opacity = "0";
       }
+    }
+    // Status effect HUD pills
+    const _sfxHud = document.getElementById("statusEffectsHud");
+    if (_sfxHud) {
+      const _pills = [];
+      if (hasPoisoned) {
+        const _pt = _sfxList.find(e => e.id === "poison");
+        const _ps = _pt && _pt.timeLeft ? Math.ceil(_pt.timeLeft) : "";
+        _pills.push(`<div style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(0,100,20,0.85);border:1px solid #00bb44;color:#66ff99;letter-spacing:0.08em">POISON${_ps ? " " + _ps + "s" : ""}</div>`);
+      }
+      if (hasBurning) {
+        const _bt = Math.ceil(_heroFireT);
+        _pills.push(`<div style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(100,30,0,0.85);border:1px solid #ff6600;color:#ffaa44;letter-spacing:0.08em">BURNING${_bt > 0 ? " " + _bt + "s" : ""}</div>`);
+      }
+      if (_heroEmpT > 0) {
+        _pills.push(`<div style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(0,20,80,0.85);border:1px solid #4488ff;color:#88bbff;letter-spacing:0.08em">EMP ${Math.ceil(_heroEmpT)}s</div>`);
+      }
+      _sfxHud.style.display = _pills.length ? "flex" : "none";
+      _sfxHud.innerHTML = _pills.join("");
     }
   }
 
