@@ -1817,7 +1817,7 @@ function _explodeGrenade(g) {
     const d = Math.hypot(ep.u - g.u, ep.v - g.v);
     if (d < RADIUS) {
       const dmg = Math.round(MAX_DMG * (1 - d / RADIUS));
-      en.hp = Math.max(0, en.hp - dmg);
+      en.hp = Math.max(0, en.hp - dmg); en._hpBarShowT = performance.now() / 1000;
       if (en.hp <= 0 && !en.dead) {
         en.dead = true; en.respawnT = performance.now() / 1000; enemyKills++;
         _comboCount++; _comboLastT = performance.now() / 1000;
@@ -2328,7 +2328,7 @@ function _explodeBarrel(u, v) {
     const ep = world.players.get(en.id);
     const d = Math.hypot(ep.u - u, ep.v - v);
     if (d < RADIUS) {
-      en.hp = Math.max(0, en.hp - Math.round(MAX_DMG * (1 - d / RADIUS)));
+      en.hp = Math.max(0, en.hp - Math.round(MAX_DMG * (1 - d / RADIUS))); en._hpBarShowT = nowMs / 1000;
       if (en.hp <= 0 && !en.dead) {
         en.dead = true; en.respawnT = nowMs / 1000; enemyKills++;
         _comboCount++; _comboLastT = nowMs / 1000;
@@ -4383,7 +4383,7 @@ addEventListener("keydown", (e) => {
       const d = Math.hypot(ep.u - hm.u, ep.v - hm.v);
       if (d < 1.5) {
         const mDmg = 35;
-        en.hp = Math.max(0, en.hp - mDmg);
+        en.hp = Math.max(0, en.hp - mDmg); en._hpBarShowT = performance.now() / 1000;
         en._kbU = (ep.u - hm.u) * 4; en._kbV = (ep.v - hm.v) * 4; en._kbT = 0.15;
         en._flinchX = -0.5;
         hitMarkerUntil = performance.now() + 120;
@@ -5473,6 +5473,7 @@ function tick() {
           const headshot = b.posY > 1.35;
           const dmg = Math.round(b.damage * (headshot ? 1.85 : 1));
           en.hp = Math.max(0, en.hp - dmg);
+          en._hpBarShowT = now / 1000;
           _shotsHit++; _damageDealt += dmg;
           hitMarkerUntil = now + (headshot ? 200 : 120);
           if (headshot) {
@@ -6031,8 +6032,12 @@ function tick() {
       const hpFrac = en.hp / en.maxHp;
       em.hpFg.scale.x = Math.max(0.001, hpFrac);
       em.hpFg.position.x = -(1 - hpFrac) / 2;
-      // Billboard HP bar — always face camera
-      if (em.hpPivot) em.hpPivot.rotation.y = camYaw - en.heading;
+      // Color shift: green → orange → red based on HP fraction
+      const _hpCol = hpFrac > 0.6 ? 0x00cc44 : hpFrac > 0.3 ? 0xff8800 : 0xff2222;
+      em.hpFg.material.color.setHex(_hpCol);
+      // Show HP bar only while recently hit (2.5s window) or at < full HP
+      const _barVisible = hpFrac < 1.0 && (!en._hpBarShowT || (now / 1000 - en._hpBarShowT) < 2.5);
+      if (em.hpPivot) { em.hpPivot.visible = _barVisible; em.hpPivot.rotation.y = camYaw - en.heading; }
       // Detection "!" sprite — show briefly when enemy spots hero
       { const _ab = em.group.getObjectByName("_alertBubble");
         if (_ab) {
