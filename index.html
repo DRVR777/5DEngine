@@ -5090,6 +5090,8 @@ addEventListener("mousemove", (e) => {
 
 // ---- physics-lite ----
 let velocityY = 0;
+let _canDoubleJump = false; // resets to true on ground jump, consumed by mid-air Space
+let _spaceWasDown = false;  // rising-edge detection for double jump
 const GRAVITY = CFG.gravity      || -25;
 const JUMP_V  = CFG.jumpVelocity || 13;
 const WALK    = CFG.walkSpeed    || 5;
@@ -6989,7 +6991,18 @@ function tick() {
     const support = _platformUnder(hero.u, hero.v, hero.y);
     const onSupport = hero.y <= support.topY + 0.001;
     onGround = onSupport;
-    if (keys["Space"] && onSupport) velocityY = JUMP_V;
+    const _spaceDown = !!keys["Space"];
+    const _spaceRising = _spaceDown && !_spaceWasDown;
+    if (_spaceDown && onSupport) { velocityY = JUMP_V; _canDoubleJump = true; }
+    else if (_spaceRising && !onSupport && _canDoubleJump && _stamina >= 20 && !_heroDead) {
+      velocityY = JUMP_V * 0.85;
+      _canDoubleJump = false;
+      _stamina = Math.max(0, _stamina - 20);
+      const _djp = world.players.get("hero");
+      _spawnParticles(_djp.u, _djp.y + 0.5, _djp.v, 10, "cyan", 4, 0.3);
+      playSfx("tone:700:60:sine", 0.22);
+    }
+    _spaceWasDown = _spaceDown;
     velocityY += GRAVITY * dt;
     let newY = hero.y + velocityY * dt;
     const supportAfter = _platformUnder(hero.u, hero.v, Math.max(newY, hero.y));
