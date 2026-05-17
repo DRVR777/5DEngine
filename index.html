@@ -3546,6 +3546,7 @@ function _spawnHealthPickup(u, v, amount) {
 // Speed boost orbs — spawned at wave start after wave 2; 4s of 1.5x movement speed
 const _speedOrbs = [];
 let _speedBoostT = 0;  // seconds of speed boost remaining
+let _speedTrailT = 0;  // throttle for speed boost trail particles
 const _speedOrbGeo = new THREE.DodecahedronGeometry(0.22, 0);
 const _speedOrbMat = new THREE.MeshStandardMaterial({ color: 0xffdd00, emissive: 0xffa500, emissiveIntensity: 0.9, metalness: 0.2 });
 function _spawnSpeedOrb(u, v) {
@@ -6085,7 +6086,18 @@ function tick() {
   } else if (!wantsSprint || _stamina <= 0) {
     _stamina = Math.min(STAMINA_MAX + _heroExtraStaminaMax, _stamina + STAMINA_REGEN * dt);
   }
-  if (_speedBoostT > 0) _speedBoostT -= dt;
+  if (_speedBoostT > 0) {
+    _speedBoostT -= dt;
+    // Yellow particle trail while boosting and moving
+    if (isMoving && !inCar && !buildMode && !_heroDead) {
+      _speedTrailT -= dt;
+      if (_speedTrailT <= 0) {
+        _speedTrailT = 0.08;
+        const _sth = world.players.get("hero");
+        if (_sth) _spawnParticles(_sth.u - Math.sin(camYaw) * 0.3, 0.15, _sth.v - Math.cos(camYaw) * 0.3, 2, "yellow", 3, 0.22);
+      }
+    }
+  }
   const _speedBoostMul = _speedBoostT > 0 ? 1.5 : 1.0;
   const _baseSpeed = canSprint ? (SPRINT + _heroLvlSpeedBonus) : (WALK + _heroLvlSpeedBonus * 0.5) * crouchSpeedMul;
   const speed = _baseSpeed * _speedBoostMul;
