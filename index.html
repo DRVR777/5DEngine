@@ -6160,7 +6160,16 @@ function tick() {
               playSfx("tone:880:80:sine", 0.4);
             }
           }
-          hitEnemy = true; break;
+          // Sniper penetration — first hit pierces; second consumes bullet
+          const _canPierce = b.weaponId === "sniper" && !b._pierced;
+          if (_canPierce) {
+            b._pierced = true;
+            _spawnDamageNumber(ep.u, b.posY + 1.4, ep.v, "PIERCE!", "#00eeff");
+            playSfx("tone:2200:30:sine", 0.18);
+            // bullet continues — no break
+          } else {
+            hitEnemy = true; break;
+          }
         }
       }
       if (hitEnemy) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
