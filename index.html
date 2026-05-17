@@ -5020,12 +5020,16 @@ function tick() {
               const ddx = wp.u - ep.u, ddz = wp.v - ep.v;
               const m = Math.hypot(ddx, ddz) || 1;
               en.heading = Math.atan2(ddx, ddz);
-              world.setPlayer(en.id, ep.x, 0, 0, ep.u + (ddx / m) * en.moveSpeed * dt, ep.v + (ddz / m) * en.moveSpeed * dt);
+              { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*dt, (ddz/m)*en.moveSpeed*dt, buildingBlockers);
+                world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
             } else {
               const ddx = target.u - ep.u, ddz = target.v - ep.v;
               const m = Math.hypot(ddx, ddz) || 1;
               en.heading = Math.atan2(ddx, ddz);
-              world.setPlayer(en.id, ep.x, 0, 0, ep.u + (ddx / m) * en.moveSpeed * dt, ep.v + (ddz / m) * en.moveSpeed * dt);
+              { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*dt, (ddz/m)*en.moveSpeed*dt, buildingBlockers);
+                world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
             }
           },
           onPatrol: (ctx) => {
@@ -5036,7 +5040,9 @@ function tick() {
             const ddx = pu - ep.u, ddz = pv - ep.v;
             const m = Math.hypot(ddx, ddz) || 1;
             const wanderSpd = (en.wanderSpeed || 1.0);
-            world.setPlayer(en.id, ep.x, 0, 0, ep.u + (ddx / m) * wanderSpd * dt, ep.v + (ddz / m) * wanderSpd * dt);
+            { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+              GTAPhysics.resolveAABBMove(_em, (ddx/m)*wanderSpd*dt, (ddz/m)*wanderSpd*dt, buildingBlockers);
+              world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
           },
           onAttack: (ctx) => {
             en.lastAttackT = ctx.now;
@@ -5074,7 +5080,9 @@ function tick() {
         en.heading = Math.atan2(dx, dz);
         if (dist <= (en.sightRange || 12) && dist > (en.attackRange || 1.8)) {
           const m = dist || 1;
-          world.setPlayer(en.id, ep.x, 0, 0, ep.u + (dx / m) * en.moveSpeed * dt, ep.v + (dz / m) * en.moveSpeed * dt);
+          { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+            GTAPhysics.resolveAABBMove(_em, (dx/m)*en.moveSpeed*dt, (dz/m)*en.moveSpeed*dt, buildingBlockers);
+            world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
         }
       }
 
