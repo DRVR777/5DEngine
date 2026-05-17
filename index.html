@@ -243,6 +243,32 @@
   .toast.warn    { border-color: rgba(255,209,102,0.5); color: #ffd166; }
   .toast.danger  { border-color: rgba(255,68,102,0.5); color: #ff4466; }
   @keyframes toastIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+  /* Scene Hierarchy panel (H in build mode) */
+  #sceneHierarchy {
+    display: none; position: fixed; left: 10px; top: 48px;
+    width: 210px; max-height: 62vh; overflow-y: auto;
+    background: rgba(2,8,22,0.96); border: 1px solid rgba(0,200,255,0.4);
+    border-radius: 8px; padding: 10px; z-index: 60;
+    color: #b8e8ff; font-family: var(--mono, monospace); font-size: 11px;
+    box-shadow: 0 0 24px rgba(0,200,255,0.18);
+    scrollbar-width: thin; scrollbar-color: rgba(0,200,255,0.3) transparent;
+  }
+  #sceneHierarchy.visible { display: block; }
+  .sh-row {
+    display: flex; align-items: center; gap: 3px;
+    padding: 2px 4px; border-radius: 3px; cursor: pointer;
+    transition: background 80ms; border-left: 2px solid transparent;
+  }
+  .sh-row:hover { background: rgba(0,200,255,0.07); }
+  .sh-row.sh-selected { background: rgba(0,200,255,0.14); border-left-color: #00ccff; }
+  .sh-btn {
+    background: none; border: none; cursor: pointer;
+    color: #4488aa; font-size: 10px; padding: 0 2px;
+    line-height: 1; flex-shrink: 0;
+  }
+  .sh-btn:hover { color: #b8e8ff; }
+  .sh-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+  .sh-type { color: #4488aa; font-size: 9px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -529,8 +555,21 @@
     LMB=select · drag=move · Del=remove<br>
     arrows/PgUp-Dn nudge · [/] rotY<br>
     +/- scale · Ctrl+D clone · B exit<br>
-    <span style="color:#00ccff">K</span>=config · <span style="color:#00ccff">O</span>=environment · <span style="color:#00ccff">P</span>=char editor
+    <span style="color:#00ccff">K</span>=config · <span style="color:#00ccff">O</span>=environment · <span style="color:#00ccff">P</span>=char editor · <span style="color:#00ccff">H</span>=hierarchy
   </div>
+</div>
+
+<!-- Scene Hierarchy panel (H in build mode) -->
+<div id="sceneHierarchy">
+  <div style="color:#00ccff;font-size:10px;letter-spacing:0.18em;margin-bottom:7px;display:flex;align-items:center;gap:6px">
+    <span>⬡ SCENE HIERARCHY</span>
+    <span id="shCount" style="color:#4488aa;margin-left:auto;font-size:9px">0 obj</span>
+  </div>
+  <input id="shSearch" type="text" placeholder="filter…"
+    style="width:100%;box-sizing:border-box;background:#020c1b;border:1px solid rgba(0,200,255,0.25);
+    color:#b8e8ff;padding:3px 6px;border-radius:3px;font-family:inherit;font-size:10px;
+    outline:none;caret-color:#00ccff;margin-bottom:6px">
+  <div id="shTree"></div>
 </div>
 
 <!-- Game Config Editor (K in build mode) -->
@@ -2486,7 +2525,114 @@ function _refreshBuilderUI() {
     const err = window.ScriptRunner.getError(sel.uuid);
     errEl.textContent = err ? "ERR: " + err : "";
   }
+
+  // Refresh scene hierarchy panel if open
+  const shp = document.getElementById("sceneHierarchy");
+  if (shp) {
+    if (!buildMode) { shp.classList.remove("visible"); }
+    else if (shp.classList.contains("visible")) _renderSceneHierarchy();
+  }
 }
+
+// ---- Scene Hierarchy panel ----
+// Lists managed (and notable) scene objects; H key in build mode toggles it.
+function _renderSceneHierarchy() {
+  const tree  = document.getElementById("shTree");
+  const countEl = document.getElementById("shCount");
+  const searchEl = document.getElementById("shSearch");
+  if (!tree) return;
+
+  const filter  = searchEl ? searchEl.value.toLowerCase() : "";
+  const managed = worldBuilder ? worldBuilder.getManagedMap() : new Map();
+  const sel     = worldBuilder ? worldBuilder.getSelected() : null;
+  const rows    = [];
+
+  function _makeRow(obj, depth, isManaged, meta) {
+    const name   = obj.name || (meta && meta.primitive ? meta.primitive : "") || obj.type || "object";
+    if (filter && !name.toLowerCase().includes(filter)) return;
+
+    const locked  = !!(obj.userData && obj.userData.locked);
+    const visible = obj.visible !== false;
+    const isSel   = obj === sel;
+
+    const row = document.createElement("div");
+    row.className = "sh-row" + (isSel ? " sh-selected" : "");
+    row.style.paddingLeft = (4 + depth * 10) + "px";
+
+    // Visibility toggle
+    const visBtn = document.createElement("button");
+    visBtn.className = "sh-btn";
+    visBtn.title = visible ? "Hide" : "Show";
+    visBtn.textContent = visible ? "◉" : "○";
+    visBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      obj.visible = !obj.visible;
+      _renderSceneHierarchy();
+    };
+
+    // Lock toggle
+    const lockBtn = document.createElement("button");
+    lockBtn.className = "sh-btn";
+    lockBtn.title = locked ? "Unlock" : "Lock";
+    lockBtn.textContent = locked ? "■" : "□";
+    lockBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      obj.userData = obj.userData || {};
+      obj.userData.locked = !locked;
+      _renderSceneHierarchy();
+    };
+
+    // Name
+    const nameEl = document.createElement("span");
+    nameEl.className = "sh-name";
+    nameEl.textContent = name;
+    nameEl.style.opacity = visible ? "1" : "0.4";
+    nameEl.style.color = isManaged ? "#b8e8ff" : "#556677";
+
+    // Type badge
+    const typeEl = document.createElement("span");
+    typeEl.className = "sh-type";
+    typeEl.textContent = meta ? (meta.primitive || "mesh") : obj.type.replace("Mesh","").replace("Group","grp").toLowerCase();
+
+    row.appendChild(visBtn);
+    row.appendChild(lockBtn);
+    row.appendChild(nameEl);
+    row.appendChild(typeEl);
+
+    // Click to select in builder
+    if (worldBuilder && (isManaged || obj.isMesh || obj.isGroup)) {
+      row.onclick = () => { worldBuilder.select(obj); _renderSceneHierarchy(); };
+    }
+    rows.push(row);
+  }
+
+  // Managed objects first
+  const managedSet = new Set(managed.keys());
+  for (const [mesh, meta] of managed) _makeRow(mesh, 0, true, meta);
+
+  // Then lights and other top-level scene objects
+  for (const obj of scene.children) {
+    if (managedSet.has(obj)) continue;
+    const t = obj.type || "";
+    if (t.includes("Light") || obj.isMesh || obj.isGroup) {
+      _makeRow(obj, 0, false, null);
+    }
+  }
+
+  tree.innerHTML = "";
+  if (rows.length === 0) {
+    tree.innerHTML = '<div style="color:#334455;font-size:10px;padding:4px">No objects' + (filter ? ' matching "' + filter + '"' : '') + '</div>';
+  } else {
+    for (const r of rows) tree.appendChild(r);
+  }
+  if (countEl) countEl.textContent = managed.size + " obj";
+}
+
+// Wire search input to re-render on keyup
+document.addEventListener("DOMContentLoaded", () => {
+  const si = document.getElementById("shSearch");
+  if (si) si.addEventListener("input", () => { if (worldBuilder) _renderSceneHierarchy(); });
+});
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
 // Single shared mixer drives all in-world sound — bus speakers, gunshots,
@@ -2811,7 +2957,18 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // H key: toggle rain
+  // H in build mode: toggle scene hierarchy panel
+  if (buildMode && e.code === "KeyH") {
+    const shp = document.getElementById("sceneHierarchy");
+    if (shp) {
+      const show = !shp.classList.contains("visible");
+      shp.classList.toggle("visible", show);
+      if (show) _renderSceneHierarchy();
+    }
+    e.preventDefault();
+    return;
+  }
+  // H key: toggle rain (non-build mode)
   if (e.code === "KeyH" && !computerOpen) {
     setRain(!_rainActive);
     showToast(_rainActive ? "Rain started" : "Rain stopped", "info");
