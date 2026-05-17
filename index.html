@@ -1432,6 +1432,7 @@ function _heroRespawn() {
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
+    _streakCount = 0; _lastKillT = 0; _panicBroadcastT = -99; _waveBeepLast = 0;
     _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false;
     _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0;
     if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
