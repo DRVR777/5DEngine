@@ -319,6 +319,11 @@
   <div id="hbTrack"><div id="hbFill" style="width:100%;background:linear-gradient(90deg,#00ffaa,#00ccff)"></div></div>
   <div id="hbVal">100</div>
 </div>
+<div id="armorBar" style="display:none;position:fixed;bottom:88px;right:12px;display:flex;align-items:center;gap:6px;background:rgba(2,5,14,0.75);border:1px solid rgba(255,200,0,0.4);border-radius:4px;padding:4px 8px;pointer-events:none;z-index:200;font-family:var(--mono);font-size:11px">
+  <span style="color:#ffd166;letter-spacing:0.1em">AR</span>
+  <div style="width:80px;height:6px;background:rgba(255,200,0,0.15);border-radius:3px;overflow:hidden"><div id="arFill" style="height:100%;background:linear-gradient(90deg,#ffd166,#ffaa00);transition:width 0.15s ease-out;width:0%"></div></div>
+  <span id="arVal" style="color:#ffd166;min-width:24px">0</span>
+</div>
 
 <!-- Weapon selector bar (fades out after switch) -->
 <div id="weaponSelector" style="display:none;position:fixed;bottom:130px;right:8px;display:flex;flex-direction:column;gap:4px;pointer-events:none;z-index:201"></div>
@@ -988,11 +993,19 @@ const HERO_REGEN_DELAY = CFG.heroRegenDelay || 5;
 const HERO_REGEN_RATE  = CFG.heroRegenRate  || 4;
 let heroHp = HERO_MAX_HP;
 let heroLastDamageT = -Infinity;
+let heroArmor = 0;          // 0..75; absorbs 60% of incoming damage
+const HERO_MAX_ARMOR = 75;
+const ARMOR_ABSORB   = 0.6; // fraction of hit taken from armor instead of HP
 
 // StatusEffects entity hooks — called by status_effects.js onTick callbacks
 window._entityDamage = function(entityId, amount, _type) {
   if (entityId !== "hero") return;
   if (typeof Engine !== "undefined" && Engine.debug.godMode) return;  // god mode
+  if (heroArmor > 0) {
+    const armorHit = Math.min(heroArmor, amount * ARMOR_ABSORB);
+    heroArmor = Math.max(0, heroArmor - armorHit);
+    amount = amount - armorHit;
+  }
   heroHp = Math.max(0, heroHp - amount);
   heroLastDamageT = performance.now() / 1000;
   if (heroHp <= 0) {
@@ -1303,7 +1316,7 @@ const _SHOP_ITEMS = [
   { id: "ammo_shotgun", name: "Shotgun Shells",  desc: "+16 shotgun shells",        cost: 3,  action: () => { Inv.addItem(heroInv, "shotgun_12g", 16); } },
   { id: "medkit",       name: "Medkit",          desc: "+1 medkit (use: H key)",    cost: 4,  action: () => { Inv.addItem(heroInv, "medkit", 1); } },
   { id: "grenade",      name: "Grenades x3",     desc: "+3 grenades",               cost: 5,  action: () => { grenadeCount = Math.min(9, grenadeCount + 3); } },
-  { id: "armor",        name: "Armor Shard",     desc: "+25 max HP (this session)", cost: 8,  action: () => { heroHp = Math.min(heroHp + 25, HERO_MAX_HP + 25); } },
+  { id: "armor",        name: "Armor Shard",     desc: "+25 armor (absorbs 60% dmg)", cost: 8,  action: () => { heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 25); } },
   { id: "ammo_max",     name: "Full Resupply",   desc: "Fill all ammo + 2 medkits", cost: 15, action: () => {
     const sw = getWeapon();
     Inv.addItem(heroInv, "pistol_9mm", 60);
@@ -4636,7 +4649,13 @@ function tick() {
           onAttack: (ctx) => {
             en.lastAttackT = ctx.now;
             if (!(typeof Engine !== "undefined" && Engine.debug.godMode)) {
-              heroHp = Math.max(0, heroHp - en.damage);
+              let enDmg = en.damage;
+              if (heroArmor > 0) {
+                const armorHit = Math.min(heroArmor, enDmg * ARMOR_ABSORB);
+                heroArmor = Math.max(0, heroArmor - armorHit);
+                enDmg -= armorHit;
+              }
+              heroHp = Math.max(0, heroHp - enDmg);
               heroLastDamageT = ctx.now;
               flashDamage();
               // Record attacker direction for directional damage indicator
@@ -5285,6 +5304,15 @@ function tick() {
         : (hpFrac > 0.25 ? "linear-gradient(90deg,#ffd166,#ff8800)" : "linear-gradient(90deg,#ff4466,#cc0033)");
     }
     if (hbVal) hbVal.textContent = Math.ceil(heroHp);
+  }
+  // Armor bar
+  const armorBarEl = document.getElementById("armorBar");
+  const arFillEl   = document.getElementById("arFill");
+  const arValEl    = document.getElementById("arVal");
+  if (armorBarEl) {
+    armorBarEl.style.display = heroArmor > 0 ? "flex" : "none";
+    if (arFillEl) arFillEl.style.width = `${(heroArmor / HERO_MAX_ARMOR * 100).toFixed(1)}%`;
+    if (arValEl)  arValEl.textContent  = Math.ceil(heroArmor);
   }
 
   // Holographic weapon panel update
