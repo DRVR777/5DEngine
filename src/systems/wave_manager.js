@@ -25,10 +25,10 @@
     { enemies: [{ type: "heavy",  count: 1 }, { type: "grunt",      count: 4 }],        pauseAfter: 10 },
     { enemies: [{ type: "fast",   count: 5 }, { type: "incendiary", count: 2 }],        pauseAfter: 12 },
     { enemies: [{ type: "boss",   count: 1 }],                                           pauseAfter: 18 },
-    { enemies: [{ type: "heavy",  count: 2 }, { type: "poisoner",   count: 2 }],        pauseAfter: 12 },
-    { enemies: [{ type: "incendiary", count: 3 }, { type: "fast",   count: 4 }],        pauseAfter: 14 },
-    { enemies: [{ type: "robot", count: 1 }, { type: "heavy",  count: 2 }, { type: "fast", count: 3 }],      pauseAfter: 15 },
-    { enemies: [{ type: "robot", count: 2 }, { type: "incendiary", count: 3 }, { type: "fast", count: 4 }],  pauseAfter: 18 },
+    { enemies: [{ type: "heavy",  count: 2 }, { type: "sniper",    count: 1 }],        pauseAfter: 12 },
+    { enemies: [{ type: "sniper", count: 2 }, { type: "fast",      count: 4 }],        pauseAfter: 14 },
+    { enemies: [{ type: "robot", count: 1 }, { type: "sniper", count: 1 }, { type: "fast", count: 3 }],     pauseAfter: 15 },
+    { enemies: [{ type: "robot", count: 2 }, { type: "sniper", count: 2 }, { type: "boss", count: 1 }],     pauseAfter: 20 },
   ];
 
   let _waves = _defaultWaves.map(w => Object.assign({}, w));

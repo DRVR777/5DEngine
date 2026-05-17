@@ -1042,6 +1042,7 @@ const _ENEMY_TYPES = [
   { type: "incendiary", color: 0xffaa00, hp: 70,  maxHp: 70,  moveSpeed: 2.2, damage: 5,  attackRange: 1.8, sightRange: 12, dropAmmo: "pistol_9mm", dropQty: 10, dropHealth: 0,  wanderSpeed: 0.9 },
   { type: "robot",      color: 0x4466aa, hp: 350, maxHp: 350, moveSpeed: 1.0, damage: 25, attackRange: 2.2, sightRange: 14, dropAmmo: "rifle_556",   dropQty: 20, dropHealth: 40, wanderSpeed: 0.4 },
   { type: "boss",       color: 0x660022, hp: 1200,maxHp:1200, moveSpeed: 1.8, damage: 40, attackRange: 3.0, sightRange: 20, dropAmmo: "rifle_556",   dropQty: 60, dropHealth: 80, wanderSpeed: 0.5 },
+  { type: "sniper",     color: 0x220033, hp: 55,  maxHp: 55,  moveSpeed: 0.9, damage: 45, attackRange: 20, sightRange: 22, dropAmmo: "rifle_556",   dropQty: 15, dropHealth: 0,  wanderSpeed: 0.3 },
 ];
 const _enemyDefaultDefs = [Object.assign({ id: "enemy1", u: 14, v: -14, heading: 0 }, _ENEMY_TYPES[0])];
 const enemies = (WD.enemies || _enemyDefaultDefs).map(def =>
@@ -1061,7 +1062,7 @@ let _lastKillT = 0;
 const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
 let _recentKillPos = [];    // morale tracker: [{u, v, t}] of recent kills
 let _panicBroadcastT = -99; // last rout broadcast time (prevents spam)
-const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30 };
+const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
 function _trackKillAndPanic(killU, killV) {
   const t = performance.now() / 1000;
   _recentKillPos.push({ u: killU, v: killV, t });
@@ -5884,6 +5885,44 @@ function tick() {
                     en2.hp = Math.max(0, en2.hp - 30);
                   }
                 }
+              }
+            }
+            // Sniper — stays at 10-18m, 4s fire cycle: 1.2s lock-on + shot
+            if (en.type === "sniper" && canSee) {
+              const nowS = now / 1000;
+              // Back away if hero too close
+              if (dist < 9) {
+                const fAng = Math.atan2(ep.u - _heroNowAI.u, ep.v - _heroNowAI.v);
+                const _sm = { u: ep.u, v: ep.v, hitbox: { w: 0.5, d: 0.5 } };
+                GTAPhysics.resolveAABBMove(_sm, Math.sin(fAng)*en.moveSpeed*2*dt, Math.cos(fAng)*en.moveSpeed*2*dt, buildingBlockers);
+                world.setPlayer(en.id, ep.x, 0, 0, _sm.u, _sm.v);
+              }
+              if (!en._sniperPhaseT) en._sniperPhaseT = nowS;
+              const snPhase = (nowS - en._sniperPhaseT) % 4.0;
+              const isLockon = snPhase >= 2.8;
+              // Flash red during lock-on
+              if (en.mesh && en.mesh.children) {
+                const _sFlash = isLockon ? (0.5 + 0.5 * Math.sin(now / (isLockon ? 60 : 200))) : 0;
+                for (const ch of en.mesh.children) {
+                  if (ch.isMesh && ch.material && !ch._isHpBar) {
+                    if (!ch._origColor) ch._origColor = ch.material.color.clone();
+                    ch.material.color.setRGB(Math.min(1, ch._origColor.r + _sFlash * 0.9), ch._origColor.g * (1 - _sFlash * 0.6), ch._origColor.b * (1 - _sFlash * 0.6));
+                  }
+                }
+              }
+              if (isLockon && !en._sniperLockSnd) { en._sniperLockSnd = true; playSfx("tone:1800:40:sine", 0.2); }
+              if (!isLockon) en._sniperLockSnd = false;
+              // Fire at phase end
+              if (snPhase >= 3.95 && (!en._sniperShotT || nowS - en._sniperShotT > 3.5)) {
+                en._sniperShotT = nowS; en._sniperPhaseT = nowS;
+                const sAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
+                const sBMesh = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.5), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+                sBMesh.position.set(ep.u, ep.y + 1.4, ep.v); scene.add(sBMesh);
+                enemyBullets.push({ mesh: sBMesh, posU: ep.u, posV: ep.v, posY: ep.y + 1.4,
+                  dirU: Math.sin(sAng), dirV: Math.cos(sAng), dirY: 0, speed: 30, damage: en.damage, traveled: 0, range: 25 });
+                playSfx("tone:2000:80:sawtooth", 0.65); playSfx("tone:800:60:sawtooth", 0.4);
+                _applyScreenShake(0.15);
+                if (dist < 22) showToast("SNIPER SHOT INCOMING!", "danger", 800);
               }
             }
           },
