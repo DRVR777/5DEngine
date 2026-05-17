@@ -1205,7 +1205,7 @@ function _heroRespawn() {
   heroLastDamageT = -999;
   velocityY = 0;
   _stamina = STAMINA_MAX;
-  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0; _heroFireT = 0;
+  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0; _heroFireT = 0; _heroEmpT = 0;
   playSfx("tone:440:120:sine", 0.5);
   if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp });
   // Re-lock pointer
@@ -1994,6 +1994,7 @@ let damageFlashUntil = 0;
 let _vignetteAmt = 0; // spring [0..1]: driven by hit impulses + low-HP pulse
 let _heroFireT = 0;   // seconds hero is on fire (3 dmg/s, orange screen tint + particles)
 let _heroFireDmgT = 0;
+let _heroEmpT = 0;    // seconds sprinting is disabled (robot EMP burst debuff)
 let _camShakeAmt = 0; // decays to 0; applied to camera position as random offset
 function _applyScreenShake(intensity) { _camShakeAmt = Math.min(1, _camShakeAmt + intensity); }
 function flashDamage() {
@@ -5722,7 +5723,8 @@ function tick() {
   const crouchSpeedMul = 1 - _crouchAmt * 0.4; // 60% speed when fully crouched
   // Stamina — drains while sprinting, regens otherwise; requires STAMINA_LOCKOUT to re-enter sprint
   const wantsSprint = !!(keys["ShiftLeft"] || keys["ShiftRight"]) && !crouching && !inCar && !_heroDead;
-  const canSprint = wantsSprint && _stamina >= (isSprinting ? 1 : STAMINA_LOCKOUT);
+  if (_heroEmpT > 0) _heroEmpT -= dt;
+  const canSprint = wantsSprint && _stamina >= (isSprinting ? 1 : STAMINA_LOCKOUT) && _heroEmpT <= 0;
   if (canSprint && (inputF !== 0 || inputR !== 0)) {
     _stamina = Math.max(0, _stamina - STAMINA_DRAIN * dt);
   } else if (!wantsSprint || _stamina <= 0) {
@@ -6537,6 +6539,26 @@ function tick() {
                   dirU: Math.sin(shootAng) * cosP, dirV: Math.cos(shootAng) * cosP,
                   dirY: Math.sin(shootPitch), speed: 14, damage: 12, traveled: 0, range: 12 });
                 playSfx("tone:600:40:sine", 0.3);
+              }
+            }
+            // Robot EMP burst — blue ring pulse every 8s, disables hero sprint 2.5s within 4m
+            if (en.type === "robot" && canSee && dist < 12) {
+              if (!en._empT || now / 1000 - en._empT > 8.0) {
+                en._empT = now / 1000;
+                // Spawn an expanding blue shockwave ring (reuse shockwave system)
+                const _empRingGeo = new THREE.TorusGeometry(1, 0.06, 6, 36);
+                const _empRingMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.9, depthWrite: false });
+                const _empMesh = new THREE.Mesh(_empRingGeo, _empRingMat);
+                _empMesh.rotation.x = Math.PI / 2;
+                _empMesh.position.set(ep.u, 0.12, ep.v);
+                scene.add(_empMesh);
+                _shockwaves.push({ mesh: _empMesh, maxR: 8, t: 0, dur: 0.7 });
+                playSfx("tone:180:200:square", 0.55); playSfx("tone:320:150:square", 0.35);
+                if (dist < 4 && !_heroDead && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+                  _heroEmpT = 2.5;
+                  showToast("EMP! Sprint disabled 2.5s", "danger", 2500);
+                  damageFlashEl.style.opacity = "0.35";
+                }
               }
             }
             // Heavy grenade throw — lobs a grenade every 4s when 3.5–12m away with LOS
