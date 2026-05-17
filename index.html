@@ -2612,6 +2612,28 @@ function _tickDamageNumbers(dt) {
   }
 }
 
+// Boss slam shockwave rings — expanding torus on ground, fades over 0.55s
+const _shockwaves = [];
+const _swGeo = new THREE.TorusGeometry(1, 0.07, 6, 40);
+const _swBaseMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.85, depthWrite: false });
+function _spawnShockwave(u, v) {
+  const mesh = new THREE.Mesh(_swGeo, _swBaseMat.clone());
+  mesh.rotation.x = Math.PI / 2;
+  mesh.position.set(u, 0.08, v);
+  scene.add(mesh);
+  _shockwaves.push({ mesh, maxR: 5, t: 0, dur: 0.55 });
+}
+function _tickShockwaves(dt) {
+  for (let i = _shockwaves.length - 1; i >= 0; i--) {
+    const sw = _shockwaves[i];
+    sw.t += dt;
+    const pct = Math.min(1, sw.t / sw.dur);
+    if (pct >= 1) { scene.remove(sw.mesh); _shockwaves.splice(i, 1); continue; }
+    sw.mesh.scale.setScalar(sw.maxR * pct);
+    sw.mesh.material.opacity = 0.85 * (1 - pct);
+  }
+}
+
 // Muzzle flash point light — moves to gun tip on each shot, fades in 60ms
 const _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8);
 scene.add(_muzzleLight);
@@ -5685,6 +5707,7 @@ function tick() {
   _tickParticles(dt);
   _tickDamageNumbers(dt);
   _tickCasings(dt);
+  _tickShockwaves(dt);
   if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
   // Muzzle flash light decay
   if (_muzzleLightT > 0) {
@@ -6359,6 +6382,7 @@ function tick() {
                 _applyScreenShake(0.6);
                 _spawnParticles(ep.u, 0.1, ep.v, 80, "red", 10, 1.5);
                 _spawnParticles(ep.u, 0.5, ep.v, 40, "orange", 8, 1.2);
+                _spawnShockwave(ep.u, ep.v);
                 const slamRadius = 5, slamDmg = 50;
                 const shm = world.players.get("hero");
                 const shd = Math.hypot(shm.u - ep.u, shm.v - ep.v);
