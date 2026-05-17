@@ -1413,10 +1413,13 @@ function _throwGrenade() {
 }
 function _explodeGrenade(g) {
   scene.remove(g.mesh);
-  _spawnParticles(g.u, Math.max(g.y, 0.2), g.v, 35, "orange", 12, 0.8);
+  _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 200, "orange", 28, 3.2);
+  _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 80,  "white",  20, 4.5);
+  _spawnParticles(g.u, Math.max(g.y, 0.5), g.v, 60,  "red",    22, 2.0);
   if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("sparks", { x: g.u, y: g.y, z: g.v });
-  playSfx("tone:180:220:sawtooth", 0.8);
-  const RADIUS = 5, MAX_DMG = 80;
+  playSfx("tone:80:400:sawtooth", 1.0);
+  playSfx("tone:180:220:sawtooth", 0.7);
+  const RADIUS = 14, MAX_DMG = 80;
   for (const en of enemies) {
     if (en.dead) continue;
     const ep = world.players.get(en.id);
