@@ -1674,21 +1674,65 @@ _shadowBlob.rotation.x = -Math.PI / 2;
 _shadowBlob.position.y = 0.01;
 scene.add(_shadowBlob);
 
-// Pistol mesh — boxy primitive (drop in a .glb later via GLTFLoader)
-const gunBody = new THREE.Mesh(
-  new THREE.BoxGeometry(0.1, 0.16, 0.32),
-  new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.7, roughness: 0.4 })
-);
-const gunBarrel = new THREE.Mesh(
-  new THREE.BoxGeometry(0.06, 0.06, 0.4),
-  new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 })
-);
-gunBarrel.position.z = 0.34;
-const gunGroup = new THREE.Group();
-gunGroup.add(gunBody); gunGroup.add(gunBarrel);
-// Mount at the right hand: position relative to armR's pivot
-gunGroup.position.set(0, -0.7, 0.2);   // at the tip of the arm, slightly forward
-armR.add(gunGroup);
+// ---- Weapon mesh registry ----
+// _gunMount is the stable pivot on armR. Each weapon has its own child Group
+// (keyed by weapon id) — only the active one is visible. Drop in a real mesh
+// by calling window.registerGunMesh(weaponId, threeGroup).
+const _gunMount = new THREE.Group();
+_gunMount.position.set(0, -0.7, 0.2);  // tip of armR, slightly forward
+armR.add(_gunMount);
+
+const _gunMeshes = new Map();   // weaponId → THREE.Group
+
+function _buildPlaceholderGun(id) {
+  const dark = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.75, roughness: 0.35 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 });
+  const g = new THREE.Group();
+  const specs = {
+    pistol:  { body: [0.10, 0.16, 0.32], barrel: [0.06, 0.06, 0.40], bz: 0.34 },
+    rifle:   { body: [0.08, 0.13, 0.58], barrel: [0.05, 0.05, 0.60], bz: 0.56 },
+    shotgun: { body: [0.12, 0.16, 0.46], barrel: [0.09, 0.09, 0.38], bz: 0.40 },
+    smg:     { body: [0.09, 0.13, 0.28], barrel: [0.05, 0.05, 0.28], bz: 0.28 },
+    sniper:  { body: [0.07, 0.12, 0.70], barrel: [0.04, 0.04, 0.80], bz: 0.74 },
+  };
+  const s = specs[id] || specs.pistol;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(...s.body), dark);
+  const barrel = new THREE.Mesh(new THREE.BoxGeometry(...s.barrel), black);
+  barrel.position.z = s.bz;
+  g.add(body); g.add(barrel);
+  return g;
+}
+
+function _switchGunMesh(weaponId) {
+  _gunMeshes.forEach((mesh, id) => { mesh.visible = id === weaponId; });
+}
+
+// Seed placeholder for every configured weapon; active one visible, others hidden
+(function _initGunMeshes() {
+  const weps = (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : [];
+  weps.forEach(w => {
+    const mesh = _buildPlaceholderGun(w.id);
+    mesh.visible = w.id === currentWeaponId;
+    _gunMount.add(mesh);
+    _gunMeshes.set(w.id, mesh);
+  });
+  // Fallback: ensure at least pistol exists
+  if (!_gunMeshes.has("pistol")) {
+    const m = _buildPlaceholderGun("pistol");
+    m.visible = currentWeaponId === "pistol";
+    _gunMount.add(m); _gunMeshes.set("pistol", m);
+  }
+})();
+
+// Public hook: asset loader or user calls this to replace a placeholder with a real mesh.
+// The new group is positioned/scaled automatically to match the mount.
+window.registerGunMesh = function(weaponId, threeGroup) {
+  const old = _gunMeshes.get(weaponId);
+  if (old) _gunMount.remove(old);
+  threeGroup.visible = weaponId === currentWeaponId;
+  _gunMount.add(threeGroup);
+  _gunMeshes.set(weaponId, threeGroup);
+};
 scene.add(heroGroup);
 const walkState = { t: 0 };
 
@@ -3334,6 +3378,7 @@ addEventListener("keydown", (e) => {
         // Restore this weapon's mag ammo (or full mag if never used)
         const nw = weps[idx];
         pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
+        _switchGunMesh(currentWeaponId);
         playSfx("click", 0.4);
         reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 1000;
         _showWeaponSelector();
@@ -3994,7 +4039,7 @@ let lastT = performance.now();
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
-let _gunKickZ = 0;      // offset applied to gunGroup.position.z each frame
+let _gunKickZ = 0;      // offset applied to _gunMount.position.z each frame
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
@@ -4677,8 +4722,8 @@ function tick() {
   // Gun sway: bob left/right slightly while walking, kick back on shoot
   _gunKickZ += (0 - _gunKickZ) * Math.min(1, dt * 18); // spring back to 0
   const gunSwayX = Math.sin(wc.t * 2.2 + Math.PI) * wc.speed * 0.018;
-  gunGroup.position.set(0, -0.7 + wc.bob * 0.3, 0.2 + _gunKickZ);
-  gunGroup.rotation.z = gunSwayX;
+  _gunMount.position.set(0, -0.7 + wc.bob * 0.3, 0.2 + _gunKickZ);
+  _gunMount.rotation.z = gunSwayX;
   torso.position.y = 1.25 + wc.bob;
   // face the direction of last input (or camera-forward if idle)
   if (inputF !== 0 || inputR !== 0) {
@@ -5220,7 +5265,11 @@ setTimeout(() => {
       return;
     }
     console.info("Assets: loaders ready", r.formats, "—", r.slotCount, "slots");
-    window.AssetLoader.replacePlaceholder("pistol", armR, gunGroup, { position: { x: 0, y: -0.7, z: 0.2 } });
+    // When a pistol GLB loads, swap via registerGunMesh so the registry stays consistent
+    if (window.registerGunMesh) {
+      const pistolPlaceholder = _gunMeshes.get("pistol");
+      window.AssetLoader.replacePlaceholder("pistol", _gunMount, pistolPlaceholder, { position: { x: 0, y: 0, z: 0 } });
+    }
     window.AssetLoader.replacePlaceholder("car", carGroup, carBody, { position: { x: 0, y: 0.7, z: 0 } });
     if (typeof pickupMeshes !== "undefined") {
       for (const pk of pickups) {
