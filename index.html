@@ -6074,8 +6074,26 @@ function tick() {
       const gem = em.group.getObjectByName("_typeGem");
       if (gem) gem.rotation.y += dt * 2.5;
     } else {
-      em.group.visible = false;
-      if ((now / 1000 - en.respawnT) > ENEMY_RESPAWN_DELAY) {
+      // Death collapse animation: fall backward + sink over 0.6s, then go invisible
+      const _dElapsed = now / 1000 - en.respawnT;
+      const _COLLAPSE = 0.6;
+      if (_dElapsed < _COLLAPSE) {
+        const f = _dElapsed / _COLLAPSE;           // 0→1 over 0.6s
+        const ep2d = world.players.get(en.id);
+        em.group.position.set(ep2d.u, -f * 0.5, ep2d.v);
+        em.group.rotation.y = en.heading;
+        em.group.rotation.x = f * Math.PI * 0.5;  // topple 90° backward
+        em.group.scale.setScalar(1 - f * 0.5);    // shrink slightly
+        em.group.visible = true;
+        if (em.hpPivot) em.hpPivot.visible = false;
+        const _ab2 = em.group.getObjectByName("_alertBubble");
+        if (_ab2) _ab2.visible = false;
+      } else {
+        em.group.visible = false;
+        em.group.rotation.x = 0;
+        em.group.scale.setScalar(1);
+      }
+      if (_dElapsed > ENEMY_RESPAWN_DELAY) {
         en.dead = false; en.hp = en.maxHp;
         const ang = Math.random() * Math.PI * 2;
         en.u = Math.cos(ang) * (12 + Math.random() * 8);
