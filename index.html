@@ -992,6 +992,16 @@
 <script src="./src/audio/audio.js"></script>
 <script src="./src/audio/audio_webaudio.js"></script>
 <script src="./src/builder/builder.js"></script>
+<!-- socket.io served by game_server.py at /socket.io/socket.io.js.
+     Safe no-op when the page is opened directly (file:// or another server). -->
+<script>
+(function(){
+  var s=document.createElement("script");
+  s.src="/socket.io/socket.io.js";
+  s.onerror=function(){};   // silent fail when not running game_server.py
+  document.head.appendChild(s);
+})();
+</script>
 <script type="importmap">
 { "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
@@ -9033,6 +9043,7 @@ function tick() {
     }
   }
 
+  if (typeof _mp !== "undefined" && _mp.enabled) _mp.tick(dt);
   if (composer) composer.render(); else renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
@@ -9461,6 +9472,205 @@ function wireRadioApp() {
     wireRadioApp();
   });
 }
+
+// ── Multiplayer (LAN) ────────────────────────────────────────────────────────
+// Connects to game_server.py via Socket.IO. Fully optional — the game works
+// solo without the server. Both players open http://<HOST_LAN_IP>:5050/.
+//
+// Protocol (all events prefixed "mp_"):
+//   Client → Server  :  mp_name  mp_pos  mp_event
+//   Server → Client  :  mp_welcome  mp_player_joined  mp_player_left
+//                        mp_player_name  mp_pos  mp_event
+// ---------------------------------------------------------------------------
+const _mp = (function () {
+  // Retry after socket.io CDN loads (it's injected async above)
+  function _tryInit() {
+    if (typeof io === "undefined") {
+      // Not running via game_server.py — multiplayer disabled, no error
+      return { enabled: false, tick: () => {}, send: () => {}, sendEvent: () => {} };
+    }
+
+    const _sock   = io({ reconnectionAttempts: 5, timeout: 4000 });
+    let   _myId   = null;
+    const _peers  = new Map();  // id → { name, mesh, targetPos }
+
+    // ── Ghost mesh for a remote player ──────────────────────────────────────
+    function _makeGhostMesh(name) {
+      const grp  = new THREE.Group();
+      const bMat = new THREE.MeshStandardMaterial({ color: 0x0077ff, roughness: 0.7 });
+
+      // Body
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.2, 8), bMat);
+      body.position.y = 0.9; body.castShadow = true;
+      grp.add(body);
+
+      // Head
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), bMat);
+      head.position.y = 1.72; head.castShadow = true;
+      grp.add(head);
+
+      // Name label (canvas texture, billboarded every frame)
+      const cvs = document.createElement("canvas");
+      cvs.width = 256; cvs.height = 64;
+      const ctx = cvs.getContext("2d");
+      ctx.fillStyle = "rgba(0,8,22,0.85)"; ctx.fillRect(0, 0, 256, 64);
+      ctx.fillStyle = "#00ccff"; ctx.font = "bold 26px monospace";
+      ctx.textAlign = "center"; ctx.fillText((name || "?").slice(0, 14), 128, 42);
+      const tex = new THREE.CanvasTexture(cvs);
+      const lbl = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.5, 0.38),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide })
+      );
+      lbl.position.y = 2.3;
+      grp.add(lbl);
+      grp._lbl = lbl;
+      grp._lblTex = tex;
+
+      scene.add(grp);
+      return grp;
+    }
+
+    function _removePeer(id) {
+      const p = _peers.get(id);
+      if (p && p.mesh) scene.remove(p.mesh);
+      _peers.delete(id);
+      if (typeof showToast === "function") showToast(`Player ${p ? p.name : id} left`, "info", 2000);
+    }
+
+    function _addPeer(id, name, pos) {
+      if (_peers.has(id)) return;
+      const mesh = _makeGhostMesh(name || id);
+      const initPos = pos ? new THREE.Vector3(pos.u || 0, pos.y || 0, pos.v || 0) : new THREE.Vector3();
+      mesh.position.copy(initPos);
+      _peers.set(id, { name: name || id, mesh, targetPos: initPos.clone() });
+      if (typeof showToast === "function") showToast(`Player "${name || id}" joined!`, "success", 2500);
+    }
+
+    // ── Socket events ────────────────────────────────────────────────────────
+
+    _sock.on("connect", () => {
+      console.log("[MP] Connected to 5DEngine game server");
+      // Send a name: hostname-style random tag so players can tell each other apart
+      const tag = "P" + Math.floor(Math.random() * 9000 + 1000);
+      _sock.emit("mp_name", { name: tag });
+    });
+
+    _sock.on("mp_welcome", (data) => {
+      _myId = data.your_id;
+      for (const peer of (data.peers || [])) _addPeer(peer.id, peer.name, peer.pos);
+      const n = (data.peers || []).length + 1;
+      if (typeof showToast === "function") showToast(`Multiplayer online — ${n} player(s)`, "success", 3000);
+      console.log(`[MP] My ID: ${_myId}  peers: ${(data.peers || []).length}`);
+    });
+
+    _sock.on("mp_player_joined", (data) => {
+      _addPeer(data.id, data.name, null);
+    });
+
+    _sock.on("mp_player_left", (data) => {
+      _removePeer(data.id);
+    });
+
+    _sock.on("mp_player_name", (data) => {
+      const p = _peers.get(data.id);
+      if (p) p.name = data.name;
+    });
+
+    _sock.on("mp_pos", (data) => {
+      const p = _peers.get(data.id);
+      if (!p) return;
+      p.targetPos.set(data.u || 0, data.y || 0, data.v || 0);
+      if (data.heading != null) p.targetHeading = data.heading;
+    });
+
+    _sock.on("mp_event", (data) => {
+      if (data.type === "enemy_kill") {
+        // Peer killed an enemy — mark it dead locally so it's consistent
+        const en = enemies.find(e => e.id === data.enemy_id);
+        if (en && !en.dead) {
+          en.dead = true;
+          en.respawnT = performance.now() / 1000;
+        }
+      }
+    });
+
+    _sock.on("disconnect", () => {
+      console.log("[MP] Disconnected from game server");
+      if (typeof showToast === "function") showToast("Multiplayer disconnected", "danger", 3000);
+      for (const [, p] of _peers) if (p.mesh) scene.remove(p.mesh);
+      _peers.clear();
+    });
+
+    // ── Tick: smooth-lerp ghost meshes toward received positions ────────────
+    function tick(dt) {
+      for (const [, p] of _peers) {
+        if (!p.mesh) continue;
+        // Position lerp — 12 = ~83ms to close gap at 60fps (very smooth on LAN)
+        p.mesh.position.lerp(p.targetPos, Math.min(1, dt * 12));
+        // Yaw lerp
+        if (p.targetHeading != null) {
+          let dH = p.targetHeading - p.mesh.rotation.y;
+          while (dH >  Math.PI) dH -= Math.PI * 2;
+          while (dH < -Math.PI) dH += Math.PI * 2;
+          p.mesh.rotation.y += dH * Math.min(1, dt * 12);
+        }
+        // Billboard name label toward camera
+        if (p.mesh._lbl && typeof camera !== "undefined") {
+          p.mesh._lbl.lookAt(camera.position);
+        }
+      }
+    }
+
+    // ── Send: called at 20 Hz from setInterval below ─────────────────────────
+    function send(heroPos) {
+      if (!_sock.connected) return;
+      _sock.emit("mp_pos", {
+        u:       heroPos.u || 0,
+        v:       heroPos.v || 0,
+        y:       heroPos.y || 0,
+        heading: typeof camYaw !== "undefined"        ? camYaw        : 0,
+        weapon:  typeof currentWeaponId !== "undefined" ? currentWeaponId : "pistol",
+        hp:      typeof heroHp !== "undefined"        ? heroHp        : 100,
+        anim:    typeof isSprinting !== "undefined" && isSprinting ? "sprint"
+               : typeof crouching  !== "undefined" && crouching  ? "crouch" : "idle",
+      });
+    }
+
+    function sendEvent(type, data) {
+      if (!_sock.connected) return;
+      _sock.emit("mp_event", Object.assign({ type }, data));
+    }
+
+    return { enabled: true, tick, send, sendEvent, peers: _peers };
+  }
+
+  // socket.io loads async — wait up to 3s then initialise
+  let _inst = null;
+  setTimeout(() => { _inst = _tryInit(); }, 600);
+  // Proxy that delegates to the real instance once it's ready
+  return {
+    get enabled() { return !!(_inst && _inst.enabled); },
+    tick(dt)      { _inst && _inst.tick(dt); },
+    send(hp)      { _inst && _inst.send(hp); },
+    sendEvent(t, d) { _inst && _inst.sendEvent(t, d); },
+  };
+})();
+
+// Send position at 20 Hz — clean interval, world must be ready
+setInterval(() => {
+  if (typeof world === "undefined") return;
+  const hp = world.players.get("hero");
+  if (hp) _mp.send(hp);
+}, 50);
+
+// Hook into existing EventBus so ALL kill sources (bullets, mines, barrel,
+// melee, fire) broadcast the event — no need to patch every kill site
+if (typeof EventBus !== "undefined") {
+  EventBus.on(EventBus.EVENTS.ENEMY_KILLED, (data) => {
+    _mp.sendEvent("enemy_kill", { enemy_id: data.id });
+  });
+}
+// ── End multiplayer ──────────────────────────────────────────────────────────
 </script>
 </body>
 </html>
