@@ -6490,6 +6490,7 @@ function tick() {
                 score += 50; // big boss bonus
                 showToast("★ BOSS DEFEATED! +50 coins!", "success", 4000);
                 _addKillFeedEntry("★★ BOSS DEFEATED ★★", "#ffd166");
+                _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.6); // cinematic kill slow-mo
               }
               _vignetteAmt = Math.min(1, _vignetteAmt + (en.type === "boss" ? 0.9 : 0.4));
               playSfx(`tone:${en.type==="robot"?300:en.type==="boss"?50:200}:${en.type==="boss"?800:180}:sawtooth`, 0.6);
