@@ -7078,7 +7078,16 @@ function tick() {
         if (Math.abs(_epc.u) > _AR || Math.abs(_epc.v) > _AR)
           world.setPlayer(en.id, _epc.x, 0, 0, Math.max(-_AR, Math.min(_AR, _epc.u)), Math.max(-_AR, Math.min(_AR, _epc.v))); }
       const ep2 = world.players.get(en.id);
-      em.group.position.set(ep2.u, 0, ep2.v);
+      // Walk bob — vertical bounce when chasing; frequency/amplitude scale with moveSpeed
+      const _enMoving = en._wasChasing || (en._heardShot > 0);
+      if (_enMoving) {
+        if (!en._walkBobPhase) en._walkBobPhase = Math.random() * Math.PI * 2;
+        en._walkBobPhase += (en.moveSpeed || 2.5) * 3.5 * dt;
+        const _enBobAmp = en.type === "boss" ? 0.06 : en.type === "heavy" ? 0.05 : en.type === "fast" ? 0.04 : 0.035;
+        em.group.position.set(ep2.u, Math.abs(Math.sin(en._walkBobPhase)) * _enBobAmp, ep2.v);
+      } else {
+        em.group.position.set(ep2.u, 0, ep2.v);
+      }
       em.group.rotation.y = en.heading;
       // Flinch spring — pitch backward on hit, spring back to 0
       if (en._flinchX == null) en._flinchX = 0;
