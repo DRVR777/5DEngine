@@ -6669,6 +6669,8 @@ function tick() {
     const hp = world.players.get("hero");
     const du = _dodgeVelU * dt, dv = _dodgeVelV * dt;
     world.setPlayer("hero", hp.x, hp.y, hp.z, hp.u + du, hp.v + dv);
+    // Dodge trail — cyan afterimage particles
+    if (Math.random() < 0.7) _spawnParticles(hp.u, hp.y + 0.6, hp.v, 2, "cyan", 2.5, 0.18);
   }
   _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   if (_fpGunActive) {
