@@ -1021,6 +1021,9 @@ window._enemies = enemies;   // exposed for WaveManager alive-count tracking
 const enemy = enemies[0];
 const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
 let enemyKills = 0;
+let _shotsFired = 0;
+let _shotsHit = 0;
+let _damageDealt = 0;
 let _streakCount = 0;
 let _lastKillT = 0;
 const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
@@ -1071,10 +1074,14 @@ function _heroShowDeathScreen() {
   const stats   = document.getElementById("deathStats");
   const cntEl   = document.getElementById("deathCountdown");
   if (!overlay) return;
+  const _acc = _shotsFired > 0 ? Math.round(_shotsHit / _shotsFired * 100) : 0;
   if (stats) stats.innerHTML =
-    `Kills: <b style="color:#ff8888">${enemyKills}</b><br>` +
-    `Coins: <b style="color:#ffd166">${score}</b><br>` +
-    `Wave: <b style="color:#aef060">${typeof WaveManager !== "undefined" ? WaveManager.getState().wave : "—"}</b>`;
+    `Kills: <b style="color:#ff8888">${enemyKills}</b> &nbsp;|&nbsp; ` +
+    `Wave: <b style="color:#aef060">${typeof WaveManager !== "undefined" ? WaveManager.getState().wave : "—"}</b><br>` +
+    `Coins: <b style="color:#ffd166">${score}</b> &nbsp;|&nbsp; ` +
+    `Damage dealt: <b style="color:#ff9944">${_damageDealt}</b><br>` +
+    `Shots fired: <b style="color:#aaddff">${_shotsFired}</b> &nbsp;|&nbsp; ` +
+    `Accuracy: <b style="color:${_acc >= 50 ? "#aef060" : _acc >= 25 ? "#ffd166" : "#ff8888"}">${_acc}%</b>`;
   if (cntEl) cntEl.textContent = RESPAWN_DELAY;
   overlay.style.display = "flex";
   _deathCountdownT = RESPAWN_DELAY;
@@ -1087,8 +1094,11 @@ function _heroRespawn() {
   const sp = _getSpawnPoint();
   world.setPlayer("hero", 0, 0, 0, sp.u, sp.v);
   heroHp = HERO_MAX_HP;
+  heroArmor = 0;
   heroLastDamageT = -999;
   velocityY = 0;
+  _stamina = STAMINA_MAX;
+  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0;
   playSfx("tone:440:120:sine", 0.5);
   if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp });
   // Re-lock pointer
@@ -4881,6 +4891,7 @@ function _tryShoot() {
     mesh.position.set(hp.u, bulletY, hp.v);
     scene.add(mesh);
     bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirY, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
+    _shotsFired++;
   }
   const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
   _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
@@ -5273,6 +5284,7 @@ function tick() {
           const headshot = b.posY > 1.35;
           const dmg = Math.round(b.damage * (headshot ? 1.85 : 1));
           en.hp = Math.max(0, en.hp - dmg);
+          _shotsHit++; _damageDealt += dmg;
           hitMarkerUntil = now + (headshot ? 200 : 120);
           if (headshot) {
             showToast("HEADSHOT!", "danger", 600);
