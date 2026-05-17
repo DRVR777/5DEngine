@@ -8045,7 +8045,20 @@ function tick() {
       }
       playSfx("tone:900:80:sine", 0.5); playSfx("tone:1200:60:sine", 0.3);
       _spawnParticles(wp.u, 0.5, wp.v, 14, "white", 5, 0.4);
-      showToast(`Looted ${wDef ? (wDef.name || wp.weaponId).toUpperCase() : wp.weaponId.toUpperCase()} — mag filled!`, "success", 2400);
+      // Auto-equip looted weapon if current gun is dry (empty mag + no reserve)
+      const _curReserve = wDef ? Inv.countItem(heroInv, (getWeapon().ammoItem || "pistol_9mm")) : 0;
+      const _autoEquip = pistolAmmo <= 0 && _curReserve <= 0 && wDef && wp.weaponId !== currentWeaponId;
+      if (_autoEquip) {
+        weaponAmmo.set(currentWeaponId, 0);
+        currentWeaponId = wDef.id;
+        pistolAmmo = wDef.magCap;
+        if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
+        _switchGunMesh(currentWeaponId);
+        _weaponSwitchT = 0.3;
+        playSfx("click", 0.5);
+        _showWeaponSelector();
+      }
+      showToast(`Looted ${wDef ? (wDef.name || wp.weaponId).toUpperCase() : wp.weaponId.toUpperCase()}${_autoEquip ? " — AUTO-EQUIPPED!" : " — mag filled!"}`, "success", 2400);
       _addKillFeedEntry(`★ WEAPON LOOTED — ${wp.weaponId.toUpperCase()}`, "#aaddff");
     }
   }
