@@ -335,6 +335,8 @@
 
 <!-- Toast notification container -->
 <div id="toastContainer" style="position:fixed;top:48px;right:8px;display:flex;flex-direction:column;gap:6px;z-index:300;pointer-events:none"></div>
+<!-- Floating damage numbers layer -->
+<div id="dmgNumLayer" style="position:fixed;inset:0;pointer-events:none;z-index:200;overflow:hidden"></div>
 
 <!-- Quest / objective panel (J key toggle) -->
 <div id="questPanel" style="display:none;position:fixed;left:8px;top:50%;transform:translateY(-50%);width:240px;background:rgba(2,8,22,0.94);border:1px solid rgba(0,200,255,0.35);border-radius:8px;padding:14px;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:11px;color:#b8e8ff;box-shadow:0 0 24px rgba(0,200,255,0.18);z-index:100">
@@ -1701,6 +1703,36 @@ const _pMatRed     = new THREE.MeshBasicMaterial({ color: 0xff2244 });
 const _pMatCyan    = new THREE.MeshBasicMaterial({ color: 0x00ccff });
 const _pMatWhite   = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const _pMatsMap    = { yellow:_pMatYellow, orange:_pMatOrange, red:_pMatRed, cyan:_pMatCyan, white:_pMatWhite };
+
+// Floating damage numbers — project 3D world pos to screen, rise and fade
+const _dmgNums = [];
+function _spawnDamageNumber(worldX, worldY, worldZ, text, color) {
+  const layer = document.getElementById("dmgNumLayer");
+  if (!layer) return;
+  const el = document.createElement("div");
+  el.textContent = text;
+  el.style.cssText = `position:absolute;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-weight:bold;font-size:14px;color:${color};text-shadow:0 1px 3px #000a;pointer-events:none;user-select:none;white-space:nowrap;`;
+  layer.appendChild(el);
+  _dmgNums.push({ el, wx: worldX, wy: worldY, wz: worldZ, riseY: 0, life: 1.0 });
+}
+function _tickDamageNumbers(dt) {
+  for (let i = _dmgNums.length - 1; i >= 0; i--) {
+    const n = _dmgNums[i];
+    n.life -= dt * 1.4;
+    n.riseY += dt * 2.0;
+    if (n.life <= 0) { n.el.remove(); _dmgNums.splice(i, 1); continue; }
+    // Project to screen
+    const v = new THREE.Vector3(n.wx, n.wy + n.riseY, n.wz);
+    v.project(camera);
+    if (v.z > 1) { n.el.style.display = "none"; continue; }
+    const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+    n.el.style.left = sx + "px";
+    n.el.style.top  = sy + "px";
+    n.el.style.opacity = Math.max(0, n.life).toFixed(2);
+    n.el.style.display = "block";
+  }
+}
 
 // Muzzle flash point light — moves to gun tip on each shot, fades in 60ms
 const _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8);
@@ -4181,8 +4213,9 @@ function tick() {
     mesh.rotation.y += dt * 1.2;
   }
 
-  // Tick particles
+  // Tick particles + damage numbers
   _tickParticles(dt);
+  _tickDamageNumbers(dt);
   if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
   // Muzzle flash light decay
   if (_muzzleLightT > 0) {
@@ -4269,6 +4302,9 @@ function tick() {
           en._kbU = ((ep.u - b.posU) / kbLen) * 3.5;
           en._kbV = ((ep.v - b.posV) / kbLen) * 3.5;
           en._kbT = 0.1;
+          // Floating damage number
+          const dmgColor = headshot ? "#ff0" : (en.type === "robot" ? "#0cf" : "#f44");
+          _spawnDamageNumber(b.posU, b.posY + 1.0, b.posV, headshot ? `${dmg} HS!` : `-${dmg}`, dmgColor);
           // Robots spark cyan/white; biological enemies bleed red
           const hitColor = en.type === "robot" ? (headshot ? "white" : "cyan") : "red";
           _spawnParticles(b.posU, b.posY, b.posV, headshot ? 10 : 5, hitColor, 4, 0.25);
