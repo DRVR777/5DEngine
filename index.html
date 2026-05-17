@@ -5455,6 +5455,23 @@ function tick() {
         en._wasChasing = false;
       }
 
+      // Low-HP stagger: enemies slow to 55% speed and flash red when below 25% HP
+      const _hpFrac = en.hp / en.maxHp;
+      const _enSpeedMul = _hpFrac < 0.25 ? 0.55 : 1;
+      if (en.mesh && en.mesh.children) {
+        const _pulse = _hpFrac < 0.25 ? (0.5 + 0.5 * Math.sin(now / 120)) : 0;
+        for (const ch of en.mesh.children) {
+          if (ch.isMesh && ch.material && !ch._isHpBar) {
+            if (!ch._origColor) ch._origColor = ch.material.color.clone();
+            ch.material.color.setRGB(
+              Math.min(1, ch._origColor.r + _pulse * 0.6),
+              ch._origColor.g * (1 - _pulse * 0.4),
+              ch._origColor.b * (1 - _pulse * 0.4)
+            );
+          }
+        }
+      }
+
       if (en._bt && typeof BehaviorTree !== "undefined") {
         BehaviorTree.run(en._bt, {
           enemy: en, hero: _heroNowAI, dt, now: now / 1000,
@@ -5479,14 +5496,14 @@ function tick() {
               const m = Math.hypot(ddx, ddz) || 1;
               en.heading = Math.atan2(ddx, ddz);
               { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*dt, (ddz/m)*en.moveSpeed*dt, buildingBlockers);
+                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*_enSpeedMul*dt, (ddz/m)*en.moveSpeed*_enSpeedMul*dt, buildingBlockers);
                 world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
             } else {
               const ddx = target.u - ep.u, ddz = target.v - ep.v;
               const m = Math.hypot(ddx, ddz) || 1;
               en.heading = Math.atan2(ddx, ddz);
               { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*dt, (ddz/m)*en.moveSpeed*dt, buildingBlockers);
+                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*_enSpeedMul*dt, (ddz/m)*en.moveSpeed*_enSpeedMul*dt, buildingBlockers);
                 world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
             }
             // Robot ranged attack — fires a plasma bolt every 1.5s when within 10m line-of-sight
@@ -5538,7 +5555,7 @@ function tick() {
             const m = Math.hypot(ddx, ddz) || 1;
             const wanderSpd = (en.wanderSpeed || 1.0);
             { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-              GTAPhysics.resolveAABBMove(_em, (ddx/m)*wanderSpd*dt, (ddz/m)*wanderSpd*dt, buildingBlockers);
+              GTAPhysics.resolveAABBMove(_em, (ddx/m)*wanderSpd*_enSpeedMul*dt, (ddz/m)*wanderSpd*_enSpeedMul*dt, buildingBlockers);
               world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
           },
           onAttack: (ctx) => {
@@ -5580,7 +5597,7 @@ function tick() {
         if (dist <= (en.sightRange || 12) && dist > (en.attackRange || 1.8)) {
           const m = dist || 1;
           { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-            GTAPhysics.resolveAABBMove(_em, (dx/m)*en.moveSpeed*dt, (dz/m)*en.moveSpeed*dt, buildingBlockers);
+            GTAPhysics.resolveAABBMove(_em, (dx/m)*en.moveSpeed*_enSpeedMul*dt, (dz/m)*en.moveSpeed*_enSpeedMul*dt, buildingBlockers);
             world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
         }
       }
