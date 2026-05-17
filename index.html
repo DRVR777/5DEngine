@@ -5366,6 +5366,7 @@ let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscilla
 let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
 let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
+let _missSndT = 0; // near-miss whiz cooldown (0.5s to avoid spam)
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -5986,8 +5987,14 @@ function tick() {
         }
         scene.remove(b.mesh); enemyBullets.splice(i, 1); continue;
       }
+      // Near-miss whiz — bullet passed within 1.5m without hitting
+      if (_missSndT <= 0 && du*du + dv*dv < 2.25 && Math.abs(dh) < 1.2 && !_heroDead) {
+        _missSndT = 0.5;
+        playSfx("tone:2800:18:sine", 0.12);
+      }
       if (b.traveled >= b.range) { scene.remove(b.mesh); enemyBullets.splice(i, 1); }
     }
+    _missSndT = Math.max(0, _missSndT - dt);
   }
 
   // Grenade physics + detonation
