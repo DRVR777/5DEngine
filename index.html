@@ -5977,6 +5977,9 @@ function tick() {
     crosshairDiv.style.width  = _chBloom.toFixed(1) + "px";
     crosshairDiv.style.height = _chBloom.toFixed(1) + "px";
     crosshairDiv.style.opacity = _heroDead ? "0" : "1";
+    // Apex mode — gold crosshair at max level
+    crosshairDiv.style.borderColor = _heroApexMode ? "rgba(255,210,0,0.85)" : "rgba(0,200,255,0.7)";
+    crosshairDiv.style.boxShadow   = _heroApexMode ? "0 0 8px rgba(255,200,0,0.5)" : "0 0 6px rgba(0,200,255,0.4)";
   }
 
   // Sniper scope sway — gentle breathing oscillation while scoped (reduced when crouching)
@@ -8441,7 +8444,9 @@ function tick() {
     stFillEl.style.width = stPct + "%";
     stFillEl.style.background = _stamina < STAMINA_LOCKOUT
       ? "linear-gradient(90deg,#ff4444,#ff8844)"
-      : "linear-gradient(90deg,#44aaff,#00ccff)";
+      : _heroApexMode
+        ? "linear-gradient(90deg,#ffcc00,#ffe066)"
+        : "linear-gradient(90deg,#44aaff,#00ccff)";
   }
 
   // Boss HP bar — shows when a live boss enemy exists
