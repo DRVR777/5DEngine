@@ -4388,6 +4388,7 @@ function tick() {
           en._kbU = ((ep.u - b.posU) / kbLen) * 3.5;
           en._kbV = ((ep.v - b.posV) / kbLen) * 3.5;
           en._kbT = 0.1;
+          en._flinchX = headshot ? -0.6 : -0.3; // backward pitch impulse
           // Floating damage number
           const dmgColor = headshot ? "#ff0" : (en.type === "robot" ? "#0cf" : "#f44");
           _spawnDamageNumber(b.posU, b.posY + 1.0, b.posV, headshot ? `${dmg} HS!` : `-${dmg}`, dmgColor);
@@ -4568,6 +4569,10 @@ function tick() {
       const ep2 = world.players.get(en.id);
       em.group.position.set(ep2.u, 0, ep2.v);
       em.group.rotation.y = en.heading;
+      // Flinch spring — pitch backward on hit, spring back to 0
+      if (en._flinchX == null) en._flinchX = 0;
+      en._flinchX += (0 - en._flinchX) * Math.min(1, dt * 14);
+      em.group.rotation.x = en._flinchX;
       em.group.visible = true;
       const hpFrac = en.hp / en.maxHp;
       em.hpFg.scale.x = Math.max(0.001, hpFrac);
