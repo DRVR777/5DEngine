@@ -4921,11 +4921,11 @@ function tick() {
       }
     } else {
       vGrp.rotation.y = vst ? vst.heading : 0;
-      // Spin wheels proportional to speed
+      // Spin wheels proportional to speed (rotation.x = rolling around cylinder axis after z-tilt)
       if (vGrp._wheels && vst && vst.speed !== 0) {
         const wheelRadius = 0.35;
         const spinDelta = (vst.speed / wheelRadius) * dt;
-        for (const wh of vGrp._wheels) wh.rotation.y += spinDelta;
+        for (const wh of vGrp._wheels) wh.rotation.x -= spinDelta;
       }
       vGrp.visible = true; // car stays visible when riding (TP camera shows it)
     }
