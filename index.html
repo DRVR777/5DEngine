@@ -1352,6 +1352,10 @@ const grenades3D = [];
 let grenadeCount = 3;
 const _grenadesGeo = new THREE.SphereGeometry(0.15, 8, 6);
 const _grenadesMat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xcc3300, emissiveIntensity: 0.9 });
+
+// Grenade arc preview — initialized after scene is created
+const _ARC_DOT_COUNT = 14;
+let _arcDots = null; // filled lazily once scene exists
 function _throwGrenade() {
   if (grenadeCount <= 0) { showToast("No grenades!", "danger", 800); return; }
   if (buildMode || computerOpen) return;
@@ -4465,6 +4469,36 @@ function tick() {
     g.mesh.rotation.x += dt * 8; g.mesh.rotation.z += dt * 5;
     // Blink faster as fuse runs low
     g.mesh.material.emissiveIntensity = g.fuse < 1 ? (Math.floor(g.fuse * 10) % 2 === 0 ? 2.5 : 0.2) : 0.9;
+  }
+
+  // Grenade arc preview — show dotted arc when F is held
+  if (!_arcDots) {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.7 });
+    const geo = new THREE.SphereGeometry(0.06, 6, 4);
+    _arcDots = Array.from({ length: _ARC_DOT_COUNT }, () => {
+      const m = new THREE.Mesh(geo, mat);
+      m.visible = false;
+      scene.add(m);
+      return m;
+    });
+  }
+  const _showArc = !buildMode && !computerOpen && !_heroDead && grenadeCount > 0 && keys["KeyF"];
+  if (_showArc) {
+    const hp = world.players.get("hero");
+    const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
+    let au = hp.u + fx * 0.5, ay = hp.y + 1.2, av = hp.v + fz * 0.5;
+    let vU = fx * 13, vY = 6, vV = fz * 13;
+    const step = 0.08;
+    for (let i = 0; i < _ARC_DOT_COUNT; i++) {
+      au += vU * step; ay += vY * step; av += vV * step;
+      vY -= 9.8 * step;
+      if (ay < 0) ay = 0;
+      _arcDots[i].position.set(au, ay, av);
+      _arcDots[i].visible = true;
+      _arcDots[i].material.opacity = 0.7 * (1 - i / _ARC_DOT_COUNT);
+    }
+  } else {
+    if (_arcDots) _arcDots.forEach(d => { d.visible = false; });
   }
 
   // Drive all enemy AI via BehaviorTree (patrol→chase→attack)
