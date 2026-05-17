@@ -5338,6 +5338,7 @@ let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep pe
 let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
 let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
+let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -6030,6 +6031,31 @@ function tick() {
       if (tmin < tmax && tmax > 0.05 && tmin < 0.95) return false;
     }
     return true;
+  }
+
+  // Enemy footstep sounds — plays for nearest moving enemy within 12m, globally throttled
+  _enFsT -= dt;
+  if (_enFsT <= 0 && !_heroDead) {
+    let _fsNearEn = null, _fsNearDist = Infinity;
+    const _fsHero = world.players.get("hero");
+    if (_fsHero) {
+      for (const _fsE of enemies) {
+        if (_fsE.dead) continue;
+        const _fsEp = world.players.get(_fsE.id);
+        if (!_fsEp) continue;
+        const _fsDist = Math.hypot(_fsEp.u - _fsHero.u, _fsEp.v - _fsHero.v);
+        if (_fsDist < _fsNearDist) { _fsNearDist = _fsDist; _fsNearEn = _fsE; }
+      }
+    }
+    if (_fsNearEn && _fsNearDist < 12) {
+      const _fsInterval = _fsNearEn.type === "fast" ? 0.28 : _fsNearEn.type === "heavy" ? 0.50 : 0.40;
+      _enFsT = _fsInterval;
+      const _fsVol = Math.max(0, 0.10 * (1 - _fsNearDist / 12));
+      const _fsFreq = _fsNearEn.type === "heavy" ? 32 : _fsNearEn.type === "fast" ? 62 : 46;
+      if (_fsVol > 0.012) playSfx(`tone:${_fsFreq}:22:triangle`, _fsVol);
+    } else {
+      _enFsT = 0.4;
+    }
   }
 
   // Drive all enemy AI via BehaviorTree (patrol→chase→attack)
