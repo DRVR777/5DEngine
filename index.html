@@ -6559,7 +6559,14 @@ function tick() {
     const _recentDmg = _re._hpBarShowT && (now / 1000 - _re._hpBarShowT) < 8;
     if (!_recentDmg && !_re._wasChasing) {
       _re.hp = Math.min(_re.maxHp, _re.hp + 4 * dt);
-    }
+      // Visual telegraph — green "+HP" float every 1.8s while regenerating
+      _re._regenT = (_re._regenT || 0) - dt;
+      if (_re._regenT <= 0) {
+        _re._regenT = 1.8;
+        const _rep = world.players.get(_re.id);
+        if (_rep) _spawnDamageNumber(_rep.u, 2.0, _rep.v, "+HP", "#00ff66");
+      }
+    } else { _re._regenT = 0; }
   }
 
   // Enemy separation — push enemies apart when overlapping (prevents clumping)
