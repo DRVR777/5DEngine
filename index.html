@@ -302,6 +302,7 @@
 <div id="weaponPanel">
   <div id="wpName">PISTOL</div>
   <div id="wpAmmo">12<span id="wpReserve"> / 60</span></div>
+  <div id="wpMagBar" style="display:flex;gap:2px;margin-top:4px;flex-wrap:wrap;max-width:160px"></div>
   <div id="wpGrenades" style="font-size:10px;color:#ff8800;margin-top:2px;letter-spacing:0.05em">⬡ 3 grenades <span style="color:#555">[F]</span></div>
 </div>
 
@@ -5202,6 +5203,18 @@ function tick() {
     const reserve = Inv.countItem(heroInv, _wp.ammoItem || "pistol_9mm");
     if (wpAmmoEl) wpAmmoEl.childNodes[0].textContent = pistolAmmo;
     if (wpResEl)  wpResEl.textContent = " / " + reserve;
+    // Mag segment bar — one pip per bullet, capped at 30 displayed
+    const magBar = document.getElementById("wpMagBar");
+    if (magBar) {
+      const cap = Math.min(_wp.magCap || 12, 30);
+      const filled = Math.min(pistolAmmo, cap);
+      const reloading = _reloading;
+      magBar.innerHTML = Array.from({ length: cap }, (_, i) => {
+        const lit = i < filled;
+        const clr = reloading ? "#ff8800" : (lit ? "#00ccff" : "#1a2a3a");
+        return `<div style="width:5px;height:10px;background:${clr};border-radius:1px;opacity:${lit||reloading?1:0.4}"></div>`;
+      }).join("");
+    }
     const grenEl = document.getElementById("wpGrenades");
     if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[F]</span>`;
   }
