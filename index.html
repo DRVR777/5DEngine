@@ -3541,6 +3541,126 @@ if (window.ScreenMesh) {
     scene.add(skyMesh);
     worldScreens.set(skyScreen.id, { screen: skyScreen, mesh: skyMesh });
   }
+  // BUILD CONSOLE — large world-space screen at the south map edge.
+  // In build mode the crosshair raycasts against this screen; LMB fires hit regions.
+  // Pointer stays locked the entire time — no cursor mode needed.
+  const BUILD_CONSOLE_W = 30, BUILD_CONSOLE_H = 12;  // metres
+  const BUILD_CONSOLE_RW = 1024, BUILD_CONSOLE_RH = 400;
+  const _SPAWN_BTNS = ["box","sphere","cylinder","plane","cone","torus","light"];
+  const _SCENE_BTNS = ["undo","redo","clone","delete","save","load"];
+  let _bcHover = null; // id of hovered hit region
+
+  function _makeBuildHitRegions() {
+    const regions = [];
+    // Spawn row — top strip
+    _SPAWN_BTNS.forEach((kind, i) => {
+      const x = 20 + i * 138, y = 20, w = 126, h = 70;
+      regions.push({ id: "spawn_" + kind, label: kind.toUpperCase(), x, y, w, h,
+        onClick: () => {
+          const hp = world.players.get("hero");
+          const fwdX = Math.sin(freeCamYaw || 0) * 4, fwdZ = Math.cos(freeCamYaw || 0) * 4;
+          if (worldBuilder) worldBuilder.spawnPrimitive(kind, { x: (hp && hp.u || 0) + fwdX, y: 1.0, z: (hp && hp.v || 0) + fwdZ });
+          playSfx("blip", 0.3);
+        },
+      });
+    });
+    // Action row — bottom strip
+    const acts = { undo: () => worldBuilder && worldBuilder.undo(), redo: () => worldBuilder && worldBuilder.redo(),
+      clone: () => worldBuilder && worldBuilder.cloneSelected(), delete: () => worldBuilder && worldBuilder.deleteSelected(),
+      save: () => { if (worldBuilder) { worldBuilder.saveState(); showToast("Scene saved", "success", 800); } },
+      load: () => { if (worldBuilder) { const s = worldBuilder.loadState(); if (s) worldBuilder.rehydrate(s); showToast("Scene loaded", "info", 800); } },
+    };
+    _SCENE_BTNS.forEach((act, i) => {
+      const x = 20 + i * 165, y = BUILD_CONSOLE_RH - 90, w = 153, h = 68;
+      regions.push({ id: "act_" + act, label: act.toUpperCase(), x, y, w, h, onClick: acts[act] });
+    });
+    return regions;
+  }
+
+  const buildConsoleScreen = SM.createScreen({
+    id: "buildConsole",
+    resolutionW: BUILD_CONSOLE_RW, resolutionH: BUILD_CONSOLE_RH,
+    widthM: BUILD_CONSOLE_W, heightM: BUILD_CONSOLE_H,
+    state: { cursorX: -1, cursorY: -1, hoverBtn: null },
+    hitRegions: _makeBuildHitRegions(),
+    paint: (ctx, sc) => {
+      ctx.fillStyle = "#030c1e";
+      ctx.fillRect(0, 0, BUILD_CONSOLE_RW, BUILD_CONSOLE_RH);
+      // Title
+      ctx.fillStyle = "#00ccff";
+      ctx.font = "bold 18px monospace";
+      ctx.fillText("⬡ 5DENGINE BUILD CONSOLE  [LMB=click · WASD=fly · R=lock toggle]", 14, 14);
+      // Spawn buttons
+      _SPAWN_BTNS.forEach((kind, i) => {
+        const x = 20 + i * 138, y = 20, w = 126, h = 70;
+        const hover = sc.state.hoverBtn === "spawn_" + kind;
+        ctx.fillStyle = hover ? "rgba(0,200,255,0.35)" : "rgba(0,200,255,0.1)";
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = hover ? "#00ccff" : "rgba(0,200,255,0.4)";
+        ctx.lineWidth = hover ? 2 : 1;
+        ctx.strokeRect(x, y, w, h);
+        ctx.fillStyle = "#b8e8ff";
+        ctx.font = "bold 16px monospace";
+        ctx.fillText(kind.toUpperCase(), x + 8, y + 34);
+        const ico = { box:"▬", sphere:"●", cylinder:"⊙", plane:"▭", cone:"▲", torus:"◎", light:"☀" }[kind] || "+";
+        ctx.font = "22px monospace";
+        ctx.fillText(ico, x + 8, y + 62);
+      });
+      // Selection info — center strip
+      const selX = 20, selY = 110;
+      ctx.fillStyle = "#00ccff";
+      ctx.font = "bold 13px monospace";
+      ctx.fillText("SELECTION", selX, selY);
+      ctx.fillStyle = "#66aacc";
+      ctx.font = "12px monospace";
+      try {
+        const sel = worldBuilder && worldBuilder.getSelected();
+        if (sel) {
+          const p = sel.position, r = sel.rotation, s = sel.scale;
+          ctx.fillStyle = "#aef060";
+          ctx.fillText(sel.name || sel.uuid.slice(0, 8), selX, selY + 20);
+          ctx.fillStyle = "#b8e8ff";
+          ctx.fillText(`pos  (${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`, selX, selY + 38);
+          ctx.fillText(`rot  (${(r.x*57.3).toFixed(0)}°, ${(r.y*57.3).toFixed(0)}°, ${(r.z*57.3).toFixed(0)}°)`, selX, selY + 54);
+          ctx.fillText(`scl  (${s.x.toFixed(2)}, ${s.y.toFixed(2)}, ${s.z.toFixed(2)})`, selX, selY + 70);
+        } else {
+          ctx.fillText("(nothing selected — spawn something above)", selX, selY + 30);
+        }
+      } catch (_) {}
+      // Action buttons
+      _SCENE_BTNS.forEach((act, i) => {
+        const x = 20 + i * 165, y = BUILD_CONSOLE_RH - 90, w = 153, h = 68;
+        const hover = sc.state.hoverBtn === "act_" + act;
+        const danger = act === "delete";
+        ctx.fillStyle = danger ? (hover ? "rgba(255,60,60,0.4)" : "rgba(255,60,60,0.12)") : (hover ? "rgba(0,200,255,0.3)" : "rgba(0,200,255,0.08)");
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = danger ? (hover ? "#ff4444" : "rgba(255,60,60,0.4)") : (hover ? "#00ccff" : "rgba(0,200,255,0.3)");
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+        ctx.fillStyle = danger ? "#ff8888" : "#b8e8ff";
+        ctx.font = "bold 15px monospace";
+        ctx.fillText(act.toUpperCase(), x + 10, y + 38);
+      });
+      // Virtual cursor
+      if (sc.state.cursorX >= 0) {
+        const cx = sc.state.cursorX, cy = sc.state.cursorY;
+        ctx.strokeStyle = "#ffff00";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx - 10, cy); ctx.lineTo(cx + 10, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy + 10); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI*2); ctx.stroke();
+      }
+    },
+  });
+  const buildConsoleMesh = SM.bindToThree(THREE, buildConsoleScreen, { doubleSided: false });
+  if (buildConsoleMesh) {
+    buildConsoleMesh.position.set(0, BUILD_CONSOLE_H / 2 + 1, -88);
+    buildConsoleMesh.rotation.y = 0; // faces +z (toward hero spawn)
+    scene.add(buildConsoleMesh);
+    worldScreens.set(buildConsoleScreen.id, { screen: buildConsoleScreen, mesh: buildConsoleMesh });
+  }
+  window._buildConsoleScreen = buildConsoleScreen;
+  window._buildConsoleMesh = buildConsoleMesh;
 }
 
 // ---- input ----
@@ -4254,6 +4374,12 @@ renderer.domElement.addEventListener("mousedown", (e) => {
   if (e.button !== 0) return;
   // BUILD MODE: check gizmo axis first, then LMB picks scene objects.
   if (buildMode && worldBuilder) {
+    // Build console LMB — if crosshair is on the build console screen, fire the region
+    if (pointerLocked && window._bcHoverRegion && window._buildConsoleScreen) {
+      const sc = window._buildConsoleScreen;
+      const region = (sc.hitRegions || []).find(r => r.id === window._bcHoverRegion);
+      if (region && typeof region.onClick === "function") { region.onClick(sc); e.preventDefault(); return; }
+    }
     const rect = renderer.domElement.getBoundingClientRect();
     const ndc = {
       x: ((e.clientX - rect.left) / rect.width)  * 2 - 1,
@@ -5551,6 +5677,32 @@ function tick() {
         window.ScreenMesh.update(entry.screen);
       }
     }
+    // Build console — crosshair raycast + virtual cursor when in build mode
+    const _bcSc = window._buildConsoleScreen;
+    const _bcMesh = window._buildConsoleMesh;
+    if (buildMode && _bcSc && _bcMesh && pointerLocked) {
+      const _bcRay = new THREE.Raycaster();
+      _bcRay.setFromCamera({ x: 0, y: 0 }, camera);
+      const _bcHits = _bcRay.intersectObject(_bcMesh, false);
+      if (_bcHits.length > 0 && _bcHits[0].uv) {
+        const uv = _bcHits[0].uv;
+        const cx = Math.round(uv.x * _bcSc.resolutionW);
+        const cy = Math.round((1 - uv.y) * _bcSc.resolutionH);
+        // Find hovered hit region
+        let hoverBtn = null;
+        for (const r of (_bcSc.hitRegions || [])) {
+          if (cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h) { hoverBtn = r.id; break; }
+        }
+        window.ScreenMesh.setState(_bcSc, { cursorX: cx, cursorY: cy, hoverBtn });
+        window._bcHoverRegion = hoverBtn;
+      } else {
+        window.ScreenMesh.setState(_bcSc, { cursorX: -1, cursorY: -1, hoverBtn: null });
+        window._bcHoverRegion = null;
+      }
+    } else if (_bcSc) {
+      window.ScreenMesh.setState(_bcSc, { cursorX: -1, cursorY: -1, hoverBtn: null });
+    }
+
     // Mouse-mode cursor overlay — paint a crosshair on the active screen
     // AFTER the regular paint so it stays on top.
     if (mouseMode && activeMouseScreen && activeMouseScreen.canvas) {
