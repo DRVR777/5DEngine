@@ -1869,6 +1869,12 @@ function _explodeGrenade(g) {
     if (d < RADIUS) {
       const dmg = Math.round(MAX_DMG * (1 - d / RADIUS));
       en.hp = Math.max(0, en.hp - dmg); en._hpBarShowT = performance.now() / 1000;
+      // Blast knockback — push enemy outward from explosion origin
+      const _bkbLen = d || 1;
+      const _bkbStr = Math.max(0, 14 * (1 - d / RADIUS));
+      en._kbU = ((ep.u - g.u) / _bkbLen) * _bkbStr;
+      en._kbV = ((ep.v - g.v) / _bkbLen) * _bkbStr;
+      en._kbT = 0.28;
       if (en.hp <= 0 && !en.dead) {
         en.dead = true; en.respawnT = performance.now() / 1000; enemyKills++;
         _comboCount++; _comboLastT = performance.now() / 1000;
