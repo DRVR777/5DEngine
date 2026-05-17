@@ -2138,21 +2138,28 @@ if (typeof WaveManager !== "undefined") {
       const bonus = w * 3; // +3 coins per wave number
       score += bonus;
       heroHp = Math.min(HERO_MAX_HP, heroHp + 15);  // small heal on wave clear
+      // Accuracy bonus — ≥60% hit rate earns extra coins
+      const _acc = _shotsFired > 0 ? _shotsHit / _shotsFired : 0;
+      const _accBonus = (_acc >= 0.6 && _shotsFired >= 5) ? Math.round(_acc * w * 5) : 0;
+      const _accPct = Math.round(_acc * 100);
+      if (_accBonus > 0) { score += _accBonus; playSfx("tone:1600:60:sine", 0.3); }
       playSfx("tone:800:100:sine", 0.5);
       playSfx("tone:1000:80:sine", 0.45);
       setTimeout(() => playSfx("tone:1300:160:sine", 0.4), 180);
-      showToast(`Wave ${w} clear! +${bonus} coins +15 HP`, "success", 2800);
-      _addKillFeedEntry(`★ WAVE ${w} CLEAR — +${bonus} coins`, "#00ffcc");
+      showToast(`Wave ${w} clear! +${bonus} coins +15 HP${_accBonus > 0 ? ` +${_accBonus} acc!` : ""}`, "success", 2800);
+      _addKillFeedEntry(`★ WAVE ${w} CLEAR — +${bonus} coins · ${_accPct}% accuracy${_accBonus > 0 ? ` +${_accBonus}` : ""}`, "#00ffcc");
       const _wcb = document.getElementById("waveClearBanner");
       const _wct = document.getElementById("waveClearTitle");
       const _wcs = document.getElementById("waveClearSub");
       if (_wcb) {
         if (_wct) _wct.textContent = `WAVE ${w} CLEAR`;
-        if (_wcs) _wcs.textContent = `+${bonus} coins · +15 HP · next wave in ${typeof WaveManager !== "undefined" ? WaveManager.getState().pauseLeft || "…" : "…"}s`;
+        if (_wcs) _wcs.textContent = `+${bonus} coins · +15 HP · ${_accPct}% accuracy${_accBonus > 0 ? ` · +${_accBonus} ACCURACY BONUS!` : ""} · next wave in ${typeof WaveManager !== "undefined" ? WaveManager.getState().pauseLeft || "…" : "…"}s`;
         _wcb.style.display = "block";
         _wcb.style.animation = "waveClearIn 2.8s ease forwards";
         setTimeout(() => { _wcb.style.display = "none"; _wcb.style.animation = ""; }, 2900);
       }
+      // Reset accuracy counters for next wave
+      _shotsFired = 0; _shotsHit = 0;
     },
     onAllWaves:  ()  => {
       _bulletTimeLeft = 0.55; // final kill slow-mo
