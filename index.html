@@ -1819,8 +1819,30 @@ function _renderAdminGrid() {
 // Grenade system — G key throws, 2.5s fuse, AoE on detonation
 const grenades3D = [];
 let grenadeCount = 3;
+let smokeGrenadeCount = 2;   // smoke grenades (T key) — break enemy LOS for 6s
+const smokeZones = [];       // active smoke zones [{u,v,radius,timeLeft}]
 const _grenadesGeo = new THREE.SphereGeometry(0.15, 8, 6);
 const _grenadesMat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xcc3300, emissiveIntensity: 0.9 });
+const _smokeGrenGeo = new THREE.SphereGeometry(0.14, 8, 6);
+const _smokeGrenMat = new THREE.MeshStandardMaterial({ color: 0x667755, emissive: 0x223311, emissiveIntensity: 0.5 });
+function _deploySmokeZone(u, v) {
+  smokeZones.push({ u, v, radius: 3.5, timeLeft: 6.0 });
+  for (let _si = 0; _si < 18; _si++) _spawnParticles(u, 0.4, v, 2, "white", 2.8, 1.8);
+  playSfx("tone:280:300:sine", 0.35);
+}
+function _throwSmokeGrenade() {
+  if (smokeGrenadeCount <= 0) { showToast("No smoke grenades!", "danger", 800); return; }
+  if (buildMode || computerOpen) return;
+  smokeGrenadeCount--;
+  const hp = world.players.get("hero");
+  const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
+  const mesh = new THREE.Mesh(_smokeGrenGeo, _smokeGrenMat.clone());
+  mesh.position.set(hp.u + fx * 0.5, hp.y + 1.2, hp.v + fz * 0.5);
+  scene.add(mesh);
+  grenades3D.push({ mesh, fuse: 8.0, u: hp.u + fx * 0.5, y: hp.y + 1.2, v: hp.v + fz * 0.5,
+    velU: fx * 10, velY: 5, velV: fz * 10, _isSmoke: true });
+  playSfx("tone:500:40:square", 0.22);
+}
 
 // Grenade arc preview — initialized after scene is created
 const _ARC_DOT_COUNT = 14;
@@ -4503,6 +4525,10 @@ addEventListener("keydown", (e) => {
       e.preventDefault(); return;
     }
   }
+  // T key: throw smoke grenade
+  if (e.code === "KeyT" && !buildMode && !computerOpen && !_heroDead) {
+    _throwSmokeGrenade(); e.preventDefault(); return;
+  }
   // G key: start grenade cook (throw on keyup) / group selected (build mode)
   if (e.code === "KeyG") {
     if (buildMode && window._builderGroupSelected) { window._builderGroupSelected(); e.preventDefault(); return; }
@@ -6091,10 +6117,14 @@ function tick() {
     g.velY += GRAVITY * dt;
     g.u += g.velU * dt; g.y += g.velY * dt; g.v += g.velV * dt;
     // Smoke trail while airborne
-    if (g.y > 0.1 && Math.random() < 0.55) _spawnParticles(g.u, g.y, g.v, 1, "white", 0.8, 0.35);
+    if (g.y > 0.1 && Math.random() < 0.55) _spawnParticles(g.u, g.y, g.v, 1, g._isSmoke ? "white" : "white", 0.8, 0.35);
     // Bounce slightly off ground
     if (g.y <= 0) {
       g.y = 0;
+      // Smoke grenade deploys when it lands and slows to near-stop
+      if (g._isSmoke && !g._deployed && Math.abs(g.velY) < 3.5) {
+        g._deployed = true; _deploySmokeZone(g.u, g.v); scene.remove(g.mesh); grenades3D.splice(i, 1); continue;
+      }
       if (g.fuse <= 0) { _explodeGrenade(g); grenades3D.splice(i, 1); continue; }
       // Metallic tink on significant bounce impacts (fades with each bounce)
       if (g.velY < -1.0) playSfx("tone:2400:22:triangle", Math.min(0.22, Math.abs(g.velY) / 28));
@@ -6232,7 +6262,8 @@ function tick() {
       const dx = _heroNowAI.u - ep.u, dz = _heroNowAI.v - ep.v;
       const dist = Math.hypot(dx, dz);
       const _effSight = (en.sightRange || 12) * (crouching ? 0.6 : 1.0);
-      const canSee = dist <= _effSight && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
+      const _smokeBlind = smokeZones.some(sz => Math.hypot(ep.u-sz.u, ep.v-sz.v) < sz.radius || Math.hypot(_heroNowAI.u-sz.u, _heroNowAI.v-sz.v) < sz.radius);
+      const canSee = !_smokeBlind && dist <= _effSight && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
       // Gunshot alert — enemies within 9m without LOS move toward last shot position
       if (!canSee && !en._wasChasing && _heroShotAlertT > 0) {
         const _adist = Math.hypot(ep.u - _heroShotAlertU, ep.v - _heroShotAlertV);
@@ -7251,6 +7282,14 @@ function tick() {
     }
   }
 
+  // Smoke zones — decay and spawn continuous white particles
+  for (let _szi = smokeZones.length - 1; _szi >= 0; _szi--) {
+    const sz = smokeZones[_szi];
+    sz.timeLeft -= dt;
+    if (sz.timeLeft <= 0) { smokeZones.splice(_szi, 1); continue; }
+    if (Math.random() < 0.8) _spawnParticles(sz.u + (Math.random()-0.5)*sz.radius, 0.5 + Math.random()*1.5, sz.v + (Math.random()-0.5)*sz.radius, 1, "white", 0.6, 0.9);
+  }
+
   // Weapon pickups — walk over to fill mag + get reserve ammo for that weapon
   for (const wp of weaponPickups) {
     if (wp.collected) continue;
@@ -7714,7 +7753,7 @@ function tick() {
       }).join("");
     }
     const grenEl = document.getElementById("wpGrenades");
-    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[G]</span>`;
+    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[G]</span>  ◎ ${smokeGrenadeCount} smoke <span style="color:#555">[T]</span>`;
   }
 
   // Vehicle dashboard
