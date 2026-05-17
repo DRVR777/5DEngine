@@ -61,11 +61,32 @@
     transform: translate(-50%, -50%);
     border-radius: 50%;
   }
-  #inventory, #computerOverlay {
+  #inventory, #computerOverlay, #shopOverlay {
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(0,0,0,0.65); z-index: 1000;
   }
-  #inventory.open, #computerOverlay.open { display: flex; }
+  #inventory.open, #computerOverlay.open, #shopOverlay.open { display: flex; }
+  #shopOverlay .shopPanel {
+    background: linear-gradient(135deg, #1a2210 0%, #0d1a08 100%);
+    color: #eee; padding: 24px 28px; border-radius: 12px;
+    border: 2px solid #88cc44; min-width: 600px;
+    font-family: ui-monospace,"Cascadia Code",Consolas,monospace;
+    box-shadow: 0 0 40px #88cc4488;
+  }
+  #shopOverlay .shopTitle {
+    display:flex;justify-content:space-between;align-items:center;
+    border-bottom:1px solid #88cc4455;padding-bottom:8px;margin-bottom:16px;font-size:14px;
+  }
+  #shopOverlay .shopGrid { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+  #shopOverlay .shopItem {
+    background:#1a2a10;border:1px solid #88cc4455;padding:14px;border-radius:8px;cursor:pointer;
+    transition:background 120ms;
+  }
+  #shopOverlay .shopItem:hover { background:#2a4010; }
+  #shopOverlay .shopItem.disabled { opacity:0.45;cursor:not-allowed; }
+  #shopOverlay .shopItem .iName { font-weight:bold;color:#aef060;font-size:13px; }
+  #shopOverlay .shopItem .iDesc { color:#889;font-size:11px;margin:4px 0; }
+  #shopOverlay .shopItem .iCost { color:#ffd166;font-size:12px; }
   #computerOverlay .desktop {
     background: linear-gradient(135deg, #1a3050 0%, #0d1a30 100%);
     color: #eee; padding: 24px 28px; border-radius: 12px;
@@ -477,6 +498,17 @@
     <h3>Inventory <span style="color:#888;font-weight:normal;">— press I or Esc to close</span></h3>
     <div class="grid" id="invGrid"></div>
     <div style="margin-top:10px;color:#888;">Weight: <span id="invWeight">0</span> kg</div>
+  </div>
+</div>
+<div id="shopOverlay">
+  <div class="shopPanel">
+    <div class="shopTitle">
+      <span><b style="color:#aef060">SHOP</b> <span style="color:#888">— buy gear with coins</span></span>
+      <span style="color:#ffd166">Coins: <b id="shopCoinDisplay">0</b> &nbsp;
+        <span id="shopClose" style="cursor:pointer;color:#ff5d5d;font-weight:bold;font-size:16px;padding:2px 10px;background:#3a0a0a;border-radius:4px;border:1px solid #ff5d5d44">✕</span>
+      </span>
+    </div>
+    <div class="shopGrid" id="shopGrid"></div>
   </div>
 </div>
 <div id="builderUI" style="display:none;position:fixed;top:10px;right:200px;width:290px;background:rgba(2,8,22,0.94);border:1px solid rgba(0,200,255,0.4);border-radius:8px;color:#b8e8ff;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12px;padding:12px;z-index:50;box-shadow:0 0 24px rgba(0,200,255,0.18),inset 0 0 12px rgba(0,200,255,0.04)">
@@ -1212,6 +1244,70 @@ function setAmmo(n) { weaponAmmo.set(currentWeaponId, n); }
 const bullets3D = [];
 let pistolAmmo = 12;       // keep for backwards-compat ammoHud render; mirrors getAmmo()
 let pistolCooldown = 0;
+
+// Shop system — Tab to open, coin-based purchases
+let shopOpen = false;
+const _SHOP_ITEMS = [
+  { id: "ammo_pistol",  name: "Pistol Ammo",    desc: "+30 pistol rounds",         cost: 2,  action: () => { Inv.addItem(heroInv, "pistol_9mm", 30); } },
+  { id: "ammo_rifle",   name: "Rifle Ammo",      desc: "+30 rifle rounds",          cost: 3,  action: () => { Inv.addItem(heroInv, "rifle_556",  30); } },
+  { id: "ammo_shotgun", name: "Shotgun Shells",  desc: "+16 shotgun shells",        cost: 3,  action: () => { Inv.addItem(heroInv, "shotgun_12g", 16); } },
+  { id: "medkit",       name: "Medkit",          desc: "+1 medkit (use: H key)",    cost: 4,  action: () => { Inv.addItem(heroInv, "medkit", 1); } },
+  { id: "grenade",      name: "Grenades x3",     desc: "+3 grenades",               cost: 5,  action: () => { grenadeCount = Math.min(9, grenadeCount + 3); } },
+  { id: "armor",        name: "Armor Shard",     desc: "+25 max HP (this session)", cost: 8,  action: () => { heroHp = Math.min(heroHp + 25, HERO_MAX_HP + 25); } },
+  { id: "ammo_max",     name: "Full Resupply",   desc: "Fill all ammo + 2 medkits", cost: 15, action: () => {
+    const sw = getWeapon();
+    Inv.addItem(heroInv, "pistol_9mm", 60);
+    Inv.addItem(heroInv, "rifle_556",  60);
+    Inv.addItem(heroInv, "shotgun_12g", 32);
+    Inv.addItem(heroInv, "medkit", 2);
+  }},
+  { id: "grenade_max",  name: "Grenade Crate",   desc: "Max grenades (9)",          cost: 12, action: () => { grenadeCount = 9; } },
+];
+function _openShop() {
+  if (computerOpen || buildMode) return;
+  shopOpen = true;
+  document.exitPointerLock && document.exitPointerLock();
+  const el = document.getElementById("shopOverlay");
+  const grid = document.getElementById("shopGrid");
+  if (!el || !grid) return;
+  el.classList.add("open");
+  _renderShopGrid();
+}
+function _renderShopGrid() {
+  const grid = document.getElementById("shopGrid");
+  const coinEl = document.getElementById("shopCoinDisplay");
+  if (coinEl) coinEl.textContent = score;
+  if (!grid) return;
+  grid.innerHTML = _SHOP_ITEMS.map(item => {
+    const canAfford = score >= item.cost;
+    return `<div class="shopItem${canAfford ? "" : " disabled"}" data-id="${item.id}">
+      <div class="iName">${item.name}</div>
+      <div class="iDesc">${item.desc}</div>
+      <div class="iCost">${item.cost} coins</div>
+    </div>`;
+  }).join("");
+  grid.querySelectorAll(".shopItem:not(.disabled)").forEach(el => {
+    el.addEventListener("click", () => {
+      const item = _SHOP_ITEMS.find(i => i.id === el.dataset.id);
+      if (!item || score < item.cost) return;
+      score -= item.cost;
+      item.action();
+      playSfx("tone:900:80:sine", 0.5);
+      showToast(`Bought: ${item.name}`, "success", 1200);
+      _renderShopGrid();
+    });
+  });
+}
+function _closeShop() {
+  shopOpen = false;
+  const el = document.getElementById("shopOverlay");
+  if (el) el.classList.remove("open");
+  document.getElementById("gameCanvas")?.requestPointerLock?.();
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const closeBtn = document.getElementById("shopClose");
+  if (closeBtn) closeBtn.addEventListener("click", _closeShop);
+});
 
 // Grenade system — F key throws, 2.5s fuse, AoE on detonation
 const grenades3D = [];
@@ -3155,17 +3251,23 @@ addEventListener("keydown", (e) => {
     if (e.code === "KeyV") { snapZoomTarget = window.CameraSpine.zoomForZone("THIRD_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
     if (e.code === "KeyZ") { snapZoomTarget = window.CameraSpine.zoomForZone("BIRD_VIEW")    * CAM_DIST_MAX; e.preventDefault(); return; }
   }
-  // Tab opens/closes creative inventory (build mode)
-  if (e.code === "Tab" && buildMode) {
-    if (window._openCreativeInv && window._closeCreativeInv) {
-      const ci = document.getElementById("creativeInv");
-      if (ci && ci.classList.contains("open")) window._closeCreativeInv();
-      else window._openCreativeInv && window._openCreativeInv();
+  // Tab opens/closes creative inventory (build mode) OR shop (play mode)
+  if (e.code === "Tab") {
+    if (buildMode) {
+      if (window._openCreativeInv && window._closeCreativeInv) {
+        const ci = document.getElementById("creativeInv");
+        if (ci && ci.classList.contains("open")) window._closeCreativeInv();
+        else window._openCreativeInv && window._openCreativeInv();
+      }
+    } else if (!computerOpen) {
+      if (shopOpen) _closeShop();
+      else _openShop();
     }
     e.preventDefault(); return;
   }
-  // Esc closes creative inventory if open
+  // Esc closes shop or creative inventory if open
   if (e.code === "Escape") {
+    if (shopOpen) { _closeShop(); e.preventDefault(); return; }
     const ci = document.getElementById("creativeInv");
     if (ci && ci.classList.contains("open")) { window._closeCreativeInv && window._closeCreativeInv(); e.preventDefault(); return; }
   }
@@ -3800,7 +3902,7 @@ document.addEventListener("mousedown", (e) => { if (e.button === 0) _mouseHeld =
 document.addEventListener("mouseup",   (e) => { if (e.button === 0) _mouseHeld = false; });
 
 function _tryShoot() {
-  if (_reloading) return;
+  if (_reloading || shopOpen) return;
   const wep = getWeapon();
   if (pistolCooldown > 0 || pistolAmmo <= 0) return;
   pistolCooldown = 1 / wep.fireRate;
@@ -4738,8 +4840,8 @@ function tick() {
   const hpBar = "▰".repeat(hpFilled) + "▱".repeat(hpBarLen - hpFilled);
   const hpColor = hpFrac > 0.5 ? "#5dff5d" : (hpFrac > 0.25 ? "#ffd166" : "#ff5d5d");
 
-  hud.innerHTML += `<br>coins <b>${score}/${pickups.length}</b>` +
-    (score === pickups.length ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "") +
+  hud.innerHTML += `<br>coins <b style="color:#ffd166">${score}</b> <span style="color:#666;font-size:9px">[Tab=shop]</span>` +
+    (score === pickups.length && pickups.length > 0 ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "") +
     `<br>hp <b style="color:${hpColor}">${heroHp.toFixed(0)}/${HERO_MAX_HP}</b> ` +
     `<span style="color:${hpColor};font-family:monospace">${hpBar}</span>` +
     `<br>kills <b style="color:#ff6666">${enemyKills}</b>` +
