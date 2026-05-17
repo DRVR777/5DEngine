@@ -67,6 +67,8 @@ const CONTRACTS = {
   "src/systems/trigger_zones.js":    ["init", "addBox", "addSphere", "remove", "tick"],
   "src/audio/sound_zones.js":        ["addZone", "tick"],
   "src/systems/cutscene.js":         ["define", "play", "stop", "isPlaying", "tick"],
+  "src/core/engine.js":              ["register", "get", "has", "list", "time", "debug", "addCommand", "runCommand"],
+  "src/core/dev_console.js":         ["init", "print", "toggle"],
 };
 
 const ROOT = path.resolve(__dirname, "..");
