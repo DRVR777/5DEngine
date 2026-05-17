@@ -6069,7 +6069,7 @@ function tick() {
 
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
-  const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? 0.45 : 0));
+  const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? (crouching ? 0.18 : 0.45) : (crouching ? 0 : 0)));
 
   // Footstep sounds — synthetic tap when hero walks/runs on ground (not in vehicle, not dead)
   if (isMoving && !_heroDead && pointerLocked) {
