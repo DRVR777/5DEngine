@@ -5689,6 +5689,28 @@ function _tryShoot() {
     // Auto-reload when mag is empty and reserve ammo exists
     const _arInv = Inv.countItem(heroInv, wep.ammoItem || "pistol_9mm");
     if (_arInv > 0) { _reloading = true; _reloadStart = performance.now(); playSfx("tone:200:120:square", 0.5); playSfx("click", 0.5); reloadMsg = "reloading…"; reloadMsgUntil = performance.now() + RELOAD_DUR(); }
+    else {
+      // Completely dry — auto-switch to nearest weapon with any ammo
+      const _weps = CFG.weapons || [];
+      const _curIdx = _weps.findIndex(w => w.id === currentWeaponId);
+      for (let _si = 1; _si < _weps.length; _si++) {
+        const _ni = ((_curIdx + _si) % _weps.length);
+        const _nw = _weps[_ni];
+        const _nMag = weaponAmmo.has(_nw.id) ? weaponAmmo.get(_nw.id) : _nw.magCap;
+        const _nRes = Inv.countItem(heroInv, _nw.ammoItem || "pistol_9mm");
+        if (_nMag > 0 || _nRes > 0) {
+          weaponAmmo.set(currentWeaponId, 0);
+          currentWeaponId = _nw.id;
+          pistolAmmo = _nMag;
+          if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
+          _switchGunMesh(currentWeaponId);
+          playSfx("click", 0.5);
+          showToast(`Auto-switch → ${_nw.name || _nw.id}`, "warn", 1200);
+          _showWeaponSelector();
+          break;
+        }
+      }
+    }
     return;
   }
   pistolCooldown = 1 / wep.fireRate;
