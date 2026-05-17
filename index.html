@@ -327,6 +327,14 @@
     <circle cx="50" cy="50" r="42" fill="none" stroke="#ff2222" stroke-width="4" opacity="0.85" stroke-dasharray="264"/>
   </svg>
 </div>
+<!-- Boss HP bar (top-center, below kill feed) -->
+<div id="bossHpBar" style="display:none;position:fixed;top:75px;left:50%;transform:translateX(-50%);width:340px;pointer-events:none;z-index:202;text-align:center;font-family:ui-monospace,monospace">
+  <div id="bossName" style="font-size:10px;font-weight:900;color:#ff4444;letter-spacing:0.22em;text-transform:uppercase;margin-bottom:4px;text-shadow:0 0 8px #ff0000aa">BOSS</div>
+  <div style="width:100%;height:10px;background:rgba(60,0,0,0.7);border:1px solid rgba(255,40,0,0.5);border-radius:5px;overflow:hidden;box-shadow:0 0 12px rgba(255,40,0,0.3)">
+    <div id="bossHpFill" style="height:100%;background:linear-gradient(90deg,#cc0000,#ff4400);width:100%;transition:width 0.12s ease-out;border-radius:5px"></div>
+  </div>
+  <div id="bossHpVal" style="font-size:9px;color:#ff8888;margin-top:3px;letter-spacing:0.1em">1200 / 1200</div>
+</div>
 <!-- Kill combo multiplier HUD (top-right, below minimap) -->
 <div id="comboHud" style="display:none;position:fixed;top:200px;right:8px;pointer-events:none;z-index:200;font-family:ui-monospace,monospace;text-align:right;min-width:56px">
   <div id="comboMulText" style="font-size:30px;font-weight:900;color:#ffd166;text-shadow:0 0 14px #ff8800cc;letter-spacing:0.04em;line-height:1">x1</div>
@@ -6892,6 +6900,30 @@ function tick() {
     stFillEl.style.background = _stamina < STAMINA_LOCKOUT
       ? "linear-gradient(90deg,#ff4444,#ff8844)"
       : "linear-gradient(90deg,#44aaff,#00ccff)";
+  }
+
+  // Boss HP bar — shows when a live boss enemy exists
+  { const bossBarEl = document.getElementById("bossHpBar");
+    const bossHpFillEl = document.getElementById("bossHpFill");
+    const bossHpValEl  = document.getElementById("bossHpVal");
+    const bossNameEl   = document.getElementById("bossName");
+    if (bossBarEl) {
+      const liveBoss = enemies.find(e => !e.dead && e.type === "boss");
+      if (liveBoss) {
+        bossBarEl.style.display = "block";
+        const bFrac = Math.max(0, liveBoss.hp / liveBoss.maxHp);
+        const bPulse = bFrac < 0.3 ? `0 0 ${8 + 6 * Math.sin(now / 180)}px rgba(255,0,0,0.7)` : "0 0 12px rgba(255,40,0,0.3)";
+        if (bossHpFillEl) {
+          bossHpFillEl.style.width = (bFrac * 100).toFixed(1) + "%";
+          bossHpFillEl.style.background = bFrac > 0.5 ? "linear-gradient(90deg,#cc0000,#ff4400)" : bFrac > 0.25 ? "linear-gradient(90deg,#aa0000,#ff2200)" : "linear-gradient(90deg,#660000,#cc0000)";
+          bossHpFillEl.parentElement.style.boxShadow = bPulse;
+        }
+        if (bossHpValEl) bossHpValEl.textContent = `${Math.ceil(liveBoss.hp)} / ${liveBoss.maxHp}`;
+        if (bossNameEl)  bossNameEl.textContent = "☠ BOSS";
+      } else {
+        bossBarEl.style.display = "none";
+      }
+    }
   }
 
   // Kill combo multiplier HUD
