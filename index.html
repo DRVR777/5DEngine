@@ -6305,6 +6305,25 @@ function tick() {
                 }
               }
             }
+            // Fast enemy charge dash — burst toward hero at 2.2x extra speed for 0.4s, every 3.5-5.5s
+            if (en.type === "fast" && canSee && dist > 2.0 && dist < 8) {
+              if (!en._chargeCD || (now / 1000 - en._chargeCD) > (en._chargeInterval || 4.0)) {
+                en._chargeCD = now / 1000;
+                en._chargeInterval = 3.5 + Math.random() * 2.0;
+                en._chargeDur = 0.38;
+                en._chargeDirU = dx / (dist || 1);
+                en._chargeDirV = dz / (dist || 1);
+                playSfx("tone:760:40:square", 0.18);
+                _spawnParticles(ep.u, ep.y + 0.5, ep.v, 6, "orange", 6, 0.14);
+              }
+            }
+            if (en.type === "fast" && en._chargeDur > 0) {
+              en._chargeDur -= dt;
+              const _cEp = world.players.get(en.id);
+              const _cem2 = { u: _cEp.u, v: _cEp.v, hitbox: { w: 0.7, d: 0.7 } };
+              GTAPhysics.resolveAABBMove(_cem2, en._chargeDirU * en.moveSpeed * 2.2 * dt, en._chargeDirV * en.moveSpeed * 2.2 * dt, buildingBlockers);
+              world.setPlayer(en.id, _cEp.x, 0, 0, _cem2.u, _cem2.v);
+            }
             // Sniper — stays at 10-18m, 4s fire cycle: 1.2s lock-on + shot
             if (en.type === "sniper" && canSee) {
               const nowS = now / 1000;
