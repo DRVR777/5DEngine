@@ -1501,6 +1501,8 @@ window._spawnEnemyAtHero = function(typeName) {
 function _addKillFeedEntry(text, color = "#ff4466") {
   const feed = document.getElementById("killFeed");
   if (!feed) return;
+  // Cap at 5 visible entries — remove oldest if overflow
+  while (feed.children.length >= 5) feed.removeChild(feed.firstChild);
   const el = document.createElement("div");
   el.style.cssText = `color:${color};font-family:ui-monospace,monospace;font-size:11px;` +
     `background:rgba(2,8,22,0.88);border:1px solid rgba(255,68,102,0.3);border-radius:4px;` +
