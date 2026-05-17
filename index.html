@@ -43,6 +43,10 @@
     background: radial-gradient(ellipse at center, transparent 40%, rgba(220,0,0,0.75) 100%);
     opacity: 0;
   }
+  #statusTint {
+    position: fixed; inset: 0; pointer-events: none; z-index: 998;
+    opacity: 0; transition: background 0.3s ease;
+  }
   #crosshair {
     position: fixed; left: 50%; top: 50%;
     transform: translate(-50%, -50%);
@@ -529,6 +533,7 @@
 <canvas id="minimap" width="180" height="180"></canvas>
 <div id="crosshair"></div>
 <div id="damageFlash"></div>
+<div id="statusTint"></div>
 
 <!-- Keybind reference (? key) -->
 <div id="keybindPanel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,6,18,0.96);border:1px solid rgba(0,200,255,0.4);border-radius:8px;padding:20px 28px;z-index:1500;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12px;color:#a0c8e0;min-width:320px;pointer-events:none">
@@ -6717,6 +6722,23 @@ function tick() {
   const vigTarget = Math.max(lowHpPulse, 0);
   _vignetteAmt += (vigTarget - _vignetteAmt) * Math.min(1, dt * 6);
   damageFlashEl.style.opacity = _vignetteAmt.toFixed(3);
+
+  // Status effect screen tint — green for poison, orange for burning
+  { const stEl = document.getElementById("statusTint");
+    if (stEl && typeof StatusEffects !== "undefined") {
+      const _sfx = StatusEffects.getActive("hero") || [];
+      const hasPoisoned = _sfx.some(e => e.id === "poison");
+      const hasBurning  = _sfx.some(e => e.id === "burning");
+      if (hasPoisoned || hasBurning) {
+        const _pulse = 0.12 + 0.08 * Math.sin(now / 220);
+        const _r = hasBurning ? 255 : 0, _g = hasPoisoned ? 180 : (hasBurning ? 80 : 0), _b = 0;
+        stEl.style.background = `radial-gradient(ellipse at center, transparent 50%, rgba(${_r},${_g},${_b},0.7) 100%)`;
+        stEl.style.opacity = _pulse.toFixed(3);
+      } else {
+        stEl.style.opacity = "0";
+      }
+    }
+  }
 
   // mini-map (top-right)
   drawMinimap();
