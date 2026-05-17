@@ -186,6 +186,7 @@
   }
 
   function getState() {
+    const _curWave = _waves[_waveIdx];
     return {
       wave:       _waveIdx + 1,
       totalWave:  _totalWave,          // never resets — use for persistent enemy scaling
@@ -195,6 +196,7 @@
       pauseLeft:  _phase === "pausing"   ? Math.ceil(_pauseLeft) : 0,
       aliveCount: _aliveTrack,
       started:    _started,
+      enemies:    _curWave ? _curWave.enemies : [],  // current wave composition
     };
   }
 

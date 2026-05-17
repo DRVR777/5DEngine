@@ -6190,12 +6190,14 @@ function tick() {
       const show = ws.started && ws.phase !== "idle";
       waveHud.style.display = show ? "block" : "none";
       if (show) {
+        const _loopNum = ws.totalWave > ws.totalWaves ? Math.floor((ws.totalWave - 1) / ws.totalWaves) + 1 : 1;
         const wl = document.getElementById("waveLabel");
-        if (wl) wl.textContent = `WAVE ${ws.wave}/${ws.totalWaves}`;
+        if (wl) wl.textContent = _loopNum > 1 ? `LOOP ${_loopNum} · WAVE ${ws.wave}/${ws.totalWaves}` : `WAVE ${ws.wave}/${ws.totalWaves}`;
         const det = document.getElementById("waveDetail");
         if (!det) { /* no-op */ }
         else if (ws.phase === "countdown") {
-          det.textContent = `starting in ${ws.countdown}…`;
+          const _prevEn = (ws.enemies || []).map(g => `${g.count}× ${g.type.toUpperCase()}`).join(" · ");
+          det.innerHTML = `starting in ${ws.countdown}…<br><span style="font-size:9px;color:#ff8888;letter-spacing:0.06em">${_prevEn}</span>`;
           if (ws.countdown > 0 && ws.countdown !== _waveBeepLast) {
             _waveBeepLast = ws.countdown;
             const _beepFreq = ws.countdown === 1 ? 1100 : 440 + (5 - ws.countdown) * 40;
