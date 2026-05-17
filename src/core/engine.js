@@ -113,11 +113,16 @@
     }
     return "No heal hook found.";
   });
-  addCommand("spawn", "Spawn enemy at hero pos  spawn [count]", (args) => {
+  addCommand("spawn", "Spawn enemy  spawn [count|type] [type]  e.g. spawn 3 heavy", (args) => {
     if (typeof window !== "undefined" && typeof window._spawnEnemyAtHero === "function") {
-      const n = parseInt(args[0]) || 1;
-      for (let i = 0; i < n; i++) window._spawnEnemyAtHero();
-      return `Spawned ${n} enemy.`;
+      const types = ["grunt","heavy","fast","poisoner","incendiary"];
+      let n = 1, typeName;
+      for (const a of args) {
+        if (!isNaN(+a)) n = Math.max(1, parseInt(a));
+        else if (types.includes(a)) typeName = a;
+      }
+      for (let i = 0; i < n; i++) window._spawnEnemyAtHero(typeName);
+      return `Spawned ${n}× ${typeName || "random"}.`;
     }
     return "No _spawnEnemyAtHero hook found.";
   });
@@ -140,5 +145,7 @@
     return "Unknown overlay. Try: ai, hitbox, astar, all, off";
   });
 
-  return { register, get, has, list, time, debug, addCommand, runCommand, listCommands };
+  // events — set to EventBus once it loads (see index.html init block)
+  const api = { register, get, has, list, time, debug, addCommand, runCommand, listCommands, events: null };
+  return api;
 });
