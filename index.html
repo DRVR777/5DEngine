@@ -6471,6 +6471,17 @@ function tick() {
             if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id: en.id, kills: enemyKills });
             completeQuestStep("combat", 0);
             if (enemyKills >= 3) completeQuestStep("combat", 1);
+            // Last kill of the wave — cinematic bullet-time
+            if (typeof WaveManager !== "undefined") {
+              const _wph = WaveManager.getState().phase;
+              if (_wph === "waiting" || _wph === "spawning") {
+                const _wAlive = enemies.filter(e => !e.dead && e.id.startsWith("en_spawned_")).length;
+                if (_wAlive === 0) {
+                  _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.55);
+                  playSfx("tone:1200:60:sine", 0.5); playSfx("tone:1600:50:sine", 0.4);
+                }
+              }
+            }
             _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
             if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
             const coinVal = _COIN_BY_TYPE[en.type] || 1;
