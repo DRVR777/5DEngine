@@ -6278,6 +6278,16 @@ function tick() {
         else if (ws.phase === "pausing") det.textContent = `clear! next in ${ws.pauseLeft}s`;
         else if (ws.phase === "done") det.textContent = `all waves done`;
         else det.textContent = "";
+        // Kill level progress — live update in wave HUD
+        const _lvHud = document.getElementById("heroLevelHud");
+        if (_lvHud) {
+          if (_heroLevel >= 5) {
+            _lvHud.textContent = "LVL MAX";
+          } else {
+            const _nextThresh = _LEVEL_THRESHOLDS[_heroLevel];
+            _lvHud.textContent = `LVL ${_heroLevel} (${enemyKills}/${_nextThresh})`;
+          }
+        }
       }
     }
     // Wave announcement banner — show for 2.5s when wave number increments
