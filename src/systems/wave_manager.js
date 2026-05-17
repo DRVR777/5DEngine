@@ -26,7 +26,8 @@
     { enemies: [{ type: "fast",   count: 5 }, { type: "incendiary", count: 2 }],        pauseAfter: 12 },
     { enemies: [{ type: "heavy",  count: 2 }, { type: "poisoner",   count: 2 }],        pauseAfter: 12 },
     { enemies: [{ type: "incendiary", count: 3 }, { type: "fast",   count: 4 }],        pauseAfter: 14 },
-    { enemies: [{ type: "heavy",  count: 2 }, { type: "incendiary", count: 3 }, { type: "fast", count: 3 }], pauseAfter: 15 },
+    { enemies: [{ type: "robot", count: 1 }, { type: "heavy",  count: 2 }, { type: "fast", count: 3 }],      pauseAfter: 15 },
+    { enemies: [{ type: "robot", count: 2 }, { type: "incendiary", count: 3 }, { type: "fast", count: 4 }],  pauseAfter: 18 },
   ];
 
   let _waves = _defaultWaves.map(w => Object.assign({}, w));

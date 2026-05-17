@@ -115,7 +115,7 @@
   });
   addCommand("spawn", "Spawn enemy  spawn [count|type] [type]  e.g. spawn 3 heavy", (args) => {
     if (typeof window !== "undefined" && typeof window._spawnEnemyAtHero === "function") {
-      const types = ["grunt","heavy","fast","poisoner","incendiary"];
+      const types = ["grunt","heavy","fast","poisoner","incendiary","robot"];
       let n = 1, typeName;
       for (const a of args) {
         if (!isNaN(+a)) n = Math.max(1, parseInt(a));
