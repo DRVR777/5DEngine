@@ -6304,18 +6304,26 @@ function tick() {
         en._wasChasing = false;
       }
 
-      // Low-HP stagger: enemies slow to 55% speed and flash red when below 25% HP
+      // Low-HP behavior: grunts/fast/etc slow; boss/heavy ENRAGE (faster, brighter)
       const _hpFrac = en.hp / en.maxHp;
-      const _enSpeedMul = _hpFrac < 0.25 ? 0.55 : 1;
+      const _isEnrageable = (en.type === "boss" || en.type === "heavy");
+      const _enSpeedMul = _hpFrac < 0.25 ? (_isEnrageable ? 1.35 : 0.55) : 1;
+      // First time crossing enrage threshold — announce it
+      if (_isEnrageable && !en._enraged && _hpFrac < 0.25 && en.hp > 0) {
+        en._enraged = true;
+        _spawnParticles(ep.u, 1.0, ep.v, 40, "red", 9, 1.2);
+        playSfx("tone:60:350:sawtooth", 0.75);
+        showToast(en.type === "boss" ? "★ BOSS ENRAGED!" : "HEAVY ENRAGED!", "danger", 2500);
+      }
       if (en.mesh && en.mesh.children) {
-        const _pulse = _hpFrac < 0.25 ? (0.5 + 0.5 * Math.sin(now / 120)) : 0;
+        const _pulse = _hpFrac < 0.25 ? (0.5 + 0.5 * Math.sin(now / (_isEnrageable ? 70 : 120))) : 0;
         for (const ch of en.mesh.children) {
           if (ch.isMesh && ch.material && !ch._isHpBar) {
             if (!ch._origColor) ch._origColor = ch.material.color.clone();
             ch.material.color.setRGB(
-              Math.min(1, ch._origColor.r + _pulse * 0.6),
-              ch._origColor.g * (1 - _pulse * 0.4),
-              ch._origColor.b * (1 - _pulse * 0.4)
+              Math.min(1, ch._origColor.r + _pulse * (_isEnrageable ? 0.9 : 0.6)),
+              ch._origColor.g * (1 - _pulse * (_isEnrageable ? 0.7 : 0.4)),
+              ch._origColor.b * (1 - _pulse * (_isEnrageable ? 0.7 : 0.4))
             );
           }
         }
@@ -6431,7 +6439,7 @@ function tick() {
             }
             // Heavy grenade throw — lobs a grenade every 4s when 3.5–12m away with LOS
             if (en.type === "heavy" && canSee && dist > 3.5 && dist < 12) {
-              if (!en._grenadeT || now / 1000 - en._grenadeT > 4.0) {
+              if (!en._grenadeT || now / 1000 - en._grenadeT > (en._enraged ? 2.5 : 4.0)) {
                 en._grenadeT = now / 1000;
                 const tof = 1.5;
                 const hspeed = dist / tof;
@@ -6451,7 +6459,7 @@ function tick() {
             }
             // Boss rock throw — hurls a slow boulder every 6s at 5-15m range
             if (en.type === "boss" && canSee && dist >= 5 && dist < 15) {
-              if (!en._rockT || now / 1000 - en._rockT > 6.0) {
+              if (!en._rockT || now / 1000 - en._rockT > (en._enraged ? 3.5 : 6.0)) {
                 en._rockT = now / 1000;
                 const tof = 1.8;
                 const rspeed = dist / tof;
@@ -6472,7 +6480,7 @@ function tick() {
             }
             // Boss ground slam — AoE shockwave every 5s when within 4m
             if (en.type === "boss" && canSee && dist < 4) {
-              if (!en._slamT || now / 1000 - en._slamT > 5.0) {
+              if (!en._slamT || now / 1000 - en._slamT > (en._enraged ? 2.8 : 5.0)) {
                 en._slamT = now / 1000;
                 playSfx("tone:40:500:sawtooth", 1.0);
                 _applyScreenShake(0.6);
