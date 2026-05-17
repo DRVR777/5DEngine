@@ -7063,6 +7063,16 @@ function tick() {
       // Spin the type indicator gem
       const gem = em.group.getObjectByName("_typeGem");
       if (gem) gem.rotation.y += dt * 2.5;
+      // Blood/oil trail on low-HP enemies — drip particle every 0.12s below 30% HP
+      if (en.hp / en.maxHp < 0.30) {
+        if (!en._bleedT || now / 1000 - en._bleedT > 0.12) {
+          en._bleedT = now / 1000;
+          const ep3 = world.players.get(en.id);
+          const _isBot = en.type === "robot";
+          _spawnParticles(ep3.u + (Math.random() - 0.5) * 0.3, 0.05, ep3.v + (Math.random() - 0.5) * 0.3,
+            1, _isBot ? "cyan" : "red", 0.5, 0.6);
+        }
+      }
     } else {
       // Hide sniper laser on death
       if (en._laserLine) en._laserLine.visible = false;
