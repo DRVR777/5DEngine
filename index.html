@@ -1848,6 +1848,7 @@ function _explodeGrenade(g) {
         en.dead = true; en.respawnT = performance.now() / 1000; enemyKills++;
         _comboCount++; _comboLastT = performance.now() / 1000;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
+        if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
         _addKillFeedEntry(`★ GRENADE KILL #${enemyKills} — ${en.type}`, "#ff8800");
         _trackKillAndPanic(ep.u, ep.v);
         { const _gCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _gCoinMul); }
@@ -2363,6 +2364,7 @@ function _explodeBarrel(u, v) {
         en.dead = true; en.respawnT = nowMs / 1000; enemyKills++;
         _comboCount++; _comboLastT = nowMs / 1000;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
+        if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
         _addKillFeedEntry(`★ BARREL KILL #${enemyKills} — ${en.type}`, "#ff6600");
         _trackKillAndPanic(ep.u, ep.v);
         { const _brlCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _brlCoinMul); }
@@ -3040,6 +3042,19 @@ function _spawnCoinDrop(u, v, value) {
   mesh.position.set(du, 0.5, dv);
   scene.add(mesh);
   coinDrops.push({ mesh, u: du, v: dv, value, collected: false });
+}
+
+// Fire patches — spawned on incendiary death, damage anyone inside
+const firePatches = [];
+function _spawnFirePatch(u, v) {
+  const mesh = new THREE.Mesh(
+    new THREE.CircleGeometry(1.5, 16),
+    new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.55, depthWrite: false })
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(u, 0.04, v);
+  scene.add(mesh);
+  firePatches.push({ mesh, u, v, radius: 1.5, timeLeft: 6.0, dmgT: 0 });
 }
 
 // Pickup meshes
@@ -4428,6 +4443,7 @@ addEventListener("keydown", (e) => {
           en.dead = true; en.respawnT = performance.now() / 1000; en._wasChasing = false;
           enemyKills++; _comboCount++; _comboLastT = performance.now() / 1000;
           _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
+          if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
           _addKillFeedEntry(`★ MELEE KILL #${enemyKills} — ${en.type}`, "#ff8800");
           _trackKillAndPanic(ep.u, ep.v);
           _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
@@ -5561,6 +5577,7 @@ function tick() {
             { const dFreq = en.type === "robot" ? 180 : en.type === "heavy" ? 55 : 90;
               playSfx(`tone:${dFreq}:350:sawtooth`, 0.25); }
             _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
+            if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
             enemyKills++;
             // Kill streak tracking
             const nowSec = now / 1000;
@@ -6161,7 +6178,7 @@ function tick() {
         em.group.scale.setScalar(1);
       }
       if (_dElapsed > ENEMY_RESPAWN_DELAY) {
-        en.dead = false; en.hp = en.maxHp;
+        en.dead = false; en.hp = en.maxHp; en._fireDmgT = 0;
         const ang = Math.random() * Math.PI * 2;
         en.u = Math.cos(ang) * (12 + Math.random() * 8);
         en.v = Math.sin(ang) * (12 + Math.random() * 8);
@@ -6575,6 +6592,43 @@ function tick() {
       hp2.mesh.rotation.x += dt * 1.5;
       hp2.mesh.rotation.y += dt * 2.2;
       hp2.mesh.position.y = 0.6 + Math.sin(now / 320 + hp2.u) * 0.1;
+    }
+  }
+
+  // Fire patches — decay, flicker, damage hero/enemies inside radius
+  for (let _fpi = firePatches.length - 1; _fpi >= 0; _fpi--) {
+    const fp = firePatches[_fpi];
+    fp.timeLeft -= dt;
+    if (fp.timeLeft <= 0) {
+      scene.remove(fp.mesh);
+      firePatches.splice(_fpi, 1);
+      continue;
+    }
+    fp.mesh.material.opacity = 0.55 * Math.min(1, fp.timeLeft / 1.5) * (0.8 + 0.2 * Math.sin(now / 120));
+    // Hero damage
+    if (Math.hypot(heroNow.u - fp.u, heroNow.v - fp.v) < fp.radius) {
+      fp.dmgT -= dt;
+      if (fp.dmgT <= 0) {
+        fp.dmgT = 0.5;
+        if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning");
+        heroHp = Math.max(0, heroHp - 6);
+        _applyScreenShake(0.04);
+      }
+    }
+    // Enemy damage
+    for (const _fpe of enemies) {
+      if (_fpe.dead) continue;
+      const _fpep = world.players.get(_fpe.id);
+      if (!_fpep) continue;
+      if (Math.hypot(_fpep.u - fp.u, _fpep.v - fp.v) < fp.radius) {
+        _fpe._fireDmgT = (_fpe._fireDmgT || 0) - dt;
+        if (_fpe._fireDmgT <= 0) {
+          _fpe._fireDmgT = 0.5;
+          _fpe.hp = Math.max(0, _fpe.hp - 8);
+          _fpe._hpBarShowT = now / 1000;
+          _spawnDamageNumber(_fpep.u, 1.8, _fpep.v, "8", "#ff6600");
+        }
+      }
     }
   }
 
