@@ -328,6 +328,8 @@
     <circle cx="50" cy="50" r="42" fill="none" stroke="#ff2222" stroke-width="4" opacity="0.85" stroke-dasharray="264"/>
   </svg>
 </div>
+<!-- Grenade cook timer — shows fuse countdown while G held -->
+<div id="grenCookTimer" style="display:none;position:fixed;bottom:160px;left:50%;transform:translateX(-50%);font-family:ui-monospace,monospace;font-size:18px;font-weight:bold;letter-spacing:0.12em;pointer-events:none;z-index:999;text-shadow:0 0 8px currentColor"></div>
 <!-- Wave clear banner — slides in from top, fades out -->
 <div id="waveClearBanner" style="display:none;position:fixed;top:28%;left:50%;transform:translateX(-50%) translateY(-30px);text-align:center;pointer-events:none;z-index:997;transition:opacity 0.35s,transform 0.35s">
   <div id="waveClearTitle" style="font-family:ui-monospace,monospace;font-size:38px;font-weight:900;letter-spacing:0.18em;color:#00ffcc;text-shadow:0 0 24px #00ffccaa,0 2px 0 #004433">WAVE CLEAR</div>
@@ -1153,6 +1155,7 @@ const RESPAWN_DELAY = 5; // seconds
 
 function _heroShowDeathScreen() {
   _heroDead = true;
+  _grenadePressT = 0;
   document.exitPointerLock && document.exitPointerLock();
   const overlay = document.getElementById("deathOverlay");
   const stats   = document.getElementById("deathStats");
@@ -1805,7 +1808,7 @@ const _grenadesMat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive:
 // Grenade arc preview — initialized after scene is created
 const _ARC_DOT_COUNT = 14;
 let _arcDots = null; // filled lazily once scene exists
-function _throwGrenade() {
+function _throwGrenade(cookedFuse) {
   if (grenadeCount <= 0) { showToast("No grenades!", "danger", 800); return; }
   if (buildMode || computerOpen) return;
   grenadeCount--;
@@ -1814,7 +1817,8 @@ function _throwGrenade() {
   const mesh = new THREE.Mesh(_grenadesGeo, _grenadesMat.clone());
   mesh.position.set(hp.u + fx * 0.5, hp.y + 1.2, hp.v + fz * 0.5);
   scene.add(mesh);
-  grenades3D.push({ mesh, fuse: 2.5, u: hp.u + fx * 0.5, y: hp.y + 1.2, v: hp.v + fz * 0.5,
+  const fuse = (cookedFuse != null) ? Math.max(0.15, cookedFuse) : 2.5;
+  grenades3D.push({ mesh, fuse, u: hp.u + fx * 0.5, y: hp.y + 1.2, v: hp.v + fz * 0.5,
     velU: fx * 13, velY: 6, velV: fz * 13 });
   playSfx("tone:600:60:square", 0.3);
 }
@@ -4350,10 +4354,13 @@ addEventListener("keydown", (e) => {
       e.preventDefault(); return;
     }
   }
-  // G key: throw grenade (non-build mode) / group selected (build mode)
+  // G key: start grenade cook (throw on keyup) / group selected (build mode)
   if (e.code === "KeyG") {
     if (buildMode && window._builderGroupSelected) { window._builderGroupSelected(); e.preventDefault(); return; }
-    if (!buildMode && !computerOpen) { _throwGrenade(); e.preventDefault(); return; }
+    if (!buildMode && !computerOpen && grenadeCount > 0 && !_heroDead) {
+      if (!_grenadePressT) _grenadePressT = performance.now();
+      e.preventDefault(); return;
+    }
   }
   // R key: toggle pointer-lock fly-cam in build mode
   if (buildMode && e.code === "KeyR") {
@@ -4650,7 +4657,27 @@ addEventListener("keydown", (e) => {
     }
   }
 });
-addEventListener("keyup",   (e) => { keys[e.code] = false; });
+addEventListener("keyup", (e) => {
+  keys[e.code] = false;
+  // G release: throw cooked grenade
+  if (e.code === "KeyG" && _grenadePressT && !buildMode && !computerOpen && !_heroDead) {
+    const heldSec = (performance.now() - _grenadePressT) / 1000;
+    _grenadePressT = 0;
+    if (heldSec >= 4.0) {
+      // Held too long — explodes in hand
+      const hm = world.players.get("hero");
+      heroHp = Math.max(0, heroHp - 50);
+      flashDamage(); _applyScreenShake(0.6);
+      _spawnParticles(hm.u, hm.y + 1.0, hm.v, 100, "orange", 18, 2.0);
+      playSfx("tone:80:350:sawtooth", 0.9);
+      showToast("GRENADE COOKED — OUCH! -50 HP", "danger", 1800);
+      grenadeCount = Math.max(0, grenadeCount - 1);
+      if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
+    } else {
+      _throwGrenade(2.5 - heldSec);
+    }
+  }
+});
 
 let camYaw = 0;
 let camPitch = -0.25;
@@ -5198,6 +5225,7 @@ let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _footstepT = 0;    // seconds until next footstep tick
 let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
 let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
+let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -5800,6 +5828,17 @@ function tick() {
       return m;
     });
   }
+  // Grenade cook safety — if held > 4s and G still down, auto-detonate in hand
+  if (_grenadePressT && !_heroDead && (performance.now() - _grenadePressT) / 1000 >= 4.0) {
+    const hm = world.players.get("hero");
+    _grenadePressT = 0; grenadeCount = Math.max(0, grenadeCount - 1);
+    heroHp = Math.max(0, heroHp - 50); flashDamage(); _applyScreenShake(0.6);
+    _spawnParticles(hm.u, hm.y + 1.0, hm.v, 100, "orange", 18, 2.0);
+    playSfx("tone:80:350:sawtooth", 0.9);
+    showToast("GRENADE COOKED — OUCH! -50 HP", "danger", 1800);
+    if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
+  }
+
   const _showArc = !buildMode && !computerOpen && !_heroDead && grenadeCount > 0 && keys["KeyG"];
   if (_showArc) {
     const hp = world.players.get("hero");
@@ -5807,16 +5846,29 @@ function tick() {
     let au = hp.u + fx * 0.5, ay = hp.y + 1.2, av = hp.v + fz * 0.5;
     let vU = fx * 13, vY = 6, vV = fz * 13;
     const step = 0.08;
+    const _cookSec = _grenadePressT ? (performance.now() - _grenadePressT) / 1000 : 0;
+    const _fuseLeft = Math.max(0, 2.5 - _cookSec);
+    const _cookDanger = _cookSec >= 3.0;
     for (let i = 0; i < _ARC_DOT_COUNT; i++) {
       au += vU * step; ay += vY * step; av += vV * step;
       vY -= 9.8 * step;
       if (ay < 0) ay = 0;
       _arcDots[i].position.set(au, ay, av);
       _arcDots[i].visible = true;
+      _arcDots[i].material.color.set(_cookDanger ? 0xff2200 : 0xff8800);
       _arcDots[i].material.opacity = 0.7 * (1 - i / _ARC_DOT_COUNT);
+    }
+    // Cook timer HUD
+    const _ctEl = document.getElementById("grenCookTimer");
+    if (_ctEl) {
+      _ctEl.style.display = "block";
+      _ctEl.textContent = _cookDanger ? `COOK: ${_fuseLeft.toFixed(1)}s ⚠` : `FUSE: ${_fuseLeft.toFixed(1)}s`;
+      _ctEl.style.color = _cookDanger ? "#ff2222" : "#ffd166";
     }
   } else {
     if (_arcDots) _arcDots.forEach(d => { d.visible = false; });
+    const _ctEl = document.getElementById("grenCookTimer");
+    if (_ctEl) _ctEl.style.display = "none";
   }
 
   // Line-of-sight check (segment vs AABB slab test, ignores boundary walls by position)
