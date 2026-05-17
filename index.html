@@ -4958,6 +4958,7 @@ addEventListener("keydown", (e) => {
         const mDmg = 35;
         en.hp = Math.max(0, en.hp - mDmg); en._hpBarShowT = performance.now() / 1000;
         en._kbU = (ep.u - hm.u) * 4; en._kbV = (ep.v - hm.v) * 4; en._kbT = 0.15;
+        en._staggerT = 0.4; en._staggerAngle = Math.atan2(ep.u - hm.u, ep.v - hm.v) + Math.PI;
         en._flinchX = -0.5;
         hitMarkerUntil = performance.now() + 120;
         _spawnDamageNumber(ep.u, 1.2, ep.v, `-${mDmg}`, "#ff8800");
