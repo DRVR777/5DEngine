@@ -5340,6 +5340,8 @@ function _tryShoot() {
     bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirY, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage, weaponId: currentWeaponId });
     _shotsFired++; _lastHeroShotT = performance.now() / 1000;
   }
+  // Gunshot alert — enemies within 9m without LOS start converging on shot position for 3s
+  _heroShotAlertU = hp.u; _heroShotAlertV = hp.v; _heroShotAlertT = 3.0;
   const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
   _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
   _triggerMuzzleFlash(mfx, mfy, mfz);
@@ -5398,6 +5400,7 @@ let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
 let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
 let _missSndT = 0; // near-miss whiz cooldown (0.5s to avoid spam)
+let _heroShotAlertU = 0, _heroShotAlertV = 0, _heroShotAlertT = 0; // last shot pos alert to nearby enemies
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -6060,6 +6063,7 @@ function tick() {
     }
     _missSndT = Math.max(0, _missSndT - dt);
   }
+  _heroShotAlertT = Math.max(0, _heroShotAlertT - dt);
 
   // Grenade physics + detonation
   // Grenade proximity warning — show when enemy grenade within 6m and fuse < 2s
@@ -6227,6 +6231,11 @@ function tick() {
       const dist = Math.hypot(dx, dz);
       const _effSight = (en.sightRange || 12) * (crouching ? 0.6 : 1.0);
       const canSee = dist <= _effSight && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
+      // Gunshot alert — enemies within 9m without LOS move toward last shot position
+      if (!canSee && !en._wasChasing && _heroShotAlertT > 0) {
+        const _adist = Math.hypot(ep.u - _heroShotAlertU, ep.v - _heroShotAlertV);
+        if (_adist < 9) { en._heardShot = _heroShotAlertT; en._alertU = _heroShotAlertU; en._alertV = _heroShotAlertV; }
+      }
       if (canSee) { en._lastSightT = now / 1000; en._lastHeroPos = { u: _heroNowAI.u, v: _heroNowAI.v }; }
       // Alert bark — plays once when enemy first spots hero (transition patrol→chase)
       if (canSee && !en._wasChasing && dist < 6) {
@@ -6292,6 +6301,20 @@ function tick() {
           }
         }
         continue;
+      }
+
+      // Heard-gunshot alert — converge toward hero's last shot position
+      if (en._heardShot > 0 && !canSee) {
+        en._heardShot -= dt;
+        const _adx = (en._alertU || 0) - ep.u, _adz = (en._alertV || 0) - ep.v;
+        if (Math.hypot(_adx, _adz) > 1.2) {
+          const _aAng = Math.atan2(_adx, _adz);
+          en.heading = _aAng;
+          const _aem = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
+          GTAPhysics.resolveAABBMove(_aem, Math.sin(_aAng)*en.moveSpeed*0.7*_enSpeedMul*dt, Math.cos(_aAng)*en.moveSpeed*0.7*_enSpeedMul*dt, buildingBlockers);
+          world.setPlayer(en.id, ep.x, 0, 0, _aem.u, _aem.v);
+          continue;
+        } else { en._heardShot = 0; }
       }
 
       // Grenade stagger — stumble erratically for 1.5s after near-miss blast
