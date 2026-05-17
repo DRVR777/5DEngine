@@ -1372,7 +1372,11 @@ function _heroRespawn() {
   heroLastDamageT = -999;
   velocityY = 0;
   _stamina = STAMINA_MAX;
-  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0; _heroFireT = 0; _heroEmpT = 0;
+  _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
+  _heroFireT = 0; _heroEmpT = 0; _heroBlindT = 0;
+  _heroKbU = 0; _heroKbV = 0; _heroKbT = 0;
+  _slideT = 0; _speedBoostT = 0; _bulletTimeLeft = 0;
+  _killMarkerUntil = 0;
   playSfx("tone:440:120:sine", 0.5);
   if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp });
   // Re-lock pointer
@@ -1403,6 +1407,17 @@ function _heroRespawn() {
     for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
     for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
     for (const _tt of _turrets) scene.remove(_tt.group); _turrets.length = 0;
+    // Clear in-flight projectiles
+    for (const _rb of bullets3D) scene.remove(_rb.mesh); bullets3D.length = 0;
+    for (const _eb of enemyBullets) scene.remove(_eb.mesh); enemyBullets.length = 0;
+    for (const _rg of grenades3D) { scene.remove(_rg.mesh); if (_rg._warnRing) scene.remove(_rg._warnRing); } grenades3D.length = 0;
+    // Clear mines, smoke, speed orbs, weapon pickups
+    for (const _rm of _mines) scene.remove(_rm.mesh); _mines.length = 0;
+    for (const _sz of smokeZones) scene.remove(_sz.mesh); smokeZones.length = 0;
+    for (const _so of _speedOrbs) scene.remove(_so.mesh); _speedOrbs.length = 0;
+    for (const _wp of weaponPickups) scene.remove(_wp.mesh); weaponPickups.length = 0;
+    // Reset consumable counts
+    grenadeCount = 3; smokeGrenadeCount = 2; flashbangCount = 2; _mineCount = 2;
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
