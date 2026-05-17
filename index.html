@@ -977,6 +977,24 @@ function rectToBlocker(building) {
 }
 const buildingBlockers = buildings.map(rectToBlocker);
 
+// Arena boundary walls — 4 concrete barrier strips at ±28m
+(function _buildArenaBoundary() {
+  const HALF = 28, THICK = 1.6, HEIGHT = 2.2, matB = new THREE.MeshStandardMaterial({ color: 0x888880, roughness: 0.9, metalness: 0.1 });
+  const wallDefs = [
+    { u: 0,     v:  HALF, w: HALF * 2 + THICK, d: THICK },
+    { u: 0,     v: -HALF, w: HALF * 2 + THICK, d: THICK },
+    { u:  HALF, v: 0,     w: THICK, d: HALF * 2 + THICK },
+    { u: -HALF, v: 0,     w: THICK, d: HALF * 2 + THICK },
+  ];
+  for (const wd of wallDefs) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(wd.w, HEIGHT, wd.d), matB);
+    mesh.position.set(wd.u, HEIGHT / 2, wd.v);
+    mesh.receiveShadow = mesh.castShadow = true;
+    scene.add(mesh);
+    buildingBlockers.push({ u: wd.u, v: wd.v, hitbox: { w: wd.w, d: wd.d, h: HEIGHT }, y: 0 });
+  }
+})();
+
 // NPCs — from WorldData schema
 const NPC_DEFS = WD.npcs || [];
 for (const n of NPC_DEFS) world.setPlayer(n.id, 0, 0, 0, n.u, n.v);
@@ -5803,6 +5821,10 @@ function tick() {
         }
       }
 
+      // Hard clamp to arena — safety net in case AABB misses
+      { const _epc = world.players.get(en.id); const _AR = 27.5;
+        if (Math.abs(_epc.u) > _AR || Math.abs(_epc.v) > _AR)
+          world.setPlayer(en.id, _epc.x, 0, 0, Math.max(-_AR, Math.min(_AR, _epc.u)), Math.max(-_AR, Math.min(_AR, _epc.v))); }
       const ep2 = world.players.get(en.id);
       em.group.position.set(ep2.u, 0, ep2.v);
       em.group.rotation.y = en.heading;
