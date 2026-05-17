@@ -1403,10 +1403,17 @@ window._spawnEnemyAtHero = function(typeName) {
     ? (_ENEMY_TYPES.find(t => t.type === typeName) || _ENEMY_TYPES[0])
     : _ENEMY_TYPES[Math.floor(Math.random() * _ENEMY_TYPES.length)];
   const eid = "en_spawned_" + Date.now();
+  const _wScaleW = typeof WaveManager !== "undefined" ? WaveManager.getState().wave : 1;
+  const _wScale = 1 + (_wScaleW - 1) * 0.05; // +5% stats per wave: Wave1=1.0x, Wave5=1.2x, Wave10=1.45x
   const nEn = Object.assign({}, template, {
-    id: eid, hp: template.maxHp, dead: false,
+    id: eid,
+    hp:     Math.round(template.maxHp * _wScale),
+    maxHp:  Math.round(template.maxHp * _wScale),
+    damage: Math.round((template.damage || 10) * _wScale),
+    dead: false,
     u: eu, v: ev, heading: 0, respawnT: 0,
     _spawnT: performance.now() / 1000,   // spawn-in animation start
+    _waveScale: _wScale,
   });
   enemies.push(nEn);
   world.addPlayer(eid, eu, 0, 0, ev);
