@@ -2149,6 +2149,13 @@ function flashDamage() {
   _waveChallengeNoDmg = false; // hero took hit — "no damage" challenge failed
   _vignetteAmt = 1.0; // instant spike, springs out in tick()
   playSfx("tone:90:35:sawtooth", 0.18); // low pain grunt
+  // Near-death reflex — one-time 0.45s bullet-time when HP hits single digits
+  if (heroHp > 0 && heroHp <= 10 && !_nearDeathFired) {
+    _nearDeathFired = true;
+    _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.45);
+    playSfx("tone:60:200:sine", 0.45); playSfx("tone:80:180:sine", 0.3);
+    showToast("CRITICAL!", "danger", 900);
+  }
 }
 
 // Click-to-shoot handler is registered later, after `renderer` is created
@@ -5820,6 +5827,7 @@ function _tryDroneShoot() {
 
 let lastT = performance.now();
 let _bulletTimeLeft = 0;  // seconds remaining of bullet-time slow (sniper incoming / headshot kill / wave clear)
+let _nearDeathFired = false; // near-death bullet-time has fired this life (resets above 15 HP)
 let _heartbeatT = 0;      // countdown to next low-HP heartbeat thud
 let _hpGhost = 100;       // lagging HP ghost bar — catches up slowly after damage
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
@@ -7376,6 +7384,7 @@ function tick() {
   if (heroHp < HERO_MAX_HP && (now / 1000 - heroLastDamageT) > HERO_REGEN_DELAY) {
     heroHp = Math.min(HERO_MAX_HP, heroHp + HERO_REGEN_RATE * dt);
   }
+  if (heroHp > 15) _nearDeathFired = false; // allow re-trigger if healed above threshold
 
   // Computer proximity check — within 2.5 units
   const heroNow = world.players.get("hero");
