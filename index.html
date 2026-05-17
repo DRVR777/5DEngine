@@ -1198,6 +1198,16 @@ function _heroRespawn() {
   btn.addEventListener("click", () => {
     const vEl = document.getElementById("victoryOverlay");
     if (vEl) vEl.style.display = "none";
+    // Remove all wave-spawned enemies from scene, world, and arrays
+    for (let _ei = enemies.length - 1; _ei >= 0; _ei--) {
+      const _re = enemies[_ei];
+      if (_re.id && _re.id.startsWith("en_spawned_")) {
+        const _rem = enemyMeshes.get(_re.id);
+        if (_rem) { scene.remove(_rem.group); if (_rem.laserLine) scene.remove(_rem.laserLine); enemyMeshes.delete(_re.id); }
+        if (world.players) world.players.delete(_re.id);
+        enemies.splice(_ei, 1);
+      }
+    }
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
