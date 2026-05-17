@@ -398,6 +398,8 @@
   <div style="width:80px;height:6px;background:rgba(255,200,0,0.15);border-radius:3px;overflow:hidden"><div id="arFill" style="height:100%;background:linear-gradient(90deg,#ffd166,#ffaa00);transition:width 0.15s ease-out;width:0%"></div></div>
   <span id="arVal" style="color:#ffd166;min-width:24px">0</span>
 </div>
+<!-- Active perk tracker (shows accumulated perks below armor bar) -->
+<div id="perkHud" style="display:none;position:fixed;bottom:110px;right:12px;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:300px;pointer-events:none;z-index:200;font-family:var(--mono)"></div>
 <div id="staminaBar" style="position:fixed;bottom:64px;right:12px;display:flex;align-items:center;gap:6px;background:rgba(2,5,14,0.75);border:1px solid rgba(0,180,255,0.3);border-radius:4px;padding:4px 8px;pointer-events:none;z-index:200;font-family:var(--mono);font-size:11px">
   <span style="color:#44aaff;letter-spacing:0.1em">ST</span>
   <div style="width:80px;height:5px;background:rgba(0,150,255,0.15);border-radius:3px;overflow:hidden"><div id="stFill" style="height:100%;background:linear-gradient(90deg,#44aaff,#00ccff);transition:width 0.08s linear;width:100%"></div></div>
@@ -1159,6 +1161,7 @@ let _perkLifesteal  = false; // kills restore 3 HP
 let _perkRegenBonus = 0;    // hp/s bonus stacked onto regen rate
 let _perkSpeedBonus = 0;    // m/s added to sprint speed
 let _perkTimerInt   = null;  // interval id for countdown display
+const _activePerkLabels = []; // {label, color} of applied perks this session
 const _PERKS = [
   { id:"dmg",      label:"Power Shot",   desc:"+15% weapon damage",          color:"#ff8844", apply:() => { _perkDmgMul *= 1.15; } },
   { id:"speed",    label:"Sprinter",     desc:"+1 m/s sprint speed",          color:"#44ffcc", apply:() => { _perkSpeedBonus += 1; } },
@@ -1202,15 +1205,25 @@ function _showPerkPicker(waveNum) {
     if (secs <= 0) { clearInterval(_perkTimerInt); _perkTimerInt = null; _applyPerk(pool[Math.floor(Math.random() * pool.length)], waveNum); }
   }, 1000);
 }
+function _refreshPerkHud() {
+  const el = document.getElementById("perkHud");
+  if (!el) return;
+  if (_activePerkLabels.length === 0) { el.style.display = "none"; return; }
+  el.style.display = "flex";
+  el.innerHTML = _activePerkLabels.map(p =>
+    `<span style="color:${p.color};background:rgba(0,0,0,0.6);border:1px solid ${p.color}55;border-radius:3px;padding:1px 5px;font-size:9px;letter-spacing:0.05em">${p.label}</span>`
+  ).join("");
+}
 function _applyPerk(perk, waveNum) {
   if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
   const overlay = document.getElementById("perkPicker");
   if (overlay) overlay.style.display = "none";
   perk.apply();
+  _activePerkLabels.push({ label: perk.label, color: perk.color });
+  _refreshPerkHud();
   showToast(`★ PERK: ${perk.label} — ${perk.desc}`, "success", 3000);
   _addKillFeedEntry(`★ PERK (W${waveNum}): ${perk.label}`, "#ffd166");
   playSfx("tone:880:80:sine", 0.5); playSfx("tone:1100:60:sine", 0.4);
-  // Re-lock pointer so the game continues
   const canvas = document.getElementById("gameCanvas") || document.querySelector("canvas");
   if (canvas && canvas.requestPointerLock) canvas.requestPointerLock();
 }
@@ -1315,7 +1328,7 @@ function _heroRespawn() {
   if (overlay) overlay.style.display = "none";
   const sp = _getSpawnPoint();
   world.setPlayer("hero", 0, 0, 0, sp.u, sp.v);
-  heroHp = HERO_MAX_HP;
+  heroHp = HERO_MAX_HP + _perkMaxHpBonus;
   heroArmor = 0;
   heroLastDamageT = -999;
   velocityY = 0;
@@ -1357,6 +1370,7 @@ function _heroRespawn() {
     _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0;
     if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
     const _ppOv = document.getElementById("perkPicker"); if (_ppOv) _ppOv.style.display = "none";
+    _activePerkLabels.length = 0; _refreshPerkHud();
     const _lvlEl = document.getElementById("heroLevelHud"); if (_lvlEl) _lvlEl.textContent = "";
   });
 })();
@@ -1413,7 +1427,7 @@ window.Engine.debug = window.Engine.debug || { godMode: false, noclip: false };
         _conPrint("Noclip: " + (window.Engine.debug.noclip ? "ON" : "OFF"), "#ffd166");
         break;
       case "heal":
-        if (typeof heroHp !== "undefined") { heroHp = HERO_MAX_HP; heroArmor = HERO_MAX_ARMOR; _conPrint("HP + Armor full.", "#00ff88"); }
+        if (typeof heroHp !== "undefined") { heroHp = HERO_MAX_HP + _perkMaxHpBonus; heroArmor = HERO_MAX_ARMOR; _conPrint("HP + Armor full.", "#00ff88"); }
         break;
       case "ammo":
         if (typeof weaponAmmo !== "undefined" && typeof CFG !== "undefined") {
@@ -1502,7 +1516,7 @@ window._entityDamage = function(entityId, amount, _type) {
 };
 window._entityHeal = function(entityId, amount) {
   if (entityId !== "hero") return;
-  heroHp = Math.min(HERO_MAX_HP, heroHp + amount);
+  heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + amount);
 };
 window._setHeroOpacity = function(v) {
   const hg = window._heroGroup;
@@ -2402,7 +2416,7 @@ if (typeof WaveManager !== "undefined") {
     onWaveEnd:   (w) => {
       const bonus = w * 3; // +3 coins per wave number
       score += bonus;
-      heroHp = Math.min(HERO_MAX_HP, heroHp + 15);  // small heal on wave clear
+      heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + 15);  // small heal on wave clear
       // Accuracy bonus — ≥60% hit rate earns extra coins
       const _acc = _shotsFired > 0 ? _shotsHit / _shotsFired : 0;
       const _accBonus = (_acc >= 0.6 && _shotsFired >= 5) ? Math.round(_acc * w * 5) : 0;
@@ -5017,8 +5031,8 @@ addEventListener("keydown", (e) => {
     const medCount = (typeof Inv !== "undefined") ? Inv.countItem(heroInv, "medkit") : 0;
     if (medCount > 0) {
       Inv.removeItem(heroInv, "medkit", 1);
-      const healed = Math.min(40, HERO_MAX_HP - heroHp);
-      heroHp = Math.min(HERO_MAX_HP, heroHp + 40);
+      const healed = Math.min(40, HERO_MAX_HP + _perkMaxHpBonus - heroHp);
+      heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + 40);
       heroLastDamageT = -999; // reset regen delay
       playSfx("tone:700:120:sine", 0.4);
       const _mkHero = world.players.get("hero");
@@ -8526,12 +8540,13 @@ function tick() {
 
   // Holographic health bar update
   _hpGhost += (heroHp - _hpGhost) * Math.min(1, dt * 2.2);
+  const _effMaxHp = HERO_MAX_HP + _perkMaxHpBonus;
   const hbGhostEl = document.getElementById("hbGhost");
-  if (hbGhostEl) hbGhostEl.style.width = (Math.max(0, _hpGhost / HERO_MAX_HP) * 100).toFixed(1) + "%";
+  if (hbGhostEl) hbGhostEl.style.width = (Math.max(0, _hpGhost / _effMaxHp) * 100).toFixed(1) + "%";
   const hbFill = document.getElementById("hbFill");
   const hbVal  = document.getElementById("hbVal");
   if (hbFill || hbVal) {
-    const hpFrac = Math.max(0, heroHp / HERO_MAX_HP);
+    const hpFrac = Math.max(0, heroHp / _effMaxHp);
     if (hbFill) {
       hbFill.style.width = (hpFrac * 100).toFixed(1) + "%";
       hbFill.style.background = hpFrac > 0.5
