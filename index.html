@@ -1232,6 +1232,7 @@ function _heroRespawn() {
     for (const _fp of firePatches) scene.remove(_fp.mesh); firePatches.length = 0;
     for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
     for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
+    for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
@@ -3127,6 +3128,18 @@ const armorPickups = [];
     armorPickups.push({ mesh, u: au, v: av, respawnT: -Infinity, active: true });
   }
 })();
+
+// Armor shards — small gold pickups dropped by boss/heavy on death
+const armorShards = [];
+const _armorShardGeo = new THREE.TetrahedronGeometry(0.22, 0);
+const _armorShardMat = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xcc8800, emissiveIntensity: 0.7, metalness: 0.6, roughness: 0.3 });
+function _spawnArmorShard(u, v, amount) {
+  const off = () => (Math.random() - 0.5) * 1.0;
+  const du = u + off(), dv = v + off();
+  const mesh = new THREE.Mesh(_armorShardGeo, _armorShardMat.clone());
+  mesh.position.set(du, 0.5, dv); mesh.castShadow = true; scene.add(mesh);
+  armorShards.push({ mesh, u: du, v: dv, amount, collected: false });
+}
 
 // Health pack pickups dropped by heavy enemies
 const healthPickups = [];
@@ -5842,6 +5855,8 @@ function tick() {
               _vignetteAmt = Math.min(1, _vignetteAmt + (en.type === "boss" ? 0.9 : 0.4));
               playSfx(`tone:${en.type==="robot"?300:en.type==="boss"?50:200}:${en.type==="boss"?800:180}:sawtooth`, 0.6);
               showToast(`${en.type === "robot" ? "ROBOT" : "HEAVY"} ELIMINATED!`, "danger", 2000);
+              // Boss/heavy armor shard drop
+              if (en.type === "boss" || en.type === "heavy") _spawnArmorShard(ep.u, ep.v, en.type === "boss" ? 40 : 22);
             } else {
               _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
               if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("sparks", { x: ep.u, y: 1.2, z: ep.v });
@@ -6951,6 +6966,30 @@ function tick() {
         hp2.u += ((heroNow.u - hp2.u) / d) * _mag * dt;
         hp2.v += ((heroNow.v - hp2.v) / d) * _mag * dt;
         hp2.mesh.position.x = hp2.u; hp2.mesh.position.z = hp2.v;
+      }
+    }
+  }
+
+  // Armor shard pickups — gold tetrahedra dropped by boss/heavy on death
+  for (const _as of armorShards) {
+    if (_as.collected) continue;
+    const _asDist = Math.hypot(heroNow.u - _as.u, heroNow.v - _as.v);
+    if (_asDist < 1.2) {
+      _as.collected = true;
+      scene.remove(_as.mesh);
+      const gained = Math.min(_as.amount, HERO_MAX_ARMOR - heroArmor);
+      heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + _as.amount);
+      playSfx("tone:880:80:triangle", 0.45); playSfx("tone:1100:60:triangle", 0.3);
+      if (gained > 0) showToast(`+${Math.round(gained)} ARMOR`, "success", 1800);
+    } else {
+      _as.mesh.rotation.y += dt * 3.0;
+      _as.mesh.rotation.x += dt * 1.8;
+      _as.mesh.position.y = 0.5 + Math.sin(now / 260 + _as.u) * 0.12;
+      if (_asDist < 3.0) {
+        const _mag = 9 * (1 - _asDist / 3.0);
+        _as.u += ((heroNow.u - _as.u) / _asDist) * _mag * dt;
+        _as.v += ((heroNow.v - _as.v) / _asDist) * _mag * dt;
+        _as.mesh.position.x = _as.u; _as.mesh.position.z = _as.v;
       }
     }
   }
