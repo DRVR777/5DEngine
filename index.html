@@ -1702,6 +1702,16 @@ const _pMatCyan    = new THREE.MeshBasicMaterial({ color: 0x00ccff });
 const _pMatWhite   = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const _pMatsMap    = { yellow:_pMatYellow, orange:_pMatOrange, red:_pMatRed, cyan:_pMatCyan, white:_pMatWhite };
 
+// Muzzle flash point light — moves to gun tip on each shot, fades in 60ms
+const _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8);
+scene.add(_muzzleLight);
+let _muzzleLightT = 0;
+function _triggerMuzzleFlash(x, y, z) {
+  _muzzleLight.position.set(x, y, z);
+  _muzzleLight.intensity = 4;
+  _muzzleLightT = 0.06;
+}
+
 function _spawnParticles(x, y, z, count, colorKey, speed, lifetime) {
   const mat = _pMatsMap[colorKey] || _pMatYellow;
   for (let i = 0; i < count; i++) {
@@ -3938,9 +3948,10 @@ function _tryShoot() {
     scene.add(mesh);
     bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage });
   }
-  // Muzzle flash particles at gun tip
-  _spawnParticles(hp.u + Math.sin(baseAngle) * 0.5, 1.5, hp.v + Math.cos(baseAngle) * 0.5,
-    wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
+  // Muzzle flash — particles + brief point light at gun tip
+  const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
+  _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
+  _triggerMuzzleFlash(mfx, mfy, mfz);
   // Camera kick — brief upward pitch jolt that decays via spring
   _recoilPitch = -(wep.pellets > 1 ? 0.06 : 0.025);
   // Gun visual kick — push barrel back then spring forward
@@ -4173,6 +4184,12 @@ function tick() {
   // Tick particles
   _tickParticles(dt);
   if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
+  // Muzzle flash light decay
+  if (_muzzleLightT > 0) {
+    _muzzleLightT -= dt;
+    _muzzleLight.intensity = Math.max(0, (_muzzleLightT / 0.06) * 4);
+    if (_muzzleLightT <= 0) _muzzleLight.intensity = 0;
+  }
   // Trigger zones — check hero + all enemies
   if (typeof TriggerZones !== "undefined") {
     const hz = world.players.get("hero");
@@ -4252,7 +4269,9 @@ function tick() {
           en._kbU = ((ep.u - b.posU) / kbLen) * 3.5;
           en._kbV = ((ep.v - b.posV) / kbLen) * 3.5;
           en._kbT = 0.1;
-          _spawnParticles(b.posU, b.posY, b.posV, 5, "red", 4, 0.25);
+          // Robots spark cyan/white; biological enemies bleed red
+          const hitColor = en.type === "robot" ? (headshot ? "white" : "cyan") : "red";
+          _spawnParticles(b.posU, b.posY, b.posV, headshot ? 10 : 5, hitColor, 4, 0.25);
           if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("impact", { x: b.posU, y: b.posY, z: b.posV });
           if (en.hp === 0) {
             en.dead = true;
