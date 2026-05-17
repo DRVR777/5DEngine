@@ -4658,6 +4658,7 @@ let _meleeSwing = 0;   // spring: lateral swing for melee attack (applied to fpG
 let _meleeCooldown = 0; // seconds until next melee allowed
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
+let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => getWeapon().reloadDuration || 1200;
@@ -4810,7 +4811,11 @@ function tick() {
   // In build mode WASD drives the freecam; while dead, all movement blocked
   const inputF = (buildMode || _heroDead) ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
   const inputR = (buildMode || _heroDead) ? 0 : ((keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0));
-  const speed  = (keys["ShiftLeft"] || keys["ShiftRight"]) ? SPRINT : WALK;
+  const crouching = !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen;
+  const crouchTarget = crouching ? 1 : 0;
+  _crouchAmt += (crouchTarget - _crouchAmt) * Math.min(1, dt * 12);
+  const crouchSpeedMul = 1 - _crouchAmt * 0.4; // 60% speed when fully crouched
+  const speed  = ((keys["ShiftLeft"] || keys["ShiftRight"]) && !crouching) ? SPRINT : WALK * crouchSpeedMul;
 
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
@@ -5617,7 +5622,8 @@ function tick() {
     _fpGunGroup.position.set(0.22 + aimShift, -0.24 + _gunReloadX * 0.15, -0.45 + _gunKickZ * 0.6);
     _fpGunGroup.rotation.set(_gunReloadX * 0.3, 0, _meleeSwing * 0.9);
   }
-  const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + (firstPerson ? 1.78 : 1.2), heroPos.z);
+  const _eyeH = firstPerson ? (1.78 - _crouchAmt * 0.75) : (1.2 - _crouchAmt * 0.4);
+  const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + _eyeH, heroPos.z);
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
   const sx = Math.cos(camYaw), sz = -Math.sin(camYaw);   // right vector
@@ -5634,7 +5640,7 @@ function tick() {
     // FP CAMERA — locked to hero head. Pitch ONLY changes look direction,
     // NEVER the camera position (fixes the "height drifts as you pitch"
     // and "looks up when you pull mouse down" bugs).
-    camera.position.set(heroPos.x, heroPos.y + 1.78, heroPos.z);
+    camera.position.set(heroPos.x, heroPos.y + (1.78 - _crouchAmt * 0.75), heroPos.z);
     const look = camera.position.clone().add(new THREE.Vector3(
       fx * Math.cos(camPitch),
       Math.sin(camPitch),     // mouse-down (pitch ↓) → look y ↓ → look DOWN
