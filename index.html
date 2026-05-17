@@ -1128,6 +1128,7 @@ let hitMarkerUntil = 0;
 let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
 let _dmgDirUntil = 0;  // performance.now() deadline
 let _lastWaveNum  = -1; // tracks last shown wave to detect transitions
+let _waveBeepLast = 0;  // last countdown integer we played a beep for
 let _waveBannerUntil = 0;
 for (const e of enemies) world.setPlayer(e.id, 0, 0, 0, e.u, e.v);
 
@@ -5730,7 +5731,14 @@ function tick() {
         if (wl) wl.textContent = `WAVE ${ws.wave}/${ws.totalWaves}`;
         const det = document.getElementById("waveDetail");
         if (!det) { /* no-op */ }
-        else if (ws.phase === "countdown") det.textContent = `starting in ${ws.countdown}…`;
+        else if (ws.phase === "countdown") {
+          det.textContent = `starting in ${ws.countdown}…`;
+          if (ws.countdown > 0 && ws.countdown !== _waveBeepLast) {
+            _waveBeepLast = ws.countdown;
+            const _beepFreq = ws.countdown === 1 ? 1100 : 440 + (5 - ws.countdown) * 40;
+            playSfx(`tone:${_beepFreq}:55:sine`, ws.countdown === 1 ? 0.35 : 0.18);
+          }
+        }
         else if (ws.phase === "spawning" || ws.phase === "waiting") det.textContent = `${ws.aliveCount} alive`;
         else if (ws.phase === "pausing") det.textContent = `clear! next in ${ws.pauseLeft}s`;
         else if (ws.phase === "done") det.textContent = `all waves done`;
@@ -5740,6 +5748,7 @@ function tick() {
     // Wave announcement banner — show for 2.5s when wave number increments
     if (ws.started && ws.wave !== _lastWaveNum && ws.phase === "spawning") {
       _lastWaveNum = ws.wave;
+      _waveBeepLast = 0;
       _waveBannerUntil = performance.now() + 2500;
       const wbl = document.getElementById("waveBannerLabel");
       const wbs = document.getElementById("waveBannerSub");
