@@ -6907,6 +6907,12 @@ function tick() {
     } else {
       ap.mesh.rotation.y += dt * 2.5;
       ap.mesh.position.y = 0.4 + Math.sin(now / 280 + ap.u) * 0.08;
+      if (d < 3.0) {
+        const _mag = 8 * (1 - d / 3.0);
+        ap.u += ((heroNow.u - ap.u) / d) * _mag * dt;
+        ap.v += ((heroNow.v - ap.v) / d) * _mag * dt;
+        ap.mesh.position.x = ap.u; ap.mesh.position.z = ap.v;
+      }
     }
   }
 
@@ -6925,6 +6931,12 @@ function tick() {
       hp2.mesh.rotation.x += dt * 1.5;
       hp2.mesh.rotation.y += dt * 2.2;
       hp2.mesh.position.y = 0.6 + Math.sin(now / 320 + hp2.u) * 0.1;
+      if (d < 3.0) {
+        const _mag = 8 * (1 - d / 3.0);
+        hp2.u += ((heroNow.u - hp2.u) / d) * _mag * dt;
+        hp2.v += ((heroNow.v - hp2.v) / d) * _mag * dt;
+        hp2.mesh.position.x = hp2.u; hp2.mesh.position.z = hp2.v;
+      }
     }
   }
 
@@ -7056,6 +7068,12 @@ function tick() {
     } else {
       cd.mesh.rotation.y += dt * 2.8;
       cd.mesh.position.y = 0.5 + Math.sin(now / 310 + cd.u) * 0.08;
+      if (d < 3.0) {
+        const _mag = 9 * (1 - d / 3.0);
+        cd.u += ((heroNow.u - cd.u) / d) * _mag * dt;
+        cd.v += ((heroNow.v - cd.v) / d) * _mag * dt;
+        cd.mesh.position.x = cd.u; cd.mesh.position.z = cd.v;
+      }
     }
   }
 
