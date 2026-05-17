@@ -1380,7 +1380,7 @@ const _SHOP_ITEMS = [
   { id: "ammo_pistol",  name: "Pistol Ammo",    desc: "+30 pistol rounds",         cost: 2,  action: () => { Inv.addItem(heroInv, "pistol_9mm", 30); } },
   { id: "ammo_rifle",   name: "Rifle Ammo",      desc: "+30 rifle rounds",          cost: 3,  action: () => { Inv.addItem(heroInv, "rifle_556",  30); } },
   { id: "ammo_shotgun", name: "Shotgun Shells",  desc: "+16 shotgun shells",        cost: 3,  action: () => { Inv.addItem(heroInv, "shotgun_12g", 16); } },
-  { id: "medkit",       name: "Medkit",          desc: "+1 medkit (use: H key)",    cost: 4,  action: () => { Inv.addItem(heroInv, "medkit", 1); } },
+  { id: "medkit",       name: "Medkit",          desc: "+1 medkit (press H to use)", cost: 4,  action: () => { Inv.addItem(heroInv, "medkit", 1); } },
   { id: "grenade",      name: "Grenades x3",     desc: "+3 grenades",               cost: 5,  action: () => { grenadeCount = Math.min(9, grenadeCount + 3); } },
   { id: "armor",        name: "Armor Shard",     desc: "+25 armor (absorbs 60% dmg)", cost: 8,  action: () => { heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 25); } },
   { id: "ammo_max",     name: "Full Resupply",   desc: "Fill all ammo + 2 medkits", cost: 15, action: () => {
@@ -3940,12 +3940,28 @@ addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  // H key: toggle rain (non-build mode)
-  if (e.code === "KeyH" && !computerOpen) {
+  // H key: use medkit from inventory (non-build, play mode). Rain moved to Ctrl+R.
+  if (e.code === "KeyH" && !buildMode && !computerOpen && !_heroDead) {
+    const medCount = (typeof Inv !== "undefined") ? Inv.countItem(heroInv, "medkit") : 0;
+    if (medCount > 0) {
+      Inv.removeItem(heroInv, "medkit", 1);
+      const healed = Math.min(40, HERO_MAX_HP - heroHp);
+      heroHp = Math.min(HERO_MAX_HP, heroHp + 40);
+      heroLastDamageT = -999; // reset regen delay
+      playSfx("tone:700:120:sine", 0.4);
+      showToast(`Medkit used — +${Math.round(healed)} HP`, "success", 1200);
+      _spawnParticles(world.players.get("hero").u, 1.2, world.players.get("hero").v, 8, "white", 3, 0.5);
+    } else {
+      showToast("No medkits! Buy from shop (Tab)", "danger", 1200);
+      playSfx("tone:200:60:sine", 0.2);
+    }
+    e.preventDefault(); return;
+  }
+  // Ctrl+R: toggle rain (debug)
+  if (e.code === "KeyR" && e.ctrlKey && !buildMode) {
     setRain(!_rainActive);
     showToast(_rainActive ? "Rain started" : "Rain stopped", "info");
-    e.preventDefault();
-    return;
+    e.preventDefault(); return;
   }
   // C key: toggle crafting panel (non-build mode)
   if (e.code === "KeyC" && !buildMode && !computerOpen) {
