@@ -518,6 +518,34 @@
 <div id="crosshair"></div>
 <div id="damageFlash"></div>
 
+<!-- Keybind reference (? key) -->
+<div id="keybindPanel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,6,18,0.96);border:1px solid rgba(0,200,255,0.4);border-radius:8px;padding:20px 28px;z-index:1500;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12px;color:#a0c8e0;min-width:320px;pointer-events:none">
+  <div style="color:#00ccff;font-size:14px;font-weight:bold;margin-bottom:12px;letter-spacing:0.1em">CONTROLS  <span style="color:#445566;font-size:10px;font-weight:normal">[? to close]</span></div>
+  <table style="border-collapse:collapse;width:100%">
+    <tr><td style="color:#ffd166;padding:2px 12px 2px 0;min-width:90px">WASD</td><td>Move</td></tr>
+    <tr><td style="color:#ffd166">Shift</td><td>Sprint (uses stamina)</td></tr>
+    <tr><td style="color:#ffd166">Ctrl</td><td>Crouch</td></tr>
+    <tr><td style="color:#ffd166">Space</td><td>Jump</td></tr>
+    <tr><td style="color:#ffd166">X</td><td>Dodge roll (iframes, costs stamina)</td></tr>
+    <tr><td colspan="2" style="padding-top:8px;color:#334455">── Combat ──</td></tr>
+    <tr><td style="color:#ffd166">LMB</td><td>Shoot</td></tr>
+    <tr><td style="color:#ffd166">RMB</td><td>Aim down sights</td></tr>
+    <tr><td style="color:#ffd166">R</td><td>Reload</td></tr>
+    <tr><td style="color:#ffd166">N</td><td>Melee attack (35 dmg, 1.5m)</td></tr>
+    <tr><td style="color:#ffd166">G</td><td>Throw grenade</td></tr>
+    <tr><td style="color:#ffd166">H</td><td>Use medkit</td></tr>
+    <tr><td style="color:#ffd166">1–5</td><td>Select weapon</td></tr>
+    <tr><td style="color:#ffd166">Scroll</td><td>Cycle weapons</td></tr>
+    <tr><td colspan="2" style="padding-top:8px;color:#334455">── World ──</td></tr>
+    <tr><td style="color:#ffd166">F</td><td>Toggle flashlight</td></tr>
+    <tr><td style="color:#ffd166">E</td><td>Interact (vehicle / computer)</td></tr>
+    <tr><td style="color:#ffd166">Tab</td><td>Shop</td></tr>
+    <tr><td style="color:#ffd166">B</td><td>Build mode</td></tr>
+    <tr><td style="color:#ffd166">` (backtick)</td><td>Dev console</td></tr>
+    <tr><td style="color:#ffd166">?</td><td>This help panel</td></tr>
+  </table>
+</div>
+
 <!-- Dev console (` key) -->
 <div id="devConsole" style="display:none;position:fixed;bottom:0;left:0;right:0;height:220px;background:rgba(0,6,14,0.94);border-top:1px solid rgba(0,200,255,0.35);z-index:2000;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12px;flex-direction:column">
   <div id="devConsoleLogs" style="flex:1;overflow-y:auto;padding:6px 10px;color:#88ccdd;line-height:1.5;max-height:172px"></div>
@@ -4037,8 +4065,10 @@ addEventListener("keydown", (e) => {
     }
     e.preventDefault(); return;
   }
-  // Esc closes settings, shop, or creative inventory if open
+  // Esc closes settings, shop, keybind panel, or creative inventory if open
   if (e.code === "Escape") {
+    const kpEl = document.getElementById("keybindPanel");
+    if (kpEl && kpEl.style.display !== "none") { kpEl.style.display = "none"; e.preventDefault(); return; }
     if (settingsOpen) { _closeSettings(); e.preventDefault(); return; }
     if (shopOpen) { _closeShop(); e.preventDefault(); return; }
     const ci = document.getElementById("creativeInv");
@@ -4237,6 +4267,12 @@ addEventListener("keydown", (e) => {
     }
     e.preventDefault();
     return;
+  }
+  // ? key: toggle keybind reference panel
+  if (e.key === "?" && !buildMode && !computerOpen) {
+    const kp = document.getElementById("keybindPanel");
+    if (kp) kp.style.display = kp.style.display === "none" ? "block" : "none";
+    e.preventDefault(); return;
   }
   // O key: toggle environment/post-FX panel in build mode, settings in play mode
   if (e.code === "KeyO") {
