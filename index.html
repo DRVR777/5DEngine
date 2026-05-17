@@ -2337,6 +2337,10 @@ if (typeof WaveManager !== "undefined") {
       }
       // Reset accuracy counters for next wave
       _shotsFired = 0; _shotsHit = 0;
+      // Respawn exploded barrels between waves
+      for (const _bar of barrels) {
+        if (_bar.exploded) { _bar.exploded = false; _bar.hp = _bar.maxHp; _bar.mesh.visible = true; }
+      }
     },
     onAllWaves:  ()  => {
       _bulletTimeLeft = 0.55; // final kill slow-mo
