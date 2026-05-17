@@ -320,6 +320,16 @@
   <div id="questList"></div>
 </div>
 
+<!-- Wave HUD (center-top, shown during wave gameplay) -->
+<div id="waveHud" style="display:none;position:fixed;top:48px;left:50%;transform:translateX(-50%);
+  background:rgba(2,8,22,0.92);border:1px solid rgba(0,200,255,0.4);border-radius:6px;
+  padding:5px 18px;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:11px;
+  color:#00ccff;letter-spacing:0.1em;z-index:201;text-align:center;
+  box-shadow:0 0 18px rgba(0,200,255,0.2);pointer-events:none">
+  <span id="waveLabel">WAVE 1</span>
+  <span id="waveDetail" style="color:#b8e8ff;margin-left:8px"></span>
+</div>
+
 <!-- Rain canvas (layered below HUD, above 3D scene) -->
 <canvas id="rainCanvas" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:5"></canvas>
 
@@ -686,6 +696,7 @@
 <script src="./src/systems/a_star.js"></script>
 <script src="./src/progression/achievements.js"></script>
 <script src="./src/systems/status_effects.js"></script>
+<script src="./src/systems/wave_manager.js"></script>
 <script src="./src/activities/crafting.js"></script>
 <script src="./src/config/game_config.js"></script>
 <script src="./src/world/world_data.js"></script>
@@ -838,6 +849,7 @@ const _enemyDefaultDefs = [Object.assign({ id: "enemy1", u: 14, v: -14, heading:
 const enemies = (WD.enemies || _enemyDefaultDefs).map(def =>
   Object.assign({ lastAttackT: -Infinity, dead: false, respawnT: -Infinity }, def)
 );
+window._enemies = enemies;   // exposed for WaveManager alive-count tracking
 // Keep backwards-compat `enemy` alias pointing to first enemy
 const enemy = enemies[0];
 const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
@@ -1284,6 +1296,7 @@ if (typeof Engine !== "undefined") {
   if (typeof SoundZones    !== "undefined") Engine.register("soundZones",   SoundZones);
   if (typeof Cutscene      !== "undefined") Engine.register("cutscene",     Cutscene);
   if (typeof Terrain       !== "undefined") Engine.register("terrain",      Terrain);
+  if (typeof WaveManager   !== "undefined") Engine.register("waves",        WaveManager);
 }
 if (typeof DevConsole !== "undefined") DevConsole.init();
 
@@ -1329,6 +1342,23 @@ if (typeof DayNight !== "undefined") {
   Engine.addCommand("dayspeed", "Get/set day cycle speed  dayspeed [n]", (args) => {
     if (args[0] !== undefined) DayNight.speed = parseFloat(args[0]);
     return `dayspeed = ${DayNight.speed}`;
+  });
+}
+
+// Wave manager init
+if (typeof WaveManager !== "undefined") {
+  WaveManager.init({
+    onWaveStart: (w) => showToast(`Wave ${w} incoming!`, "danger", 3000),
+    onWaveEnd:   (w) => showToast(`Wave ${w} clear!`, "success", 2500),
+    onAllWaves:  ()  => showToast("All waves complete — looping!", "success", 3000),
+  });
+  Engine.addCommand("wave", "Wave control  wave start|stop|reset|status", (args) => {
+    const sub = (args[0] || "status").toLowerCase();
+    if (sub === "start") { WaveManager.start(); return "Wave sequence started."; }
+    if (sub === "stop")  { WaveManager.stop();  return "Wave sequence stopped."; }
+    if (sub === "reset") { WaveManager.reset(); return "Wave sequence reset."; }
+    const s = WaveManager.getState();
+    return `wave=${s.wave}/${s.totalWaves} phase=${s.phase} alive=${s.aliveCount}`;
   });
 }
 
@@ -3818,6 +3848,25 @@ function tick() {
   if (typeof DayNight !== "undefined") DayNight.tick(dt);
   // Status effects (buffs/debuffs)
   if (typeof StatusEffects !== "undefined") StatusEffects.tick(dt);
+  // Wave manager
+  if (typeof WaveManager !== "undefined") {
+    WaveManager.tick(dt);
+    const ws = WaveManager.getState();
+    const waveHud = document.getElementById("waveHud");
+    if (waveHud) {
+      const show = ws.started && ws.phase !== "idle";
+      waveHud.style.display = show ? "block" : "none";
+      if (show) {
+        document.getElementById("waveLabel").textContent = `WAVE ${ws.wave}/${ws.totalWaves}`;
+        const det = document.getElementById("waveDetail");
+        if (ws.phase === "countdown") det.textContent = `starting in ${ws.countdown}…`;
+        else if (ws.phase === "spawning" || ws.phase === "waiting") det.textContent = `${ws.aliveCount} alive`;
+        else if (ws.phase === "pausing") det.textContent = `clear! next in ${ws.pauseLeft}s`;
+        else if (ws.phase === "done") det.textContent = `all waves done`;
+        else det.textContent = "";
+      }
+    }
+  }
 
   // Tick bullets (substep dt to avoid tunneling past enemy)
   pistolCooldown = Math.max(0, pistolCooldown - dt);

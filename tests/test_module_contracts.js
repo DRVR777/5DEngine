@@ -70,6 +70,7 @@ const CONTRACTS = {
   "src/core/engine.js":              ["register", "get", "has", "list", "time", "debug", "addCommand", "runCommand"],
   "src/core/dev_console.js":         ["init", "print", "toggle"],
   "src/world/day_night.js":          ["init", "tick", "setHour", "getHour", "pause"],
+  "src/systems/wave_manager.js":     ["init", "start", "stop", "reset", "tick", "getState", "addWave"],
 };
 
 const ROOT = path.resolve(__dirname, "..");
