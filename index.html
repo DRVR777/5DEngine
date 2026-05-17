@@ -5283,6 +5283,24 @@ function tick() {
     }
   }
 
+  // Enemy separation — push enemies apart when overlapping (prevents clumping)
+  const SEP_DIST = 1.2, SEP_PUSH = 0.6;
+  for (let ei = 0; ei < enemies.length; ei++) {
+    const ea = enemies[ei]; if (ea.dead) continue;
+    const pa = world.players.get(ea.id);
+    for (let ej = ei + 1; ej < enemies.length; ej++) {
+      const eb = enemies[ej]; if (eb.dead) continue;
+      const pb = world.players.get(eb.id);
+      const dU = pa.u - pb.u, dV = pa.v - pb.v;
+      const d = Math.hypot(dU, dV);
+      if (d < SEP_DIST && d > 0.001) {
+        const push = (SEP_DIST - d) * SEP_PUSH * dt / d;
+        world.setPlayer(ea.id, pa.x, 0, 0, pa.u + dU * push, pa.v + dV * push);
+        world.setPlayer(eb.id, pb.x, 0, 0, pb.u - dU * push, pb.v - dV * push);
+      }
+    }
+  }
+
   // Hero hp regen after no-damage delay
   if (heroHp < HERO_MAX_HP && (now / 1000 - heroLastDamageT) > HERO_REGEN_DELAY) {
     heroHp = Math.min(HERO_MAX_HP, heroHp + HERO_REGEN_RATE * dt);
