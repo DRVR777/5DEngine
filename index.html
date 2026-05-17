@@ -893,6 +893,10 @@ window._enemies = enemies;   // exposed for WaveManager alive-count tracking
 const enemy = enemies[0];
 const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
 let enemyKills = 0;
+let _streakCount = 0;
+let _lastKillT = 0;
+const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
+const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8 };
 let hitMarkerUntil = 0;
 for (const e of enemies) world.setPlayer(e.id, 0, 0, 0, e.u, e.v);
 
@@ -4251,14 +4255,31 @@ function tick() {
             en.dead = true;
             en.respawnT = now / 1000;
             enemyKills++;
-            showToast(`Enemy down — ${enemyKills} kill${enemyKills>1?"s":""}`, "danger", 2000);
-            _addKillFeedEntry(`★ KILL #${enemyKills} — enemy ${en.id}`, "#ff4466");
+            // Kill streak tracking
+            const nowSec = now / 1000;
+            if (nowSec - _lastKillT < _STREAK_WINDOW) {
+              _streakCount++;
+            } else {
+              _streakCount = 1;
+            }
+            _lastKillT = nowSec;
+            const streakMsgs = { 3: "TRIPLE KILL! +3 bonus coins", 5: "RAMPAGE! +5 bonus coins", 10: "UNSTOPPABLE! +10 bonus coins" };
+            if (streakMsgs[_streakCount]) {
+              const bonusCoins = _streakCount === 3 ? 3 : _streakCount === 5 ? 5 : 10;
+              score += bonusCoins;
+              showToast(streakMsgs[_streakCount], "success", 2200);
+              playSfx("tone:1400:120:sine", 0.6);
+            } else {
+              showToast(`Enemy down — ${enemyKills} kill${enemyKills>1?"s":""}`, "danger", 1800);
+            }
+            _addKillFeedEntry(`★ KILL #${enemyKills} — ${en.type || "enemy"}`, "#ff4466");
             if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id: en.id, kills: enemyKills });
             completeQuestStep("combat", 0);
             if (enemyKills >= 3) completeQuestStep("combat", 1);
             _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
             if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
-            _spawnCoinDrop(ep.u, ep.v, en.type === "heavy" ? 3 : en.type === "fast" ? 1 : 1);
+            const coinVal = _COIN_BY_TYPE[en.type] || 1;
+            _spawnCoinDrop(ep.u, ep.v, coinVal);
             _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
             if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("sparks", { x: ep.u, y: 1.2, z: ep.v });
             playSfx("tone:880:80:sine", 0.4);
