@@ -5974,6 +5974,21 @@ function tick() {
               }
               if (isLockon && !en._sniperLockSnd) { en._sniperLockSnd = true; playSfx("tone:1800:40:sine", 0.2); }
               if (!isLockon) en._sniperLockSnd = false;
+              // Laser sight line — world-space Line from muzzle to hero during lock-on
+              if (!en._laserLine) {
+                const _lGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,1)]);
+                en._laserLine = new THREE.Line(_lGeo, new THREE.LineBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.7 }));
+                en._laserLine.renderOrder = 999;
+                scene.add(en._laserLine);
+              }
+              if (isLockon && _heroNowAI) {
+                const _lPos = en._laserLine.geometry.attributes.position.array;
+                _lPos[0] = ep.u; _lPos[1] = ep.y + 1.4; _lPos[2] = ep.v;
+                _lPos[3] = _heroNowAI.u; _lPos[4] = 1.0; _lPos[5] = _heroNowAI.v;
+                en._laserLine.geometry.attributes.position.needsUpdate = true;
+                en._laserLine.material.opacity = 0.5 + 0.4 * Math.sin(now / 45);
+                en._laserLine.visible = true;
+              } else if (en._laserLine) { en._laserLine.visible = false; }
               // Fire at phase end
               if (snPhase >= 3.95 && (!en._sniperShotT || nowS - en._sniperShotT > 3.5)) {
                 en._sniperShotT = nowS; en._sniperPhaseT = nowS;
@@ -6076,6 +6091,8 @@ function tick() {
       const gem = em.group.getObjectByName("_typeGem");
       if (gem) gem.rotation.y += dt * 2.5;
     } else {
+      // Hide sniper laser on death
+      if (en._laserLine) en._laserLine.visible = false;
       // Death collapse animation: fall backward + sink over 0.6s, then go invisible
       const _dElapsed = now / 1000 - en.respawnT;
       const _COLLAPSE = 0.6;
