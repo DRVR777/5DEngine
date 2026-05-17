@@ -1494,8 +1494,21 @@ function makeLimb(mat, h) {
   pivot.add(m);
   return pivot;
 }
-const legL = makeLimb(heroPants, 0.85); legL.position.set(-0.18, 0.85, 0); heroGroup.add(legL);
-const legR = makeLimb(heroPants, 0.85); legR.position.set( 0.18, 0.85, 0); heroGroup.add(legR);
+// Two-segment leg: thigh + shin connected at the knee pivot
+function makeTwoSegLeg(mat) {
+  const thigh = new THREE.Group();
+  const thighMesh = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.43, 0.21), mat);
+  thighMesh.position.y = -0.215; thighMesh.castShadow = true; thigh.add(thighMesh);
+  const shin = new THREE.Group(); shin.position.y = -0.43;   // knee pivot
+  const shinMesh = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.42, 0.18), mat);
+  shinMesh.position.y = -0.21; shinMesh.castShadow = true; shin.add(shinMesh);
+  thigh.add(shin);
+  return { thigh, shin };
+}
+const { thigh: thighL, shin: shinL } = makeTwoSegLeg(heroPants);
+const { thigh: thighR, shin: shinR } = makeTwoSegLeg(heroPants);
+thighL.position.set(-0.18, 0.85, 0); heroGroup.add(thighL);
+thighR.position.set( 0.18, 0.85, 0); heroGroup.add(thighR);
 const armL = makeLimb(heroSkin,  0.7);  armL.position.set(-0.45, 1.6, 0);  heroGroup.add(armL);
 const armR = makeLimb(heroSkin,  0.7);  armR.position.set( 0.45, 1.6, 0);  heroGroup.add(armR);
 // Blob shadow under hero
@@ -3888,6 +3901,11 @@ function tick() {
           en.hp = Math.max(0, en.hp - b.damage);
           hitMarkerUntil = now + 120;
           playSfx("blip", 0.2);
+          // Knockback — push enemy away from bullet origin
+          const kbLen = Math.hypot(ep.u - b.posU, ep.v - b.posV) || 1;
+          en._kbU = ((ep.u - b.posU) / kbLen) * 3.5;
+          en._kbV = ((ep.v - b.posV) / kbLen) * 3.5;
+          en._kbT = 0.1;
           _spawnParticles(b.posU, b.posY, b.posV, 5, "red", 4, 0.25);
           if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("impact", { x: b.posU, y: b.posY, z: b.posV });
           if (en.hp === 0) {
@@ -3943,6 +3961,12 @@ function tick() {
         en._patrolAngle = Math.random() * Math.PI * 2;
       }
 
+      // Apply knockback if active
+      if (en._kbT > 0) {
+        en._kbT -= dt;
+        const kbEp = world.players.get(en.id);
+        world.setPlayer(en.id, kbEp.x, kbEp.y, kbEp.z, kbEp.u + en._kbU * dt, kbEp.v + en._kbV * dt);
+      }
       const ep = world.players.get(en.id);
       const dx = _heroNowAI.u - ep.u, dz = _heroNowAI.v - ep.v;
       const dist = Math.hypot(dx, dz);
@@ -4118,7 +4142,18 @@ function tick() {
     velocityY += GRAVITY * dt;
     let newY = hero.y + velocityY * dt;
     const supportAfter = _platformUnder(hero.u, hero.v, Math.max(newY, hero.y));
-    if (newY < supportAfter.topY) { newY = supportAfter.topY; velocityY = 0; onGround = true; }
+    if (newY < supportAfter.topY) {
+      const impact = velocityY;
+      newY = supportAfter.topY; velocityY = 0; onGround = true;
+      // Fall damage: >15 m/s downward = started hurting, ~4m drop
+      const fallDmg = Math.min(90, Math.max(0, (-impact - 15) * 5));
+      if (fallDmg > 0 && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
+        heroHp = Math.max(0, heroHp - fallDmg);
+        heroLastDamageT = now / 1000;
+        flashDamage();
+        showToast(`Fall damage: -${Math.round(fallDmg)} HP`, "danger", 1500);
+      }
+    }
     if (newY < 0) { newY = 0; velocityY = 0; onGround = true; }
     world.setPlayer("hero", hero.x, newY, hero.z, hero.u, hero.v);
   }
@@ -4165,9 +4200,12 @@ function tick() {
   // default so the legs visibly pump while walking (rotation around hip pivot).
   const groundSpeed = inCar ? 0 : Math.hypot(inputF, inputR) * speed;
   const wc = Bridge.walkCyclePhase(walkState, dt, groundSpeed);
-  const SWING = 1.5;     // visual amplifier
-  legL.rotation.x =  wc.swing * SWING;
-  legR.rotation.x = -wc.swing * SWING;
+  const SWING = 1.3;
+  const KNEE  = 0.75;     // shin bend when thigh swings forward
+  thighL.rotation.x =  wc.swing * SWING;
+  thighR.rotation.x = -wc.swing * SWING;
+  shinL.rotation.x  = Math.max(0,  wc.swing * SWING) * KNEE;
+  shinR.rotation.x  = Math.max(0, -wc.swing * SWING) * KNEE;
   // Arms: swing oppositely to legs while walking, but when AIMING they raise
   // straight forward into a two-handed shooting pose (with aimAmt easing).
   const aimRaise = -Math.PI / 2 * aimAmt;       // rotate forward
