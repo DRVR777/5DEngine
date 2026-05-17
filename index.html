@@ -2599,11 +2599,12 @@ function _makeEnemyMesh(eDef) {
     }
     const hpY = 2.75;
     const hpBg = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.12), new THREE.MeshBasicMaterial({ color: 0x222222 }));
-    hpBg.position.y = hpY; group.add(hpBg);
+    hpBg.position.y = hpY;
     const hpFg = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.10), new THREE.MeshBasicMaterial({ color: 0x00cc44 }));
-    hpFg.position.y = hpY; hpFg.position.z = 0.001; group.add(hpFg);
+    hpFg.position.y = hpY; hpFg.position.z = 0.001;
+    const hpPivot = new THREE.Group(); hpPivot.add(hpBg); hpPivot.add(hpFg); group.add(hpPivot);
     scene.add(group);
-    return { group, hpFg };
+    return { group, hpFg, hpPivot };
   }
 
   const body = new THREE.Mesh(
@@ -2626,14 +2627,15 @@ function _makeEnemyMesh(eDef) {
     new THREE.PlaneGeometry(1.0, 0.12),
     new THREE.MeshBasicMaterial({ color: 0x222222 })
   );
-  hpBg.position.y = hpY; group.add(hpBg);
+  hpBg.position.y = hpY;
   const hpFg = new THREE.Mesh(
     new THREE.PlaneGeometry(1.0, 0.10),
     new THREE.MeshBasicMaterial({ color: 0x00cc44 })
   );
-  hpFg.position.y = hpY; hpFg.position.z = 0.001; group.add(hpFg);
+  hpFg.position.y = hpY; hpFg.position.z = 0.001;
+  const hpPivot = new THREE.Group(); hpPivot.add(hpBg); hpPivot.add(hpFg); group.add(hpPivot);
   scene.add(group);
-  return { group, hpFg };
+  return { group, hpFg, hpPivot };
 }
 for (const e of enemies) enemyMeshes.set(e.id, _makeEnemyMesh(e));
 // Backwards-compat: keep enemyGroup/enemyHpFg pointing to first enemy's mesh
@@ -5097,6 +5099,8 @@ function tick() {
       const hpFrac = en.hp / en.maxHp;
       em.hpFg.scale.x = Math.max(0.001, hpFrac);
       em.hpFg.position.x = -(1 - hpFrac) / 2;
+      // Billboard HP bar — always face camera
+      if (em.hpPivot) em.hpPivot.rotation.y = camYaw - en.heading;
       // Spin the type indicator gem
       const gem = em.group.getObjectByName("_typeGem");
       if (gem) gem.rotation.y += dt * 2.5;
