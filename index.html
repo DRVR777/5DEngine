@@ -2070,6 +2070,7 @@ if (typeof WaveManager !== "undefined") {
       }
     },
     onAllWaves:  ()  => {
+      _bulletTimeLeft = 0.55; // final kill slow-mo
       score += 30;
       playSfx("tone:1200:200:sine", 0.7);
       setTimeout(() => playSfx("tone:1500:180:sine", 0.6), 200);
