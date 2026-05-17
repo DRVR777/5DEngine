@@ -4458,6 +4458,7 @@ addEventListener("keydown", (e) => {
         const nw = weps[idx];
         pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
         _switchGunMesh(currentWeaponId);
+        _weaponSwitchT = 0.30;
         playSfx("click", 0.4);
         reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 1000;
         _showWeaponSelector();
@@ -5343,6 +5344,7 @@ let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 let _gunKickZ = 0;      // offset applied to _gunMount.position.z each frame
 let _gunReloadX = 0;   // spring: tilts gun down during reload window
+let _weaponSwitchT = 0; // countdown for weapon-swap dip animation (0.3s total)
 let _meleeSwing = 0;   // spring: lateral swing for melee attack (applied to fpGun roll)
 let _meleeCooldown = 0; // seconds until next melee allowed
 let _dodgeCooldown = 0; // seconds until next dodge allowed
@@ -6857,7 +6859,15 @@ function tick() {
       const _rdPct = Math.min(1, (now - _reloadStart) / RELOAD_DUR());
       _rdAmt = _rdPct < 0.2 ? _rdPct / 0.2 : _rdPct < 0.8 ? 1.0 : 1 - (_rdPct - 0.8) / 0.2;
     }
-    _fpGunGroup.position.set(0.22 + aimShift + _rdAmt * 0.10, -0.24 - _rdAmt * 0.30, -0.45 + _gunKickZ * 0.6 + _rdAmt * 0.05);
+    // Weapon swap dip: drops in first half, rises in second half
+    const _swDur = 0.30;
+    if (_weaponSwitchT > 0) _weaponSwitchT = Math.max(0, _weaponSwitchT - dt);
+    const _swapDrop = _weaponSwitchT > 0
+      ? (_weaponSwitchT > _swDur / 2
+        ? (((_swDur - _weaponSwitchT) / (_swDur / 2)) * -0.44)
+        : ((_weaponSwitchT / (_swDur / 2)) * -0.44))
+      : 0;
+    _fpGunGroup.position.set(0.22 + aimShift + _rdAmt * 0.10, -0.24 - _rdAmt * 0.30 + _swapDrop, -0.45 + _gunKickZ * 0.6 + _rdAmt * 0.05);
     _fpGunGroup.rotation.set(_rdAmt * 0.42 + _gunReloadX * 0.05, _rdAmt * -0.22, _meleeSwing * 0.9);
   }
   const _eyeH = firstPerson ? (1.78 - _crouchAmt * 0.75) : (1.2 - _crouchAmt * 0.4);
