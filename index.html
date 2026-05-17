@@ -4391,12 +4391,17 @@ function tick() {
       world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
     }
   } else {
-    // All parked vehicles become dynamic blockers
+    // All parked vehicles become dynamic blockers.
+    // Skip the horizontal blocker once the hero has jumped above it (hero.y > blockerH)
+    // so they can climb onto the car roof.
+    const _heroNow = world.players.get("hero");
+    const CAR_BLOCKER_H = 0.75;
     const vehicleBlockers = VEHICLE_DEFS.map(v => {
       const vp = world.players.get(v.id);
       const hb = v.hitbox || { w: 2, d: 4 };
-      return { u: vp.u, v: vp.v, y: 0, hitbox: { w: hb.w, d: hb.d, h: 0.75 } };
-    });
+      if (_heroNow && _heroNow.y > CAR_BLOCKER_H) return null;
+      return { u: vp.u, v: vp.v, y: 0, hitbox: { w: hb.w, d: hb.d, h: CAR_BLOCKER_H } };
+    }).filter(Boolean);
     Bridge.applyCameraRelativeMove(
       world, "hero", inputF, inputR, forward, right, speed, dt,
       { blockers: buildingBlockers.concat(vehicleBlockers), heroHitbox: HERO_HITBOX }
