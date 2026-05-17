@@ -5961,7 +5961,9 @@ function tick() {
         const bdu = bar.u - b.posU, bdv = bar.v - b.posV;
         if (bdu*bdu + bdv*bdv < 0.18 && b.posY < 0.95) {
           bar.hp -= b.damage;
-          _spawnParticles(b.posU, b.posY, b.posV, 3, "red", 3, 0.12);
+          _spawnParticles(b.posU, b.posY, b.posV, 5, "white", 7, 0.10);
+          _spawnParticles(b.posU, b.posY, b.posV, 3, "yellow", 5, 0.14);
+          playSfx("tone:1650:28:square", 0.20);
           _spawnDamageNumber(b.posU, b.posY + 0.5, b.posV, `-${b.damage}`, "#ff6600");
           if (bar.hp <= 0) { bar.exploded = true; bar.mesh.visible = false; _explodeBarrel(bar.u, bar.v); }
           hitBarrel = true; break;
