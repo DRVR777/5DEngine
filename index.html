@@ -2309,6 +2309,19 @@ const grenadeCrates = [];
   }
 })();
 
+// Armor vest pickups — 3 placed around the map, restore 25 armor, respawn 60s
+const armorPickups = [];
+(function _spawnArmorVests() {
+  const positions = [[18, 5], [-16, 14], [4, -20]];
+  const geo  = new THREE.BoxGeometry(0.4, 0.55, 0.25);
+  const mat  = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xcc9900, emissiveIntensity: 0.5, metalness: 0.5, roughness: 0.4 });
+  for (const [au, av] of positions) {
+    const mesh = new THREE.Mesh(geo, mat.clone());
+    mesh.position.set(au, 0.3, av); mesh.castShadow = true; scene.add(mesh);
+    armorPickups.push({ mesh, u: au, v: av, respawnT: -Infinity, active: true });
+  }
+})();
+
 // Health pack pickups dropped by heavy enemies
 const healthPickups = [];
 const healthPickupGeo = new THREE.OctahedronGeometry(0.22, 0);
@@ -5070,6 +5083,25 @@ function tick() {
     } else {
       gc.mesh.rotation.y += dt * 0.8;
       gc.mesh.position.y = 0.2 + Math.sin(now / 700 + gc.u) * 0.04;
+    }
+  }
+
+  // Armor vest pickups — walk over to gain 25 armor, respawn 60s
+  for (const av of armorPickups) {
+    if (!av.active) {
+      av.mesh.visible = false;
+      if (now / 1000 - av.respawnT > 60) { av.active = true; av.mesh.visible = true; }
+      continue;
+    }
+    av.mesh.rotation.y += dt * 1.2;
+    av.mesh.position.y = 0.3 + Math.sin(now / 500 + av.u) * 0.08;
+    const d = Math.hypot(heroNow.u - av.u, heroNow.v - av.v);
+    if (d < 1.3 && heroArmor < HERO_MAX_ARMOR) {
+      av.active = false; av.respawnT = now / 1000;
+      const gained = Math.min(25, HERO_MAX_ARMOR - heroArmor);
+      heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 25);
+      playSfx("tone:880:120:sine", 0.55);
+      showToast(`+${gained} armor`, "success", 1500);
     }
   }
 
