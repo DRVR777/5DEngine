@@ -4861,6 +4861,9 @@ function tick() {
           if (en.hp === 0) {
             en.dead = true;
             en.respawnT = now / 1000;
+            en._wasChasing = false;
+            { const dFreq = en.type === "robot" ? 180 : en.type === "heavy" ? 55 : 90;
+              playSfx(`tone:${dFreq}:350:sawtooth`, 0.25); }
             enemyKills++;
             // Kill streak tracking
             const nowSec = now / 1000;
@@ -5027,6 +5030,14 @@ function tick() {
       const dist = Math.hypot(dx, dz);
       const canSee = dist <= (en.sightRange || 12);
       if (canSee) { en._lastSightT = now / 1000; en._lastHeroPos = { u: _heroNowAI.u, v: _heroNowAI.v }; }
+      // Alert bark — plays once when enemy first spots hero (transition patrol→chase)
+      if (canSee && !en._wasChasing && dist < 6) {
+        const alertFreq = en.type === "robot" ? 280 : en.type === "heavy" ? 90 : 160;
+        playSfx(`tone:${alertFreq}:120:sawtooth`, 0.22);
+        en._wasChasing = true;
+      } else if (!canSee) {
+        en._wasChasing = false;
+      }
 
       if (en._bt && typeof BehaviorTree !== "undefined") {
         BehaviorTree.run(en._bt, {
@@ -5096,6 +5107,8 @@ function tick() {
           },
           onAttack: (ctx) => {
             en.lastAttackT = ctx.now;
+            { const gFreq = en.type === "robot" ? 220 : en.type === "heavy" ? 70 : 120;
+              playSfx(`tone:${gFreq}:90:sawtooth`, 0.18); }
             if (!(typeof Engine !== "undefined" && Engine.debug.godMode)) {
               let enDmg = en.damage;
               if (heroArmor > 0) {
