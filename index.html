@@ -5188,6 +5188,18 @@ function drawMinimap() {
     }
   }
 
+  // Last enemy radar ping — pulsing yellow ring when only 1 enemy remains alive
+  const _aliveEns = enemies.filter(e => !e.dead);
+  if (_aliveEns.length === 1) {
+    const _le = _aliveEns[0];
+    const _lep = world.players.get(_le.id);
+    const _lex = u2x(_lep.u), _ley = v2y(_lep.v);
+    const _lePulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+    mini.strokeStyle = `rgba(255,220,0,${0.7 + _lePulse * 0.3})`;
+    mini.lineWidth = 1.5 + _lePulse * 1.0;
+    mini.beginPath(); mini.arc(_lex, _ley, 9 + _lePulse * 4, 0, Math.PI * 2); mini.stroke();
+  }
+
   // Hero — bright centered dot + heading arrow
   mini.fillStyle = "#ffd166";
   mini.beginPath(); mini.arc(CX, CY, 4, 0, Math.PI*2); mini.fill();
