@@ -2133,7 +2133,13 @@ if (typeof DayNight !== "undefined") {
 // Wave manager init
 if (typeof WaveManager !== "undefined") {
   WaveManager.init({
-    onWaveStart: (w) => showToast(`Wave ${w} incoming!`, "danger", 3000),
+    onWaveStart: (w) => {
+      showToast(`Wave ${w} incoming!`, "danger", 3000);
+      if (w >= 2) {
+        const _oAng = Math.random() * Math.PI * 2, _oDist = 4 + Math.random() * 6;
+        _spawnSpeedOrb(Math.cos(_oAng) * _oDist, Math.sin(_oAng) * _oDist);
+      }
+    },
     onWaveEnd:   (w) => {
       const bonus = w * 3; // +3 coins per wave number
       score += bonus;
@@ -3269,6 +3275,18 @@ function _spawnHealthPickup(u, v, amount) {
   mesh.castShadow = true;
   scene.add(mesh);
   healthPickups.push({ mesh, u: du, v: dv, amount, collected: false });
+}
+
+// Speed boost orbs — spawned at wave start after wave 2; 4s of 1.5x movement speed
+const _speedOrbs = [];
+let _speedBoostT = 0;  // seconds of speed boost remaining
+const _speedOrbGeo = new THREE.DodecahedronGeometry(0.22, 0);
+const _speedOrbMat = new THREE.MeshStandardMaterial({ color: 0xffdd00, emissive: 0xffa500, emissiveIntensity: 0.9, metalness: 0.2 });
+function _spawnSpeedOrb(u, v) {
+  const mesh = new THREE.Mesh(_speedOrbGeo, _speedOrbMat.clone());
+  mesh.position.set(u, 0.7, v);
+  scene.add(mesh);
+  _speedOrbs.push({ mesh, u, v, collected: false, _birthT: now / 1000 });
 }
 
 // Coin drops from killed enemies (separate from world coin pickups)
@@ -5239,6 +5257,24 @@ function drawMinimap() {
     mini.fillRect(hx - 1, hy - 4, 2, 8); mini.fillRect(hx - 4, hy - 1, 8, 2);
   }
 
+  // Speed boost orbs — yellow star blips
+  { const _soPulse = 0.5 + 0.5 * Math.sin(performance.now() / 150);
+    for (const _so of _speedOrbs) {
+      if (_so.collected) continue;
+      const _sox = u2x(_so.u), _soy = v2y(_so.v);
+      mini.fillStyle = `rgba(255,220,0,${0.8 + _soPulse * 0.2})`;
+      mini.beginPath();
+      for (let _soi2 = 0; _soi2 < 5; _soi2++) {
+        const _a1 = _soi2 * Math.PI * 2 / 5 - Math.PI / 2;
+        const _a2 = _a1 + Math.PI / 5;
+        const _sop = _soi2 === 0 ? mini.moveTo.bind(mini) : mini.lineTo.bind(mini);
+        _sop(_sox + Math.cos(_a1) * 5, _soy + Math.sin(_a1) * 5);
+        mini.lineTo(_sox + Math.cos(_a2) * 2.5, _soy + Math.sin(_a2) * 2.5);
+      }
+      mini.closePath(); mini.fill();
+    }
+  }
+
   // Live grenades — pulsing orange circle blips (danger warning)
   { const _gPulse = 0.5 + 0.5 * Math.sin(performance.now() / 100);
     for (const _grd of grenades3D) {
@@ -5737,7 +5773,9 @@ function tick() {
   } else if (!wantsSprint || _stamina <= 0) {
     _stamina = Math.min(STAMINA_MAX, _stamina + STAMINA_REGEN * dt);
   }
-  const speed = canSprint ? SPRINT : WALK * crouchSpeedMul;
+  if (_speedBoostT > 0) _speedBoostT -= dt;
+  const _speedBoostMul = _speedBoostT > 0 ? 1.5 : 1.0;
+  const speed = (canSprint ? SPRINT : WALK * crouchSpeedMul) * _speedBoostMul;
 
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
@@ -7363,6 +7401,25 @@ function tick() {
         hp2.v += ((heroNow.v - hp2.v) / d) * _mag * dt;
         hp2.mesh.position.x = hp2.u; hp2.mesh.position.z = hp2.v;
       }
+    }
+  }
+
+  // Speed boost orbs — bob and spin, collect within 1.2m for 4s of 1.5x speed
+  for (let _soi = _speedOrbs.length - 1; _soi >= 0; _soi--) {
+    const _so = _speedOrbs[_soi];
+    if (_so.collected) { _speedOrbs.splice(_soi, 1); continue; }
+    const _soDist = Math.hypot(heroNow.u - _so.u, heroNow.v - _so.v);
+    if (_soDist < 1.2 && !_heroDead) {
+      _so.collected = true;
+      scene.remove(_so.mesh);
+      _speedBoostT = 4.0;
+      _spawnParticles(_so.u, _so.mesh.position.y, _so.v, 18, "yellow", 5, 0.5);
+      playSfx("tone:1400:80:sine", 0.45); playSfx("tone:1800:60:sine", 0.30);
+      showToast("⚡ SPEED BOOST! 4s", "warning", 2000);
+    } else {
+      _so.mesh.rotation.y += dt * 3.5;
+      _so.mesh.position.y = 0.7 + Math.sin(now / 280 + _so.u) * 0.18;
+      _so.mesh.material.emissiveIntensity = 0.7 + 0.3 * Math.sin(now / 120);
     }
   }
 
