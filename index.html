@@ -3151,6 +3151,28 @@ function playSfx(src, vol) {
   audioMixer.play({ src: src, route: "sfx", volume: vol != null ? vol : 0.4 });
 }
 
+// Ambient loop nodes — persistent oscillator-based drones that cross-fade
+const _ambCtx = window.AudioContext || window.webkitAudioContext
+  ? new (window.AudioContext || window.webkitAudioContext)() : null;
+const _ambNodes = {};
+function _setAmbient(id, freq, type, targetVol, fadeSecs) {
+  if (!_ambCtx) return;
+  if (_ambCtx.state === "suspended") _ambCtx.resume();
+  if (!_ambNodes[id]) {
+    const osc = _ambCtx.createOscillator();
+    const gain = _ambCtx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.value = freq;
+    gain.gain.value = 0;
+    osc.connect(gain);
+    gain.connect(_ambCtx.destination);
+    osc.start();
+    _ambNodes[id] = { osc, gain };
+  }
+  _ambNodes[id].osc.frequency.setTargetAtTime(freq, _ambCtx.currentTime, 0.3);
+  _ambNodes[id].gain.gain.setTargetAtTime(targetVol, _ambCtx.currentTime, fadeSecs || 1.5);
+}
+
 // ---- in-world screen interaction (E + raycast → hit-test) ----------
 // Raycast from the camera through the screen center (crosshair) and
 // invoke the region.onClick under the UV. Returns true if a screen
@@ -4779,6 +4801,14 @@ function tick() {
     else showToast("Outside", "info", 1200);
     // Ambient tone on zone change (brief hum to cue the transition)
     playSfx(`tone:${insideNow ? 320 : 180}:200:sine`, 0.12);
+  }
+
+  // Ambient soundscape — outdoor wind / indoor hum / near-PC hum
+  if (_ambCtx) {
+    const indoors = !!insideNow;
+    _setAmbient("wind", 80,  "sawtooth", indoors ? 0 : 0.025, 2.0);
+    _setAmbient("indoor", 160, "sine",   indoors ? 0.02 : 0,   2.0);
+    _setAmbient("pc",     440, "sine",   nearComputer ? 0.018 : 0, 1.2);
   }
 
   // --- render ---
