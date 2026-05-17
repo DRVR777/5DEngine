@@ -2706,11 +2706,9 @@ function _renderSceneHierarchy() {
   if (countEl) countEl.textContent = managed.size + " obj";
 }
 
-// Wire search input to re-render on keyup
-document.addEventListener("DOMContentLoaded", () => {
-  const si = document.getElementById("shSearch");
-  if (si) si.addEventListener("input", () => { if (worldBuilder) _renderSceneHierarchy(); });
-});
+// Wire scene hierarchy search input (module scripts run after DOM is ready)
+const _shSearchEl = document.getElementById("shSearch");
+if (_shSearchEl) _shSearchEl.addEventListener("input", () => { if (worldBuilder) _renderSceneHierarchy(); });
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
 // Single shared mixer drives all in-world sound — bus speakers, gunshots,
@@ -3857,13 +3855,16 @@ function tick() {
       const show = ws.started && ws.phase !== "idle";
       waveHud.style.display = show ? "block" : "none";
       if (show) {
-        document.getElementById("waveLabel").textContent = `WAVE ${ws.wave}/${ws.totalWaves}`;
+        const wl = document.getElementById("waveLabel");
+        if (wl) wl.textContent = `WAVE ${ws.wave}/${ws.totalWaves}`;
         const det = document.getElementById("waveDetail");
-        if (ws.phase === "countdown") det.textContent = `starting in ${ws.countdown}…`;
+        if (!det) { /* no-op */ }
+        else if (ws.phase === "countdown") det.textContent = `starting in ${ws.countdown}…`;
         else if (ws.phase === "spawning" || ws.phase === "waiting") det.textContent = `${ws.aliveCount} alive`;
         else if (ws.phase === "pausing") det.textContent = `clear! next in ${ws.pauseLeft}s`;
         else if (ws.phase === "done") det.textContent = `all waves done`;
         else det.textContent = "";
+
       }
     }
   }
