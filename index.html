@@ -7244,7 +7244,7 @@ function tick() {
         em.group.rotation.x = 0;
         em.group.scale.setScalar(1);
       }
-      if (_dElapsed > ENEMY_RESPAWN_DELAY) {
+      if (_dElapsed > ENEMY_RESPAWN_DELAY && !en.id.startsWith("en_spawned_")) {
         en.dead = false; en.hp = en.maxHp; en._fireDmgT = 0;
         const ang = Math.random() * Math.PI * 2;
         en.u = Math.cos(ang) * (12 + Math.random() * 8);
