@@ -327,7 +327,7 @@
   <div id="wpName">PISTOL</div>
   <div id="wpAmmo">12<span id="wpReserve"> / 60</span></div>
   <div id="wpMagBar" style="display:flex;gap:2px;margin-top:4px;flex-wrap:wrap;max-width:160px"></div>
-  <div id="wpGrenades" style="font-size:10px;color:#ff8800;margin-top:2px;letter-spacing:0.05em">⬡ 3 grenades <span style="color:#555">[F]</span></div>
+  <div id="wpGrenades" style="font-size:10px;color:#ff8800;margin-top:2px;letter-spacing:0.05em">⬡ 3 grenades <span style="color:#555">[G]</span></div>
 </div>
 
 <!-- Holographic health bar (bottom right, below weapon panel) -->
@@ -744,7 +744,7 @@
 <div id="help">
   <b>WASD</b> walk/drive &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump/handbrake
   &nbsp;·&nbsp; <b>E</b> car/PC/click-screen &nbsp;·&nbsp; <b>I</b> inventory
-  &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>F</b> grenade &nbsp;·&nbsp; <b>1-5</b> switch weapon &nbsp;·&nbsp; <b>drone</b>: E to pilot · Space/C=up/down
+  &nbsp;·&nbsp; <b>LMB</b> shoot &nbsp;·&nbsp; <b>RMB-hold</b> aim &nbsp;·&nbsp; <b>G</b> grenade &nbsp;·&nbsp; <b>1-5</b> switch weapon &nbsp;·&nbsp; <b>drone</b>: E to pilot · Space/C=up/down
   &nbsp;·&nbsp; <b>L</b> swap shoulder &nbsp;·&nbsp; <b>R</b> reload &nbsp;·&nbsp; <b>J</b> objectives &nbsp;·&nbsp; <b>H</b> rain &nbsp;·&nbsp; <b>G</b> achievements &nbsp;·&nbsp; <b>C</b> crafting
   &nbsp;·&nbsp; <b>Q/V/Z</b> snap FP/TP/BIRD &nbsp;·&nbsp; <b>M</b> mouse mode &nbsp;·&nbsp; <b>B</b> build mode &nbsp;·&nbsp; <b>`</b> dev console
   &nbsp;·&nbsp; <b>scroll</b> zoom &nbsp;·&nbsp; <b>ESC</b> close menus
@@ -3499,14 +3499,14 @@ addEventListener("keydown", (e) => {
       }
     }
   }
-  // F key: throw grenade (non-build mode) / spawn hotbar slot (build mode)
+  // F key: spawn hotbar slot (build mode only)
   if (e.code === "KeyF") {
     if (buildMode && window._hotbarSpawn) { window._hotbarSpawn(); e.preventDefault(); return; }
-    if (!buildMode && !computerOpen) { _throwGrenade(); e.preventDefault(); return; }
   }
-  // G key: group selected (build mode)
-  if (buildMode && e.code === "KeyG" && window._builderGroupSelected) {
-    window._builderGroupSelected(); e.preventDefault(); return;
+  // G key: throw grenade (non-build mode) / group selected (build mode)
+  if (e.code === "KeyG") {
+    if (buildMode && window._builderGroupSelected) { window._builderGroupSelected(); e.preventDefault(); return; }
+    if (!buildMode && !computerOpen) { _throwGrenade(); e.preventDefault(); return; }
   }
   // R key: toggle pointer-lock fly-cam in build mode
   if (buildMode && e.code === "KeyR") {
@@ -4611,7 +4611,7 @@ function tick() {
       return m;
     });
   }
-  const _showArc = !buildMode && !computerOpen && !_heroDead && grenadeCount > 0 && keys["KeyF"];
+  const _showArc = !buildMode && !computerOpen && !_heroDead && grenadeCount > 0 && keys["KeyG"];
   if (_showArc) {
     const hp = world.players.get("hero");
     const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
@@ -5415,7 +5415,7 @@ function tick() {
       }).join("");
     }
     const grenEl = document.getElementById("wpGrenades");
-    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[F]</span>`;
+    if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} grenade${grenadeCount !== 1 ? "s" : ""} <span style="color:#555">[G]</span>`;
   }
 
   // Vehicle dashboard
