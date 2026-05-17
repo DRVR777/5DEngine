@@ -1091,8 +1091,8 @@ function rectToBlocker(building) {
 }
 const buildingBlockers = buildings.map(rectToBlocker);
 
-// Arena boundary walls — 4 concrete barrier strips at ±28m
-(function _buildArenaBoundary() {
+// Arena boundary walls — deferred until scene exists (called after scene is created)
+function _buildArenaBoundary() {
   const HALF = 28, THICK = 1.6, HEIGHT = 2.2, matB = new THREE.MeshStandardMaterial({ color: 0x888880, roughness: 0.9, metalness: 0.1 });
   const wallDefs = [
     { u: 0,     v:  HALF, w: HALF * 2 + THICK, d: THICK },
@@ -1107,7 +1107,7 @@ const buildingBlockers = buildings.map(rectToBlocker);
     scene.add(mesh);
     buildingBlockers.push({ u: wd.u, v: wd.v, hitbox: { w: wd.w, d: wd.d, h: HEIGHT }, y: 0 });
   }
-})();
+}
 
 // NPCs — from WorldData schema
 const NPC_DEFS = WD.npcs || [];
@@ -2464,6 +2464,7 @@ let score = 0;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 40, 140);
+_buildArenaBoundary(); // deferred here — scene now exists
 
 // Initialize ParticleSystem module with the live scene
 if (typeof ParticleSystem !== "undefined") ParticleSystem.init(THREE, scene);
