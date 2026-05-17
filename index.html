@@ -5179,6 +5179,7 @@ const DODGE_COOLDOWN  = 1.1;   // seconds before next dodge
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _footstepT = 0;    // seconds until next footstep tick
+let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -7076,6 +7077,18 @@ function tick() {
     const reserve = Inv.countItem(heroInv, _wp.ammoItem || "pistol_9mm");
     if (wpAmmoEl) wpAmmoEl.childNodes[0].textContent = pistolAmmo;
     if (wpResEl)  wpResEl.textContent = " / " + reserve;
+    // Low ammo warning — flash red + one-time beep when mag drops to ≤25%
+    const _lowAmmoThresh = Math.max(1, Math.floor((_wp.magCap || 12) * 0.25));
+    const _isLowAmmo = pistolAmmo > 0 && pistolAmmo <= _lowAmmoThresh && !_reloading;
+    if (wpAmmoEl) {
+      const _flash = _isLowAmmo ? (Math.sin(now / 110) > 0 ? "#ff2222" : "#ff8888") : "var(--holo-warn)";
+      wpAmmoEl.style.color = _flash;
+    }
+    if (_isLowAmmo && _lowAmmoWarnedAt !== pistolAmmo) {
+      _lowAmmoWarnedAt = pistolAmmo;
+      playSfx("tone:440:60:square", 0.15); playSfx("tone:330:45:square", 0.10);
+    }
+    if (!_isLowAmmo) _lowAmmoWarnedAt = -1;
     // Mag segment bar — one pip per bullet, capped at 30 displayed
     const magBar = document.getElementById("wpMagBar");
     if (magBar) {
