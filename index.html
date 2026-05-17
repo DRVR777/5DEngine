@@ -1837,8 +1837,20 @@ if (typeof DayNight !== "undefined") {
 if (typeof WaveManager !== "undefined") {
   WaveManager.init({
     onWaveStart: (w) => showToast(`Wave ${w} incoming!`, "danger", 3000),
-    onWaveEnd:   (w) => showToast(`Wave ${w} clear!`, "success", 2500),
-    onAllWaves:  ()  => showToast("All waves complete — looping!", "success", 3000),
+    onWaveEnd:   (w) => {
+      const bonus = w * 3; // +3 coins per wave number
+      score += bonus;
+      heroHp = Math.min(HERO_MAX_HP, heroHp + 15);  // small heal on wave clear
+      playSfx("tone:800:100:sine", 0.5);
+      playSfx("tone:1000:80:sine", 0.45);
+      showToast(`Wave ${w} clear! +${bonus} coins +15 HP`, "success", 2800);
+      _addKillFeedEntry(`★ WAVE ${w} CLEAR — +${bonus} coins`, "#00ffcc");
+    },
+    onAllWaves:  ()  => {
+      score += 30;
+      playSfx("tone:1200:200:sine", 0.6);
+      showToast("All waves complete! +30 bonus coins. Looping…", "success", 4000);
+    },
   });
   Engine.addCommand("wave", "Wave control  wave start|stop|reset|status", (args) => {
     const sub = (args[0] || "status").toLowerCase();
