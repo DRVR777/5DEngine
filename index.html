@@ -1227,6 +1227,9 @@ function _heroRespawn() {
         enemies.splice(_ei, 1);
       }
     }
+    // Clear environmental hazards
+    for (const _fp of firePatches) scene.remove(_fp.mesh); firePatches.length = 0;
+    for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
     _heroRespawn();
     if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
     score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0;
@@ -1869,6 +1872,7 @@ function _explodeGrenade(g) {
         _comboCount++; _comboLastT = performance.now() / 1000;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
+        if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
         _addKillFeedEntry(`★ GRENADE KILL #${enemyKills} — ${en.type}`, "#ff8800");
         _trackKillAndPanic(ep.u, ep.v);
         { const _gCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _gCoinMul); }
@@ -2396,6 +2400,7 @@ function _explodeBarrel(u, v) {
         _comboCount++; _comboLastT = nowMs / 1000;
         _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
         if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
+        if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
         _addKillFeedEntry(`★ BARREL KILL #${enemyKills} — ${en.type}`, "#ff6600");
         _trackKillAndPanic(ep.u, ep.v);
         { const _brlCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _brlCoinMul); }
@@ -3129,6 +3134,19 @@ function _spawnFirePatch(u, v) {
   mesh.position.set(u, 0.04, v);
   scene.add(mesh);
   firePatches.push({ mesh, u, v, radius: 1.5, timeLeft: 6.0, dmgT: 0 });
+}
+
+// Poison puddles — spawned on poisoner death, applies poison status to nearby hero
+const poisonPuddles = [];
+function _spawnPoisonPuddle(u, v) {
+  const mesh = new THREE.Mesh(
+    new THREE.CircleGeometry(1.2, 14),
+    new THREE.MeshBasicMaterial({ color: 0x44cc44, transparent: true, opacity: 0.5, depthWrite: false })
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(u, 0.03, v);
+  scene.add(mesh);
+  poisonPuddles.push({ mesh, u, v, radius: 1.2, timeLeft: 4.0, applyT: 0 });
 }
 
 // Pickup meshes
@@ -4529,6 +4547,7 @@ addEventListener("keydown", (e) => {
           enemyKills++; _comboCount++; _comboLastT = performance.now() / 1000;
           _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
           if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
+        if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
           _addKillFeedEntry(`★ MELEE KILL #${enemyKills} — ${en.type}`, "#ff8800");
           _trackKillAndPanic(ep.u, ep.v);
           _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
@@ -5715,6 +5734,7 @@ function tick() {
               playSfx(`tone:${dFreq}:350:sawtooth`, 0.25); }
             _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
             if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
+        if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
             enemyKills++;
             // Kill streak tracking
             const nowSec = now / 1000;
@@ -6814,6 +6834,25 @@ function tick() {
           _fpe._hpBarShowT = now / 1000;
           _spawnDamageNumber(_fpep.u, 1.8, _fpep.v, "8", "#ff6600");
         }
+      }
+    }
+  }
+
+  // Poison puddles — decay, apply poison to hero inside radius
+  for (let _ppi = poisonPuddles.length - 1; _ppi >= 0; _ppi--) {
+    const pp = poisonPuddles[_ppi];
+    pp.timeLeft -= dt;
+    if (pp.timeLeft <= 0) {
+      scene.remove(pp.mesh);
+      poisonPuddles.splice(_ppi, 1);
+      continue;
+    }
+    pp.mesh.material.opacity = 0.5 * Math.min(1, pp.timeLeft / 1.0) * (0.7 + 0.3 * Math.sin(now / 200));
+    if (Math.hypot(heroNow.u - pp.u, heroNow.v - pp.v) < pp.radius) {
+      pp.applyT -= dt;
+      if (pp.applyT <= 0) {
+        pp.applyT = 0.8;
+        if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison");
       }
     }
   }
