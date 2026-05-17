@@ -2743,6 +2743,11 @@ function _tickDamageNumbers(dt) {
   }
 }
 
+// Enemy grenade danger warning ring — pulsing red circle on ground
+const _warnRingGeo = new THREE.TorusGeometry(3.2, 0.09, 6, 36);
+const _warnRingMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.75, depthWrite: false });
+_warnRingGeo.rotateX(Math.PI / 2); // lay flat on ground
+
 // Boss slam shockwave rings — expanding torus on ground, fades over 0.55s
 const _shockwaves = [];
 const _swGeo = new THREE.TorusGeometry(1, 0.07, 6, 40);
@@ -6341,19 +6346,36 @@ function tick() {
       g.y = 0;
       // Smoke grenade deploys when it lands and slows to near-stop
       if (g._isSmoke && !g._deployed && Math.abs(g.velY) < 3.5) {
-        g._deployed = true; _deploySmokeZone(g.u, g.v); scene.remove(g.mesh); grenades3D.splice(i, 1); continue;
+        g._deployed = true;
+        if (g._warnRing) { scene.remove(g._warnRing); g._warnRing = null; }
+        _deploySmokeZone(g.u, g.v); scene.remove(g.mesh); grenades3D.splice(i, 1); continue;
       }
-      if (g.fuse <= 0) { _explodeGrenade(g); grenades3D.splice(i, 1); continue; }
+      if (g.fuse <= 0) {
+        if (g._warnRing) { scene.remove(g._warnRing); g._warnRing = null; }
+        _explodeGrenade(g); grenades3D.splice(i, 1); continue;
+      }
       // Metallic tink on significant bounce impacts (fades with each bounce)
       if (g.velY < -1.0) playSfx("tone:2400:22:triangle", Math.min(0.22, Math.abs(g.velY) / 28));
       g.velY = Math.abs(g.velY) * 0.35;
       g.velU *= 0.6; g.velV *= 0.6;
     }
-    if (g.fuse <= 0) { _explodeGrenade(g); grenades3D.splice(i, 1); continue; }
+    if (g.fuse <= 0) {
+      if (g._warnRing) { scene.remove(g._warnRing); g._warnRing = null; }
+      _explodeGrenade(g); grenades3D.splice(i, 1); continue;
+    }
     g.mesh.position.set(g.u, g.y, g.v);
     g.mesh.rotation.x += dt * 8; g.mesh.rotation.z += dt * 5;
     // Blink faster as fuse runs low
     g.mesh.material.emissiveIntensity = g.fuse < 1 ? (Math.floor(g.fuse * 10) % 2 === 0 ? 2.5 : 0.2) : 0.9;
+    // Update warning ring — pulse opacity with urgency
+    if (g._warnRing) {
+      g._warnRing.position.set(g.u, 0.05, g.v);
+      const _urg = Math.max(0, 1 - g.fuse / 2.0); // 0→1 as fuse drops below 2s
+      const _pulse = 0.5 + 0.5 * Math.sin(performance.now() / (g.fuse < 1 ? 60 : 140));
+      g._warnRing.material.opacity = (0.35 + _urg * 0.4 + _pulse * 0.15);
+      const _sc = 0.9 + _pulse * 0.15;
+      g._warnRing.scale.set(_sc, _sc, _sc);
+    }
   }
 
   // Grenade arc preview — show dotted arc when F is held
@@ -6676,10 +6698,12 @@ function tick() {
                 );
                 gMesh.position.set(ep.u, ep.y + 1.2, ep.v);
                 scene.add(gMesh);
+                const _gWarnRing = new THREE.Mesh(_warnRingGeo, _warnRingMat.clone());
+                _gWarnRing.position.set(ep.u, 0.05, ep.v); scene.add(_gWarnRing);
                 grenades3D.push({ mesh: gMesh, fuse: tof + 0.3, u: ep.u, y: ep.y + 1.2, v: ep.v,
                   velU: Math.sin(throwAng) * hspeed,
                   velY: Math.abs(GRAVITY) * tof / 2,
-                  velV: Math.cos(throwAng) * hspeed });
+                  velV: Math.cos(throwAng) * hspeed, _warnRing: _gWarnRing });
                 playSfx("tone:150:80:triangle", 0.22);
               }
             }
@@ -6696,10 +6720,12 @@ function tick() {
                 );
                 rMesh.position.set(ep.u, ep.y + 2.0, ep.v);
                 scene.add(rMesh);
+                const _rWarnRing = new THREE.Mesh(_warnRingGeo, _warnRingMat.clone());
+                _rWarnRing.position.set(ep.u, 0.05, ep.v); scene.add(_rWarnRing);
                 grenades3D.push({ mesh: rMesh, fuse: tof + 0.5, u: ep.u, y: ep.y + 2.0, v: ep.v,
                   velU: Math.sin(throwAng) * rspeed,
                   velY: Math.abs(GRAVITY) * tof / 2,
-                  velV: Math.cos(throwAng) * rspeed, _isBossRock: true });
+                  velV: Math.cos(throwAng) * rspeed, _isBossRock: true, _warnRing: _rWarnRing });
                 playSfx("tone:80:200:sawtooth", 0.55);
                 _applyScreenShake(0.2);
               }
