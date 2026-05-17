@@ -5700,6 +5700,7 @@ let _dodgeCooldown = 0; // seconds until next dodge allowed
 let _dodgeVelU = 0;     // world-space dodge impulse (u axis)
 let _dodgeVelV = 0;     // world-space dodge impulse (v axis)
 let _dodgeT = 0;        // seconds remaining on active dodge (iframes window)
+let _dodgeBashDone = false; // prevents multiple bash hits per roll
 const DODGE_DURATION  = 0.25;  // seconds of boost + iframes
 const DODGE_SPEED     = 18;    // units/sec burst
 const DODGE_COOLDOWN  = 1.1;   // seconds before next dodge
@@ -7450,6 +7451,26 @@ function tick() {
     world.setPlayer("hero", hp.x, hp.y, hp.z, hp.u + du, hp.v + dv);
     // Dodge trail — cyan afterimage particles
     if (Math.random() < 0.7) _spawnParticles(hp.u, hp.y + 0.6, hp.v, 2, "cyan", 2.5, 0.18);
+    // Shoulder bash — deal 25 dmg to any enemy within 0.9m during dodge (once per roll)
+    if (!_dodgeBashDone) {
+      for (const en of enemies) {
+        if (en.dead) continue;
+        const ep = world.players.get(en.id);
+        if (Math.hypot(ep.u - hp.u, ep.v - hp.v) < 0.9) {
+          _dodgeBashDone = true;
+          const _bashDmg = Math.round(25 * _heroLvlDmgMul);
+          en.hp = Math.max(0, en.hp - _bashDmg); en._hpBarShowT = now / 1000;
+          const _bAng = Math.atan2(ep.u - hp.u, ep.v - hp.v);
+          en._kbU = Math.sin(_bAng) * 5; en._kbV = Math.cos(_bAng) * 5; en._kbT = 0.18;
+          _spawnDamageNumber(ep.u, 1.4, ep.v, `BASH! ${_bashDmg}`, "#00ffff");
+          _spawnParticles(ep.u, 1.0, ep.v, 8, "cyan", 5, 0.2);
+          playSfx("tone:180:60:sawtooth", 0.28);
+          break;
+        }
+      }
+    }
+  } else {
+    _dodgeBashDone = false;
   }
   if (_heroKbT > 0) {
     _heroKbT -= dt;
