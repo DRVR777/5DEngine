@@ -5197,6 +5197,7 @@ let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _footstepT = 0;    // seconds until next footstep tick
 let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
+let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 const STAMINA_MAX    = 100;
@@ -5290,6 +5291,18 @@ function tick() {
   // Hide crosshair while scoped
   const crosshairDiv = document.getElementById("crosshair");
   if (crosshairDiv) crosshairDiv.style.visibility = isSniperScope ? "hidden" : "visible";
+
+  // Sniper scope sway — gentle breathing oscillation while scoped (reduced when crouching)
+  if (isSniperScope && !_heroDead) {
+    _scopeSwayT += dt;
+    const _swayMul = crouching ? 0.25 : 1.0;
+    const _swayPitch = Math.sin(_scopeSwayT * 0.9) * 0.0015 * _swayMul;
+    const _swayYaw   = Math.sin(_scopeSwayT * 0.6 + 1.2) * 0.0012 * _swayMul;
+    camPitch += _swayPitch;
+    camYaw   += _swayYaw;
+  } else {
+    _scopeSwayT = 0;
+  }
 
   // Snap-zone keybinds — lerp camDist toward snapZoomTarget if set
   if (snapZoomTarget != null && window.CameraSpine) {
