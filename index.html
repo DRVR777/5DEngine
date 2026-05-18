@@ -1029,6 +1029,7 @@ import { createInventorySystem, invAdd, invRemove, invCount, invHas } from "./sr
 import { createStaminaSystem } from "./src/systems/ecs_stamina.js";
 import { createGrenadeSystem } from "./src/systems/ecs_grenade.js";
 import { createBulletSystem, spawnBullet } from "./src/systems/ecs_bullet.js";
+import { createLootDropSystem, DROP_TABLE } from "./src/systems/ecs_loot_drop.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10141,6 +10142,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     Core.addSystem(_ecsBullet, 9, "bullet");
     window.Engine.bulletSystem = _ecsBullet;
     window.Engine.spawnBullet  = spawnBullet;
+
+    // Wire loot drop system — priority 11 (after bullet:9/combat:10, before ai:12)
+    // Detects enemy kills from bullet:hit and grenade:exploded; emits enemy:killed
+    const _ecsLootDrop = createLootDropSystem(DROP_TABLE);
+    Core.addSystem(_ecsLootDrop, 11, "loot_drop");
+    window.Engine.lootDropSystem = _ecsLootDrop;
 
     // Wire grenade system — priority 22 (after stamina:18, before regen:35)
     const _ecsGrenade = createGrenadeSystem();
