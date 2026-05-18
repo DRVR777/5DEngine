@@ -1017,6 +1017,7 @@ const showToast = Notifications.showToast;
 const _addKillFeedEntry = Notifications.addKillFeedEntry;
 import Sfx from "./src/audio/sfx.js";
 import Minimap from "./src/ui/minimap.js";
+import HighScore from "./src/progression/high_score.js";
 // Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
 // We use .then chains (no top-level await) so the inline module also loads
 // cleanly in vm-based test sandboxes that don't support TLA.
@@ -1368,8 +1369,9 @@ function _heroShowDeathScreen() {
   const _acc = _shotsFired > 0 ? Math.round(_shotsHit / _shotsFired * 100) : 0;
   const _waveNum = typeof WaveManager !== "undefined" ? WaveManager.getState().wave : 0;
   const _newBest = _checkHighScore(enemyKills, _waveNum, _acc);
-  const _prev = _bestRecord && !_newBest
-    ? `<br><span style="color:#557799;font-size:11px">Best: ${_bestRecord.kills} kills · Wave ${_bestRecord.wave} · ${_bestRecord.acc}% acc</span>`
+  const _prevRec = HighScore.get();
+  const _prev = _prevRec && !_newBest
+    ? `<br><span style="color:#557799;font-size:11px">Best: ${_prevRec.kills} kills · Wave ${_prevRec.wave} · ${_prevRec.acc}% acc</span>`
     : "";
   if (stats) stats.innerHTML =
     (_newBest ? `<div style="color:#ffd166;font-size:16px;margin-bottom:6px;animation:pulse 0.8s ease infinite">★ NEW BEST SCORE! ★</div>` : "") +
@@ -8812,21 +8814,11 @@ function tick() {
 requestAnimationFrame(tick);
 
 // ---- High score (separate from save) ----
-const _HS_KEY = "5DEngine_highscore";
-let _bestRecord = null;
-(function _loadHighScore() {
-  try { _bestRecord = JSON.parse(localStorage.getItem(_HS_KEY)); } catch (_) {}
-})();
-function _checkHighScore(kills, wave, acc) {
-  const score_ = kills * 10 + wave * 50 + acc;
-  const prevBest = _bestRecord ? (_bestRecord.kills * 10 + _bestRecord.wave * 50 + _bestRecord.acc) : -1;
-  if (score_ > prevBest) {
-    _bestRecord = { kills, wave, acc, ts: Date.now() };
-    try { localStorage.setItem(_HS_KEY, JSON.stringify(_bestRecord)); } catch (_) {}
-    return true;
-  }
-  return false;
-}
+// ═══ EXTRACTED → src/progression/high_score.js ════════════════════════════════
+// const _HS_KEY, let _bestRecord, function _checkHighScore — all moved to module
+// ═════════════════════════════════════════════════════════════════════════════
+const _checkHighScore = HighScore.check;
+// _bestRecord accessed via HighScore.get() at the two call sites below
 
 // ---- Persistent game state (localStorage) ----
 const SAVE_KEY = "5DEngine_save";
