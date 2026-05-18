@@ -5843,18 +5843,36 @@ function _tryShoot() {
   (_wSfx[currentWeaponId] || _wSfx.pistol)();
   const hp = world.players.get("hero");
   if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: hp.y + 1.6, z: hp.v });
-  // Aim direction: camera.getWorldDirection() IS the crosshair direction (reticle = screen center).
-  // BUG FIX iter 419: previous code used camera.position as the ray origin, which includes the
-  // shoulder-cam lateral offset (~2.2m to the side). Projecting that offset forward at range
-  // made _targetPt off-center, so 3rd-person bullets consistently missed what the reticle showed.
-  // Fix: project from the HERO EYE (centered on hero, no shoulder offset) so target point lies
-  // exactly on the camera's forward axis from the character — direction then equals camera dir.
-  const _aimVec = new THREE.Vector3();
-  camera.getWorldDirection(_aimVec);
-  const _gunPos  = new THREE.Vector3(hp.u, hp.y + 1.5,  hp.v);
-  const _eyePos  = new THREE.Vector3(hp.u, hp.y + 1.72, hp.v);   // hero eye, centred on hero
-  const _targetPt = _eyePos.clone().addScaledVector(_aimVec, wep.range || 80);
-  const _baseDir  = _targetPt.clone().sub(_gunPos).normalize();
+  // iter 422: correct shoulder-cam aiming using two distinct rays.
+  //
+  // AIM RAY: starts at camera.position along camera.forward.
+  //   The reticle is screen-center. In 3D that projects to exactly this ray — it doesn't
+  //   start at the hero eye, the gun, or anywhere else. Raycast it to find the actual
+  //   3D point the reticle is over (wall at 5m, enemy at 20m, sky at max range).
+  //
+  // BULLET RAY: starts at gunPos, travels toward aimPoint.
+  //   In 1st-person camera ≈ gunPos so the two rays are nearly identical.
+  //   In 3rd-person the camera is 5m back and 2m to the side — the bullet "bends"
+  //   from the gun toward the aim point, which is what makes shoulder-cam feel correct.
+  //   "Aim direction" and "bullet direction" are different vectors in 3rd-person.
+  const _aimDir   = new THREE.Vector3();
+  camera.getWorldDirection(_aimDir);
+  const _gunPos   = new THREE.Vector3(hp.u, hp.y + 1.5, hp.v);
+  const _wepRange = wep.range || 80;
+
+  // Raycast from the camera against all solid scene objects (excludes hero + in-flight bullets)
+  const _bulletSet  = new Set(bullets3D.map(b => b.mesh));
+  const _aimTargets = scene.children.filter(obj => obj !== heroGroup && !_bulletSet.has(obj));
+  const _aimRay     = new THREE.Raycaster(camera.position.clone(), _aimDir, 0.1, _wepRange);
+  const _aimHits    = _aimRay.intersectObjects(_aimTargets, true);
+
+  // aimPoint: first solid surface the reticle is over, or max-range fallback
+  const _aimPt = _aimHits.length > 0
+    ? _aimHits[0].point.clone()
+    : camera.position.clone().addScaledVector(_aimDir, _wepRange);
+
+  // Bullet direction: gun barrel → aim point
+  const _baseDir   = _aimPt.clone().sub(_gunPos).normalize();
   const baseAngle  = Math.atan2(_baseDir.x, _baseDir.z);
   const _basePitch = Math.asin(Math.max(-1, Math.min(1, _baseDir.y)));
   const pellets = wep.pellets || 1;
