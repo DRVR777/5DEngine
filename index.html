@@ -9045,6 +9045,27 @@ ${devLines}
 ${wireLines}</pre>`;
     },
   },
+  // F2 — LAN Server Browser: scans /24 subnet for other 5DEngine instances.
+  // Requires HTTP (start.bat). wireServersApp() attaches the Scan button after render.
+  servers: {
+    title: "🖥️ Servers",
+    body: () => `
+      <div style="color:#88a;font-size:12px;margin-bottom:10px">
+        Find 5DEngine servers on your local network (port 5050).
+        Requires HTTP — open via <b style="color:#44ccff">start.bat</b>, not file://.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <button id="serverScanBtn"
+          style="background:#4488cc;border:0;color:#fff;padding:6px 16px;
+                 border-radius:4px;cursor:pointer;font-size:12px">
+          🔍 Scan LAN
+        </button>
+        <span id="serverScanStatus" style="color:#888;font-size:11px"></span>
+      </div>
+      <div id="serverList">
+        <div style="color:#888;font-size:12px">(press Scan to discover servers)</div>
+      </div>`,
+  },
   // F1 — Game Mode Select: shows current mode + lets player switch.
   // Adding a new mode = add an entry to the `modes` array below. Nothing else.
   gamemodes: {
@@ -9125,6 +9146,7 @@ ${lines}</pre>
   if (!grid) return;
   const extras = [
     { id: "gamemodes", icon: "🎮", label: "Game Modes" }, // F1
+    { id: "servers",   icon: "🖥️",  label: "Servers"    }, // F2
     { id: "browser",   icon: "🌐", label: "Browser" },
     { id: "devices",   icon: "🔌", label: "Devices" },
     { id: "files",     icon: "📁", label: "Files" },
@@ -9178,6 +9200,29 @@ document.getElementById("computerOverlay").addEventListener("click", (e) => {
     }
     return;
   }
+  // F2 — Join a discovered server (data-action="join-server")
+  // Redirects the browser to that server's URL — socket.io auto-connects there.
+  if (e.target.dataset && e.target.dataset.action === "join-server") {
+    const ip   = e.target.dataset.ip;
+    const port = e.target.dataset.port || "5050";
+    if (ip) {
+      closeComputer();
+      playSfx("blip", 0.6);
+      showToast(`Joining ${ip}:${port} …`, "info", 2000);
+      setTimeout(() => { window.location.href = `http://${ip}:${port}/`; }, 400);
+    }
+    return;
+  }
+  // F2 — Send friend request to a discovered server's host (data-action="friend-request")
+  if (e.target.dataset && e.target.dataset.action === "friend-request") {
+    const hostname = e.target.dataset.hostname || e.target.dataset.ip || "unknown";
+    if (typeof _mp !== "undefined" && _mp.enabled) {
+      _mp.sendEvent("friend_request", { targetHost: hostname });
+    }
+    showToast(`Friend request sent to ${hostname}`, "success", 2500);
+    return;
+  }
+
   // F1 — Game mode row click (data-action="set-mode")
   const modeEl = e.target.closest("[data-action='set-mode']");
   if (modeEl) {
@@ -9216,6 +9261,8 @@ document.getElementById("computerOverlay").addEventListener("click", (e) => {
   }
   // Radio app: wire the broadcast button (re-wires on each rebuild)
   if (id === "radio") wireRadioApp();
+  // Servers app (F2): attach Scan button listener after HTML is injected
+  if (id === "servers") wireServersApp();
 });
 
 function wireRadioApp() {
@@ -9227,6 +9274,63 @@ function wireRadioApp() {
     // Re-render the radio app body so the new entry shows up + re-wire
     document.getElementById("appBody").innerHTML = APPS.radio.body();
     wireRadioApp();
+  });
+}
+
+// F2 — Servers app: wire the "Scan LAN" button after the app body is injected.
+// Fetches /scan (only available over HTTP, not file://), then renders the
+// results into #serverList. Join/Friend buttons are handled via the
+// computerOverlay click-delegation handler (data-action="join-server" / "friend-request").
+function wireServersApp() {
+  const scanBtn = document.getElementById("serverScanBtn");
+  if (!scanBtn) return;
+  scanBtn.addEventListener("click", () => {
+    const statusEl = document.getElementById("serverScanStatus");
+    const listEl   = document.getElementById("serverList");
+    if (statusEl) statusEl.textContent = "Scanning…";
+    if (listEl)   listEl.innerHTML = `<div style="color:#888;font-size:12px">⏳ Probing 254 hosts on /24 subnet…</div>`;
+
+    fetch("/scan")
+      .then(r => r.json())
+      .then(data => {
+        if (statusEl) statusEl.textContent = `Your IP: ${data.localIp || "unknown"}`;
+        if (!listEl) return;
+        const servers = data.servers || [];
+        if (servers.length === 0) {
+          listEl.innerHTML = `<div style="color:#888;font-size:12px">
+            No 5DEngine servers found on LAN — make sure the other player has started start.bat.
+          </div>`;
+          return;
+        }
+        // Render one card per discovered server
+        listEl.innerHTML = servers.map(s => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;margin:4px 0;
+                      background:#0a2040;border:1px solid #4488cc44;border-radius:6px">
+            <div style="flex:1">
+              <div style="color:#eee;font-size:13px;font-weight:bold">${s.hostName}</div>
+              <div style="color:#88a;font-size:11px">
+                ${s.ip}:${s.port} — ${s.playerCount} player${s.playerCount !== 1 ? "s" : ""}
+              </div>
+            </div>
+            <button data-action="join-server" data-ip="${s.ip}" data-port="${s.port}"
+              style="background:#4488cc;border:0;color:#fff;padding:4px 12px;
+                     border-radius:4px;cursor:pointer;font-size:12px">
+              Join
+            </button>
+            <button data-action="friend-request" data-ip="${s.ip}" data-hostname="${s.hostName}"
+              style="background:#336633;border:0;color:#fff;padding:4px 12px;
+                     border-radius:4px;cursor:pointer;font-size:12px">
+              + Friend
+            </button>
+          </div>`).join("");
+      })
+      .catch(() => {
+        if (statusEl) statusEl.textContent = "Scan unavailable";
+        if (listEl) listEl.innerHTML = `<div style="color:#c44;font-size:12px">
+          ⚠ /scan endpoint unreachable.<br>
+          Open the game via <b style="color:#44ccff">start.bat</b> (not file://).
+        </div>`;
+      });
   });
 }
 
