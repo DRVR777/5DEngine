@@ -1068,14 +1068,22 @@ Promise.all([
 });
 
 // ---- engine state ----
+// Null guards: if any engine script failed to load (CDN down, script order wrong,
+// blocked by CORS) we throw with a clear message rather than a cryptic TypeError
+// somewhere deep in game logic. Each guard names what's missing and why it matters.
+if (!window.GTAEngine)   throw new Error("[5DEngine] GTAEngine not loaded — ensure engine scripts run before this module. Check DevTools Network tab for failed script loads.");
+if (!window.GTABridge)   throw new Error("[5DEngine] GTABridge not loaded — physics↔render bridge missing.");
+if (!window.GTAPhysics)  throw new Error("[5DEngine] GTAPhysics not loaded — collision system missing.");
+if (!window.GTARegistry) throw new Error("[5DEngine] GTARegistry not loaded — subsystem registry missing.");
+if (!window.GTAInventory)throw new Error("[5DEngine] GTAInventory not loaded — inventory system missing.");
 const { WorldState, LayerBoundary } = window.GTAEngine;
 const Bridge = window.GTABridge;
 const Phys   = window.GTAPhysics;
-const Entity = window.GTAEntity;
+const Entity = window.GTAEntity;  // optional — may not be loaded
 const Reg    = window.GTARegistry.createRegistry();
 const Inv    = window.GTAInventory;
-const Guns   = window.GTAGuns;
-const Health = window.GTAHealth;
+const Guns   = window.GTAGuns;    // optional — may not be loaded
+const Health = window.GTAHealth;  // optional — may not be loaded
 const HERO_HITBOX = { w: 0.8, d: 0.8, h: 1.8 };
 const CFG = window.GameConfig || {};
 

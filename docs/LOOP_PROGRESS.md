@@ -32,7 +32,7 @@
 - [x] C2. Add Engine.require() no-op proxy (added to src/core/engine.js, returns null if subsystem not registered)
 - [x] C3. Fixed-timestep physics wrapper (FIXED_DT=1/60 + _physicsAcc accumulator wired into tick(); _physicsSteps/_physicsAlpha available for future subsystem migration)
 - [x] C4. resetGameState() function (extracted from victoryPlayAgain click handler; exposed as window.resetGameState for console/game-mode-select reuse)
-- [ ] C5. GTAEngine null guard
+- [x] C5. GTAEngine null guard (added named throw guards for GTAEngine, GTABridge, GTAPhysics, GTARegistry, GTAInventory — clear error messages instead of cryptic TypeErrors)
 
 ## Phase 4 — Orphaned file audit
 - [ ] D1. Classify 102 orphaned src/ files → docs/ORPHAN_AUDIT.md
