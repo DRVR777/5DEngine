@@ -1043,6 +1043,7 @@ import { createIncendiaryBombSystem } from "./src/systems/ecs_incendiary_bomb.js
 import { createSniperShootSystem } from "./src/systems/ecs_sniper_shoot.js";
 import { createMeleeAttackSystem } from "./src/systems/ecs_melee_attack.js";
 import { createMoralePanicSystem } from "./src/systems/ecs_morale_panic.js";
+import { createStaggerMovementSystem } from "./src/systems/ecs_stagger_movement.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10190,6 +10191,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsMoralePanic = createMoralePanicSystem();
     Core.addSystem(_ecsMoralePanic, 15, "morale_panic");
     window.Engine.moralePanicSystem = _ecsMoralePanic;
+
+    // Wire stagger movement system — priority 13 (overrides ai_movement for staggered entities)
+    const _ecsStaggerMovement = createStaggerMovementSystem();
+    Core.addSystem(_ecsStaggerMovement, 13, "stagger_movement");
+    window.Engine.staggerMovementSystem = _ecsStaggerMovement;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();

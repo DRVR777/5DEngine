@@ -65,6 +65,7 @@ export function createAIMovementSystem() {
 
       if (h.hp <= 0) continue;
       if (ai._charging) continue; // fast_charge system owns movement this tick
+      if (core.getComponent(id, "Stagger")) continue; // stagger_movement system owns this tick
 
       const sightRange  = ai.sightRange  ?? 12;
       const attackRange = ai.attackRange ?? 1.8;
