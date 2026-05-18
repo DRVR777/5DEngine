@@ -1,42 +1,90 @@
 # 5DEngine — Multiplayer Design Plan
 
-## Core Philosophy (from user)
+## Core Philosophy
 
 **Peer-to-peer through the router — no centralized authority.**
 No dedicated server making decisions. Each client is authoritative over its own
 character. Packets stream continuously between peers via the router (LAN or
 NAT-traversal for internet play).
 
+**Your position is NEVER touched by the network. Period.**
+Getting shot does not move you. Getting hit by a car does not move you. A packet
+from another player's computer has zero authority over your local position — ever.
+The only thing that moves you is your own input. Network lag is lag. It is not
+a correction signal. There is no scenario where receiving a packet should result
+in your character being repositioned. Damage packets say "you took X HP." That's
+it. They contain no position data worth acting on.
+
 **Local experience is always correct.**
-If you shoot someone and it hits on your screen, it hit. The other player gets
-a damage notification packet — they don't get teleported back to where they were
-when the bullet connected. Movement is never corrected by remote state.
+If you shoot someone and it hits on your screen, it hit. The other player's
+client receives a damage notification and subtracts HP from wherever THEY
+currently are standing. The bullet's impact position on their screen may be
+slightly offset due to network lag — that's fine and expected. Both screens
+feel smooth.
 
 **No rollback / no rewind.**
-Rollback netcode (used in fighting games) replays your local simulation when a
-misprediction is corrected. We don't want that — the stuttering and micro-teleports
-it creates would feel terrible in an open-world game. Accept that two players may
-see slightly different positions; prioritize smoothness over perfect consistency.
+Rollback netcode (used in fighting games) corrects mispredictions by replaying
+the simulation. We don't want it. In an open-world game it causes visible
+stuttering and micro-teleports. Accept that two clients may see slightly different
+world states; smoothness wins over perfect consistency.
 
-**Car / vehicle interaction goal.**
-If player A is driving and player B is standing nearby, player B should be able
-to see the car coming and jump on it. Vehicle positions stream continuously so
-the gap between perceived and actual position stays small enough that the
-interaction feels real.
-
-**Damage is informational, not corrective.**
-- Player A shoots player B.
-- On A's screen: bullet hits B at position X. A's client records the hit locally
-  and sends `mp_event { type: "damage", target_id, amount, pos }`.
-- On B's screen: B receives the damage packet and loses HP where B currently
-  stands — no position correction, no teleport, no rewind.
-- Result: both screens feel smooth. The only "wrong" thing is B might be
-  visually one step to the side of where A saw the hit. That's acceptable.
+**Dead-reckoning must be invisible.**
+Between 20Hz position packets, predict where a remote object is by continuing
+its last known trajectory. The prediction is always lerped (smoothly blended)
+with the next received packet — never snapped. A remote car should slide
+smoothly across both screens even between packets. If dead-reckoning ever
+produces a visible pop or stutter, the lerp parameters need tuning, not removal.
 
 **Continuous packet streaming.**
-Position packets at ~20Hz (already implemented in game_server.py). Discrete
-events (damage, kill, wave state, item pickup) sent immediately as `mp_event`.
-No polling, no request-response — always fire and forget.
+Position packets at ~20Hz. Discrete events (damage, kill, wave state, pickup)
+sent immediately as `mp_event`. Always fire and forget — no ACK waiting, no
+round-trip before acting locally.
+
+---
+
+## Shared Build Mode (Collaborative World State)
+
+Both players can enter build mode simultaneously. Objects spawned, moved, or
+deleted by either player are immediately visible to all connected peers.
+
+### How it works
+
+Every build action emits an `mp_event` with a build sub-type:
+
+```js
+// Spawn object
+mp_event { type: "build", action: "spawn", spec: { id, primitive, pos, rot, scale, material } }
+
+// Move / transform object
+mp_event { type: "build", action: "transform", id, pos, rot, scale }
+
+// Delete object
+mp_event { type: "build", action: "delete", id }
+
+// Material change
+mp_event { type: "build", action: "material", id, color, opacity }
+```
+
+On receive, the peer's `worldBuilder` applies the same operation to its local
+scene. Object IDs are assigned by the originating client (`${peerId}_${Date.now()}_${Math.random()}`)
+so they never collide between two peers generating IDs simultaneously.
+
+### Consistency rule
+Build events are fire-and-forget, same as position packets. If a packet is
+lost, the object won't appear on the other screen — that's acceptable for a
+LAN game. We don't need a full CRDT or operational transform system. If
+consistency becomes a problem, add a periodic full-state sync on `mp_welcome`
+(send the entire current scene JSON to a newly-joining player).
+
+### Join-late sync
+When a player joins mid-session:
+- Host sends `mp_event { type: "build", action: "sync", scene: worldBuilder.exportScene() }`
+- Joining client calls `worldBuilder.rehydrate(scene)` to catch up.
+
+### Authority
+Build mode has no authority — both players can edit simultaneously. If they
+both move the same object at the same time, last-write-wins (whoever's packet
+arrives last). That's fine.
 
 ---
 
@@ -47,9 +95,9 @@ No polling, no request-response — always fire and forget.
   - `mp_player_joined` / `mp_player_left` — lifecycle events
   - `mp_name` — display name announcement
   - `mp_pos` — high-frequency position relay (~20Hz)
-  - `mp_event` — discrete game events (enemy kills, wave state, etc.)
+  - `mp_event` — discrete game events (relay pass-through, any shape)
 - `_mp` IIFE in index.html — client-side multiplayer object
-  - `_mp.tick(dt)` called every frame in the game loop
+  - `_mp.tick(dt)` called every frame
   - Remote players rendered as ghost meshes
 
 ---
@@ -57,102 +105,89 @@ No polling, no request-response — always fire and forget.
 ## What Needs to Be Built
 
 ### 1. Remote player interpolation (smooth movement)
-Instead of snapping remote players to the last received position (causes
-teleporting), lerp toward the target position each frame:
+Lerp toward received position each frame — never snap:
 ```js
-// In _mp.tick(dt):
 for (const [id, peer] of _mp.peers) {
-  const mesh = peer.mesh;
-  const target = peer.targetPos;  // last received packet
-  mesh.position.lerp(target, Math.min(1, dt * 12));  // 12 = lerp speed
+  peer.mesh.position.lerp(peer.targetPos, Math.min(1, dt * 12));
+  peer.mesh.rotation.y += angleDiff(peer.mesh.rotation.y, peer.targetHeading) * Math.min(1, dt * 10);
 }
 ```
-This hides up to ~80ms of jitter completely. No rollback needed.
+Hides up to ~80ms of jitter. No rollback needed.
 
-### 2. Heading interpolation
-Same idea for rotation — lerp toward received heading so remote players
-don't snap when turning.
+### 2. Dead-reckoning for vehicles
+```js
+// On packet receive:
+peer.lastPos = receivedPos;
+peer.velocity = (receivedPos - peer.prevPos) / timeSinceLastPacket;
+peer.prevPos = receivedPos;
 
-### 3. Damage event handling
-On receiving `mp_event { type: "damage", amount }`:
-- Apply HP reduction locally to peer's displayed HP bar.
-- Spawn a damage number at the peer's CURRENT local position (not the
-  position in the packet — avoids visual teleport).
-- Do NOT move the peer mesh.
-
-### 4. Hit confirmation (optional, cosmetic)
-On the shooter's side, when they fire a bullet that hits a remote player's
-hitbox locally, send `mp_event { type: "hit", target_id, weapon, amount }`.
-The target plays a hit reaction animation. The target's client decides
-whether the damage is valid (for anti-cheat if we ever want it).
-
-### 5. NAT traversal / internet play (future)
-Current setup requires same LAN. For internet play:
-- Option A: TURN relay (WebRTC-style) — route through a lightweight relay
-  server but keep game logic peer-to-peer.
-- Option B: Direct peer-to-peer with hole-punching via a signaling server.
-- Option C: Keep the Flask relay but host it on a VPS (simplest).
-
-### 6. Entity authority rules
-| Entity       | Who's authoritative |
-|--------------|---------------------|
-| Hero movement| Local client always |
-| Remote player position | Last received packet + lerp |
-| Bullets      | Shooter's client (fire-and-forget) |
-| Enemy AI     | Host player (first to connect = host) |
-| Wave state   | Host player — broadcast via mp_event |
-| Pickups      | First to collect wins (send mp_event, others despawn locally) |
-
-### 7. Host election
-When a player connects, check `mp_welcome.peers.length === 0`. If true,
-this client is host. Host runs enemy AI and wave manager; broadcasts state
-diffs via `mp_event { type: "wave_state" | "enemy_state" }`. Clients who
-are not host suppress their local enemy AI.
-
-### 8. Dead-reckoning for vehicles
-Vehicles move fast. Between 20Hz position packets, dead-reckon forward:
+// In tick():
+const predicted = peer.lastPos.clone().addScaledVector(peer.velocity, timeSincePacket);
+peer.mesh.position.lerp(predicted, Math.min(1, dt * 8));
 ```
-predictedPos = lastReceivedPos + lastReceivedVelocity * timeSincePacket
+Car feels smooth even between 50ms packets.
+
+### 3. Damage handling
+```js
+// On mp_event { type: "damage", amount }:
+// → subtract HP from peer's displayed bar
+// → spawn damage number at peer.mesh.position (current local position, not packet position)
+// → play hit reaction animation
+// → NOTHING ELSE. Do not touch position.
 ```
-Lerp from predicted toward newly received on each packet. Keeps cars from
-stuttering even at 50ms LAN latency.
+
+### 4. Build mode sync
+- Hook `worldBuilder` spawn/move/delete to emit `mp_event { type: "build", ... }`
+- On receive: call corresponding `worldBuilder` method with the received spec
+- On `mp_welcome`: if host, send `mp_event { type: "build", action: "sync", scene }` to new peer
+
+### 5. Host election
+```js
+const isHost = mp_welcome.peers.length === 0;
+// Host runs: enemy AI, wave manager, broadcasts wave_state / enemy_state diffs
+// Guest suppresses: local enemy AI spawn, local wave advancement
+```
+
+### 6. Entity authority table
+| Entity              | Authority                          |
+|---------------------|------------------------------------|
+| Local player pos    | Local client — never touched by net |
+| Remote player pos   | Last packet + lerp                 |
+| Bullets             | Shooter's client — fire and forget  |
+| Enemy AI            | Host only                          |
+| Wave state          | Host → broadcast mp_event           |
+| Pickups             | First collector wins, broadcast despawn |
+| Build objects       | Last writer wins                   |
+
+### 7. NAT / internet play (future)
+- Simplest: host the Flask relay on a VPS, both players connect to it
+- Real P2P: WebRTC with a signaling server for hole-punching
+- For now: LAN only (same WiFi / router) — no port forwarding needed
 
 ---
 
-## Things That Would Make the Game Feel Laggy (avoid all of these)
+## Things That Would Make the Game Feel Laggy — Avoid All Of These
 
-- **Snapping remote positions** — replace with lerp (see §1 above).
-- **Applying position corrections from remote packets to local player** — never do this.
-- **Waiting for server ACK before registering a local action** — fire and forget.
-- **Sending damage AND position correction together** — damage only; no position.
-- **Running remote enemy AI on every client** — only host runs it.
-- **High-frequency full-state syncs** — diff-only; only send what changed.
-- **Blocking the render loop waiting for socket data** — socket events are
-  async; they update a state buffer that tick() reads.
+- Snapping remote positions instead of lerping
+- Moving the local player based on any remote packet — ever
+- Waiting for a server ACK before processing a local action
+- Including position data in damage packets and acting on it
+- Running enemy AI on every client (duplicate spawns, desync)
+- Full scene syncs every tick — diff only, sync on join
+- Blocking render loop for socket I/O — always async buffer reads
 
 ---
 
-## Sequencing Decision
+## Sequencing
 
-**Option A — Finish optimization loop first, then add multiplayer.**
-Pro: Cleaner codebase to build multiplayer on top of.
-Con: Multiplayer reveals new perf problems that need fixing anyway.
-
-**Option B — Wire multiplayer now, optimize as needed.**
-Pro: Earlier feedback on what actually causes lag with two players.
-Con: More moving parts while optimizing.
-
-**Recommendation:** finish Phase 2-3 of the optimization loop (B5–C5), then
-implement multiplayer items 1–4 above as a dedicated loop pass. Everything
-saved here will be the starting point.
+Finish Phase 2–3 of the optimization loop (B5–C5), then implement multiplayer
+in order: §1 lerp → §3 damage → §4 build sync → §5 host election → §2 dead-reckoning.
 
 ---
 
 ## Notes on the Combinatorics Tangent
 
-(You were describing why the enemy-pair check is O(n²).)
-- n elements → n*(n-1)/2 unique pairs = O(n²) because Big-O drops constants
-  and lower-order terms: (n²-n)/2 → the n² term dominates.
-- To detect two pairs with the same sum: compute each pair's sum and insert
-  into a **hash set**. If the sum is already in the set → collision → you found
-  two pairs with the same sum. O(n²) time, O(n²) space. One lookup per pair.
+n elements → n*(n-1)/2 unique pairs = O(n²) because Big-O drops constants and
+lower-order terms: (n²-n)/2 → n² dominates. To detect two pairs with the same
+sum: iterate all pairs, compute each sum, check a hash set for collision. One
+lookup per pair. O(n²) time, O(n²) space.
