@@ -9883,6 +9883,38 @@ if (typeof EventBus !== "undefined") {
   });
 }
 // ── End multiplayer ──────────────────────────────────────────────────────────
+
+// ── Test bridge (iter 426) ────────────────────────────────────────────────────
+// Activated ONLY when ?_5dtest=1 is in the URL. Zero production impact.
+// Playwright tests navigate to https://localhost:5050/?_5dtest=1 and use this
+// to inspect internal module state and call internal functions directly.
+if (typeof location !== "undefined" && new URLSearchParams(location.search).has("_5dtest")) {
+  window._5DTest = {
+    // Call _tryShoot() directly — bypasses pointer-lock gate so tests can verify
+    // shooting doesn't throw without needing a real browser pointer-lock grant.
+    shoot: () => {
+      try { _tryShoot(); return { ok: true }; }
+      catch (e) { return { ok: false, error: e.message }; }
+    },
+    // Switch weapon and update meshes
+    setWeapon: (id) => { currentWeaponId = id; _switchGunMesh(id); },
+    // Toggle aiming state
+    setAiming: (on) => { aiming = !!on; },
+    // Read snapshot of core state — safe read-only
+    getState: () => ({
+      camDist,
+      currentWeaponId,
+      gameMode,
+      pistolAmmo,
+      bulletCount:   bullets3D.length,
+      scopeVisible:  document.getElementById("scopeOverlay")?.style?.display === "block",
+      pointerLocked,
+      heroAlive:     !_heroDead,
+    }),
+  };
+  console.info("[5DTest] test bridge active");
+}
+// ── End test bridge ───────────────────────────────────────────────────────────
 </script>
 </body>
 </html>

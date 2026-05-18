@@ -1,0 +1,5 @@
+node_modules/
+tests/visual/screenshots/
+__pycache__/
+*.pyc
+.env
