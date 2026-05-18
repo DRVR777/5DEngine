@@ -20,15 +20,17 @@ Phases:
 
 ## Current task
 
-**Tick 4 — `src/systems/ecs_combat.js` — pure combat system from data/enemies/**
+**Tick 15 — next system extraction (TBD)**
 
-Steps:
-1. Create `src/systems/ecs_combat.js` exporting `combatSystem(dt, core, ctx)`
-2. System queries [EnemyAI, Transform, Health, Faction] — handles melee attack logic
-3. Load damage_multipliers.json at system init for weapon type lookups
-4. Wire system into Core via `Core.addSystem(combatSystem, 10, "combat")` in _bootECS
-5. npm test green. Add unit test for damage multiplier application.
-6. Commit: "iter 437: tick 4 — ecs_combat system, damage multiplier integration"
+Completed ticks this session:
+- iter 440 — ecs_pickup (tick 7)
+- iter 441 — ecs_shop (tick 8)
+- iter 442 — ecs_perk (tick 9)
+- iter 443 — ecs_agent_dispatch (tick 10)
+- iter 444 — golden constants + 3 tuning atoms (tick 11)
+- iter 445 — ecs_status_effects (tick 12)
+- iter 446 — ecs_regen (tick 13)
+- iter 447 — ecs_weapon (tick 14)
 
 ## Previous task (tick 1 — DONE)
 
@@ -53,13 +55,12 @@ Steps:
 ## Last tick
 
 ```
-timestamp: 2026-05-18T05:32Z
-summary:   tick 3 — core.js wired into index.html as additive ES module import.
-           _bootECS() async IIFE loads hero prefab + 8 enemy type atoms, registers
-           all as Core prefabs. Non-fatal try/catch preserves existing game.
-files:     index.html (import + _bootECS block)
-tests:     28/28 passed
-commit:    iter 436
+timestamp: 2026-05-18T06:52Z
+summary:   tick 14 — ecs_weapon system. fire-rate cooldown, reload with perk
+           reload mul, magazine tracking, weapon switch. 217/217 tests green.
+files:     src/systems/ecs_weapon.js, tests/unit/ecs_weapon.test.js, index.html
+tests:     217/217 passed
+commit:    iter 447
 outcome:   ok
 ```
 
@@ -82,16 +83,12 @@ outcome:   ok
 
 ## Queued
 
-- Tick 2: Wire `src/core/core.js` into index.html (additive import, parallel runtime)
-- Tick 3: `src/systems/ecs_combat.js` — pure combat system from data/enemies/
-- Tick 4: `game_server.py` bridge relay (socket.io → TCP port 7780)
-- Tick 5: `src/systems/ecs_wave.js` — wave system
-- Tick 6: `src/systems/ecs_pickup.js` — pickup system
-- Tick 7: `src/systems/ecs_perk.js` — perk system from data/perks/
-- Tick 8: `src/systems/ecs_shop.js` — shop system
-- Tick 9: Agent packet dispatch on game events → dworld:// AGENT channel
-- Tick 10: Golden test capture from 5DEngineMassive + test harness
-- Tick 11–20: Remaining system extractions + parity
+- Tick 15: `src/systems/ecs_score.js` — kill-credit scoring + level-up system
+- Tick 16: `data/weapons/` atoms for all 5 weapons (holographic format)
+- Tick 17: `src/systems/ecs_ai_movement.js` — wander/alert/chase state machine
+- Tick 18: `src/systems/ecs_inventory.js` — ECS-native inventory (replaces Inv module)
+- Tick 19: `data/tuning/weapons.json` + weapon damage golden tests
+- Tick 20: Parity integration test (run ECS combat vs monolith golden values)
 
 ## Blocked
 
