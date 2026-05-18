@@ -1027,6 +1027,7 @@ import { createScoreSystem } from "./src/systems/ecs_score.js";
 import { createAIMovementSystem } from "./src/systems/ecs_ai_movement.js";
 import { createInventorySystem, invAdd, invRemove, invCount, invHas } from "./src/systems/ecs_inventory.js";
 import { createStaminaSystem } from "./src/systems/ecs_stamina.js";
+import { createGrenadeSystem } from "./src/systems/ecs_grenade.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10133,6 +10134,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsStamina = createStaminaSystem();
     Core.addSystem(_ecsStamina, 18, "stamina");
     window.Engine.staminaSystem = _ecsStamina;
+
+    // Wire grenade system — priority 22 (after stamina:18, before regen:35)
+    const _ecsGrenade = createGrenadeSystem();
+    Core.addSystem(_ecsGrenade, 22, "grenade");
+    window.Engine.grenadeSystem = _ecsGrenade;
 
     // Wire regen system — priority 35 (after perk at 30)
     Core.addSystem(regenSystem, 35, "regen");
