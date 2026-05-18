@@ -1023,6 +1023,7 @@ import { createAgentDispatch } from "./src/systems/ecs_agent_dispatch.js";
 import { createStatusEffectSystem } from "./src/systems/ecs_status_effects.js";
 import { regenSystem } from "./src/systems/ecs_regen.js";
 import { createWeaponSystem } from "./src/systems/ecs_weapon.js";
+import { createScoreSystem } from "./src/systems/ecs_score.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10105,6 +10106,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsWeapon = createWeaponSystem(_weaponDefs);
     Core.addSystem(_ecsWeapon, 8, "weapon");
     window.Engine.weaponSystem = _ecsWeapon;
+
+    // Wire score system — priority 40 (after regen at 35)
+    const _ecsScore = createScoreSystem();
+    Core.addSystem(_ecsScore, 40, "score");
+    window.Engine.scoreSystem = _ecsScore;
 
     // Wire regen system — priority 35 (after perk at 30)
     Core.addSystem(regenSystem, 35, "regen");
