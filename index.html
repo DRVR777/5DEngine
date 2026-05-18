@@ -83,6 +83,7 @@ import { buildComputerApps, addDynamicIcons } from "./src/systems/computer_apps.
 import { mountComputerUI } from "./src/ui/computer_ui_events.js";
 import { mountMouseInput } from "./src/systems/mouse_input.js";
 import { mountHudElements } from "./src/ui/hud_cache.js";
+import { mountKeydownHandler } from "./src/systems/keydown_handler.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -3477,461 +3478,107 @@ function renderInventory() {
   }
   document.getElementById("invWeight").textContent = Inv.totalWeight(heroInv).toFixed(1);
 }
-addEventListener("keydown", (e) => {
-  keys[e.code] = true;
-  // I toggles inventory
-  if (e.code === "KeyI" || (e.code === "Escape" && invDiv.classList.contains("open"))) {
-    invDiv.classList.toggle("open", !invDiv.classList.contains("open"));
-    if (invDiv.classList.contains("open")) renderInventory();
-    e.preventDefault();
-    return;
-  }
-  // When computer is OPEN or animating in, Escape cancels/closes it.
-  if (computerOpen || computerEntering) {
-    if (e.code === "Escape") {
-      closeComputer();
-      e.preventDefault();
-    }
-    if (computerOpen) return; // let DOM handle other keys while fully open
-    return;
-  }
-  // E near NPC → open dialog (check before computer so NPCs take priority if closer)
-  if (e.code === "KeyE" && !_npcDialog.isOpen && !nearComputer && !computerEntering) {
-    const hero = world.players.get("hero");
-    let closestNpc = null, closestDist = 2.5;
-    for (const n of NPC_DEFS) {
-      const np = world.players.get(n.id);
-      const d = Math.hypot(hero.u - np.u, hero.v - np.v);
-      if (d < closestDist) { closestDist = d; closestNpc = n; }
-    }
-    if (closestNpc) { _npcDialog.open(closestNpc.id); e.preventDefault(); return; }
-  }
-  // Close NPC dialog with E or Escape
-  if (_npcDialog.isOpen && (e.code === "KeyE" || e.code === "Escape")) {
-    _npcDialog.close(); e.preventDefault(); return;
-  }
-  // E near computer → open desktop OS (cinematic dolly first, then overlay).
-  // E only OPENS — closing happens via Escape or the X button only, so that
-  // typing "E" inside the computer's apps doesn't slam the overlay shut.
-  if (e.code === "KeyE" && nearComputer && !computerEntering) {
-    beginComputerEntry();
-    e.preventDefault();
-    return;
-  }
-  // E pointed at an in-world screen → invoke its hit region under the crosshair.
-  // (Different from E near PC because we use raycast to detect the screen.)
-  if (e.code === "KeyE" && !nearComputer) {
-    if (tryClickWorldScreen()) { e.preventDefault(); return; }
-  }
-  // Build-mode undo/redo (Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z). Bound before
-  // the bare KeyZ snap below so Ctrl+Z doesn't fire BIRD-view zoom.
-  if (buildMode && worldBuilder && (e.ctrlKey || e.metaKey)) {
-    if (e.code === "KeyZ" && e.shiftKey) { worldBuilder.redo(); playSfx("blip", 0.3); e.preventDefault(); return; }
-    if (e.code === "KeyZ")               { worldBuilder.undo(); playSfx("click", 0.3); e.preventDefault(); return; }
-    if (e.code === "KeyY")               { worldBuilder.redo(); playSfx("blip", 0.3); e.preventDefault(); return; }
-  }
-  // Snap-zone keybinds — set a target zoom; tick() lerps toward it.
-  // Skip when Ctrl/Meta is held so they don't eat editor shortcuts.
-  if (window.CameraSpine && !e.ctrlKey && !e.metaKey) {
-    if (e.code === "KeyQ") { snapZoomTarget = window.CameraSpine.zoomForZone("FIRST_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
-    if (e.code === "KeyV") { snapZoomTarget = window.CameraSpine.zoomForZone("THIRD_PERSON") * CAM_DIST_MAX; e.preventDefault(); return; }
-    if (e.code === "KeyZ") { snapZoomTarget = window.CameraSpine.zoomForZone("BIRD_VIEW")    * CAM_DIST_MAX; e.preventDefault(); return; }
-  }
-  // Tab opens/closes creative inventory (build mode) OR shop (play mode)
-  if (e.code === "Tab") {
-    if (buildMode) {
-      if (window._openCreativeInv && window._closeCreativeInv) {
-        const ci = document.getElementById("creativeInv");
-        if (ci && ci.classList.contains("open")) window._closeCreativeInv();
-        else window._openCreativeInv && window._openCreativeInv();
-      }
-    } else if (!computerOpen) {
-      if (_shop.isOpen) _shop.close();
-      else _shop.open();
-    }
-    e.preventDefault(); return;
-  }
-  // Esc closes settings, shop, keybind panel, or creative inventory if open
-  if (e.code === "Escape") {
-    const kpEl = document.getElementById("keybindPanel");
-    if (kpEl && kpEl.style.display !== "none") { kpEl.style.display = "none"; e.preventDefault(); return; }
-    if (_settings.isOpen) { _settings.close(); e.preventDefault(); return; }
-    if (_shop.isOpen) { _shop.close(); e.preventDefault(); return; }
-    const ci = document.getElementById("creativeInv");
-    if (ci && ci.classList.contains("open")) { window._closeCreativeInv && window._closeCreativeInv(); e.preventDefault(); return; }
-  }
-  // 1-9 hotbar slot selection (build mode) OR weapon switch (non-build mode)
-  if (e.code >= "Digit1" && e.code <= "Digit9") {
-    const idx = parseInt(e.code.replace("Digit",""), 10) - 1;
-    if (buildMode) {
-      if (window._hotbarSelectSlot) window._hotbarSelectSlot(idx);
-      e.preventDefault(); return;
-    } else {
-      // Digit1/2/3 cycle through weapons (only if we have that many)
-      const weps = CFG.weapons || [];
-      if (weps[idx]) {
-        const prev = currentWeaponId;
-        // Save current mag ammo before switching
-        weaponAmmo.set(prev, pistolAmmo);
-        currentWeaponId = weps[idx].id;
-        // Restore this weapon's mag ammo (or full mag if never used)
-        const nw = weps[idx];
-        pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
-        if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
-        _switchGunMesh(currentWeaponId);
-        _weaponSwitchT = 0.30;
-        playSfx("click", 0.4);
-        reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 1000;
-        _showWeaponSelector();
-        e.preventDefault(); return;
-      }
-    }
-  }
-  // F key: spawn hotbar slot (build mode) / toggle flashlight (play mode)
-  if (e.code === "KeyF") {
-    if (buildMode && window._hotbarSpawn) { window._hotbarSpawn(); e.preventDefault(); return; }
-    if (!buildMode && !computerOpen) {
-      _flashlightOn = !_flashlightOn;
-      _flashLight.intensity = _flashlightOn ? 2.8 : 0;
-      showToast(_flashlightOn ? "Flashlight ON" : "Flashlight OFF", "info", 800);
-      e.preventDefault(); return;
-    }
-  }
-  // T key: throw smoke grenade
-  if (e.code === "KeyT" && !buildMode && !computerOpen && !_heroDead) {
-    _throwSmokeGrenade(); e.preventDefault(); return;
-  }
-  // U key: throw flashbang
-  if (e.code === "KeyU" && !buildMode && !computerOpen && !_heroDead) {
-    _throwFlashbang(); e.preventDefault(); return;
-  }
-  // M key: drop trap mine
-  if (e.code === "KeyM" && !buildMode && !computerOpen && !_heroDead) {
-    _dropMine(); e.preventDefault(); return;
-  }
-  // G key: start grenade cook (throw on keyup) / group selected (build mode)
-  if (e.code === "KeyG") {
-    if (buildMode && window._builderGroupSelected) { window._builderGroupSelected(); e.preventDefault(); return; }
-    if (!buildMode && !computerOpen && grenadeCount > 0 && !_heroDead) {
-      if (!_grenadePressT) _grenadePressT = performance.now();
-      e.preventDefault(); return;
-    }
-  }
-  // R key: toggle pointer-lock fly-cam in build mode
-  if (buildMode && e.code === "KeyR") {
-    if (document.pointerLockElement) document.exitPointerLock();
-    else renderer.domElement.requestPointerLock();
-    e.preventDefault();
-    return;
-  }
-  // P key: deploy turret (play mode) / toggle character editor (build mode)
-  if (!buildMode && !computerOpen && e.code === "KeyP") { _placeTurret(); e.preventDefault(); return; }
-  if (buildMode && e.code === "KeyP") {
-    const ced = document.getElementById("charEditor");
-    if (ced) {
-      const show = ced.style.display === "none";
-      ced.style.display = show ? "block" : "none";
-      if (show) heroAnim.refreshCharEditor();
-    }
-    e.preventDefault();
-    return;
-  }
-  // J key: toggle quest/objective panel
-  if (e.code === "KeyJ" && !computerOpen) {
-    _quest.togglePanel();
-    e.preventDefault();
-    return;
-  }
-  // H in build mode: toggle scene hierarchy panel
-  if (buildMode && e.code === "KeyH") {
-    const shp = document.getElementById("sceneHierarchy");
-    if (shp) {
-      const show = !shp.classList.contains("visible");
-      shp.classList.toggle("visible", show);
-      if (show) _renderSceneHierarchy();
-    }
-    e.preventDefault();
-    return;
-  }
-  // H key: use medkit from inventory (non-build, play mode). Rain moved to Ctrl+R.
-  if (e.code === "KeyH" && !buildMode && !computerOpen && !_heroDead) {
-    const medCount = (typeof Inv !== "undefined") ? Inv.countItem(heroInv, "medkit") : 0;
-    if (medCount > 0) {
-      Inv.removeItem(heroInv, "medkit", 1);
-      const healed = Math.min(40, HERO_MAX_HP + _perkMaxHpBonus - heroHp);
-      heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + 40);
-      heroLastDamageT = -999; // reset regen delay
-      playSfx("tone:700:120:sine", 0.4);
-      const _mkHero = world.players.get("hero");
-      _spawnDamageNumber(_mkHero.u, 2.1, _mkHero.v, `+${Math.round(healed)} HP`, "#00ff88");
-      showToast(`Medkit used — +${Math.round(healed)} HP`, "success", 1200);
-      _spawnParticles(_mkHero.u, 1.2, _mkHero.v, 8, "white", 3, 0.5);
-    } else {
-      showToast("No medkits! Buy from shop (Tab)", "danger", 1200);
-      playSfx("tone:200:60:sine", 0.2);
-    }
-    e.preventDefault(); return;
-  }
-  // Ctrl+R: toggle rain (debug)
-  if (e.code === "KeyR" && e.ctrlKey && !buildMode) {
-    Rain.toggle();
-    showToast(_rainActive ? "Rain started" : "Rain stopped", "info");
-    e.preventDefault(); return;
-  }
-  // C key: toggle crafting panel (non-build mode)
-  if (e.code === "KeyC" && !buildMode && !computerOpen) {
-    if (typeof Crafting !== "undefined") {
-      const cp = document.getElementById("_craftPanel");
-      const show = !cp || cp.style.display === "none";
-      Crafting.showPanel(show, heroInv);
-    }
-    e.preventDefault();
-    return;
-  }
-  // G key: toggle achievement panel (non-build mode; build mode uses G for group)
-  if (e.code === "KeyG" && !buildMode && !computerOpen) {
-    if (typeof Achievements !== "undefined") {
-      const ap = document.getElementById("_achPanel");
-      const show = !ap || ap.style.display === "none";
-      Achievements.showPanel(show);
-    }
-    e.preventDefault();
-    return;
-  }
-  // N key: place spawn point at freecam ground position in build mode
-  // N key: melee attack in play mode / spawn point in build mode
-  if (e.code === "KeyN" && !buildMode && !computerOpen && !_heroDead && _meleeCooldown <= 0) {
-    _meleeCooldown = 0.8;
-    _meleeSwing = 1.0; // spring that drives the swing animation
-    playSfx("tone:120:80:square", 0.25);
-    // Melee arc — cyan particles fanned across 120° at 1.5m
-    { const _hma = world.players.get("hero");
-      for (let _mi = 0; _mi < 8; _mi++) {
-        const _mAng = camYaw + (-Math.PI / 3) + (_mi / 7) * (2 * Math.PI / 3);
-        const _mU = _hma.u + Math.sin(_mAng) * 1.4, _mV = _hma.v + Math.cos(_mAng) * 1.4;
-        _spawnParticles(_mU, _hma.y + 1.0, _mV, 2, "cyan", 6, 0.15);
-      }
-    }
-    // Damage any enemy within 1.5m
-    const hm = world.players.get("hero");
-    for (const en of enemies) {
-      if (en.dead) continue;
-      const ep = world.players.get(en.id);
-      const d = Math.hypot(ep.u - hm.u, ep.v - hm.v);
-      if (d < 1.5) {
-        const mDmg = 35;
-        en.hp = Math.max(0, en.hp - mDmg); en._hpBarShowT = performance.now() / 1000;
-        en._kbU = (ep.u - hm.u) * 4; en._kbV = (ep.v - hm.v) * 4; en._kbT = 0.15;
-        en._staggerT = 0.4; en._staggerAngle = Math.atan2(ep.u - hm.u, ep.v - hm.v) + Math.PI;
-        en._flinchX = -0.5;
-        hitMarkerUntil = performance.now() + 120;
-        _spawnDamageNumber(ep.u, 1.2, ep.v, `-${mDmg}`, "#ff8800");
-        _spawnParticles(ep.u, 1.2, ep.v, 4, "orange", 4, 0.2);
-        playSfx("tone:200:60:sawtooth", 0.3);
-        if (en.hp === 0 && !en.dead) {
-          en.dead = true; en.respawnT = performance.now() / 1000; en._wasChasing = false;
-          enemyKills++; _comboCount++; _comboLastT = performance.now() / 1000;
-          _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
-          if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
-        if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
-          _addKillFeedEntry(`★ MELEE KILL #${enemyKills} — ${en.type}`, "#ff8800");
-          _trackKillAndPanic(ep.u, ep.v);
-          _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
-          if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
-          { const _mCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _mCoinMul); }
-        }
-      }
-    }
-    // Also break nearby crates with melee
-    for (const cr of crates) {
-      if (cr.broken) continue;
-      if (Math.hypot(cr.u - hm.u, cr.v - hm.v) < 1.5) { cr.hp -= 35; if (cr.hp <= 0) _breakCrate(cr); }
-    }
-    e.preventDefault(); return;
-  }
-  if (buildMode && e.code === "KeyN") {
-    const sp = _addSpawnPoint(freeCamPos.x, freeCamPos.z);
-    _quest.completeQuestStep("world", 1);
-    showToast(`Spawn point ${sp.label} placed`, "success");
-    e.preventDefault();
-    return;
-  }
-  // X key: dodge roll — burst of speed in move direction + brief iframes
-  if (e.code === "KeyX" && !buildMode && !computerOpen && !_heroDead && !inCar && _dodgeCooldown <= 0 && _stamina >= 20) {
-    const hm = world.players.get("hero");
-    // Dodge direction follows current WASD input or, if idle, faces camera forward
-    const _fwd = new THREE.Vector3(); camera.getWorldDirection(_fwd); _fwd.y = 0; _fwd.normalize();
-    const _rgt = new THREE.Vector3(-_fwd.z, 0, _fwd.x);
-    const _dF = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-    const _dR = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
-    const dfU = (_fwd.x * _dF + _rgt.x * _dR) || _fwd.x;
-    const dfV = (_fwd.z * _dF + _rgt.z * _dR) || _fwd.z;
-    const dm = Math.hypot(dfU, dfV) || 1;
-    _dodgeVelU = (dfU / dm) * DODGE_SPEED;
-    _dodgeVelV = (dfV / dm) * DODGE_SPEED;
-    _dodgeT = DODGE_DURATION;
-    _dodgeCooldown = DODGE_COOLDOWN;
-    _stamina = Math.max(0, _stamina - 20);
-    _applyScreenShake(0.08);
-    playSfx("tone:280:60:square", 0.18);
-    e.preventDefault(); return;
-  }
-  // K key: toggle game config editor in build mode
-  if (buildMode && e.code === "KeyK") {
-    const ced = document.getElementById("cfgEditor");
-    if (ced) {
-      const show = ced.style.display === "none";
-      ced.style.display = show ? "block" : "none";
-      if (show) cfgEditor && cfgEditor.build();
-    }
-    e.preventDefault();
-    return;
-  }
-  // ? key: toggle keybind reference panel
-  if (e.key === "?" && !buildMode && !computerOpen) {
-    const kp = document.getElementById("keybindPanel");
-    if (kp) kp.style.display = kp.style.display === "none" ? "block" : "none";
-    e.preventDefault(); return;
-  }
-  // O key: toggle environment/post-FX panel in build mode, settings in play mode
-  if (e.code === "KeyO") {
-    if (buildMode) {
-      const ep = document.getElementById("envPanel");
-      if (ep) ep.style.display = ep.style.display === "none" ? "block" : "none";
-    } else {
-      if (_settings.isOpen) _settings.close(); else _settings.open();
-    }
-    e.preventDefault();
-    return;
-  }
-  // B toggles BUILD MODE (freecam + editor)
-  if (e.code === "KeyB" && window.Builder) {
-    buildMode = !buildMode;
-    if (worldBuilder) worldBuilder.setActive(buildMode);
-    if (buildMode) {
-      _quest.completeQuestStep("world", 0);
-      // Seed freecam at hero's current render position, looking forward
-      const hp = world.players.get("hero");
-      const hRender = Bridge.engineToRenderPos(hp);
-      freeCamPos.set(hRender.x, hRender.y + 3, hRender.z - 6);
-      freeCamYaw   = camYaw;
-      freeCamPitch = camPitch;
-      if (document.pointerLockElement) document.exitPointerLock();
-    }
-    e.preventDefault();
-    return;
-  }
-  // Ctrl+D clones the selected object (standard editor convention)
-  if (buildMode && worldBuilder && (e.ctrlKey || e.metaKey) && e.code === "KeyD") {
-    if (worldBuilder.cloneSelected()) playSfx("blip", 0.4);
-    e.preventDefault();
-    return;
-  }
-  // Build-mode-only keybinds
-  if (buildMode && worldBuilder) {
-    const sel = worldBuilder.getSelected();
-    if (sel) {
-      const step = (e.shiftKey ? 1.0 : 0.25);
-      if (e.code === "ArrowUp")    { worldBuilder.translate(0, 0, -step); e.preventDefault(); return; }
-      if (e.code === "ArrowDown")  { worldBuilder.translate(0, 0,  step); e.preventDefault(); return; }
-      if (e.code === "ArrowLeft")  { worldBuilder.translate(-step, 0, 0); e.preventDefault(); return; }
-      if (e.code === "ArrowRight") { worldBuilder.translate( step, 0, 0); e.preventDefault(); return; }
-      if (e.code === "PageUp")     { worldBuilder.translate(0,  step, 0); e.preventDefault(); return; }
-      if (e.code === "PageDown")   { worldBuilder.translate(0, -step, 0); e.preventDefault(); return; }
-      if (e.code === "BracketLeft")  { worldBuilder.rotateY(-Math.PI/16); e.preventDefault(); return; }
-      if (e.code === "BracketRight") { worldBuilder.rotateY( Math.PI/16); e.preventDefault(); return; }
-      if (e.code === "Equal" || e.code === "NumpadAdd") { worldBuilder.scaleBy(1.1); e.preventDefault(); return; }
-      if (e.code === "Minus" || e.code === "NumpadSubtract") { worldBuilder.scaleBy(1/1.1); e.preventDefault(); return; }
-      if (e.code === "Delete" || e.code === "Backspace") { worldBuilder.deleteSelected(); e.preventDefault(); return; }
-    }
-  }
-
-  // M toggles mouse-mode — releases pointer lock + lets you drive the screen cursor.
-  // When entering mouse-mode without a target screen, we pick the nearest one.
-  if (e.code === "KeyM") {
-    if (mouseMode) { exitScreenMouseMode(); }
-    else {
-      // pick nearest screen within 50m, biased toward big ones
-      let best = null, bestD = 50;
-      const hp = world.players.get("hero");
-      for (const [id, entry] of worldScreens) {
-        const pos = entry.mesh.position;
-        const d = Math.hypot(pos.x - hp.u, pos.z - hp.v);
-        if (entry.screen.widthM >= 5 && d < bestD) { best = entry.screen; bestD = d; }
-      }
-      if (best) enterScreenMouseMode(best, { x: 0.5, y: 0.5 });
-    }
-    e.preventDefault();
-    return;
-  }
-  // ESC exits mouse-mode
-  if (e.code === "Escape" && mouseMode) {
-    exitScreenMouseMode();
-    e.preventDefault();
-    return;
-  }
-  // L toggles which side the camera offset is on (left/right shoulder)
-  if (e.code === "KeyL") {
-    camSide = -camSide;
-    e.preventDefault();
-    return;
-  }
-  // R reloads current weapon — starts animated reload circle, ammo added after delay
-  if (e.code === "KeyR") {
-    if (_reloading) { e.preventDefault(); return; }
-    const wep = getWeapon();
-    const need = PISTOL_MAG_CAP() - pistolAmmo;
-    if (need <= 0) {
-      reloadMsg = "already full"; reloadMsgUntil = performance.now() + 1200;
-      e.preventDefault(); return;
-    }
-    const invAmmo = Inv.countItem(heroInv, wep.ammoItem || "pistol_9mm");
-    if (invAmmo <= 0) {
-      playSfx("noise", 0.2);
-      reloadMsg = "no ammo — pick some up";
-      reloadMsgUntil = performance.now() + 1500;
-      e.preventDefault(); return;
-    }
-    _reloading = true;
-    _reloadStart = performance.now();
-    playSfx("tone:200:120:square", 0.5); playSfx("click", 0.5);
-    reloadMsg = "reloading…"; reloadMsgUntil = performance.now() + RELOAD_DUR();
-    e.preventDefault();
-    return;
-  }
-  // E toggles enter/exit nearest vehicle, or uses computer
-  if (e.code === "KeyE") {
-    const VDIST = CFG.vehicleInteractDist || 3.0;
-    let nearestVeh = null, nearestDist = Infinity;
-    for (const v of VEHICLE_DEFS) {
-      const d = Bridge.uvDist(world, "hero", v.id);
-      if (d < nearestDist) { nearestDist = d; nearestVeh = v; }
-    }
-    if (!inCar && nearestVeh && nearestDist < VDIST) {
-      inCar = true; activeVehicleId = nearestVeh.id;
-      _activeVehicleDef = VEHICLE_DEFS.find(v => v.id === nearestVeh.id) || null;
-      _platformsDirty = true;
-      // Notify other systems (camera, HUD, multiplayer) that player entered a vehicle
-      if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.VEHICLE_ENTER, { vehicleId: activeVehicleId, vehicleDef: _activeVehicleDef });
-    } else if (inCar && activeVehicleId) {
-      const _prevVehicleId = activeVehicleId; // save before clearing
-      inCar = false;
-      const vst = vehicleStates.get(activeVehicleId);
-      const cp = world.players.get(activeVehicleId);
-      const h = world.players.get("hero");
-      if (cp && h) {
-        world.setPlayer("hero", h.x, 0, h.z,
-          cp.u + 1.5 * Math.cos(vst.heading),
-          cp.v - 1.5 * Math.sin(vst.heading));
-      }
-      activeVehicleId = null;
-      _activeVehicleDef = null;
-      _platformsDirty = true;
-      // Notify other systems that player left the vehicle
-      if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.VEHICLE_EXIT, { vehicleId: _prevVehicleId });
-    }
-  }
-});
+mountKeydownHandler({
+  keys,
+  invDiv,
+  renderInventory,
+  getState: () => ({
+    buildMode, computerOpen, computerEntering, nearComputer, camYaw, camSide,
+    CFG, currentWeaponId, pistolAmmo, weaponAmmo, _reloading,
+    grenadeCount, inCar, activeVehicleId, vehicleStates,
+    heroInv, heroHp, HERO_MAX_HP, _perkMaxHpBonus, enemies,
+    crates, worldScreens, _stamina, _dodgeCooldown,
+    _meleeCooldown, _grenadePressT, mouseMode, CAM_DIST_MAX,
+    snapZoomTarget, _rainActive, _heroDead, NPC_DEFS,
+    VEHICLE_DEFS, world, freeCamPos, freeCamYaw, freeCamPitch,
+    _flashlightOn, enemyKills, comboCount: _comboCount, hitMarkerUntil,
+    DODGE_SPEED, DODGE_DURATION, DODGE_COOLDOWN,
+  }),
+  set: {
+    buildMode:           (v) => { buildMode = v; },
+    camSide:             (v) => { camSide = v; },
+    freeCamYaw:          (v) => { freeCamYaw = v; },
+    freeCamPitch:        (v) => { freeCamPitch = v; },
+    freeCamPos:          (x, y, z) => { freeCamPos.set(x, y, z); },
+    snapZoomTarget:      (v) => { snapZoomTarget = v; },
+    currentWeaponId:     (v) => { currentWeaponId = v; },
+    pistolAmmo:          (v) => { pistolAmmo = v; },
+    weaponAmmoEntry:     (id, v) => { weaponAmmo.set(id, v); },
+    reloading:           (v) => { _reloading = v; },
+    reloadStart:         (v) => { _reloadStart = v; },
+    reloadMsg:           (v) => { reloadMsg = v; },
+    reloadMsgUntil:      (v) => { reloadMsgUntil = v; },
+    weaponSwitchT:       (v) => { _weaponSwitchT = v; },
+    flashlightOn:        (v) => { _flashlightOn = v; },
+    flashLightIntensity: (v) => { _flashLight.intensity = v; },
+    grenadePressT:       (v) => { _grenadePressT = v; },
+    meleeCooldown:       (v) => { _meleeCooldown = v; },
+    meleeSwing:          (v) => { _meleeSwing = v; },
+    hitMarkerUntil:      (v) => { hitMarkerUntil = v; },
+    enemyKills:          (v) => { enemyKills = v; },
+    comboCount:          (v) => { _comboCount = v; },
+    comboLastT:          (v) => { _comboLastT = v; },
+    dodgeVelU:           (v) => { _dodgeVelU = v; },
+    dodgeVelV:           (v) => { _dodgeVelV = v; },
+    dodgeT:              (v) => { _dodgeT = v; },
+    dodgeCooldown:       (v) => { _dodgeCooldown = v; },
+    stamina:             (v) => { _stamina = v; },
+    heroHp:              (v) => { heroHp = v; },
+    heroLastDamageT:     (v) => { heroLastDamageT = v; },
+    inCar:               (v) => { inCar = v; },
+    activeVehicleId:     (v) => { activeVehicleId = v; },
+    activeVehicleDef:    (v) => { _activeVehicleDef = v; },
+    platformsDirty:      (v) => { _platformsDirty = v; },
+  },
+  get: {
+    worldBuilder:    () => worldBuilder,
+    npcDialog:       () => _npcDialog,
+    quest:           () => _quest,
+    shop:            () => _shop,
+    settings:        () => _settings,
+    heroAnim:        () => heroAnim,
+    cfgEditor:       () => cfgEditor,
+    renderer:        () => renderer,
+    camera:          () => camera,
+    bridge:          () => Bridge,
+    weapon:          () => getWeapon(),
+    pistolMagCap:    () => PISTOL_MAG_CAP(),
+    reloadDur:       () => RELOAD_DUR(),
+    weaponAmmoEntry: (id) => weaponAmmo.get(id),
+  },
+  actions: {
+    closeComputer:        closeComputer,
+    beginComputerEntry:   beginComputerEntry,
+    tryClickWorldScreen:  tryClickWorldScreen,
+    playSfx:              playSfx,
+    showToast:            showToast,
+    switchGunMesh:        _switchGunMesh,
+    showWeaponSelector:   _showWeaponSelector,
+    throwSmokeGrenade:    _throwSmokeGrenade,
+    throwFlashbang:       _throwFlashbang,
+    dropMine:             _dropMine,
+    placeTurret:          _placeTurret,
+    addSpawnPoint:        _addSpawnPoint,
+    renderSceneHierarchy: _renderSceneHierarchy,
+    spawnParticles:       _spawnParticles,
+    spawnDamageNumber:    _spawnDamageNumber,
+    spawnDecal:           _spawnDecal,
+    spawnAmmoPickup:      _spawnAmmoPickup,
+    spawnWeaponPickup:    _spawnWeaponPickup,
+    spawnCoinDrop:        _spawnCoinDrop,
+    breakCrate:           _breakCrate,
+    spawnFirePatch:       _spawnFirePatch,
+    spawnPoisonPuddle:    _spawnPoisonPuddle,
+    addKillFeedEntry:     _addKillFeedEntry,
+    trackKillAndPanic:    _trackKillAndPanic,
+    applyScreenShake:     _applyScreenShake,
+    heroShowDeathScreen:  _heroShowDeathScreen,
+    exitScreenMouseMode:  exitScreenMouseMode,
+    enterScreenMouseMode: enterScreenMouseMode,
+  },
+  weaponDropMap: _WEAPON_DROP_MAP,
+  coinByType:    _COIN_BY_TYPE,
+});;
 addEventListener("keyup", (e) => {
   keys[e.code] = false;
   // G release: throw cooked grenade
