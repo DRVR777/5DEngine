@@ -1032,6 +1032,7 @@ import { createBulletSystem, spawnBullet } from "./src/systems/ecs_bullet.js";
 import { createLootDropSystem, DROP_TABLE } from "./src/systems/ecs_loot_drop.js";
 import { createKnockbackSystem } from "./src/systems/ecs_knockback.js";
 import { createPlayerMovementSystem } from "./src/systems/ecs_player_movement.js";
+import { createEnrageSystem } from "./src/systems/ecs_enrage.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10124,6 +10125,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsAIMovement = createAIMovementSystem();
     Core.addSystem(_ecsAIMovement, 12, "ai_movement");
     window.Engine.aiMovementSystem = _ecsAIMovement;
+
+    // Wire enrage system — priority 13 (after ai_movement:12, before status_effects:15)
+    const _ecsEnrage = createEnrageSystem();
+    Core.addSystem(_ecsEnrage, 13, "enrage");
+    window.Engine.enrageSystem = _ecsEnrage;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
