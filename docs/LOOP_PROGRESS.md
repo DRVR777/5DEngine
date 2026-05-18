@@ -73,3 +73,6 @@ F1-F4 all implemented. Continuing: build forever.
 - [x] iter 483: ecs_combo — kill streak multiplier x2-x8 3.5s decay milestone events, 17 unit tests
 - [x] iter 484: ecs_arena_clamp — 27.5m boundary enforcement safety net priority 16, 11 unit tests
 - [x] iter 485: ecs_enemy_blind — flash grenade blind effect 6m radius 0.5-3.0s duration, 15 unit tests
+- [x] iter 486: ecs_smoke_zone — 3.5m radius 6s duration zones with isSmoked() LOS gate, 15 unit tests
+- [x] iter 487: ecs_mine — proximity mine 1.2s arm 1.2m trigger 3.0m blast 90 max-dmg, 16 unit tests
+- [x] iter 488: ecs_turret — auto-turret 60hp 40ammo 10m range 1.8rps fire control + melee damage, 23 unit tests
