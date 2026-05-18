@@ -25,6 +25,10 @@ async function run(page, screenshotDir) {
     return { pass: false, message: "window._5DTest not found — was ?_5dtest=1 in the URL?" };
   }
 
+  // Close any overlays — computer auto-opens on first launch, shopOpen etc. block _tryShoot
+  await page.evaluate(() => window._5DTest.closeOverlays());
+  await page.waitForTimeout(100);
+
   // Snapshot ammo before shooting
   const before = await page.evaluate(() => window._5DTest.getState());
 

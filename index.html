@@ -9900,6 +9900,14 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     setWeapon: (id) => { currentWeaponId = id; _switchGunMesh(id); },
     // Toggle aiming state
     setAiming: (on) => { aiming = !!on; },
+    // Force-close all overlays so tests can drive game state freely
+    closeOverlays: () => {
+      if (typeof closeComputer === "function") closeComputer();
+      computerOpen = false; computerEntering = false;
+      _firstLaunch = false;
+      if (typeof shopOpen    !== "undefined") shopOpen    = false;
+      if (typeof settingsOpen !== "undefined") settingsOpen = false;
+    },
     // Read snapshot of core state — safe read-only
     getState: () => ({
       camDist,

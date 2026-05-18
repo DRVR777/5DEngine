@@ -27,6 +27,10 @@ async function run(page, screenshotDir) {
     return { pass: false, message: "window._5DTest not found — was ?_5dtest=1 in the URL?" };
   }
 
+  // Close any overlays (computer auto-opens on first launch — blocks isSniperScope)
+  await page.evaluate(() => window._5DTest.closeOverlays());
+  await page.waitForTimeout(100);
+
   // Equip sniper and enable aiming
   await page.evaluate(() => {
     window._5DTest.setWeapon("sniper");
