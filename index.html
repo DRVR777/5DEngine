@@ -1062,6 +1062,7 @@ import { createCoinDropSystem } from "./src/systems/ecs_coin_drop.js";
 import { createSpeedOrbSystem } from "./src/systems/ecs_speed_orb.js";
 import { createArmorShardSystem } from "./src/systems/ecs_armor_shard.js";
 import { createHealthPickupSystem } from "./src/systems/ecs_health_pickup.js";
+import { createAmmoPickupSystem } from "./src/systems/ecs_ammo_pickup.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10322,6 +10323,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     _ecsHealthPickup.wireListeners(Core);
     Core.addSystem(_ecsHealthPickup, 6, "health_pickup");
     window.Engine.healthPickupSystem = _ecsHealthPickup;
+
+    // Wire ammo pickup system — priority 6 (pickup tier; 1.2m collect 3.0m magnet)
+    const _ecsAmmoPickup = createAmmoPickupSystem();
+    _ecsAmmoPickup.wireListeners(Core);
+    Core.addSystem(_ecsAmmoPickup, 6, "ammo_pickup");
+    window.Engine.ammoPickupSystem = _ecsAmmoPickup;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
