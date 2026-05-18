@@ -7905,6 +7905,7 @@ function tick() {
       const pb = world.players.get(eb.id);
       if (!pb) continue;
       const dU = pa.u - pb.u, dV = pa.v - pb.v;
+      if (Math.abs(dU) > SEP_DIST && Math.abs(dV) > SEP_DIST) continue;
       const d = Math.hypot(dU, dV);
       if (d < SEP_DIST && d > 0.001) {
         const push = (SEP_DIST - d) * SEP_PUSH * dt / d;
