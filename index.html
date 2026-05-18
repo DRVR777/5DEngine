@@ -5867,10 +5867,34 @@ const _camOff       = new THREE.Vector3();
 const _camLook      = new THREE.Vector3();
 const _camAimTarget = new THREE.Vector3();
 const _camBuildLook = new THREE.Vector3();
+// ── Fixed-timestep physics accumulator ──────────────────────────────────────
+// Physics runs at exactly 60 Hz regardless of display frame rate.
+// _physicsAcc accumulates wall-clock time; each FIXED_DT slice is one physics
+// step. Render code continues to use variable rawDt for smooth interpolation.
+// The alpha value (0–1) is the interpolation factor for visual smoothing:
+//   renderPos = prevPhysicsPos + alpha * (currPhysicsPos - prevPhysicsPos)
+// (Alpha interpolation not yet applied — foundation wired for future use.)
+const FIXED_DT   = 1 / 60;  // 60 Hz physics tick
+let _physicsAcc  = 0;        // leftover time from last frame
+// ─────────────────────────────────────────────────────────────────────────────
+
 function tick() {
   const now = performance.now();
-  let dt  = Math.min(0.05, (now - lastT) / 1000);
+  const rawDt = Math.min(0.05, (now - lastT) / 1000);  // cap at 50ms (20fps min)
+  let dt = rawDt;
   lastT = now;
+
+  // Fixed-step accumulator: drain in FIXED_DT chunks.
+  // _physicsSteps is how many full steps fit this frame; alpha is the remainder.
+  _physicsAcc += rawDt;
+  let _physicsSteps = 0;
+  while (_physicsAcc >= FIXED_DT) { _physicsAcc -= FIXED_DT; _physicsSteps++; }
+  const _physicsAlpha = _physicsAcc / FIXED_DT; // for future render interpolation
+  // physicsdt: the time actually consumed by fixed steps this frame
+  const _physicsDt = _physicsSteps * FIXED_DT;
+  // Note: current tick() still uses variable `dt` throughout for backward compat.
+  // Migrate individual subsystems to _physicsDt / FIXED_DT over time.
+
   // Dismiss loading screen on first real frame
   if (!window._loadingDismissed) {
     window._loadingDismissed = true;
