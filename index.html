@@ -74,6 +74,7 @@ import { mountConfigEditor } from "./src/systems/config_editor.js";
 import { mountSceneHierarchy } from "./src/systems/scene_hierarchy.js";
 import { createLanSession } from "./src/social/lan_session.js";
 import { createWeaponVisuals } from "./src/combat/weapon_visuals.js";
+import { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./src/systems/npc_dialog.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -871,81 +872,7 @@ window._spawnEnemyAtHero = function(typeName) {
 window.showToast = Notifications.showToast;  // keep global API
 
 // ---- NPC Dialog system ----
-const _npcDialogs = {
-  npc_red:   {
-    name: "ROGUE_RED",
-    lines: [
-      { text: "Yo, watch your back out here. The orange ones hit hard.", choices: [{ label: "Got it.", next: null }, { label: "Who are you?", next: 1 }] },
-      { text: "Nobody. Just a ghost in the grid. Keep moving.", choices: [{ label: "Thanks.", next: null }] },
-    ],
-  },
-  npc_blue:  {
-    name: "BYTE_BLUE",
-    lines: [
-      { text: "I've been patching my firmware for the last three cycles. Don't interrupt me.", choices: [{ label: "Sorry.", next: null }, { label: "What are you patching?", next: 1 }] },
-      { text: "The rain subroutine. It keeps triggering at noon. Press H to see what I mean.", choices: [{ label: "Interesting.", next: null }] },
-    ],
-  },
-  npc_green: {
-    name: "GRN_GHOST",
-    lines: [
-      { text: "Coins are scattered all over the arena. Collect them all for... bragging rights.", choices: [{ label: "Cool.", next: null }] },
-    ],
-  },
-  npc_white: {
-    name: "PALE_UNIT",
-    lines: [
-      { text: "Build mode (B) lets you reshape this whole world. Pretty powerful.", choices: [{ label: "I know.", next: null }, { label: "Tell me more.", next: 1 }] },
-      { text: "Drop GLB files to replace objects. N to place spawn points. K to tune physics.", choices: [{ label: "Thanks.", next: null }] },
-    ],
-  },
-};
-
-let _npcDialogOpen = false;
-let _npcDialogId = null;
-let _npcDialogLineIdx = 0;
-
-function _openNpcDialog(npcId) {
-  const def = _npcDialogs[npcId];
-  if (!def) return;
-  _npcDialogId = npcId;
-  _npcDialogLineIdx = 0;
-  _npcDialogOpen = true;
-  _renderNpcDialog(def.lines[0]);
-  document.getElementById("npcDialog").style.display = "block";
-  if (document.pointerLockElement) document.exitPointerLock();
-}
-
-function _renderNpcDialog(line) {
-  const def = _npcDialogs[_npcDialogId];
-  document.getElementById("npcDialogName").textContent = def.name;
-  document.getElementById("npcDialogText").textContent = line.text;
-  const choicesEl = document.getElementById("npcDialogChoices");
-  choicesEl.innerHTML = "";
-  for (const choice of (line.choices || [])) {
-    const btn = document.createElement("button");
-    btn.textContent = choice.label;
-    btn.style.cssText = "background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);color:#b8e8ff;padding:8px 14px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:11px;text-align:left";
-    btn.onmouseover = () => { btn.style.background = "rgba(0,200,255,0.2)"; btn.style.color = "#00ccff"; };
-    btn.onmouseout  = () => { btn.style.background = "rgba(0,200,255,0.1)"; btn.style.color = "#b8e8ff"; };
-    btn.onclick = () => {
-      if (choice.next == null) {
-        _closeNpcDialog();
-      } else {
-        _npcDialogLineIdx = choice.next;
-        _renderNpcDialog(def.lines[choice.next]);
-      }
-    };
-    choicesEl.appendChild(btn);
-  }
-}
-
-function _closeNpcDialog() {
-  _npcDialogOpen = false;
-  _npcDialogId = null;
-  document.getElementById("npcDialog").style.display = "none";
-}
-
+const _npcDialog = mountNpcDialog(DEFAULT_NPC_DIALOGS);
 // ---- Quest / Objective system ----
 const _quests = [];
 let _questOpen = false;
@@ -3715,7 +3642,7 @@ addEventListener("keydown", (e) => {
     return;
   }
   // E near NPC → open dialog (check before computer so NPCs take priority if closer)
-  if (e.code === "KeyE" && !_npcDialogOpen && !nearComputer && !computerEntering) {
+  if (e.code === "KeyE" && !_npcDialog.isOpen && !nearComputer && !computerEntering) {
     const hero = world.players.get("hero");
     let closestNpc = null, closestDist = 2.5;
     for (const n of NPC_DEFS) {
@@ -3723,11 +3650,11 @@ addEventListener("keydown", (e) => {
       const d = Math.hypot(hero.u - np.u, hero.v - np.v);
       if (d < closestDist) { closestDist = d; closestNpc = n; }
     }
-    if (closestNpc) { _openNpcDialog(closestNpc.id); e.preventDefault(); return; }
+    if (closestNpc) { _npcDialog.open(closestNpc.id); e.preventDefault(); return; }
   }
   // Close NPC dialog with E or Escape
-  if (_npcDialogOpen && (e.code === "KeyE" || e.code === "Escape")) {
-    _closeNpcDialog(); e.preventDefault(); return;
+  if (_npcDialog.isOpen && (e.code === "KeyE" || e.code === "Escape")) {
+    _npcDialog.close(); e.preventDefault(); return;
   }
   // E near computer → open desktop OS (cinematic dolly first, then overlay).
   // E only OPENS — closing happens via Escape or the X button only, so that
@@ -4284,7 +4211,7 @@ let pointerLocked = false;
 document.addEventListener("click", () => {
   const _diffOpen = (document.getElementById("difficultyScreen") || {}).style?.display === "flex";
   if (!pointerLocked && !buildMode && !computerOpen && !computerEntering &&
-      !shopOpen && !settingsOpen && !_npcDialogOpen && !_diffOpen) {
+      !shopOpen && !settingsOpen && !_npcDialog.isOpen && !_diffOpen) {
     renderer.domElement.requestPointerLock();
   }
 });
@@ -6424,7 +6351,7 @@ function tick() {
 
   // NPC proximity check
   _nearNpc = null;
-  if (!_npcDialogOpen && !computerOpen) {
+  if (!_npcDialog.isOpen && !computerOpen) {
     for (const n of NPC_DEFS) {
       const np = world.players.get(n.id);
       if (Math.hypot(heroNow.u - np.u, heroNow.v - np.v) < 2.5) { _nearNpc = n; break; }
@@ -6441,7 +6368,7 @@ function tick() {
       n._fleeT = 2.5;
       n._fleeAng = Math.atan2(np_flee.u - heroNow.u, np_flee.v - heroNow.v);
     }
-    if (!_npcDialogOpen) {
+    if (!_npcDialog.isOpen) {
       if (n._fleeT > 0) {
         n._fleeT -= dt;
         const np2 = world.players.get(n.id);
@@ -8435,8 +8362,8 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     openSettings:   () => { try { _openSettings();        return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     closeSettings:  () => { try { _closeSettings();       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     showPerkPicker: (wave) => { try { _showPerkPicker(wave || 1); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    openNpcDialog:  (id) => { try { _openNpcDialog(id || "merchant"); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    closeNpcDialog: () => { try { _closeNpcDialog();      return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    openNpcDialog:  (id) => { try { _npcDialog.open(id || "merchant"); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    closeNpcDialog: () => { try { _npcDialog.close();      return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
 
     // ── Game state mutations ──────────────────────────────────────────────────
     setHeroHp:      (hp) => { try { heroHp = Math.max(0, Math.min(HERO_MAX_HP + (_perkMaxHpBonus || 0), hp)); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
@@ -8456,7 +8383,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       scopeVisible:     document.getElementById("scopeOverlay")?.style?.display === "block",
       shopOpen:         typeof shopOpen !== "undefined" ? shopOpen : false,
       settingsOpen:     typeof settingsOpen !== "undefined" ? settingsOpen : false,
-      npcDialogOpen:    typeof _npcDialogOpen !== "undefined" ? _npcDialogOpen : false,
+      npcDialogOpen:    _npcDialog.isOpen,
       buildMode:        typeof buildMode !== "undefined" ? buildMode : false,
       speedOrbCount:    _speedOrbs.length,
       healthPickupCount: healthPickups.length,
