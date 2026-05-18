@@ -4423,7 +4423,7 @@ setTimeout(() => {
   _refreshHotbar();
 
   // ── F3 — Collaborative World Sync ─────────────────────────────────────────
-  // Only active when gameMode === "coop_build" AND a multiplayer server is live.
+  // Only active when gameMode === "peaceful" AND a multiplayer server is live.
   // Strategy: dirty-flag + 1 Hz flush so dragging an object doesn't spam 60 JSON
   // packets/s. Echo prevention: _applyingRemoteSync skips the flush during import.
   let _buildSyncDirty    = false;
@@ -4431,7 +4431,7 @@ setTimeout(() => {
 
   // Mark scene dirty after any local build mutation
   function _markBuildDirty() {
-    if (gameMode === "coop_build") _buildSyncDirty = true;
+    if (gameMode === "peaceful") _buildSyncDirty = true;
   }
 
   // Flush: export full scene JSON and send to peers (1 Hz)
@@ -6079,10 +6079,15 @@ function tick() {
   const sprintFovTarget = (isSprinting && !aiming && !_heroDead && !buildMode && !inCar) ? 1 : 0;
   _sprintFovAmt += (sprintFovTarget - _sprintFovAmt) * Math.min(1, dt * 8);
   const isSniperScope = aiming && currentWeaponId === "sniper" && !buildMode && !computerOpen;
-  // Sniper scope: transition to 1st-person before showing scope view
+  // Sniper scope: pull camera to tight FP position for scope view.
+  // BUG FIX iter 420: driving camDist to 0 entered the INSIDE spine zone
+  // (allowShooting:false, heroVisible:false) and stalled rendering on zone
+  // transitions. Target 3.5 instead — with aimMul=0.6 this gives spineZoom≈0.14
+  // which sits safely in FIRST_PERSON zone (allowShooting:true, heroVisible:false).
+  const _SCOPE_CAMDIST = 3.5;
   if (isSniperScope && !_wasSniperScope) _sniperSavedCamDist = camDist;
   if (!isSniperScope && _wasSniperScope) camDist = _sniperSavedCamDist;
-  if (isSniperScope) camDist += (0 - camDist) * Math.min(1, dt * 10);
+  if (isSniperScope) camDist += (_SCOPE_CAMDIST - camDist) * Math.min(1, dt * 10);
   _wasSniperScope = isSniperScope;
   camera.fov = isSniperScope ? 20 : (60 + _sprintFovAmt * 8);
   camera.updateProjectionMatrix();
