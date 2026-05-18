@@ -1030,6 +1030,7 @@ import { createStaminaSystem } from "./src/systems/ecs_stamina.js";
 import { createGrenadeSystem } from "./src/systems/ecs_grenade.js";
 import { createBulletSystem, spawnBullet } from "./src/systems/ecs_bullet.js";
 import { createLootDropSystem, DROP_TABLE } from "./src/systems/ecs_loot_drop.js";
+import { createKnockbackSystem } from "./src/systems/ecs_knockback.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10131,6 +10132,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     window.Engine.invRemove = invRemove;
     window.Engine.invCount  = invCount;
     window.Engine.invHas    = invHas;
+
+    // Wire knockback system — priority 16 (after status:15, before stamina:18)
+    const _ecsKnockback = createKnockbackSystem();
+    Core.addSystem(_ecsKnockback, 16, "knockback");
+    window.Engine.knockbackSystem = _ecsKnockback;
 
     // Wire stamina system — priority 18 (after weapon:8, ai:12, status:15, before regen:35)
     const _ecsStamina = createStaminaSystem();
