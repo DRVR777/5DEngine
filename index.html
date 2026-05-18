@@ -77,6 +77,7 @@ import { createWeaponVisuals } from "./src/combat/weapon_visuals.js";
 import { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./src/systems/npc_dialog.js";
 import { mountQuestPanel } from "./src/systems/quest_panel.js";
 import { mountShopPanel } from "./src/economy/shop_panel.js";
+import { mountSettingsPanel } from "./src/systems/settings_panel.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -980,77 +981,13 @@ const _shop = mountShopPanel({
 });
 
 // Settings panel — O key opens, Escape closes
-let settingsOpen = false;
-let sniperScopeSens = 3.0;  // higher = slower scope mouse movement
-const ADMIN_PASSWORD = "5DENGINE";
-let adminUnlocked = false;
-
-function _openSettings() {
-  settingsOpen = true;
-  document.exitPointerLock();
-  const el = document.getElementById("settingsOverlay");
-  if (el) el.classList.add("open");
-  // Sync sniper slider
-  const sl = document.getElementById("sniperSensSlider");
-  if (sl) { sl.value = sniperScopeSens; sl.dispatchEvent(new Event("input")); }
-  // Populate admin weapon grid if unlocked
-  if (adminUnlocked) _renderAdminGrid();
-}
-function _closeSettings() {
-  settingsOpen = false;
-  const el = document.getElementById("settingsOverlay");
-  if (el) el.classList.remove("open");
-  setTimeout(() => { if (!document.pointerLockElement && !buildMode) renderer.domElement.requestPointerLock(); }, 50);
-}
-document.addEventListener("DOMContentLoaded", () => {
-  const closeBtn = document.getElementById("settingsClose");
-  if (closeBtn) closeBtn.addEventListener("click", _closeSettings);
-  const sl = document.getElementById("sniperSensSlider");
-  const sv = document.getElementById("sniperSensVal");
-  if (sl && sv) {
-    sl.addEventListener("input", () => {
-      sniperScopeSens = parseFloat(sl.value);
-      sv.textContent = sniperScopeSens.toFixed(1) + "x";
-    });
-  }
-  const unlockBtn = document.getElementById("adminUnlockBtn");
-  if (unlockBtn) {
-    unlockBtn.addEventListener("click", () => {
-      const pw = document.getElementById("adminPwInput")?.value || "";
-      const msg = document.getElementById("adminLockMsg");
-      if (pw === ADMIN_PASSWORD) {
-        adminUnlocked = true;
-        document.getElementById("adminContent").style.display = "block";
-        document.getElementById("adminLockRow").querySelector("input").style.display = "none";
-        unlockBtn.style.display = "none";
-        if (msg) msg.textContent = "✓ Unlocked";
-        _renderAdminGrid();
-      } else {
-        if (msg) { msg.textContent = "Wrong password"; setTimeout(() => { msg.textContent = ""; }, 1500); }
-      }
-    });
-  }
+const _settings = mountSettingsPanel({
+  getCFG: () => (typeof CFG !== "undefined" ? CFG : {}),
+  getRenderer: () => renderer,
+  getBuildMode: () => buildMode,
+  password: "5DENGINE",
+  initialSniperSens: 3.0,
 });
-function _renderAdminGrid() {
-  const grid = document.getElementById("adminWeaponGrid");
-  if (!grid) return;
-  const weps = (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : [];
-  grid.innerHTML = "";
-  weps.forEach(w => {
-    const row = document.createElement("div");
-    row.className = "adminRow";
-    row.innerHTML = `<label><b style="color:#ffd166">${w.name || w.id}</b></label>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span style="width:50px">DMG</span>
-        <input type="number" value="${w.damage || 0}" min="1" max="9999" style="width:70px"
-          onchange="(function(v){ const idx=(CFG.weapons||[]).findIndex(x=>x.id==='${w.id}');if(idx>=0)CFG.weapons[idx].damage=+v; })(this.value)">
-        <span style="width:50px;margin-left:4px">RPM</span>
-        <input type="number" value="${w.fireRate ? Math.round(w.fireRate*60) : 0}" min="1" max="9999" style="width:70px"
-          onchange="(function(v){ const idx=(CFG.weapons||[]).findIndex(x=>x.id==='${w.id}');if(idx>=0)CFG.weapons[idx].fireRate=v/60; })(this.value)">
-      </div>`;
-    grid.appendChild(row);
-  });
-}
 
 // Grenade system — G key throws, 2.5s fuse, AoE on detonation
 const grenades3D = [];
@@ -3630,7 +3567,7 @@ addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
     const kpEl = document.getElementById("keybindPanel");
     if (kpEl && kpEl.style.display !== "none") { kpEl.style.display = "none"; e.preventDefault(); return; }
-    if (settingsOpen) { _closeSettings(); e.preventDefault(); return; }
+    if (_settings.isOpen) { _settings.close(); e.preventDefault(); return; }
     if (_shop.isOpen) { _shop.close(); e.preventDefault(); return; }
     const ci = document.getElementById("creativeInv");
     if (ci && ci.classList.contains("open")) { window._closeCreativeInv && window._closeCreativeInv(); e.preventDefault(); return; }
@@ -3874,7 +3811,7 @@ addEventListener("keydown", (e) => {
       const ep = document.getElementById("envPanel");
       if (ep) ep.style.display = ep.style.display === "none" ? "block" : "none";
     } else {
-      if (settingsOpen) _closeSettings(); else _openSettings();
+      if (_settings.isOpen) _settings.close(); else _settings.open();
     }
     e.preventDefault();
     return;
@@ -4138,7 +4075,7 @@ let pointerLocked = false;
 document.addEventListener("click", () => {
   const _diffOpen = (document.getElementById("difficultyScreen") || {}).style?.display === "flex";
   if (!pointerLocked && !buildMode && !computerOpen && !computerEntering &&
-      !_shop.isOpen && !settingsOpen && !_npcDialog.isOpen && !_diffOpen) {
+      !_shop.isOpen && !_settings.isOpen && !_npcDialog.isOpen && !_diffOpen) {
     renderer.domElement.requestPointerLock();
   }
 });
@@ -4193,7 +4130,7 @@ addEventListener("mousemove", (e) => {
     freeCamPitch = Math.max(-1.4, Math.min(1.4, freeCamPitch));
   } else {
     const isScopedIn = aiming && currentWeaponId === "sniper";
-    const sensMul = isScopedIn ? 1 / sniperScopeSens : 1;
+    const sensMul = isScopedIn ? 1 / _settings.getSniperSens() : 1;
     camYaw   -= dx * 0.003 * sensMul;
     camPitch -= dy * 0.003 * sensMul;
     camPitch = Math.max(-1.2, Math.min(0.4, camPitch));
@@ -8251,7 +8188,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       computerOpen = false; computerEntering = false;
       _firstLaunch = false;
       _shop.close();
-      if (typeof settingsOpen !== "undefined") settingsOpen = false;
+      _settings.close();
     },
     // ── Weapon helpers ────────────────────────────────────────────────────────
     getWeaponIds: () => (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons.map(w => w.id) : [],
@@ -8286,8 +8223,8 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     // ── UI panels ─────────────────────────────────────────────────────────────
     openShop:       () => { try { _shop.open();            return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     closeShop:      () => { try { _shop.close();           return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    openSettings:   () => { try { _openSettings();        return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    closeSettings:  () => { try { _closeSettings();       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    openSettings:   () => { try { _settings.open();        return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    closeSettings:  () => { try { _settings.close();       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     showPerkPicker: (wave) => { try { _showPerkPicker(wave || 1); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     openNpcDialog:  (id) => { try { _npcDialog.open(id || "merchant"); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     closeNpcDialog: () => { try { _npcDialog.close();      return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
@@ -8309,7 +8246,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       bulletCount:      bullets3D.length,
       scopeVisible:     document.getElementById("scopeOverlay")?.style?.display === "block",
       shopOpen:         _shop.isOpen,
-      settingsOpen:     typeof settingsOpen !== "undefined" ? settingsOpen : false,
+      settingsOpen:     _settings.isOpen,
       npcDialogOpen:    _npcDialog.isOpen,
       buildMode:        typeof buildMode !== "undefined" ? buildMode : false,
       speedOrbCount:    _speedOrbs.length,
