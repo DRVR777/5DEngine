@@ -6,6 +6,7 @@ export function mountComputerUI({
   getHeroMedia,
   setHeroMedia,
   getMpState,
+  getDuelMode,
   playSfx,
   showToast,
   closeComputer,
@@ -260,6 +261,35 @@ export function mountComputerUI({
       return;
     }
 
+    // Duel actions
+    const duelChallenge = e.target.closest("[data-action='duel-challenge']");
+    if (duelChallenge && getDuelMode) {
+      const peerId = duelChallenge.dataset.peerid;
+      if (peerId) { getDuelMode() && getDuelMode().startDuel(peerId); playSfx("blip", 0.6); }
+      document.getElementById("appBody").innerHTML = getAPPS().duel.body();
+      return;
+    }
+    const duelAccept = e.target.closest("[data-action='duel-accept']");
+    if (duelAccept && getDuelMode) {
+      const fromId = duelAccept.dataset.fromid;
+      if (fromId) { getDuelMode() && getDuelMode().acceptDuel(fromId); playSfx("blip", 0.8); }
+      closeComputer();
+      return;
+    }
+    const duelDecline = e.target.closest("[data-action='duel-decline']");
+    if (duelDecline && getDuelMode) {
+      const fromId = duelDecline.dataset.fromid;
+      if (fromId) { getDuelMode() && getDuelMode().declineDuel(fromId); playSfx("blip", 0.4); }
+      document.getElementById("appBody").innerHTML = getAPPS().duel.body();
+      return;
+    }
+    const duelCancel = e.target.closest("[data-action='duel-cancel']");
+    if (duelCancel && getDuelMode) {
+      getDuelMode() && getDuelMode().cancelDuel();
+      document.getElementById("appBody").innerHTML = getAPPS().duel.body();
+      return;
+    }
+
     // App icon click — open app in window pane
     const app = e.target.closest(".app");
     if (!app) return;
@@ -279,5 +309,6 @@ export function mountComputerUI({
     if (id === "radio")   wireRadioApp();
     if (id === "friends") wireFriendsApp();
     if (id === "servers") wireServersApp();
+    // duel app actions are handled by the delegated click handler above
   });
 }

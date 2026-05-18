@@ -77,6 +77,7 @@ import { createHeroAnimSystem } from "./src/entities/hero_animation.js";
 import { mountConfigEditor } from "./src/systems/config_editor.js";
 import { mountSceneHierarchy } from "./src/systems/scene_hierarchy.js";
 import { createLanSession } from "./src/social/lan_session.js";
+import { mountDuelMode }   from "./src/systems/duel_mode.js";
 import { createWeaponVisuals } from "./src/combat/weapon_visuals.js";
 import { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./src/systems/npc_dialog.js";
 import { mountQuestPanel } from "./src/systems/quest_panel.js";
@@ -4361,6 +4362,27 @@ function tick() {
         }
       }
       if (hitEnemy) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
+      // Hit a peer player?
+      let hitPeer = false;
+      if (_mp && _mp.enabled) {
+        for (const [pid, peer] of _mp.peers) {
+          const lp = peer.lastPos;
+          if (!lp) continue;
+          const pdu = lp.u - b.posU, pdv = lp.v - b.posV;
+          const pdy = (lp.y + 0.9) - b.posY;  // offset to mid-torso
+          if (pdu*pdu + pdv*pdv < 0.36 && pdy*pdy < 0.81) {  // ~0.6m radius sphere
+            const headshot = b.posY > 1.6;
+            const dmg      = headshot ? b.damage * 2 : b.damage;
+            _mp.hitPeer(pid, dmg, headshot);
+            _spawnParticles(b.posU, b.posY, b.posV, 12, headshot ? "yellow" : "red", 6, 0.3);
+            _spawnDamageNumber(b.posU, b.posY + 0.5, b.posV,
+              `${headshot ? "HEADSHOT " : ""}-${dmg}`, headshot ? "#ffd700" : "#ff4444");
+            playSfx(headshot ? "tone:1800:40:sine" : "tone:900:30:square", 0.4);
+            hitPeer = true; break;
+          }
+        }
+      }
+      if (hitPeer) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       // Hit a barrel?
       let hitBarrel = false;
       for (const bar of barrels) {
@@ -6644,11 +6666,13 @@ setTimeout(() => {
 // EXTRACT-PLAN iter 533: app_wiring.js → src/bridges/app_wiring.js
 // Covers: OS app bindings — calculator, terminal, file manager, etc.
 // ───── Desktop OS app wiring ─────
+let _duelMode = null;   // assigned after _mp is created below
 const APPS = buildComputerApps(() => ({
   getWeapon, pistolAmmo, Inv, heroInv, heroHealth, score, CFG,
   world, inCar, carState, camDist, camSide, nearComputer,
   buildings, computerEntity, VEHICLE_DEFS, deviceBus, heroMedia,
   mpState: _mpState, gameMode,
+  mp: _mp, duelMode: _duelMode,
 }));
 addDynamicIcons();
 
@@ -6658,6 +6682,7 @@ mountComputerUI({
   getHeroMedia:  () => heroMedia,
   setHeroMedia:  (arr) => { heroMedia = arr; },
   getMpState:    () => _mpState,
+  getDuelMode:   () => _duelMode,
   playSfx,
   showToast,
   closeComputer,
@@ -6673,6 +6698,29 @@ const _mp = createLanSession({
   getEnemies:    () => enemies,
   getCamera:     () => camera,
   getGameState:  () => ({ camYaw, currentWeaponId, heroHp, isSprinting, crouching, inCar }),
+});
+
+// Mount duel mode — needs _mp ready
+_duelMode = mountDuelMode({
+  mp: _mp,
+  get: {
+    heroHp:      () => heroHp,
+    HERO_MAX_HP: () => CFG.heroMaxHp || 100,
+    myId:        () => null,   // _mp exposes no myId externally; duel uses fromId from events
+  },
+  set: {
+    heroHp: (v) => { heroHp = Math.max(0, Math.min(CFG.heroMaxHp || 100, v)); },
+  },
+  actions: {
+    showToast,
+    playSfx,
+    spawnParticles: _spawnParticles,
+    addKillFeedEntry: _addKillFeedEntry,
+    teleportHero: (u, y, v) => {
+      const hp = world.players.get("hero");
+      if (hp) { hp.u = u; hp.v = v; hp.y = y; }
+    },
+  },
 });
 
 // Send hero position to peers at 20 Hz

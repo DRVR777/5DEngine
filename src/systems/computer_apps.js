@@ -261,6 +261,83 @@ ${lines}</pre>
 <div style="margin-top:10px">${bodies}</div>`;
       },
     },
+    duel: {
+      title: "⚔️ 1v1 Duel",
+      body: () => {
+        const s = getState();
+        const duel = s.duelMode;
+        if (!duel) return `<pre style="color:#888">(duel mode not loaded)</pre>`;
+        const duelState    = duel.getDuelState();
+        const pending      = duel.getPendingChallenge();
+        const peers        = s.mp ? [...s.mp.peers.entries()] : [];
+
+        if (duelState) {
+          const phase = duelState.phase;
+          const opp   = peers.find(([id]) => id === duelState.opponentId);
+          const oppName = opp ? opp[1].name : duelState.opponentId.slice(0, 6);
+          return `<div style="text-align:center;padding:12px">
+            <div style="color:#ff6644;font-size:16px;font-weight:bold;margin-bottom:8px">⚔️ DUEL IN PROGRESS</div>
+            <div style="color:#ccc;font-size:13px;margin-bottom:12px">vs <b>${oppName}</b></div>
+            <div style="font-family:monospace;font-size:20px;margin-bottom:12px">
+              <span style="color:#44ff88">${duelState.myWins}</span>
+              <span style="color:#888"> — </span>
+              <span style="color:#ff4444">${duelState.oppWins}</span>
+            </div>
+            <div style="color:#aaa;font-size:12px;margin-bottom:16px">
+              Round ${duelState.round}/10 · ${Math.ceil(duelState.roundTimer)}s remaining
+            </div>
+            <button data-action="duel-cancel"
+              style="background:#aa3333;border:0;color:#fff;padding:7px 20px;border-radius:5px;cursor:pointer;font-size:13px">
+              Forfeit Duel
+            </button>
+          </div>`;
+        }
+
+        if (pending) {
+          return `<div style="text-align:center;padding:14px">
+            <div style="color:#ffcc44;font-size:15px;font-weight:bold;margin-bottom:8px">
+              ⚔️ Duel Challenge!
+            </div>
+            <div style="color:#ccc;font-size:13px;margin-bottom:16px">
+              <b>${pending.fromName}</b> wants to 1v1 you (10 rounds)
+            </div>
+            <div style="display:flex;gap:12px;justify-content:center">
+              <button data-action="duel-accept" data-fromid="${pending.fromId}"
+                style="background:#228833;border:0;color:#fff;padding:7px 22px;border-radius:5px;cursor:pointer;font-size:13px">
+                ✓ Accept
+              </button>
+              <button data-action="duel-decline" data-fromid="${pending.fromId}"
+                style="background:#663333;border:0;color:#fff;padding:7px 22px;border-radius:5px;cursor:pointer;font-size:13px">
+                ✗ Decline
+              </button>
+            </div>
+          </div>`;
+        }
+
+        if (peers.length === 0) {
+          return `<div style="color:#888;padding:16px;text-align:center;font-size:13px">
+            No other players connected.<br>Share <b style="color:#44ccff">http://localhost:8080</b>
+            or your LAN IP with a friend.
+          </div>`;
+        }
+
+        const rows = peers.map(([id, p]) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;
+                      background:#0a1626;border:1px solid #4488cc44;border-radius:6px">
+            <div style="width:10px;height:10px;border-radius:50%;background:#44ff88;flex-shrink:0"></div>
+            <span style="flex:1;color:#eee;font-size:13px">${p.name || id.slice(0,6)}</span>
+            <span style="color:#555;font-size:11px">${p.hp != null ? p.hp + " HP" : ""}</span>
+            <button data-action="duel-challenge" data-peerid="${id}"
+              style="background:#cc5522;border:0;color:#fff;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:12px">
+              ⚔️ Challenge
+            </button>
+          </div>`).join("");
+
+        return `<div style="color:#88a;font-size:12px;margin-bottom:12px">
+          Challenge a connected player to a 10-round 1v1. First to 6 wins.
+        </div>${rows}`;
+      },
+    },
     browser: {
       title: "🌐 Browser",
       body: () => `<div style="display:flex;gap:6px;margin-bottom:8px">
@@ -284,6 +361,7 @@ export function addDynamicIcons() {
     { id: "browser",   icon: "🌐", label: "Browser" },
     { id: "devices",   icon: "🔌", label: "Devices" },
     { id: "files",     icon: "📁", label: "Files" },
+    { id: "duel",      icon: "⚔️",  label: "1v1 Duel"  },
   ];
   for (const e of extras) {
     if (grid.querySelector('[data-app="' + e.id + '"]')) continue;

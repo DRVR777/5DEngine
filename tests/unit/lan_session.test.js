@@ -84,18 +84,62 @@ it("emits mp_event on sendEvent", () => {
   expect(src).toContain('"mp_event"');
 });
 
-describe("ghost mesh creation", () => {
-  it("creates body + head + name label", () => {
-    expect(src).toContain("CylinderGeometry");
-    expect(src).toContain("SphereGeometry");
+describe("humanoid mesh creation", () => {
+  it("creates torso, head, and name label with BoxGeometry + PlaneGeometry", () => {
+    expect(src).toContain("BoxGeometry");
     expect(src).toContain("PlaneGeometry");
   });
 
-  it("adds ghost to scene", () => {
+  it("has arms and two-segment legs", () => {
+    expect(src).toContain("_arm()");
+    expect(src).toContain("_leg()");
+    expect(src).toContain("armL");
+    expect(src).toContain("thighL");
+    expect(src).toContain("shinL");
+  });
+
+  it("assigns unique shirt color from hashed socket id", () => {
+    expect(src).toContain("_idColor(id)");
+    expect(src).toContain("shirtColor");
+  });
+
+  it("walk animation refs stored on group", () => {
+    expect(src).toContain("grp._walkRefs");
+    expect(src).toContain("grp._walkPhase");
+  });
+
+  it("adds humanoid to scene", () => {
     expect(src).toContain("scene.add(grp)");
   });
 
-  it("removes ghost from scene on peer left", () => {
+  it("removes humanoid from scene on peer left", () => {
     expect(src).toContain("scene.remove(p.mesh)");
+  });
+});
+
+describe("peer hit system", () => {
+  it("exposes hitPeer method", () => {
+    expect(src).toContain("function hitPeer(peerId, damage, headshot)");
+  });
+
+  it("sends player_hit event on hitPeer", () => {
+    expect(src).toContain('"player_hit"');
+    expect(src).toContain("targetId: peerId");
+  });
+
+  it("dispatches incoming_hit when targetId matches myId", () => {
+    expect(src).toContain('"incoming_hit"');
+    expect(src).toContain("data.targetId === _myId");
+  });
+});
+
+describe("event system", () => {
+  it("exposes onEvent(type, cb) API", () => {
+    expect(src).toContain("function onEvent(type, cb)");
+  });
+
+  it("dispatches duel_* events to listeners", () => {
+    expect(src).toContain("data.type.startsWith(\"duel_\")");
+    expect(src).toContain("_dispatch(data.type, data)");
   });
 });

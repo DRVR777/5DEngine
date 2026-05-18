@@ -129,7 +129,10 @@ io.on("connection", (socket) => {
     if (!data || typeof data.type !== "string") return;
     const player = players.get(socket.id);
     const allowedTypes = ["enemy_kill", "build", "friend_request", "friend_accepted",
-                          "chat", "emote", "wave_sync"];
+                          "chat", "emote", "wave_sync",
+                          "player_hit",
+                          "duel_challenge", "duel_accept", "duel_decline",
+                          "duel_round_start", "duel_round_end", "duel_match_end", "duel_cancel"];
     if (!allowedTypes.includes(data.type)) return;   // drop unknown event types
 
     // Relay with sender metadata
