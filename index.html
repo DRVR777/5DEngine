@@ -6136,16 +6136,18 @@ function tick() {
       const mv = (keys["Space"] ? 1 : 0) - (keys["KeyC"] ? 1 : 0);
       vSt.altY = Math.max(0, Math.min(40, vSt.altY + mv * DRONE_V * dt));
       const cp = world.players.get(activeVehicleId);
-      if (!cp) break;
-      const dfx = Math.sin(camYaw), dfz = Math.cos(camYaw);
-      const drx = Math.cos(camYaw), drz = -Math.sin(camYaw);
-      const du = (dfx * mf + drx * mr) * DRONE_H * dt;
-      const dv = (dfz * mf + drz * mr) * DRONE_H * dt;
-      world.setPlayer(activeVehicleId, 0, vSt.altY, 0, cp.u + du, cp.v + dv);
-      world.setPlayer("hero", 0, vSt.altY, 0, cp.u + du, cp.v + dv);
-      vSt.speed = Math.hypot(du, dv) / dt;
-      vSt.heading = (mf !== 0 || mr !== 0) ? Math.atan2(dfx * mf + drx * mr, dfz * mf + drz * mr) : vSt.heading;
-      Object.assign(carState, vSt);
+      // Guard: drone player slot might not be registered yet on first frame
+      if (cp) {
+        const dfx = Math.sin(camYaw), dfz = Math.cos(camYaw);
+        const drx = Math.cos(camYaw), drz = -Math.sin(camYaw);
+        const du = (dfx * mf + drx * mr) * DRONE_H * dt;
+        const dv = (dfz * mf + drz * mr) * DRONE_H * dt;
+        world.setPlayer(activeVehicleId, 0, vSt.altY, 0, cp.u + du, cp.v + dv);
+        world.setPlayer("hero", 0, vSt.altY, 0, cp.u + du, cp.v + dv);
+        vSt.speed = Math.hypot(du, dv) / dt;
+        vSt.heading = (mf !== 0 || mr !== 0) ? Math.atan2(dfx * mf + drx * mr, dfz * mf + drz * mr) : vSt.heading;
+        Object.assign(carState, vSt);
+      }
     } else {
       // ---- Ground vehicle physics ----
       const throttle  = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
