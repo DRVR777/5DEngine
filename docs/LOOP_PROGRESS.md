@@ -47,3 +47,4 @@ Next: FUTURE_FEATURES.md — F1 game mode select, F2 LAN probe, F3 collab world 
 
 - [x] F1. Game Mode Select Screen — `gameMode` var (solo/coop_build/wave_defense), APPS.gamemodes entry, 🎮 icon in grid, click handler (data-action="set-mode"), auto-opens on first launch via 500ms setTimeout. EventBus.emit("GAME_MODE_CHANGED") for F3.
 - [x] F2. LAN Server Probe — iter 410: game_server.py `/api/status` + `/scan` (32-thread concurrent TCP+HTTP probe); iter 411: APPS.servers entry, 🖥️ icon, wireServersApp() scan button, join-server redirect, friend-request mp_event + toast.
+- [x] F3. Collaborative World Sync — iter 412: module-scope hooks (_onMpBuildEvent, _onMpWelcomeHook), wired into _mp IIFE mp_event + mp_welcome + mp_player_joined handlers; worldBuilder mutation wrappers (_markBuildDirty), 1Hz flush with echo prevention (_applyingRemoteSync), full scene JSON sync on connect/peer-join. Active only in coop_build mode.

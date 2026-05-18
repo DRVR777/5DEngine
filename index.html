@@ -4419,6 +4419,70 @@ setTimeout(() => {
   };
 
   _refreshHotbar();
+
+  // ── F3 — Collaborative World Sync ─────────────────────────────────────────
+  // Only active when gameMode === "coop_build" AND a multiplayer server is live.
+  // Strategy: dirty-flag + 1 Hz flush so dragging an object doesn't spam 60 JSON
+  // packets/s. Echo prevention: _applyingRemoteSync skips the flush during import.
+  let _buildSyncDirty    = false;
+  let _applyingRemoteSync = false;
+
+  // Mark scene dirty after any local build mutation
+  function _markBuildDirty() {
+    if (gameMode === "coop_build") _buildSyncDirty = true;
+  }
+
+  // Flush: export full scene JSON and send to peers (1 Hz)
+  setInterval(() => {
+    if (!_buildSyncDirty || _applyingRemoteSync) return;
+    if (gameMode !== "coop_build") return;
+    if (typeof _mp === "undefined" || !_mp.enabled) return;
+    _buildSyncDirty = false;
+    const json = worldBuilder.exportSceneJSON();
+    _mp.sendEvent("build", { action: "sync", json });
+  }, 1000);
+
+  // Apply an incoming peer build sync (called by the _mp IIFE via _onMpBuildEvent)
+  _onMpBuildEvent = function(data) {
+    if (data.action !== "sync" || !data.json) return;
+    if (gameMode !== "coop_build" || !worldBuilder) return;
+    _applyingRemoteSync = true;
+    try {
+      worldBuilder.importSceneJSON(data.json);
+      if (typeof showToast === "function") showToast("Scene synced from peer", "info", 1000);
+    } catch (e) {
+      console.warn("[F3] Build sync import failed:", e);
+    }
+    _applyingRemoteSync = false;
+  };
+
+  // Broadcast current scene when WE connect or a new peer joins
+  _onMpWelcomeHook = function() {
+    if (gameMode !== "coop_build" || !worldBuilder) return;
+    if (typeof _mp === "undefined" || !_mp.enabled) return;
+    const json = worldBuilder.exportSceneJSON();
+    _mp.sendEvent("build", { action: "sync", json });
+  };
+
+  // Wrap builder mutations to mark scene dirty — only wraps the outbound
+  // path; importSceneJSON is called inside _applyingRemoteSync=true so the
+  // flush interval won't echo it back.
+  const _wbOrigSpawn  = worldBuilder.spawnPrimitive.bind(worldBuilder);
+  const _wbOrigDel    = worldBuilder.deleteSelected.bind(worldBuilder);
+  const _wbOrigClone  = worldBuilder.cloneSelected.bind(worldBuilder);
+  const _wbOrigSetPos = worldBuilder.setPosition.bind(worldBuilder);
+  const _wbOrigSetRot = worldBuilder.setRotation.bind(worldBuilder);
+  const _wbOrigSetScl = worldBuilder.setScale.bind(worldBuilder);
+  const _wbOrigSetCol = worldBuilder.setColor.bind(worldBuilder);
+
+  worldBuilder.spawnPrimitive = (...a) => { const r = _wbOrigSpawn(...a);  _markBuildDirty(); return r; };
+  worldBuilder.deleteSelected = (...a) => { const r = _wbOrigDel(...a);    _markBuildDirty(); return r; };
+  worldBuilder.cloneSelected  = (...a) => { const r = _wbOrigClone(...a);  _markBuildDirty(); return r; };
+  worldBuilder.setPosition    = (...a) => { const r = _wbOrigSetPos(...a); _markBuildDirty(); return r; };
+  worldBuilder.setRotation    = (...a) => { const r = _wbOrigSetRot(...a); _markBuildDirty(); return r; };
+  worldBuilder.setScale       = (...a) => { const r = _wbOrigSetScl(...a); _markBuildDirty(); return r; };
+  worldBuilder.setColor       = (...a) => { const r = _wbOrigSetCol(...a); _markBuildDirty(); return r; };
+  // ─────────────────────────────────────────────────────────────────────────
 }, 250);
 
 // Each frame: show/hide builder UI + update inspector inputs from the
@@ -9334,6 +9398,12 @@ function wireServersApp() {
   });
 }
 
+// ── F3 hooks — set by worldBuilder init; read inside the _mp IIFE ────────────
+// Declared here (module scope) so the IIFE below can close over them without
+// circular dependency. worldBuilder setTimeout sets them ~250ms after load.
+let _onMpBuildEvent  = null;  // called when a build mp_event arrives from a peer
+let _onMpWelcomeHook = null;  // called when we connect OR a new peer joins (triggers sync)
+
 // ── Multiplayer (LAN) ────────────────────────────────────────────────────────
 // Connects to game_server.py via Socket.IO. Fully optional — the game works
 // solo without the server. Both players open http://<HOST_LAN_IP>:5050/.
@@ -9422,10 +9492,14 @@ const _mp = (function () {
       const n = (data.peers || []).length + 1;
       if (typeof showToast === "function") showToast(`Multiplayer online — ${n} player(s)`, "success", 3000);
       console.log(`[MP] My ID: ${_myId}  peers: ${(data.peers || []).length}`);
+      // F3 — send current scene to any already-connected peers
+      if (_onMpWelcomeHook) setTimeout(_onMpWelcomeHook, 400);
     });
 
     _sock.on("mp_player_joined", (data) => {
       _addPeer(data.id, data.name, null);
+      // F3 — a new peer joined; broadcast our current scene so they get in sync
+      if (_onMpWelcomeHook) setTimeout(_onMpWelcomeHook, 1000);
     });
 
     _sock.on("mp_player_left", (data) => {
@@ -9453,6 +9527,8 @@ const _mp = (function () {
           en.respawnT = performance.now() / 1000;
         }
       }
+      // F3 — collaborative build sync: dispatch to the handler set by worldBuilder init
+      if (data.type === "build" && _onMpBuildEvent) _onMpBuildEvent(data);
     });
 
     _sock.on("disconnect", () => {
