@@ -1055,6 +1055,7 @@ import { createArenaClampSystem } from "./src/systems/ecs_arena_clamp.js";
 import { createEnemyBlindSystem } from "./src/systems/ecs_enemy_blind.js";
 import { createSmokeZoneSystem } from "./src/systems/ecs_smoke_zone.js";
 import { createMineSystem } from "./src/systems/ecs_mine.js";
+import { createTurretSystem } from "./src/systems/ecs_turret.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10267,6 +10268,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     _ecsMine.wireListeners(Core);
     Core.addSystem(_ecsMine, 14, "mine");
     window.Engine.mineSystem = _ecsMine;
+
+    // Wire turret system — priority 14 (after ai_movement; autonomous fire control)
+    const _ecsTurret = createTurretSystem();
+    _ecsTurret.wireListeners(Core);
+    Core.addSystem(_ecsTurret, 14, "turret");
+    window.Engine.turretSystem = _ecsTurret;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
