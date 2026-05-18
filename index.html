@@ -1018,6 +1018,7 @@ import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
 import { pickupSystem, spawnPickup } from "./src/systems/ecs_pickup.js";
 import { createShopSystem } from "./src/systems/ecs_shop.js";
+import { createPerkSystem } from "./src/systems/ecs_perk.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10083,9 +10084,20 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsShop = createShopSystem(shopAtom.$facets, { HERO_MAX_ARMOR: 75 });
     Core.addSystem(_ecsShop, 25, "shop");
 
+    // Wire perk system — priority 30 (after shop at 25)
+    const perkIndex = await Core.loadData("data/perks/perks.json");
+    const perkCatalog = {};
+    await Promise.all(perkIndex.$facets.types.map(async (perkId) => {
+      const atom = await Core.loadData(`data/perks/types/${perkId}.json`);
+      perkCatalog[perkId] = atom.$facets;
+    }));
+    const _ecsPerk = createPerkSystem(perkCatalog, { HERO_MAX_ARMOR: 75 });
+    Core.addSystem(_ecsPerk, 30, "perk");
+
     window.Engine.waveSystem  = _ecsWave;
     window.Engine.spawnPickup = spawnPickup;
     window.Engine.shopSystem  = _ecsShop;
+    window.Engine.perkSystem  = _ecsPerk;
 
     console.info("[ECS] Core ready —", Core.snapshot());
   } catch (e) {
