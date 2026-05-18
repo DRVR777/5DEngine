@@ -1019,6 +1019,7 @@ import { createWaveSystem } from "./src/systems/ecs_wave.js";
 import { pickupSystem, spawnPickup } from "./src/systems/ecs_pickup.js";
 import { createShopSystem } from "./src/systems/ecs_shop.js";
 import { createPerkSystem } from "./src/systems/ecs_perk.js";
+import { createAgentDispatch } from "./src/systems/ecs_agent_dispatch.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10094,10 +10095,18 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsPerk = createPerkSystem(perkCatalog, { HERO_MAX_ARMOR: 75 });
     Core.addSystem(_ecsPerk, 30, "perk");
 
-    window.Engine.waveSystem  = _ecsWave;
-    window.Engine.spawnPickup = spawnPickup;
-    window.Engine.shopSystem  = _ecsShop;
-    window.Engine.perkSystem  = _ecsPerk;
+    // Wire agent dispatch — priority 99 (runs last, after all game logic)
+    // getSocket lazily grabs the _mp IIFE socket once it's available
+    const _ecsAgentDispatch = createAgentDispatch({
+      getSocket: () => (typeof io !== "undefined" ? io({ reconnectionAttempts: 3, timeout: 3000 }) : null),
+    });
+    Core.addSystem(_ecsAgentDispatch, 99, "agent_dispatch");
+
+    window.Engine.waveSystem     = _ecsWave;
+    window.Engine.spawnPickup    = spawnPickup;
+    window.Engine.shopSystem     = _ecsShop;
+    window.Engine.perkSystem     = _ecsPerk;
+    window.Engine.agentDispatch  = _ecsAgentDispatch;
 
     console.info("[ECS] Core ready —", Core.snapshot());
   } catch (e) {
