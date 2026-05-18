@@ -86,6 +86,7 @@ import { mountHudElements } from "./src/ui/hud_cache.js";
 import { mountKeydownHandler, mountKeyupHandler } from "./src/systems/keydown_handler.js";
 import { mountGadgetSystem } from "./src/systems/gadget_system.js";
 import { mountSpawnSystem } from "./src/systems/spawn_system.js";
+import { mountPerkSystem } from "./src/systems/perk_system.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -384,72 +385,48 @@ const _activePerkLabels = []; // {label, color} of applied perks this session
 // Deps defined here: _PERKS, _showPerkPicker, _refreshPerkHud, _applyPerk,
 //   _perkDmgMul, _perkReloadMul, _perkMaxHpBonus, _perkLifesteal, _perkRegenBonus,
 //   _perkSpeedBonus, _perkTimerInt, _activePerkLabels
-const _PERKS = [
-  { id:"dmg",      label:"Power Shot",   desc:"+15% weapon damage",          color:"#ff8844", apply:() => { _perkDmgMul *= 1.15; } },
-  { id:"speed",    label:"Sprinter",     desc:"+1 m/s sprint speed",          color:"#44ffcc", apply:() => { _perkSpeedBonus += 1; } },
-  { id:"regen",    label:"Battle Medic", desc:"+3 HP/s regen rate",           color:"#44ff88", apply:() => { _perkRegenBonus += 3; } },
-  { id:"reload",   label:"Quick Hands",  desc:"15% faster reloads",           color:"#88aaff", apply:() => { _perkReloadMul *= 0.85; } },
-  { id:"maxhp",    label:"Resilient",    desc:"+25 max HP, heal 15",          color:"#ff4466", apply:() => { _perkMaxHpBonus += 25; heroHp = Math.min(heroHp + 15, HERO_MAX_HP + _perkMaxHpBonus); } },
-  { id:"grenades", label:"Grenadier",    desc:"+3 frag grenades",             color:"#ff6600", apply:() => { grenadeCount = Math.min(9, grenadeCount + 3); } },
-  { id:"smoke",    label:"Smoke Screen", desc:"+2 smoke grenades",            color:"#aaaacc", apply:() => { smokeGrenadeCount = Math.min(9, smokeGrenadeCount + 2); } },
-  { id:"armor",    label:"Fortified",    desc:"+30 armor",                    color:"#88ccff", apply:() => { heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 30); } },
-  { id:"vampire",  label:"Vampire",      desc:"Kills restore 3 HP",           color:"#cc44cc", apply:() => { _perkLifesteal = true; } },
-  { id:"ammo",     label:"Ammo Dump",    desc:"+40 ammo for active weapon",   color:"#ffd166", apply:() => { Inv.addItem(heroInv, getWeapon().ammoItem || "pistol_9mm", 40); } },
-];
-function _showPerkPicker(waveNum) {
-  const overlay = document.getElementById("perkPicker");
-  if (!overlay) return;
-  // Pick 3 unique random perks
-  const pool = [..._PERKS].sort(() => Math.random() - 0.5).slice(0, 3);
-  const cards = document.getElementById("perkCards");
-  const timerEl = document.getElementById("perkTimer");
-  const waveEl  = document.getElementById("perkWaveNum");
-  if (waveEl) waveEl.textContent = waveNum;
-  if (cards) {
-    cards.innerHTML = "";
-    pool.forEach(perk => {
-      const card = document.createElement("div");
-      card.style.cssText = `width:180px;padding:16px 14px;background:rgba(10,10,20,0.92);border:2px solid ${perk.color};border-radius:10px;cursor:pointer;text-align:center;transition:transform 0.12s,box-shadow 0.12s;box-shadow:0 0 10px ${perk.color}44;`;
-      card.innerHTML = `<div style="font-size:15px;font-weight:900;color:${perk.color};letter-spacing:0.08em;margin-bottom:6px">${perk.label}</div><div style="font-size:12px;color:#ccc;line-height:1.4">${perk.desc}</div>`;
-      card.onmouseenter = () => { card.style.transform = "scale(1.07)"; card.style.boxShadow = `0 0 22px ${perk.color}88`; };
-      card.onmouseleave = () => { card.style.transform = ""; card.style.boxShadow = `0 0 10px ${perk.color}44`; };
-      card.onclick = () => { _applyPerk(perk, waveNum); };
-      cards.appendChild(card);
-    });
-  }
-  overlay.style.display = "flex";
-  document.exitPointerLock && document.exitPointerLock();
-  let secs = 10;
-  if (_perkTimerInt) clearInterval(_perkTimerInt);
-  _perkTimerInt = setInterval(() => {
-    secs--;
-    if (timerEl) timerEl.textContent = secs;
-    if (secs <= 0) { clearInterval(_perkTimerInt); _perkTimerInt = null; _applyPerk(pool[Math.floor(Math.random() * pool.length)], waveNum); }
-  }, 1000);
-}
-function _refreshPerkHud() {
-  const el = document.getElementById("perkHud");
-  if (!el) return;
-  if (_activePerkLabels.length === 0) { el.style.display = "none"; return; }
-  el.style.display = "flex";
-  el.innerHTML = _activePerkLabels.map(p =>
-    `<span style="color:${p.color};background:rgba(0,0,0,0.6);border:1px solid ${p.color}55;border-radius:3px;padding:1px 5px;font-size:9px;letter-spacing:0.05em">${p.label}</span>`
-  ).join("");
-}
-function _applyPerk(perk, waveNum) {
-  if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
-  const overlay = document.getElementById("perkPicker");
-  if (overlay) overlay.style.display = "none";
-  perk.apply();
-  _activePerkLabels.push({ label: perk.label, color: perk.color });
-  _refreshPerkHud();
-  showToast(`★ PERK: ${perk.label} — ${perk.desc}`, "success", 3000);
-  _addKillFeedEntry(`★ PERK (W${waveNum}): ${perk.label}`, "#ffd166");
-  playSfx("tone:880:80:sine", 0.5); playSfx("tone:1100:60:sine", 0.4);
-  const canvas = document.getElementById("gameCanvas") || document.querySelector("canvas");
-  // iter 431: browser requires a tick after exitPointerLock before re-acquiring
-  if (canvas && canvas.requestPointerLock) setTimeout(() => { try { canvas.requestPointerLock(); } catch(_e) {} }, 250);
-}
+// Perk system — mounted here; showToast/playSfx/addKillFeedEntry are const at lines 142/143,
+// all others are closures over index.html state. perkTimerInt exposed via clearTimerAndReset.
+const _perkSys        = mountPerkSystem({
+  Inv,
+  get: {
+    perkDmgMul:       () => _perkDmgMul,
+    perkSpeedBonus:   () => _perkSpeedBonus,
+    perkRegenBonus:   () => _perkRegenBonus,
+    perkReloadMul:    () => _perkReloadMul,
+    perkMaxHpBonus:   () => _perkMaxHpBonus,
+    perkLifesteal:    () => _perkLifesteal,
+    grenadeCount:     () => grenadeCount,
+    smokeGrenadeCount:() => smokeGrenadeCount,
+    heroHp:           () => heroHp,
+    heroArmor:        () => heroArmor,
+    HERO_MAX_HP:      () => HERO_MAX_HP,
+    HERO_MAX_ARMOR:   () => HERO_MAX_ARMOR,
+    heroInv:          () => heroInv,
+    weapon:           () => getWeapon(),
+  },
+  set: {
+    perkDmgMul:       (v) => { _perkDmgMul = v; },
+    perkSpeedBonus:   (v) => { _perkSpeedBonus = v; },
+    perkRegenBonus:   (v) => { _perkRegenBonus = v; },
+    perkReloadMul:    (v) => { _perkReloadMul = v; },
+    perkMaxHpBonus:   (v) => { _perkMaxHpBonus = v; },
+    perkLifesteal:    (v) => { _perkLifesteal = v; },
+    grenadeCount:     (v) => { grenadeCount = v; },
+    smokeGrenadeCount:(v) => { smokeGrenadeCount = v; },
+    heroHp:           (v) => { heroHp = v; },
+    heroArmor:        (v) => { heroArmor = v; },
+  },
+  actions: {
+    showToast,
+    addKillFeedEntry: _addKillFeedEntry,
+    playSfx: (t, v) => playSfx(t, v), // lazy — playSfx const is at line 2801
+  },
+});
+const _showPerkPicker = _perkSys.showPerkPicker;
+const _refreshPerkHud = _perkSys.refreshPerkHud;
+const _applyPerk      = _perkSys.applyPerk;
+const _activePerkLabels = _perkSys.activePerkLabels;
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
 // EXTRACT-PLAN iter 521: kill_tracking.js → src/systems/kill_tracking.js
 // _COIN_BY_TYPE, _trackKillAndPanic — pair with perk_system (lifesteal is here)
@@ -638,9 +615,9 @@ function resetGameState() {
   _streakCount = 0; _lastKillT = 0; _panicBroadcastT = -99; _waveBeepLast = 0;
   _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false;
   _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0;
-  if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
+  _perkSys.clearTimerAndReset();
   const _ppOv = document.getElementById("perkPicker"); if (_ppOv) _ppOv.style.display = "none";
-  _activePerkLabels.length = 0; _refreshPerkHud();
+  _refreshPerkHud();
   const _lvlEl = _dom.heroLevelHud; if (_lvlEl) _lvlEl.textContent = "";
 }
 window.resetGameState = resetGameState; // expose for browser console and future game-mode-select screen
