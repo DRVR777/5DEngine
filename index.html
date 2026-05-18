@@ -91,6 +91,7 @@ import { mountHeroLifecycle } from "./src/systems/hero_lifecycle.js";
 import { mountGameReset } from "./src/systems/game_reset.js";
 import { mountDevConsoleGame } from "./src/systems/dev_console_game.js";
 import { mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE } from "./src/systems/kill_tracking.js";
+import { mountLevelSystem } from "./src/systems/level_system.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -1115,27 +1116,35 @@ if (typeof WaveManager !== "undefined") {
   });
 })();
 
-// Kill leveling — applies buff and shows level-up toast
-function _applyLevelUpBuff(lvl) {
-  const _lvlMsgs = {
-    1: "LVL 1 — +10% DAMAGE",
-    2: "LVL 2 — +SPRINT SPEED",
-    3: "LVL 3 — +25 STAMINA MAX",
-    4: "LVL 4 — +MAX HP",
-    5: "LVL 5 — APEX PREDATOR",
-  };
-  if (lvl === 1) _heroLvlDmgMul *= 1.10;
-  if (lvl === 2) _heroLvlSpeedBonus += 1.0;
-  if (lvl === 3) { _heroExtraStaminaMax = 25; _stamina = Math.min(STAMINA_MAX + 25, _stamina + 25); }
-  if (lvl === 4) { heroHp = Math.min(HERO_MAX_HP + 20, heroHp + 20); }
-  if (lvl === 5) _heroApexMode = true;
-  _spawnParticles(world.players.get("hero").u, 1.5, world.players.get("hero").v, 40, "yellow", 8, 0.8);
-  showToast(`LEVEL UP! ${_lvlMsgs[lvl]}`, "success", 3000);
-  playSfx("tone:880:100:sine", 0.5); playSfx("tone:1100:80:sine", 0.45); playSfx("tone:1320:120:sine", 0.4);
-  _addKillFeedEntry(`★ LEVEL ${lvl}: ${_lvlMsgs[lvl]}`, "#ffd700");
-  const _lvEl = _dom.heroLevelHud;
-  if (_lvEl) _lvEl.textContent = `LVL ${lvl}`;
-}
+// Kill leveling — extracted to src/systems/level_system.js
+const _levelSys = mountLevelSystem({
+  get: {
+    heroLvlDmgMul:    () => _heroLvlDmgMul,
+    heroLvlSpeedBonus:() => _heroLvlSpeedBonus,
+    heroExtraStaminaMax: () => _heroExtraStaminaMax,
+    stamina:          () => _stamina,
+    STAMINA_MAX:      () => STAMINA_MAX,
+    heroHp:           () => heroHp,
+    HERO_MAX_HP:      () => HERO_MAX_HP,
+    heroPos:          () => world.players.get("hero"),
+  },
+  set: {
+    heroLvlDmgMul:    (v) => { _heroLvlDmgMul = v; },
+    heroLvlSpeedBonus:(v) => { _heroLvlSpeedBonus = v; },
+    heroExtraStaminaMax: (v) => { _heroExtraStaminaMax = v; },
+    stamina:          (v) => { _stamina = v; },
+    heroHp:           (v) => { heroHp = v; },
+    heroApexMode:     (v) => { _heroApexMode = v; },
+  },
+  actions: {
+    spawnParticles:    (u, y, v, n, c, s, sz) => _spawnParticles(u, y, v, n, c, s, sz),
+    showToast:         (msg, type, dur) => showToast(msg, type, dur),
+    playSfx:           (t, v) => playSfx(t, v),
+    addKillFeedEntry:  (text, color) => _addKillFeedEntry(text, color),
+    setHeroLevelHud:   (text) => { const el = _dom.heroLevelHud; if (el) el.textContent = text; },
+  },
+});
+const _applyLevelUpBuff = _levelSys.applyLevelUpBuff;
 
 // Skybox presets
 const _skyboxPresets = {
