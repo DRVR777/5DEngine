@@ -64,6 +64,7 @@ export function createAIMovementSystem() {
       const h  = core.getComponent(id, "Health");
 
       if (h.hp <= 0) continue;
+      if (ai._charging) continue; // fast_charge system owns movement this tick
 
       const sightRange  = ai.sightRange  ?? 12;
       const attackRange = ai.attackRange ?? 1.8;
