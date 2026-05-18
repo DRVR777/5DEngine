@@ -117,3 +117,31 @@ describe("sniper (monolith line 1182) — stat parity", () => {
   it("wanderSpeed = 0.3",  () => expect(f.wanderSpeed).toBe(0.3));
   it("dropAmmo = rifle_556", () => expect(f.dropAmmo).toBe("rifle_556"));
 });
+
+// ── data/tuning/enemies.json atom ─────────────────────────────────────────────
+import { readFileSync as _rfs } from "fs";
+import { resolve as _res } from "path";
+function _loadAtom(p) { return JSON.parse(_rfs(_res(process.cwd(), p), "utf8")); }
+
+describe("data/tuning/enemies.json atom — monolith parity", () => {
+  const atom = _loadAtom("data/tuning/enemies.json");
+  const f = atom.$facets;
+
+  it("has holographic atom format", () => {
+    expect(atom.$version).toBe(1);
+    expect(atom.$type).toBe("tuning");
+    expect(atom.$id).toBe("enemies");
+  });
+
+  it("loseRangeMul = 2.5 (monolith line 7063)", () => expect(f.loseRangeMul).toBe(2.5));
+  it("attackCooldown = 1.0 (monolith line 7062)", () => expect(f.attackCooldown).toBe(1.0));
+  it("enrageHpFraction = 0.25 (monolith line 7102)", () => expect(f.enrageHpFraction).toBe(0.25));
+  it("enrageSpeedMul = 1.35 (monolith line 7104)", () => expect(f.enrageSpeedMul).toBe(1.35));
+  it("staggerDuration = 1.5 (monolith line 2403)", () => expect(f.staggerDuration).toBe(1.5));
+  it("knockbackDuration = 0.28 (monolith line 2401)", () => expect(f.knockbackDuration).toBe(0.28));
+  it("wanderAngleRate = 0.35 (monolith line 7468)", () => expect(f.wanderAngleRate).toBe(0.35));
+  it("bossGroundSlamRadius = 5 (monolith line 7354)", () => expect(f.bossGroundSlamRadius).toBe(5));
+  it("bossGroundSlamDmg = 50 (monolith line 7354)", () => expect(f.bossGroundSlamDmg).toBe(50));
+  it("fastChargeDuration = 0.38 (monolith line 7396)", () => expect(f.fastChargeDuration).toBe(0.38));
+  it("fastChargeSpeedMul = 2.2 (monolith line 7407)", () => expect(f.fastChargeSpeedMul).toBe(2.2));
+});
