@@ -654,7 +654,8 @@
   <div id="victoryStats" style="font-size:15px;color:#aaa;margin-bottom:28px;line-height:2.2"></div>
   <button id="victoryPlayAgain" style="padding:10px 28px;background:rgba(255,209,102,0.15);border:2px solid #ffd166;border-radius:6px;color:#ffd166;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.06em">▶ PLAY AGAIN</button>
 </div>
-<div id="difficultyScreen" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:1300;align-items:center;justify-content:center;flex-direction:column;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;color:#eee;text-align:center;gap:28px">
+<!-- iter 419: difficulty screen starts hidden — shown only after player picks solo/wave_defense from computer -->
+<div id="difficultyScreen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:1300;align-items:center;justify-content:center;flex-direction:column;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;color:#eee;text-align:center;gap:28px">
   <div style="font-size:40px;font-weight:900;letter-spacing:0.14em;color:#00ffcc;text-shadow:0 0 30px #00ffccaa">SELECT DIFFICULTY</div>
   <div style="font-size:13px;color:#667;letter-spacing:0.08em">Scales enemy HP and damage for all 10 waves</div>
   <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center">
@@ -1480,7 +1481,7 @@ function resetGameState() {
   currentWeaponId = "pistol"; pistolAmmo = (CFG.weapons.find(w => w.id === "pistol") || {magCap: 12}).magCap;
   if (typeof _switchGunMesh === "function") _switchGunMesh("pistol");
   _heroRespawn();
-  if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
+  if (typeof WaveManager !== "undefined" && gameMode !== "peaceful") { WaveManager.reset(); WaveManager.start(); }
   // Reset all per-session stats and progression state
   score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
   _streakCount = 0; _lastKillT = 0; _panicBroadcastT = -99; _waveBeepLast = 0;
@@ -1854,9 +1855,10 @@ let nearComputer = false;
 let computerOpen = false;
 
 // F1 — Game Mode Select
-// "solo" | "coop_build" | "wave_defense"
-// Read by tick() and future F3 sync code to gate multiplayer build logic.
-let gameMode = "solo";
+// "peaceful" | "solo" | "wave_defense"
+// Default is peaceful: no enemies until player picks a combat mode at the computer.
+// Legacy "coop_build" string still referenced in F3 sync code (intentional dead code).
+let gameMode = "peaceful";
 let _firstLaunch = true;   // cleared after the player picks a mode on first open
 let _nearNpc = null;
 
@@ -5834,14 +5836,19 @@ function _tryShoot() {
   (_wSfx[currentWeaponId] || _wSfx.pistol)();
   const hp = world.players.get("hero");
   if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: hp.y + 1.6, z: hp.v });
-  // Raycast from camera through crosshair → target point, then direct bullet
-  // from gun barrel toward that point (fixes 3rd-person offset mismatch).
+  // Aim direction: camera.getWorldDirection() IS the crosshair direction (reticle = screen center).
+  // BUG FIX iter 419: previous code used camera.position as the ray origin, which includes the
+  // shoulder-cam lateral offset (~2.2m to the side). Projecting that offset forward at range
+  // made _targetPt off-center, so 3rd-person bullets consistently missed what the reticle showed.
+  // Fix: project from the HERO EYE (centered on hero, no shoulder offset) so target point lies
+  // exactly on the camera's forward axis from the character — direction then equals camera dir.
   const _aimVec = new THREE.Vector3();
   camera.getWorldDirection(_aimVec);
-  const _targetPt = camera.position.clone().addScaledVector(_aimVec, wep.range || 80);
-  const _gunPos   = new THREE.Vector3(hp.u, hp.y + 1.5, hp.v);
+  const _gunPos  = new THREE.Vector3(hp.u, hp.y + 1.5,  hp.v);
+  const _eyePos  = new THREE.Vector3(hp.u, hp.y + 1.72, hp.v);   // hero eye, centred on hero
+  const _targetPt = _eyePos.clone().addScaledVector(_aimVec, wep.range || 80);
   const _baseDir  = _targetPt.clone().sub(_gunPos).normalize();
-  const baseAngle = Math.atan2(_baseDir.x, _baseDir.z);
+  const baseAngle  = Math.atan2(_baseDir.x, _baseDir.z);
   const _basePitch = Math.asin(Math.max(-1, Math.min(1, _baseDir.y)));
   const pellets = wep.pellets || 1;
   const spread  = (wep.spread || 0) + _moveSpread * 0.12;
@@ -6954,8 +6961,10 @@ function tick() {
   }
 
   // Drive all enemy AI via BehaviorTree (patrol→chase→attack)
+  // In peaceful mode enemies are static decorations — skip AI entirely.
   const _heroNowAI = world.players.get("hero");
   for (const en of enemies) {
+    if (gameMode === "peaceful") continue;   // no AI in peaceful mode
     const em = enemyMeshes.get(en.id);
     if (!em) continue;
 
@@ -9179,11 +9188,12 @@ ${wireLines}</pre>`;
   gamemodes: {
     title: "🎮 Game Modes",
     body: () => {
+      // iter 419: replaced coop_build with peaceful; peaceful = default no-enemy mode
       const modes = [
+        { id: "peaceful",     icon: "🕊️",  label: "Peaceful",
+          desc: "No enemies. Explore and build freely. This is the default state." },
         { id: "solo",         icon: "🎯", label: "Solo",
-          desc: "Single-player — explore, build, and survive alone." },
-        { id: "coop_build",   icon: "🏗️",  label: "Co-op Build",
-          desc: "Collaborative building. Sync build actions with nearby players (F3)." },
+          desc: "Single-player with enemies — explore, build, and survive." },
         { id: "wave_defense", icon: "🌊", label: "Wave Defense",
           desc: "Survive escalating enemy waves. Turrets recommended." },
       ];
@@ -9389,8 +9399,21 @@ document.getElementById("computerOverlay").addEventListener("click", (e) => {
       if (typeof EventBus !== "undefined") {
         EventBus.emit("GAME_MODE_CHANGED", { mode });
       }
-      // Close overlay after a short beat so the player sees the checkmark
-      setTimeout(() => closeComputer(), 700);
+      if (mode === "peaceful") {
+        // Peaceful mode: no enemies, no difficulty screen — just close and explore
+        setTimeout(() => closeComputer(), 700);
+      } else {
+        // Combat modes (solo, wave_defense): close computer, then show difficulty picker.
+        // Difficulty picker's button click calls WaveManager.start() to begin spawning.
+        setTimeout(() => {
+          closeComputer();
+          // Short delay so the computer overlay finishes closing before difficulty screen appears
+          setTimeout(() => {
+            const _dSc = document.getElementById("difficultyScreen");
+            if (_dSc) _dSc.style.display = "flex";
+          }, 350);
+        }, 700);
+      }
     }
     return;
   }
