@@ -1051,6 +1051,7 @@ import { createEnemyBulletSystem } from "./src/systems/ecs_enemy_bullet.js";
 import { createEnemyRegenSystem } from "./src/systems/ecs_enemy_regen.js";
 import { createEnemySeparationSystem } from "./src/systems/ecs_enemy_separation.js";
 import { createComboSystem } from "./src/systems/ecs_combo.js";
+import { createArenaClampSystem } from "./src/systems/ecs_arena_clamp.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10240,6 +10241,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     _ecsCombo.wireListeners(Core);
     Core.addSystem(_ecsCombo, 6, "combo");
     window.Engine.comboSystem = _ecsCombo;
+
+    // Wire arena clamp system — priority 16 (last safety net; clamps enemies to 27.5m)
+    const _ecsArenaClamp = createArenaClampSystem();
+    Core.addSystem(_ecsArenaClamp, 16, "arena_clamp");
+    window.Engine.arenaClampSystem = _ecsArenaClamp;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
