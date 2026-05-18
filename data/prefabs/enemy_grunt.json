@@ -1,0 +1,12 @@
+{
+  "name": "enemy_grunt",
+  "_comment": "Base grunt enemy prefab. Type-specific stats override from data/enemies/enemy_types.json.",
+  "components": {
+    "Transform":  { "u": 0, "v": 0, "y": 0, "heading": 0 },
+    "Velocity":   { "u": 0, "v": 0, "y": 0 },
+    "Health":     { "hp": 80, "maxHp": 80, "armor": 0 },
+    "EnemyAI":    { "type": "grunt", "state": "wander", "alertT": -99, "lastAttackT": -99 },
+    "Faction":    { "id": "enemy" },
+    "Mesh":       { "type": "capsule", "radius": 0.4, "height": 1.1, "color": "0xff0044" }
+  }
+}

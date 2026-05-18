@@ -1,0 +1,13 @@
+{
+  "name": "hero",
+  "_comment": "Hero entity prefab. Components are added at runtime; these are the initial values.",
+  "components": {
+    "Transform":     { "u": 0, "v": 0, "y": 0, "heading": 0 },
+    "Velocity":      { "u": 0, "v": 0, "y": 0 },
+    "Health":        { "hp": 100, "maxHp": 100, "armor": 0, "maxArmor": 75, "regen": 0.5 },
+    "PlayerControl": { "walkSpeed": 5, "sprintSpeed": 9, "jumpVel": 13 },
+    "Inventory":     { "slots": 36 },
+    "Faction":       { "id": "player" },
+    "Mesh":          { "type": "capsule", "radius": 0.35, "height": 1.8, "color": "0x00aaff" }
+  }
+}

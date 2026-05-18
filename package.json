@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "5DEngine local PostgreSQL API server",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
-    "db:init": "node -e \"require('./server').initDb()\"",
+    "db:init": "node -e \"import('./server.js').then(m => m.initDb())\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:visual": "node tests/visual/runner.js",
     "test:visual:install": "npx playwright install chromium"
   },
@@ -15,6 +18,7 @@
     "pg": "^8.11.3"
   },
   "devDependencies": {
-    "playwright": "^1.60.0"
+    "playwright": "^1.60.0",
+    "vitest": "^4.1.6"
   }
 }

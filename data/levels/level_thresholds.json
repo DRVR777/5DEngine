@@ -1,0 +1,10 @@
+{
+  "_comment": "Kill counts required to advance hero in-session level (0–5). _LEVEL_THRESHOLDS from index.html:1220.",
+  "thresholds": [10, 20, 30, 40, 50],
+  "maxLevel": 5,
+  "perLevelBonus": {
+    "damageMultiplier": 0.1,
+    "speedBonus": 0.2,
+    "apexModeAtLevel": 5
+  }
+}

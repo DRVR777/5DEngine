@@ -1,0 +1,36 @@
+[
+  {
+    "id": "peaceful",
+    "label": "Peaceful",
+    "icon": "🕊️",
+    "desc": "No enemies. Explore and build freely.",
+    "enemySpawn": false,
+    "waveSystem": false
+  },
+  {
+    "id": "solo",
+    "label": "Solo Combat",
+    "icon": "⚔️",
+    "desc": "Fight enemies solo. Wave defense rules apply.",
+    "enemySpawn": true,
+    "waveSystem": true
+  },
+  {
+    "id": "wave_defense",
+    "label": "Wave Defense",
+    "icon": "🏰",
+    "desc": "Defend against escalating enemy waves.",
+    "enemySpawn": true,
+    "waveSystem": true,
+    "scalingFactor": 1.2
+  },
+  {
+    "id": "coop_build",
+    "label": "Co-op Build",
+    "icon": "🔧",
+    "desc": "Build together via LAN sync. No wave enemies.",
+    "enemySpawn": false,
+    "waveSystem": false,
+    "mpSync": true
+  }
+]
