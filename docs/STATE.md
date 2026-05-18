@@ -20,7 +20,7 @@ Phases:
 
 ## Current task
 
-**Tick 15 — next system extraction (TBD)**
+**Tick 21 — next system extraction**
 
 Completed ticks this session:
 - iter 440 — ecs_pickup (tick 7)
@@ -31,6 +31,12 @@ Completed ticks this session:
 - iter 445 — ecs_status_effects (tick 12)
 - iter 446 — ecs_regen (tick 13)
 - iter 447 — ecs_weapon (tick 14)
+- iter 449 — ecs_score (tick 15)
+- iter 450 — data/weapons/* atoms (tick 16)
+- iter 451 — ecs_ai_movement (tick 17)
+- iter 452 — ecs_inventory (tick 18)
+- iter 453 — data/tuning/weapons.json + falloff golden tests (tick 19)
+- iter 454 — parity_integration tests (tick 20)
 
 ## Previous task (tick 1 — DONE)
 
@@ -55,12 +61,17 @@ Steps:
 ## Last tick
 
 ```
-timestamp: 2026-05-18T06:52Z
-summary:   tick 14 — ecs_weapon system. fire-rate cooldown, reload with perk
-           reload mul, magazine tracking, weapon switch. 217/217 tests green.
-files:     src/systems/ecs_weapon.js, tests/unit/ecs_weapon.test.js, index.html
-tests:     217/217 passed
-commit:    iter 447
+timestamp: 2026-05-18T07:35Z
+summary:   ticks 15-20 — ecs_score, data/weapons atoms, ecs_ai_movement,
+           ecs_inventory, data/tuning/weapons.json, parity_integration tests.
+           331/331 tests green.
+files:     src/systems/ecs_score.js, src/systems/ecs_ai_movement.js,
+           src/systems/ecs_inventory.js, data/tuning/weapons.json,
+           data/weapons/{pistol,rifle,shotgun,smg,sniper,index}.json,
+           tests/unit/{ecs_score,ecs_ai_movement,ecs_inventory,
+           golden_weapon_damage,parity_integration}.test.js, index.html
+tests:     331/331 passed
+commit:    iter 454
 outcome:   ok
 ```
 
@@ -83,12 +94,11 @@ outcome:   ok
 
 ## Queued
 
-- Tick 15: `src/systems/ecs_score.js` — kill-credit scoring + level-up system
-- Tick 16: `data/weapons/` atoms for all 5 weapons (holographic format)
-- Tick 17: `src/systems/ecs_ai_movement.js` — wander/alert/chase state machine
-- Tick 18: `src/systems/ecs_inventory.js` — ECS-native inventory (replaces Inv module)
-- Tick 19: `data/tuning/weapons.json` + weapon damage golden tests
-- Tick 20: Parity integration test (run ECS combat vs monolith golden values)
+- Tick 21: `src/systems/ecs_stamina.js` — sprint/stamina system (SPRINT_DRAIN, regen, perk extraStaminaMax)
+- Tick 22: `data/enemies/` atoms for all 8 enemy types (holographic format, monolith line 1175-1182)
+- Tick 23: `src/systems/ecs_grenade.js` — grenade throw, AoE damage, knockback
+- Tick 24: `data/tuning/enemies.json` — enemy speed/sight/attack tuning atom
+- Tick 25: `src/systems/ecs_bullet.js` — ECS bullet entities, travel + hit detection
 
 ## Blocked
 
