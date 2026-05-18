@@ -6278,6 +6278,9 @@ window._loadingDismissed = false;
 // Platform cache — rebuilt only when vehicles move; saves O(V) array build every tick
 let _platformCache = [];
 let _platformsDirty = true;
+// HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
+let _hudEnemyHpDirty = true;
+let _lastHudEnemyHpStr = "";
 // Pre-allocated camera Vector3s — reused every tick via .set() to avoid GC pressure
 const _camTarget    = new THREE.Vector3();
 const _camOff       = new THREE.Vector3();
@@ -6816,6 +6819,7 @@ function tick() {
           const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul * _perkDmgMul * _falloffMul);
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
+          _hudEnemyHpDirty = true;
           en._hitFlashT = 0.08;
           _shotsHit++; _damageDealt += dmg;
           hitMarkerUntil = now + (headshot ? 200 : backstab ? 160 : _frontalBlock ? 80 : isCrit ? 180 : 120);
@@ -7869,7 +7873,7 @@ function tick() {
         em.group.scale.setScalar(1);
       }
       if (_dElapsed > ENEMY_RESPAWN_DELAY && !en.id.startsWith("en_spawned_")) {
-        en.dead = false; en.hp = en.maxHp; en._fireDmgT = 0;
+        en.dead = false; en.hp = en.maxHp; en._fireDmgT = 0; _hudEnemyHpDirty = true;
         const ang = Math.random() * Math.PI * 2;
         en.u = Math.cos(ang) * (12 + Math.random() * 8);
         en.v = Math.sin(ang) * (12 + Math.random() * 8);
@@ -8693,7 +8697,7 @@ function tick() {
     `<br>hp <b style="color:${hpColor}">${heroHp.toFixed(0)}/${HERO_MAX_HP}</b> ` +
     `<span style="color:${hpColor};font-family:monospace">${hpBar}</span>` +
     `<br>kills <b style="color:#ff6666">${enemyKills}</b>` +
-    `<br>enemies: ${enemies.filter(e=>!e.dead).map(e=>`<b style="color:#ff${(e.color||0xff0044).toString(16).slice(2)}">${e.hp}/${e.maxHp}</b>`).join(" | ") || `<span style="color:#888">all dead — respawn in ${Math.max(0,ENEMY_RESPAWN_DELAY-(now/1000-Math.max(...enemies.map(e=>e.respawnT)))).toFixed(0)}s</span>`}` +
+    `<br>enemies: ${(() => { if (_hudEnemyHpDirty) { const alive = enemies.filter(e=>!e.dead); _lastHudEnemyHpStr = alive.length ? alive.map(e=>`<b style="color:#ff${(e.color||0xff0044).toString(16).slice(2)}">${e.hp}/${e.maxHp}</b>`).join(" | ") : `<span style="color:#888">all dead — respawn in ${Math.max(0,ENEMY_RESPAWN_DELAY-(now/1000-Math.max(...enemies.map(e=>e.respawnT)))).toFixed(0)}s</span>`; _hudEnemyHpDirty = false; } return _lastHudEnemyHpStr; })()}` +
     (_nearNpc ? `<br><b style="color:#00ffaa">[E] talk to ${_nearNpc.id.replace("npc_","").toUpperCase()}</b>` : "") +
     (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
     (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
