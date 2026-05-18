@@ -1057,6 +1057,7 @@ import { createSmokeZoneSystem } from "./src/systems/ecs_smoke_zone.js";
 import { createMineSystem } from "./src/systems/ecs_mine.js";
 import { createTurretSystem } from "./src/systems/ecs_turret.js";
 import { createFirePatchSystem } from "./src/systems/ecs_fire_patch.js";
+import { createPoisonPuddleSystem } from "./src/systems/ecs_poison_puddle.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10287,6 +10288,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     _ecsFirePatch.wireListeners(Core);
     Core.addSystem(_ecsFirePatch, 11, "fire_patch");
     window.Engine.firePatchSystem = _ecsFirePatch;
+
+    // Wire poison puddle system — priority 11 (same tier as fire patch)
+    const _ecsPoisonPuddle = createPoisonPuddleSystem();
+    _ecsPoisonPuddle.wireListeners(Core);
+    Core.addSystem(_ecsPoisonPuddle, 11, "poison_puddle");
+    window.Engine.poisonPuddleSystem = _ecsPoisonPuddle;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
