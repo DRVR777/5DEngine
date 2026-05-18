@@ -8345,11 +8345,11 @@ function tick() {
 
   // Ammo pickups — walk over to collect
   const _ammoLabels = { pistol_9mm: "9MM", rifle_556: "5.56", smg_9mm: "9MM", sniper_308: ".308", shotgun_12g: "12GA" };
-  for (const ap of ammoPickups) {
-    if (ap.collected) continue;
+  for (let _ai = ammoPickups.length - 1; _ai >= 0; _ai--) {
+    const ap = ammoPickups[_ai];
     const d = Math.hypot(heroNow.u - ap.u, heroNow.v - ap.v);
     if (d < 1.2) {
-      ap.collected = true;
+      ammoPickups.splice(_ai, 1);
       scene.remove(ap.mesh);
       Inv.addItem(heroInv, ap.ammoItem || getWeapon().ammoItem || "pistol_9mm", ap.qty);
       playSfx("blip", 0.5);
@@ -8368,11 +8368,11 @@ function tick() {
   }
 
   // Health pickups — walk over to collect (heavy enemy drops)
-  for (const hp2 of healthPickups) {
-    if (hp2.collected) continue;
+  for (let _hi = healthPickups.length - 1; _hi >= 0; _hi--) {
+    const hp2 = healthPickups[_hi];
     const d = Math.hypot(heroNow.u - hp2.u, heroNow.v - hp2.v);
     if (d < 1.2) {
-      hp2.collected = true;
+      healthPickups.splice(_hi, 1);
       scene.remove(hp2.mesh);
       const gained = Math.min(hp2.amount, HERO_MAX_HP - heroHp);
       heroHp = Math.min(HERO_MAX_HP, heroHp + hp2.amount);
@@ -8412,11 +8412,11 @@ function tick() {
   }
 
   // Armor shard pickups — gold tetrahedra dropped by boss/heavy on death
-  for (const _as of armorShards) {
-    if (_as.collected) continue;
+  for (let _asi = armorShards.length - 1; _asi >= 0; _asi--) {
+    const _as = armorShards[_asi];
     const _asDist = Math.hypot(heroNow.u - _as.u, heroNow.v - _as.v);
     if (_asDist < 1.2) {
-      _as.collected = true;
+      armorShards.splice(_asi, 1);
       scene.remove(_as.mesh);
       const gained = Math.min(_as.amount, HERO_MAX_ARMOR - heroArmor);
       heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + _as.amount);
@@ -8603,11 +8603,11 @@ function tick() {
   }
 
   // Coin drops from enemies
-  for (const cd of coinDrops) {
-    if (cd.collected) continue;
+  for (let _ci = coinDrops.length - 1; _ci >= 0; _ci--) {
+    const cd = coinDrops[_ci];
     const d = Math.hypot(heroNow.u - cd.u, heroNow.v - cd.v);
     if (d < 1.2) {
-      cd.collected = true;
+      coinDrops.splice(_ci, 1);
       scene.remove(cd.mesh);
       score += cd.value;
       playSfx("blip", 0.55);
