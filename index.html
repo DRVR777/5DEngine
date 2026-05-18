@@ -1024,6 +1024,7 @@ import { createStatusEffectSystem } from "./src/systems/ecs_status_effects.js";
 import { regenSystem } from "./src/systems/ecs_regen.js";
 import { createWeaponSystem } from "./src/systems/ecs_weapon.js";
 import { createScoreSystem } from "./src/systems/ecs_score.js";
+import { createAIMovementSystem } from "./src/systems/ecs_ai_movement.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10111,6 +10112,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsScore = createScoreSystem();
     Core.addSystem(_ecsScore, 40, "score");
     window.Engine.scoreSystem = _ecsScore;
+
+    // Wire AI movement system — priority 12 (after weapon:8, before status:15)
+    const _ecsAIMovement = createAIMovementSystem();
+    Core.addSystem(_ecsAIMovement, 12, "ai_movement");
+    window.Engine.aiMovementSystem = _ecsAIMovement;
 
     // Wire regen system — priority 35 (after perk at 30)
     Core.addSystem(regenSystem, 35, "regen");
