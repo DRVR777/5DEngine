@@ -14,7 +14,7 @@
 - [x] A11. Mag bar dirty-flag
 - [x] A12. Carry building-blocker ref through bullet loop
 - [x] A13. Collected pickups splice-on-collect
-- [ ] A14. Single-pass ambient sound scan
+- [x] A14. Single-pass ambient sound scan
 - [ ] A15. SVG dmgDir pre-create element
 
 ## Phase 2 — Modular extractions

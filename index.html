@@ -9111,10 +9111,15 @@ function tick() {
     if (_ambCtx && _ambCtx.state !== "closed") {
       // Wind drone — always present, quiet high-freq noise simulation
       _setAmbient("wind", 220, "sawtooth", 0.008, 2.5);
-      // Count alive enemies chasing hero
-      const aliveChasing = enemies.filter(e => !e.dead && e._wasChasing).length;
+      // Single-pass ambient scan — count chasing + any-alive in one loop
+      let aliveChasing = 0, anyAlive = false;
+      for (let _ae = 0; _ae < enemies.length; _ae++) {
+        const _ae_ = enemies[_ae];
+        if (_ae_.dead) continue;
+        if (_ae_.id.startsWith("en_spawned_")) anyAlive = true;
+        if (_ae_._wasChasing) aliveChasing++;
+      }
       const bossAlive = !!(_liveBoss && !_liveBoss.dead);
-      const anyAlive   = enemies.some(e => !e.dead && e.id.startsWith("en_spawned_"));
       // Calm pad — minor chord (root + minor 3rd) when no enemies are chasing between waves
       const calmVol = (!anyAlive || aliveChasing === 0) && !bossAlive && !_heroDead ? 0.024 : 0;
       _setAmbient("calm",  110,   "sine", calmVol,          3.2);
