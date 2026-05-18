@@ -5879,6 +5879,7 @@ function _tryShoot() {
     if (!_bulletSet.has(obj)) _aimTargets.push(obj);
   });
   const _aimRay  = new THREE.Raycaster(camera.position.clone(), _aimDir, 0.1, _wepRange);
+  _aimRay.camera = camera;  // required by THREE.Sprite.raycast; safe to set for all types
   const _aimHits = _aimRay.intersectObjects(_aimTargets, false); // flat list, already traversed
 
   // aimPoint: first solid surface the reticle is over, or max-range fallback
@@ -6119,19 +6120,18 @@ function tick() {
   const sprintFovTarget = (isSprinting && !aiming && !_heroDead && !buildMode && !inCar) ? 1 : 0;
   _sprintFovAmt += (sprintFovTarget - _sprintFovAmt) * Math.min(1, dt * 8);
   const isSniperScope = aiming && currentWeaponId === "sniper" && !buildMode && !computerOpen;
-  // Sniper scope: pull camera to tight FP position for scope view.
-  // BUG FIX iter 420: driving camDist to 0 entered the INSIDE spine zone
-  // (allowShooting:false, heroVisible:false) and stalled rendering on zone
-  // transitions. Target 3.5 instead — with aimMul=0.6 this gives spineZoom≈0.14
-  // which sits safely in FIRST_PERSON zone (allowShooting:true, heroVisible:false).
-  const _SCOPE_CAMDIST = 3.5;
-  if (isSniperScope && !_wasSniperScope) _sniperSavedCamDist = camDist;
-  if (!isSniperScope && _wasSniperScope) camDist = _sniperSavedCamDist;
-  if (isSniperScope) camDist += (_SCOPE_CAMDIST - camDist) * Math.min(1, dt * 10);
+  // Sniper scope: snap camera directly to FP — no lerp.
+  // iter 424: the original freeze (iter 420) was caused by the lerp passing through
+  // INSIDE zone boundaries in a single frame. Snapping skips all intermediate states.
+  // camDist 0.01 = INSIDE zone (heroVisible:false) = camera at hero center — correct
+  // for FP scope view. allowShooting is not enforced in shooting code so it's safe.
+  if (isSniperScope && !_wasSniperScope) { _sniperSavedCamDist = camDist; camDist = 0.01; }
+  if (!isSniperScope && _wasSniperScope) { camDist = _sniperSavedCamDist; }
+  if (isSniperScope) camDist = 0.01;  // hold at FP while scoped
   _wasSniperScope = isSniperScope;
   camera.fov = isSniperScope ? 20 : (60 + _sprintFovAmt * 8);
   camera.updateProjectionMatrix();
-  // Sniper scope overlay
+  // Scope overlay shows immediately after snap (snap is atomic, no lerp delay)
   const scopeEl = _dom.scopeOverlay;
   if (scopeEl) scopeEl.style.display = isSniperScope ? "block" : "none";
   // Hide crosshair while scoped; bloom size driven by _moveSpread when moving
