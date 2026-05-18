@@ -1025,6 +1025,7 @@ import { regenSystem } from "./src/systems/ecs_regen.js";
 import { createWeaponSystem } from "./src/systems/ecs_weapon.js";
 import { createScoreSystem } from "./src/systems/ecs_score.js";
 import { createAIMovementSystem } from "./src/systems/ecs_ai_movement.js";
+import { createInventorySystem, invAdd, invRemove, invCount, invHas } from "./src/systems/ecs_inventory.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10117,6 +10118,15 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsAIMovement = createAIMovementSystem();
     Core.addSystem(_ecsAIMovement, 12, "ai_movement");
     window.Engine.aiMovementSystem = _ecsAIMovement;
+
+    // Wire inventory system — priority 5 (before everything so ammo is ready)
+    const _ecsInventory = createInventorySystem();
+    Core.addSystem(_ecsInventory, 5, "inventory");
+    window.Engine.inventorySystem = _ecsInventory;
+    window.Engine.invAdd    = invAdd;
+    window.Engine.invRemove = invRemove;
+    window.Engine.invCount  = invCount;
+    window.Engine.invHas    = invHas;
 
     // Wire regen system — priority 35 (after perk at 30)
     Core.addSystem(regenSystem, 35, "regen");
