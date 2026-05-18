@@ -71,6 +71,7 @@ import * as THREE from "three";
 import { mountHudTemplate } from "./src/ui/hud_template.js";
 import { createHeroAnimSystem } from "./src/entities/hero_animation.js";
 import { mountConfigEditor } from "./src/systems/config_editor.js";
+import { mountSceneHierarchy } from "./src/systems/scene_hierarchy.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -2374,6 +2375,9 @@ const heroAnim = createHeroAnimSystem(THREE, heroGroup);
 // ---- Game Config Editor (K key in build mode) ----
 const cfgEditor = mountConfigEditor(window.GameConfig || {});
 
+// ---- Scene Hierarchy panel ----
+const _renderSceneHierarchy = mountSceneHierarchy({ getWorldBuilder: () => worldBuilder, scene });
+
 // GLB drop onto canvas → replace hero model (only when char editor is open)
 renderer.domElement.addEventListener("dragover", (e) => e.preventDefault());
 renderer.domElement.addEventListener("drop", (e) => {
@@ -3472,104 +3476,6 @@ function _refreshBuilderUI() {
     else if (shp.classList.contains("visible")) _renderSceneHierarchy();
   }
 }
-
-// ---- Scene Hierarchy panel ----
-// Lists managed (and notable) scene objects; H key in build mode toggles it.
-function _renderSceneHierarchy() {
-  const tree  = document.getElementById("shTree");
-  const countEl = document.getElementById("shCount");
-  const searchEl = document.getElementById("shSearch");
-  if (!tree) return;
-
-  const filter  = searchEl ? searchEl.value.toLowerCase() : "";
-  const managed = worldBuilder ? worldBuilder.getManagedMap() : new Map();
-  const sel     = worldBuilder ? worldBuilder.getSelected() : null;
-  const rows    = [];
-
-  function _makeRow(obj, depth, isManaged, meta) {
-    const name   = obj.name || (meta && meta.primitive ? meta.primitive : "") || obj.type || "object";
-    if (filter && !name.toLowerCase().includes(filter)) return;
-
-    const locked  = !!(obj.userData && obj.userData.locked);
-    const visible = obj.visible !== false;
-    const isSel   = obj === sel;
-
-    const row = document.createElement("div");
-    row.className = "sh-row" + (isSel ? " sh-selected" : "");
-    row.style.paddingLeft = (4 + depth * 10) + "px";
-
-    // Visibility toggle
-    const visBtn = document.createElement("button");
-    visBtn.className = "sh-btn";
-    visBtn.title = visible ? "Hide" : "Show";
-    visBtn.textContent = visible ? "◉" : "○";
-    visBtn.onclick = (ev) => {
-      ev.stopPropagation();
-      obj.visible = !obj.visible;
-      _renderSceneHierarchy();
-    };
-
-    // Lock toggle
-    const lockBtn = document.createElement("button");
-    lockBtn.className = "sh-btn";
-    lockBtn.title = locked ? "Unlock" : "Lock";
-    lockBtn.textContent = locked ? "■" : "□";
-    lockBtn.onclick = (ev) => {
-      ev.stopPropagation();
-      obj.userData = obj.userData || {};
-      obj.userData.locked = !locked;
-      _renderSceneHierarchy();
-    };
-
-    // Name
-    const nameEl = document.createElement("span");
-    nameEl.className = "sh-name";
-    nameEl.textContent = name;
-    nameEl.style.opacity = visible ? "1" : "0.4";
-    nameEl.style.color = isManaged ? "#b8e8ff" : "#556677";
-
-    // Type badge
-    const typeEl = document.createElement("span");
-    typeEl.className = "sh-type";
-    typeEl.textContent = meta ? (meta.primitive || "mesh") : obj.type.replace("Mesh","").replace("Group","grp").toLowerCase();
-
-    row.appendChild(visBtn);
-    row.appendChild(lockBtn);
-    row.appendChild(nameEl);
-    row.appendChild(typeEl);
-
-    // Click to select in builder
-    if (worldBuilder && (isManaged || obj.isMesh || obj.isGroup)) {
-      row.onclick = () => { worldBuilder.select(obj); _renderSceneHierarchy(); };
-    }
-    rows.push(row);
-  }
-
-  // Managed objects first
-  const managedSet = new Set(managed.keys());
-  for (const [mesh, meta] of managed) _makeRow(mesh, 0, true, meta);
-
-  // Then lights and other top-level scene objects
-  for (const obj of scene.children) {
-    if (managedSet.has(obj)) continue;
-    const t = obj.type || "";
-    if (t.includes("Light") || obj.isMesh || obj.isGroup) {
-      _makeRow(obj, 0, false, null);
-    }
-  }
-
-  tree.innerHTML = "";
-  if (rows.length === 0) {
-    tree.innerHTML = '<div style="color:#334455;font-size:10px;padding:4px">No objects' + (filter ? ' matching "' + filter + '"' : '') + '</div>';
-  } else {
-    for (const r of rows) tree.appendChild(r);
-  }
-  if (countEl) countEl.textContent = managed.size + " obj";
-}
-
-// Wire scene hierarchy search input (module scripts run after DOM is ready)
-const _shSearchEl = document.getElementById("shSearch");
-if (_shSearchEl) _shSearchEl.addEventListener("input", () => { if (worldBuilder) _renderSceneHierarchy(); });
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
 let audioMixer = null;
