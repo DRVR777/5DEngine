@@ -73,6 +73,7 @@ import { createHeroAnimSystem } from "./src/entities/hero_animation.js";
 import { mountConfigEditor } from "./src/systems/config_editor.js";
 import { mountSceneHierarchy } from "./src/systems/scene_hierarchy.js";
 import { createLanSession } from "./src/social/lan_session.js";
+import { createWeaponVisuals } from "./src/combat/weapon_visuals.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -2062,109 +2063,12 @@ _shadowBlob.position.y = 0.01;
 scene.add(_shadowBlob);
 
 // ---- Weapon mesh registry ----
-// _gunMount is the stable pivot on armR. Each weapon has its own child Group
-// (keyed by weapon id) — only the active one is visible. Drop in a real mesh
-// by calling window.registerGunMesh(weaponId, threeGroup).
-const _gunMount = new THREE.Group();
-_gunMount.position.set(0, -0.7, 0.2);  // tip of armR, slightly forward
-armR.add(_gunMount);
-
-const _gunMeshes = new Map();   // weaponId → THREE.Group
-
-function _buildPlaceholderGun(id) {
-  const dark = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.75, roughness: 0.35 });
-  const black = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 });
-  const g = new THREE.Group();
-  const specs = {
-    pistol:  { body: [0.10, 0.16, 0.32], barrel: [0.06, 0.06, 0.40], bz: 0.34 },
-    rifle:   { body: [0.08, 0.13, 0.58], barrel: [0.05, 0.05, 0.60], bz: 0.56 },
-    shotgun: { body: [0.12, 0.16, 0.46], barrel: [0.09, 0.09, 0.38], bz: 0.40 },
-    smg:     { body: [0.09, 0.13, 0.28], barrel: [0.05, 0.05, 0.28], bz: 0.28 },
-    sniper:  { body: [0.07, 0.12, 0.70], barrel: [0.04, 0.04, 0.80], bz: 0.74 },
-  };
-  const s = specs[id] || specs.pistol;
-  const body = new THREE.Mesh(new THREE.BoxGeometry(...s.body), dark);
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(...s.barrel), black);
-  barrel.position.z = s.bz;
-  g.add(body); g.add(barrel);
-  return g;
-}
-
-function _switchGunMesh(weaponId) {
-  _gunMeshes.forEach((mesh, id) => { mesh.visible = id === weaponId; });
-  _switchFpGunMesh(weaponId);
-}
-
-// Seed placeholder for every configured weapon; active one visible, others hidden
-(function _initGunMeshes() {
-  const weps = (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : [];
-  weps.forEach(w => {
-    const mesh = _buildPlaceholderGun(w.id);
-    mesh.visible = w.id === currentWeaponId;
-    _gunMount.add(mesh);
-    _gunMeshes.set(w.id, mesh);
-  });
-  // Fallback: ensure at least pistol exists
-  if (!_gunMeshes.has("pistol")) {
-    const m = _buildPlaceholderGun("pistol");
-    m.visible = currentWeaponId === "pistol";
-    _gunMount.add(m); _gunMeshes.set("pistol", m);
-  }
-})();
-
-// First-person gun overlay — camera-space gun that renders over everything.
-// Mirrors active weapon shape but is a separate object attached to the camera.
-const _fpGunGroup = new THREE.Group();
-_fpGunGroup.visible = false;
-_fpGunGroup.position.set(0.22, -0.24, -0.45);
-camera.add(_fpGunGroup);
-
-const _fpGunMeshes = new Map();  // weaponId → Group in FP view
-
-function _buildFpGun(id) {
-  const mat1 = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.75, roughness: 0.35, depthTest: false });
-  const mat2 = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, depthTest: false });
-  const specs = {
-    pistol:  { body: [0.06, 0.10, 0.20], barrel: [0.04, 0.04, 0.26], bz: 0.21 },
-    rifle:   { body: [0.05, 0.08, 0.36], barrel: [0.03, 0.03, 0.38], bz: 0.35 },
-    shotgun: { body: [0.07, 0.10, 0.28], barrel: [0.06, 0.06, 0.24], bz: 0.25 },
-    smg:     { body: [0.05, 0.08, 0.18], barrel: [0.03, 0.03, 0.18], bz: 0.18 },
-    sniper:  { body: [0.04, 0.07, 0.44], barrel: [0.025, 0.025, 0.50], bz: 0.46 },
-  };
-  const s = specs[id] || specs.pistol;
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(...s.body), mat1);
-  body.renderOrder = 100;
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(...s.barrel), mat2);
-  barrel.position.z = -s.bz;
-  barrel.renderOrder = 100;
-  g.add(body); g.add(barrel);
-  return g;
-}
-
-(function _initFpGunMeshes() {
-  const weps = (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : ["pistol","rifle","shotgun","smg","sniper"].map(id => ({ id }));
-  weps.forEach(w => {
-    const m = _buildFpGun(w.id);
-    m.visible = w.id === currentWeaponId;
-    _fpGunGroup.add(m);
-    _fpGunMeshes.set(w.id, m);
-  });
-})();
-
-function _switchFpGunMesh(weaponId) {
-  _fpGunMeshes.forEach((m, id) => { m.visible = id === weaponId; });
-}
-
-// Public hook: asset loader or user calls this to replace a placeholder with a real mesh.
-// The new group is positioned/scaled automatically to match the mount.
-window.registerGunMesh = function(weaponId, threeGroup) {
-  const old = _gunMeshes.get(weaponId);
-  if (old) _gunMount.remove(old);
-  threeGroup.visible = weaponId === currentWeaponId;
-  _gunMount.add(threeGroup);
-  _gunMeshes.set(weaponId, threeGroup);
-};
+const { gunMount: _gunMount, fpGunGroup: _fpGunGroup, switchGunMesh: _switchGunMesh, registerGunMesh: _wvRegisterGunMesh } = createWeaponVisuals({
+  THREE, armR, camera,
+  weapons: (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : [],
+  getActiveWeaponId: () => currentWeaponId,
+});
+window.registerGunMesh = _wvRegisterGunMesh;
 scene.add(heroGroup);
 const walkState = { t: 0 };
 
