@@ -47,5 +47,5 @@ export function mountSpawnSystem({ THREE, getScene, buildingBlockers }) {
     return { u: 15, v: 0 };
   }
 
-  return { addSpawnPoint, getSpawnPoint, spawnClearPos, spawnPoints };
+  return { addSpawnPoint, getSpawnPoint, spawnClearPos, spawnPoints, spawnMeshes: _spawnMeshes };
 }

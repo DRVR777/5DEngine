@@ -88,6 +88,7 @@ import { mountGadgetSystem } from "./src/systems/gadget_system.js";
 import { mountSpawnSystem } from "./src/systems/spawn_system.js";
 import { mountPerkSystem } from "./src/systems/perk_system.js";
 import { mountHeroLifecycle } from "./src/systems/hero_lifecycle.js";
+import { mountGameReset } from "./src/systems/game_reset.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -374,8 +375,6 @@ let _perkMaxHpBonus = 0;    // added to effective max HP
 let _perkLifesteal  = false; // kills restore 3 HP
 let _perkRegenBonus = 0;    // hp/s bonus stacked onto regen rate
 let _perkSpeedBonus = 0;    // m/s added to sprint speed
-let _perkTimerInt   = null;  // interval id for countdown display
-const _activePerkLabels = []; // {label, color} of applied perks this session
 // EXTRACT-PLAN iter 520: perk_system.js → src/systems/perk_system.js
 // Export mountPerkSystem({ showToast, playSfx, addKillFeedEntry, heroInv, getWeapon,
 //   get: { grenadeCount, smokeGrenadeCount, heroHp, heroArmor, stamina, perkDmgMul,
@@ -487,6 +486,7 @@ const _spawnPoints  = _spawnSys.spawnPoints;
 const _addSpawnPoint  = _spawnSys.addSpawnPoint;
 const _getSpawnPoint  = _spawnSys.getSpawnPoint;
 const _spawnClearPos  = _spawnSys.spawnClearPos;
+const _spawnMeshes    = _spawnSys.spawnMeshes;
 let _heroDead = false;
 // Hero death/respawn lifecycle — mounted here; deathCountdownT is internal to module
 const _lifecycle = mountHeroLifecycle({
@@ -553,67 +553,9 @@ const _tickDeath           = _lifecycle.tickDeath;
   });
 })();
 
-// EXTRACT-PLAN iter 524: game_reset.js → src/systems/game_reset.js
-// Export mountGameReset({ get, set, scene, world, actions })
-// resetGameState clears enemies/projectiles/mines/turrets/grenades, resets all state,
-// restarts WaveManager. Big dep list — inject via get/set/actions like keydown handler.
-// _turrets and _mines now live in gadget_system module — need gadget.clearAll() method.
-// ── resetGameState() ─────────────────────────────────────────────────────────
-// Full game reset: clears all active entities, resets stats, re-starts waves.
-// Called by: Play Again button, future game-mode-select screen, dev console.
-// Exposed as window.resetGameState for emergency use from the browser console.
-function resetGameState() {
-  // Remove all wave-spawned enemies from scene, world, and arrays
-  for (let _ei = enemies.length - 1; _ei >= 0; _ei--) {
-    const _re = enemies[_ei];
-    if (_re.id && _re.id.startsWith("en_spawned_")) {
-      const _rem = enemyMeshes.get(_re.id);
-      if (_rem) { scene.remove(_rem.group); if (_rem.laserLine) scene.remove(_rem.laserLine); enemyMeshes.delete(_re.id); }
-      if (world.players) world.players.delete(_re.id);
-      enemies.splice(_ei, 1);
-    }
-  }
-  // Clear environmental hazards
-  for (const _fp of firePatches) scene.remove(_fp.mesh); firePatches.length = 0;
-  for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
-  for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
-  for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
-  gadget.clearAll(); // clears _turrets and _mines (both live in gadget module)
-  // Clear in-flight projectiles
-  for (const _rb of bullets3D) scene.remove(_rb.mesh); bullets3D.length = 0;
-  for (const _eb of enemyBullets) scene.remove(_eb.mesh); enemyBullets.length = 0;
-  for (const _rg of grenades3D) { scene.remove(_rg.mesh); if (_rg._warnRing) scene.remove(_rg._warnRing); } grenades3D.length = 0;
-  // Clear smoke, speed orbs, weapon pickups
-  for (const _sz of smokeZones) scene.remove(_sz.mesh); smokeZones.length = 0;
-  for (const _so of _speedOrbs) scene.remove(_so.mesh); _speedOrbs.length = 0;
-  for (const _wp of weaponPickups) scene.remove(_wp.mesh); weaponPickups.length = 0;
-  // Reset consumable counts
-  grenadeCount = 3; smokeGrenadeCount = 2; flashbangCount = 2; _mineCount = 2;
-  // Reset inventory and weapon ammo to starting state
-  heroInv.slots.fill(null);
-  for (const _riW of (CFG.weapons || [])) {
-    Inv.addItem(heroInv, "gun_" + _riW.id, 1);
-    Inv.addItem(heroInv, _riW.ammoItem || "pistol_9mm", _riW.magCap * 4);
-  }
-  Inv.addItem(heroInv, "medkit", 2);
-  weaponAmmo.clear();
-  for (const _riW2 of (CFG.weapons || [])) weaponAmmo.set(_riW2.id, _riW2.magCap || 12);
-  currentWeaponId = "pistol"; pistolAmmo = (CFG.weapons.find(w => w.id === "pistol") || {magCap: 12}).magCap;
-  if (typeof _switchGunMesh === "function") _switchGunMesh("pistol");
-  _heroRespawn();
-  if (typeof WaveManager !== "undefined" && gameMode !== "peaceful") { WaveManager.reset(); WaveManager.start(); }
-  // Reset all per-session stats and progression state
-  score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
-  _streakCount = 0; _lastKillT = 0; _panicBroadcastT = -99; _waveBeepLast = 0;
-  _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false;
-  _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0;
-  _perkSys.clearTimerAndReset();
-  const _ppOv = document.getElementById("perkPicker"); if (_ppOv) _ppOv.style.display = "none";
-  _refreshPerkHud();
-  const _lvlEl = _dom.heroLevelHud; if (_lvlEl) _lvlEl.textContent = "";
-}
-window.resetGameState = resetGameState; // expose for browser console and future game-mode-select screen
-// ─────────────────────────────────────────────────────────────────────────────
+// resetGameState is mounted below (after all array deps are declared, ~line 1988)
+// Forward-declared so victory IIFE closure can capture the binding safely.
+let resetGameState;
 
 // Difficulty multipliers — set by difficulty selection screen, persist across respawns
 let _diffHpMul  = 1.0;
@@ -932,7 +874,7 @@ const _shop = mountShopPanel({
   getScore: () => score,
   setScore: (n) => { score = n; },
   showToast,
-  playSfx,
+  playSfx: (t, v) => playSfx(t, v),
   isBlocked: () => computerOpen || buildMode,
 });
 
@@ -947,6 +889,8 @@ const _settings = mountSettingsPanel({
 
 // Grenade system data — functions mounted via mountGadgetSystem below
 const grenades3D = [];
+const _ARC_DOT_COUNT = 16;
+let _arcDots = null;
 let grenadeCount = 3;
 let smokeGrenadeCount = 2;
 let flashbangCount = 2;
