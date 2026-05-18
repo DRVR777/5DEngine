@@ -1607,6 +1607,8 @@ window._entityDamage = function(entityId, amount, _type) {
   heroHp = Math.max(0, heroHp - amount);
   heroLastDamageT = performance.now() / 1000;
   _waveChallengeNoDmg = false; // player took damage — "no damage" challenge failed
+  // Broadcast hero damage so HUD, effects, and multiplayer peers can react
+  if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DAMAGED, { amount, hp: heroHp });
   if (heroHp <= 0) {
     if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: "effect" });
     if (!_heroDead) _heroShowDeathScreen();
@@ -5310,7 +5312,10 @@ addEventListener("keydown", (e) => {
       inCar = true; activeVehicleId = nearestVeh.id;
       _activeVehicleDef = VEHICLE_DEFS.find(v => v.id === nearestVeh.id) || null;
       _platformsDirty = true;
+      // Notify other systems (camera, HUD, multiplayer) that player entered a vehicle
+      if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.VEHICLE_ENTER, { vehicleId: activeVehicleId, vehicleDef: _activeVehicleDef });
     } else if (inCar && activeVehicleId) {
+      const _prevVehicleId = activeVehicleId; // save before clearing
       inCar = false;
       const vst = vehicleStates.get(activeVehicleId);
       const cp = world.players.get(activeVehicleId);
@@ -5323,6 +5328,8 @@ addEventListener("keydown", (e) => {
       activeVehicleId = null;
       _activeVehicleDef = null;
       _platformsDirty = true;
+      // Notify other systems that player left the vehicle
+      if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.VEHICLE_EXIT, { vehicleId: _prevVehicleId });
     }
   }
 });
@@ -5424,6 +5431,8 @@ renderer.domElement.addEventListener("wheel", (e) => {
   _switchGunMesh(currentWeaponId);
   playSfx("click", 0.4);
   reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 800;
+  // Notify any listeners (HUD, multiplayer sync, analytics) that weapon changed
+  if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.WEAPON_SWITCH, { weaponId: currentWeaponId, ammo: pistolAmmo });
   _showWeaponSelector();
 }, { passive: false });
 
@@ -8177,6 +8186,8 @@ function tick() {
       coinDrops.splice(_ci, 1);
       scene.remove(cd.mesh);
       score += cd.value;
+      // Notify score listeners (HUD, leaderboard, multiplayer stat sync)
+      if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: cd.value, source: "coin" });
       playSfx("blip", 0.55);
       _spawnDamageNumber(cd.u, 0.8, cd.v, `+${cd.value}`, "#ffd166");
     } else {

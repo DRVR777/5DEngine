@@ -25,10 +25,10 @@
 - [x] B5. Extract High score → src/progression/high_score.js
 - [x] B6. Wire Save/Load → src/systems/save_load.js
 - [x] B7. Extract particles → src/render/vfx.js (note: particle_system.js already existed for InstancedMesh; vfx.js holds inline sphere/casing/damage-num/shockwave/muzzle-flash effects)
-- [ ] B8. Wire Multiplayer IIFE → src/social/multiplayer.js
+- [!] B8. Wire Multiplayer IIFE → src/social/multiplayer.js — FLAGGED: src/social/multiplayer.js already exists as a different Hub/WorldState abstract architecture (no socket.io). Merging the inline _mp IIFE into it would be an architectural decision. Skipping until explicit approval.
 
 ## Phase 3 — Structural wiring
-- [ ] C1. Wire EventBus to 5 additional game events
+- [x] C1. Wire EventBus to 5 additional game events (HERO_DAMAGED, WEAPON_SWITCH, VEHICLE_ENTER, VEHICLE_EXIT, SCORE_CHANGED)
 - [ ] C2. Add Engine.require() no-op proxy
 - [ ] C3. Fixed-timestep physics wrapper
 - [ ] C4. resetGameState() function
