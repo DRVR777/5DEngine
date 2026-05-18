@@ -18,7 +18,7 @@
 - [x] A15. SVG dmgDir pre-create element
 
 ## Phase 2 — Modular extractions
-- [ ] B1. Extract Rain → src/world/rain.js
+- [x] B1. Extract Rain → src/world/rain.js
 - [ ] B2. Extract Toast + Kill feed → src/ui/hud_notifications.js
 - [ ] B3. Extract playSfx + _setAmbient → src/audio/sfx.js
 - [ ] B4. Extract Minimap → src/ui/minimap.js
