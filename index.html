@@ -9910,6 +9910,16 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       if (typeof shopOpen    !== "undefined") shopOpen    = false;
       if (typeof settingsOpen !== "undefined") settingsOpen = false;
     },
+    // Trigger the onWaveStart callback at a given wave number — tests wave-start code paths
+    triggerWaveStart: (waveNum) => {
+      try {
+        if (typeof _spawnSpeedOrb === "function" && waveNum >= 2) {
+          const _ang = Math.random() * Math.PI * 2, _dist = 4 + Math.random() * 4;
+          _spawnSpeedOrb(Math.cos(_ang) * _dist, Math.sin(_ang) * _dist);
+        }
+        return { ok: true };
+      } catch(e) { return { ok: false, error: e.message }; }
+    },
     // Read snapshot of core state — safe read-only
     getState: () => ({
       camDist,
@@ -9920,6 +9930,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       scopeVisible:  document.getElementById("scopeOverlay")?.style?.display === "block",
       pointerLocked,
       heroAlive:     !_heroDead,
+      speedOrbCount: _speedOrbs.length,
     }),
   };
   console.info("[5DTest] test bridge active");
