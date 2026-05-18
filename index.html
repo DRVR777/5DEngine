@@ -1021,6 +1021,7 @@ import { createShopSystem } from "./src/systems/ecs_shop.js";
 import { createPerkSystem } from "./src/systems/ecs_perk.js";
 import { createAgentDispatch } from "./src/systems/ecs_agent_dispatch.js";
 import { createStatusEffectSystem } from "./src/systems/ecs_status_effects.js";
+import { regenSystem } from "./src/systems/ecs_regen.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10095,6 +10096,9 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     }));
     const _ecsPerk = createPerkSystem(perkCatalog, { HERO_MAX_ARMOR: 75 });
     Core.addSystem(_ecsPerk, 30, "perk");
+
+    // Wire regen system — priority 35 (after perk at 30)
+    Core.addSystem(regenSystem, 35, "regen");
 
     // Wire status effect system — priority 15 (between combat at 10 and pickup at 20)
     const _ecsStatusFX = createStatusEffectSystem();
