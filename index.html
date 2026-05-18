@@ -1014,6 +1014,7 @@
 <script type="module">
 import * as THREE from "three";
 import { Core } from "./src/core/core.js";
+import { combatSystem } from "./src/systems/ecs_combat.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10053,6 +10054,14 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
         }
       });
     }));
+
+    // Load damage multipliers and wire combat system
+    const dmAtom = await Core.loadData("data/enemies/damage_multipliers.json");
+    const _ecsCombatCtx = { damageMultipliers: dmAtom.$facets, elapsedS: 0 };
+    Core.addSystem((dt, core) => {
+      _ecsCombatCtx.elapsedS += dt;
+      combatSystem(dt, core, _ecsCombatCtx);
+    }, 10, "combat");
 
     console.info("[ECS] Core ready —", Core.snapshot());
   } catch (e) {
