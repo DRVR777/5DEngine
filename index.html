@@ -1038,6 +1038,7 @@ import { createFastChargeSystem } from "./src/systems/ecs_fast_charge.js";
 import { createRobotEmpSystem } from "./src/systems/ecs_robot_emp.js";
 import { createHeavyThrowSystem } from "./src/systems/ecs_heavy_throw.js";
 import { createBossRockSystem } from "./src/systems/ecs_boss_rock.js";
+import { createPoisonerSpitSystem } from "./src/systems/ecs_poisoner_spit.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10160,6 +10161,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsBossRock = createBossRockSystem();
     Core.addSystem(_ecsBossRock, 14, "boss_rock");
     window.Engine.bossRockSystem = _ecsBossRock;
+
+    // Wire poisoner spit system — priority 13 (after ai_movement:12)
+    const _ecsPoisonerSpit = createPoisonerSpitSystem();
+    Core.addSystem(_ecsPoisonerSpit, 13, "poisoner_spit");
+    window.Engine.poisonerSpitSystem = _ecsPoisonerSpit;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
