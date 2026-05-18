@@ -1302,7 +1302,8 @@ function _applyPerk(perk, waveNum) {
   _addKillFeedEntry(`★ PERK (W${waveNum}): ${perk.label}`, "#ffd166");
   playSfx("tone:880:80:sine", 0.5); playSfx("tone:1100:60:sine", 0.4);
   const canvas = document.getElementById("gameCanvas") || document.querySelector("canvas");
-  if (canvas && canvas.requestPointerLock) canvas.requestPointerLock();
+  // iter 431: browser requires a tick after exitPointerLock before re-acquiring
+  if (canvas && canvas.requestPointerLock) setTimeout(() => { try { canvas.requestPointerLock(); } catch(_e) {} }, 250);
 }
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
 function _trackKillAndPanic(killU, killV) {
@@ -5973,6 +5974,8 @@ let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscilla
 let _breathHoldT = 0;    // seconds Shift held while scoped (>1.5s causes trembling)
 let _wasSniperScope = false;
 let _sniperSavedCamDist = 7; // camDist restored when scope is dropped
+let _lastSwayPitch = 0;  // sway offset applied last frame — subtracted before re-applying
+let _lastSwayYaw   = 0;
 let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
 let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
@@ -6165,11 +6168,21 @@ function tick() {
     // iter 423: crouching const is declared later in tick() — TDZ crash. Inline the check.
     const _isCrouching = !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen;
     const _swayMul = (_isCrouching ? 0.25 : 1.0) * _breathMul;
-    const _swayPitch = Math.sin(_scopeSwayT * 0.9) * 0.0015 * _swayMul;
-    const _swayYaw   = Math.sin(_scopeSwayT * 0.6 + 1.2) * 0.0012 * _swayMul;
-    camPitch += _swayPitch;
-    camYaw   += _swayYaw;
+    // iter 431: sway must be an absolute offset, not an accumulated delta.
+    // Subtract last frame's sway before applying this frame's so camPitch/camYaw
+    // only hold the instantaneous oscillation position — no drift.
+    camPitch -= _lastSwayPitch;
+    camYaw   -= _lastSwayYaw;
+    _lastSwayPitch = Math.sin(_scopeSwayT * 0.9) * 0.0025 * _swayMul;
+    _lastSwayYaw   = Math.sin(_scopeSwayT * 0.6 + 1.2) * 0.002 * _swayMul;
+    camPitch += _lastSwayPitch;
+    camYaw   += _lastSwayYaw;
   } else {
+    // Remove any sway offset still baked into camPitch/camYaw when exiting scope
+    camPitch -= _lastSwayPitch;
+    camYaw   -= _lastSwayYaw;
+    _lastSwayPitch = 0;
+    _lastSwayYaw   = 0;
     _scopeSwayT = 0;
     _breathHoldT = 0;
   }
@@ -6254,6 +6267,8 @@ function tick() {
   } else if (!wantsSprint || _stamina <= 0) {
     _stamina = Math.min(STAMINA_MAX + _heroExtraStaminaMax, _stamina + STAMINA_REGEN * dt);
   }
+  // iter 431: isMoving declared below (line ~6274) but used here — TDZ crash. Hoist it.
+  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
   if (_speedBoostT > 0) {
     _speedBoostT -= dt;
     // Yellow particle trail while boosting and moving
@@ -6271,7 +6286,7 @@ function tick() {
   const speed = _baseSpeed * _speedBoostMul;
 
   // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
-  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
+  // isMoving hoisted above to fix TDZ with speed-boost trail
   const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? (crouching ? 0.18 : 0.45) : (crouching ? 0 : 0)));
 
   // Footstep sounds — synthetic tap when hero walks/runs on ground (not in vehicle, not dead)
@@ -8439,7 +8454,9 @@ function tick() {
 
   // append objective + score to HUD
   // hp bar (rendered as block string — quick + readable)
-  const hpFrac = heroHp / HERO_MAX_HP;
+  // iter 431: use full max HP including perk bonus so hpFrac stays in [0,1]
+  const _hpMax  = (HERO_MAX_HP + (_perkMaxHpBonus || 0)) || 1;
+  const hpFrac  = Math.max(0, Math.min(1, heroHp / _hpMax));
   const hpBarLen = 16;
   const hpFilled = Math.round(hpBarLen * hpFrac);
   const hpBar = "▰".repeat(hpFilled) + "▱".repeat(hpBarLen - hpFilled);
@@ -9910,7 +9927,20 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       if (typeof shopOpen    !== "undefined") shopOpen    = false;
       if (typeof settingsOpen !== "undefined") settingsOpen = false;
     },
-    // Trigger the onWaveStart callback at a given wave number — tests wave-start code paths
+    // ── Weapon helpers ────────────────────────────────────────────────────────
+    getWeaponIds: () => (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons.map(w => w.id) : [],
+    switchWeapon: (id) => { try { window._5DTest.setWeapon(id); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+
+    // ── Pickup spawners ───────────────────────────────────────────────────────
+    spawnHealth:        (u, v) => { try { _spawnHealthPickup(u, v, 30);               return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    spawnAmmo:          (u, v) => { try { _spawnAmmoPickup(u, v, 30, "pistol_9mm");   return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    spawnArmor:         (u, v) => { try { _spawnArmorShard(u, v, 10);                 return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    spawnWeaponPickup:  (u, v, id) => { try { _spawnWeaponPickup(u, v, id);           return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    spawnCoinDrop:      (u, v) => { try { _spawnCoinDrop(u, v, 5);                    return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    spawnFirePatch:     (u, v) => { try { _spawnFirePatch(u, v, 2, 5);                return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    spawnPoisonPuddle:  (u, v) => { try { _spawnPoisonPuddle(u, v);                   return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+
+    // ── Wave / orb ────────────────────────────────────────────────────────────
     triggerWaveStart: (waveNum) => {
       try {
         if (typeof _spawnSpeedOrb === "function" && waveNum >= 2) {
@@ -9920,17 +9950,49 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
         return { ok: true };
       } catch(e) { return { ok: false, error: e.message }; }
     },
-    // Read snapshot of core state — safe read-only
+
+    // ── Explosives / gadgets ──────────────────────────────────────────────────
+    throwGrenade:   () => { try { _throwGrenade(0);       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    throwSmoke:     () => { try { _throwSmokeGrenade();   return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    throwFlashbang: () => { try { _throwFlashbang();      return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    dropMine:       () => { try { _dropMine();             return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+
+    // ── UI panels ─────────────────────────────────────────────────────────────
+    openShop:       () => { try { _openShop();            return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    closeShop:      () => { try { _closeShop();           return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    openSettings:   () => { try { _openSettings();        return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    closeSettings:  () => { try { _closeSettings();       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    showPerkPicker: (wave) => { try { _showPerkPicker(wave || 1); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    openNpcDialog:  (id) => { try { _openNpcDialog(id || "merchant"); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    closeNpcDialog: () => { try { _closeNpcDialog();      return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+
+    // ── Game state mutations ──────────────────────────────────────────────────
+    setHeroHp:      (hp) => { try { heroHp = Math.max(0, Math.min(HERO_MAX_HP + (_perkMaxHpBonus || 0), hp)); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    applyDamage:    (dmg) => { try { heroHp = Math.max(0, heroHp - dmg); flashDamage(); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    setGameMode:    (mode) => { try { gameMode = mode; return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+
+    // ── Read snapshot of all core state ──────────────────────────────────────
     getState: () => ({
       camDist,
       currentWeaponId,
       gameMode,
       pistolAmmo,
-      bulletCount:   bullets3D.length,
-      scopeVisible:  document.getElementById("scopeOverlay")?.style?.display === "block",
+      heroHp,
+      heroAlive:        !_heroDead,
       pointerLocked,
-      heroAlive:     !_heroDead,
-      speedOrbCount: _speedOrbs.length,
+      bulletCount:      bullets3D.length,
+      scopeVisible:     document.getElementById("scopeOverlay")?.style?.display === "block",
+      shopOpen:         typeof shopOpen !== "undefined" ? shopOpen : false,
+      settingsOpen:     typeof settingsOpen !== "undefined" ? settingsOpen : false,
+      npcDialogOpen:    typeof _npcDialogOpen !== "undefined" ? _npcDialogOpen : false,
+      buildMode:        typeof buildMode !== "undefined" ? buildMode : false,
+      speedOrbCount:    _speedOrbs.length,
+      healthPickupCount: healthPickups.length,
+      coinDropCount:    coinDrops.length,
+      firePatchCount:   firePatches.length,
+      poisonPuddleCount: poisonPuddles.length,
+      mineCount:        _mines.length,
+      inCar:            typeof inCar !== "undefined" ? inCar : false,
     }),
   };
   console.info("[5DTest] test bridge active");
