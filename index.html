@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -75,6 +75,7 @@ import { mountSceneHierarchy } from "./src/systems/scene_hierarchy.js";
 import { createLanSession } from "./src/social/lan_session.js";
 import { createWeaponVisuals } from "./src/combat/weapon_visuals.js";
 import { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./src/systems/npc_dialog.js";
+import { mountQuestPanel } from "./src/systems/quest_panel.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -874,44 +875,9 @@ window.showToast = Notifications.showToast;  // keep global API
 // ---- NPC Dialog system ----
 const _npcDialog = mountNpcDialog(DEFAULT_NPC_DIALOGS);
 // ---- Quest / Objective system ----
-const _quests = [];
-let _questOpen = false;
-
-function addQuest(id, title, steps) {
-  _quests.push({ id, title, steps: steps.map(s => ({ text: s, done: false })) });
-  _renderQuests();
-  showToast(`NEW OBJECTIVE: ${title}`, "success");
-}
-
-function completeQuestStep(questId, stepIdx) {
-  const q = _quests.find(q => q.id === questId);
-  if (!q || !q.steps[stepIdx] || q.steps[stepIdx].done) return;
-  q.steps[stepIdx].done = true;
-  _renderQuests();
-  showToast(`✓ ${q.steps[stepIdx].text}`, "success");
-  if (q.steps.every(s => s.done)) showToast(`★ QUEST COMPLETE: ${q.title}`, "success", 5000);
-}
-
-function _renderQuests() {
-  const el = document.getElementById("questList");
-  if (!el) return;
-  if (!_quests.length) { el.innerHTML = `<div style="color:#4488aa;font-size:10px">No active objectives.</div>`; return; }
-  el.innerHTML = _quests.map(q => {
-    const allDone = q.steps.every(s => s.done);
-    const stepsHtml = q.steps.map((s, i) =>
-      `<div style="display:flex;gap:6px;align-items:flex-start;margin-top:3px;opacity:${s.done?0.55:1}">
-        <span style="color:${s.done?"#00ffaa":"#4488aa"};flex-shrink:0">${s.done?"✓":"○"}</span>
-        <span style="color:${s.done?"#6688aa":"#b8e8ff"};font-size:10px;text-decoration:${s.done?"line-through":"none"}">${s.text}</span>
-      </div>`).join("");
-    return `<div style="margin-bottom:10px">
-      <div style="color:${allDone?"#00ffaa":"#ffd166"};font-size:10px;letter-spacing:0.08em">${allDone?"★ ":"▷ "}${q.title}</div>
-      ${stepsHtml}
-    </div>`;
-  }).join("");
-}
-
-window.addQuest = addQuest;
-window.completeQuestStep = completeQuestStep;
+const _quest = mountQuestPanel({ showToast });
+window.addQuest = (...a) => _quest.addQuest(...a);
+window.completeQuestStep = (...a) => _quest.completeQuestStep(...a);
 
 // ═══ EXTRACTED → src/world/rain.js ═══════════════════════════════════════════
 // // ---- Rain system ----
@@ -3784,9 +3750,7 @@ addEventListener("keydown", (e) => {
   }
   // J key: toggle quest/objective panel
   if (e.code === "KeyJ" && !computerOpen) {
-    _questOpen = !_questOpen;
-    const qp = document.getElementById("questPanel");
-    if (qp) { qp.style.display = _questOpen ? "block" : "none"; if (_questOpen) _renderQuests(); }
+    _quest.togglePanel();
     e.preventDefault();
     return;
   }
@@ -3899,7 +3863,7 @@ addEventListener("keydown", (e) => {
   }
   if (buildMode && e.code === "KeyN") {
     const sp = _addSpawnPoint(freeCamPos.x, freeCamPos.z);
-    completeQuestStep("world", 1);
+    _quest.completeQuestStep("world", 1);
     showToast(`Spawn point ${sp.label} placed`, "success");
     e.preventDefault();
     return;
@@ -3957,7 +3921,7 @@ addEventListener("keydown", (e) => {
     buildMode = !buildMode;
     if (worldBuilder) worldBuilder.setActive(buildMode);
     if (buildMode) {
-      completeQuestStep("world", 0);
+      _quest.completeQuestStep("world", 0);
       // Seed freecam at hero's current render position, looking forward
       const hp = world.players.get("hero");
       const hRender = Bridge.engineToRenderPos(hp);
@@ -5358,8 +5322,8 @@ function tick() {
             }
             _trackKillAndPanic(ep.u, ep.v);
             if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id: en.id, kills: enemyKills });
-            completeQuestStep("combat", 0);
-            if (enemyKills >= 3) completeQuestStep("combat", 1);
+            _quest.completeQuestStep("combat", 0);
+            if (enemyKills >= 3) _quest.completeQuestStep("combat", 1);
             // Last kill of the wave — cinematic bullet-time
             if (typeof WaveManager !== "undefined") {
               const _wph = WaveManager.getState().phase;
@@ -7052,9 +7016,9 @@ function tick() {
     const m = pickupMeshes.get(collected);
     if (m) scene.remove(m);
     showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500);
-    completeQuestStep("intro", 0);
-    if (score >= 3) completeQuestStep("intro", 1);
-    if (score >= pickups.length) completeQuestStep("intro", 2);
+    _quest.completeQuestStep("intro", 0);
+    if (score >= 3) _quest.completeQuestStep("intro", 1);
+    if (score >= pickups.length) _quest.completeQuestStep("intro", 2);
   }
   for (const pk of pickups) {
     if (pk.collected) continue;
@@ -7598,7 +7562,7 @@ GameProgress.init(
       weaponId: currentWeaponId,
       inventory: (typeof _inventory !== "undefined") ? [..._inventory] : [],
       spawnPoints: _spawnPoints.filter(sp => sp.label !== "origin").map(sp => ({ u: sp.u, v: sp.v })),
-      questProgress: _quests.map(q => ({ id: q.id, steps: q.steps.map(s => s.done) })),
+      questProgress: _quest.getQuests().map(q => ({ id: q.id, steps: q.steps.map(s => s.done) })),
     };
   },
   (data, source) => {
@@ -7612,21 +7576,21 @@ GameProgress.init(
     const qp = data.quest_progress || data.questProgress;
     if (Array.isArray(qp)) {
       for (const entry of qp) {
-        const q = _quests.find(q => q.id === (entry.id || entry.quest_id));
+        const q = _quest.getQuests().find(q => q.id === (entry.id || entry.quest_id));
         if (!q) continue;
         const steps = entry.steps || entry.steps_done;
         if (Array.isArray(steps)) {
           for (let i = 0; i < steps.length && i < q.steps.length; i++) { if (steps[i]) q.steps[i].done = true; }
         }
       }
-      _renderQuests();
+      _quest.renderQuests();
     }
     const age = data.saved_at
       ? Math.round((Date.now() - new Date(data.saved_at).getTime()) / 60000)
       : (data.timestamp ? Math.round((Date.now() - data.timestamp) / 60000) : 0);
     showToast(`Save loaded from ${source} (${age}m ago) — score:${score} kills:${enemyKills}`, "info", 4000);
   },
-  { getQuests: () => _quests }
+  { getQuests: () => _quest.getQuests() }
 );
 const _saveGame = () => GameProgress.save();
 const _loadGame = () => GameProgress.load();
@@ -7646,16 +7610,16 @@ window._loadGame = _loadGame;
 
 // ---- Starter quests (fire after first frame) ----
 setTimeout(() => {
-  addQuest("intro", "Explorer", [
+  _quest.addQuest("intro", "Explorer", [
     "Collect your first coin",
     "Collect 3 coins",
     "Collect all coins",
   ]);
-  addQuest("combat", "Fighter", [
+  _quest.addQuest("combat", "Fighter", [
     "Defeat your first enemy",
     "Defeat 3 enemies",
   ]);
-  addQuest("world", "World Builder", [
+  _quest.addQuest("world", "World Builder", [
     "Enter build mode (B)",
     "Place a spawn point (N in build mode)",
   ]);
@@ -7665,7 +7629,7 @@ setTimeout(() => {
 
 // J key closes quest panel too if focus is in-game
 document.addEventListener("keydown", (e) => {
-  if (e.code === "KeyJ" && !computerOpen) _renderQuests();
+  if (e.code === "KeyJ" && !computerOpen) _quest.renderQuests();
 }, { capture: false });
 
 // Wire quest progress: build mode enter → quest "world" step 0
