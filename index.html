@@ -1049,6 +1049,7 @@ import { createRobotShootSystem } from "./src/systems/ecs_robot_shoot.js";
 import { createPoisonerDartSystem } from "./src/systems/ecs_poisoner_dart.js";
 import { createEnemyBulletSystem } from "./src/systems/ecs_enemy_bullet.js";
 import { createEnemyRegenSystem } from "./src/systems/ecs_enemy_regen.js";
+import { createEnemySeparationSystem } from "./src/systems/ecs_enemy_separation.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10227,6 +10228,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsEnemyRegen = createEnemyRegenSystem();
     Core.addSystem(_ecsEnemyRegen, 8, "enemy_regen");
     window.Engine.enemyRegenSystem = _ecsEnemyRegen;
+
+    // Wire enemy separation system — priority 13 (pairwise overlap push at 1.2m)
+    const _ecsEnemySep = createEnemySeparationSystem();
+    Core.addSystem(_ecsEnemySep, 13, "enemy_separation");
+    window.Engine.enemySeparationSystem = _ecsEnemySep;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
