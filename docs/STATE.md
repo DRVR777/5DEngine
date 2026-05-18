@@ -20,13 +20,15 @@ Phases:
 
 ## Current task
 
-**Tick 3 — Wire `src/core/core.js` into index.html as parallel additive import.**
+**Tick 4 — `src/systems/ecs_combat.js` — pure combat system from data/enemies/**
 
 Steps:
-1. Add `import { Core } from './src/core/core.js';` after line 1013 in index.html
-2. Load & register hero + enemy prefabs at startup from data/ atoms
-3. Boot Core alongside existing engine (no removal of monolith code yet)
-4. npm test green. Commit: "iter 436: tick 3 — core.js wired into index.html, prefabs registered"
+1. Create `src/systems/ecs_combat.js` exporting `combatSystem(dt, core, ctx)`
+2. System queries [EnemyAI, Transform, Health, Faction] — handles melee attack logic
+3. Load damage_multipliers.json at system init for weapon type lookups
+4. Wire system into Core via `Core.addSystem(combatSystem, 10, "combat")` in _bootECS
+5. npm test green. Add unit test for damage multiplier application.
+6. Commit: "iter 437: tick 4 — ecs_combat system, damage multiplier integration"
 
 ## Previous task (tick 1 — DONE)
 
@@ -49,6 +51,19 @@ Steps:
 6. Commit: `"iter 434: tick 1 — universal atom format, tuning extraction"`
 
 ## Last tick
+
+```
+timestamp: 2026-05-18T05:32Z
+summary:   tick 3 — core.js wired into index.html as additive ES module import.
+           _bootECS() async IIFE loads hero prefab + 8 enemy type atoms, registers
+           all as Core prefabs. Non-fatal try/catch preserves existing game.
+files:     index.html (import + _bootECS block)
+tests:     28/28 passed
+commit:    iter 436
+outcome:   ok
+```
+
+## Previous tick
 
 ```
 timestamp: 2026-05-18T05:23Z
