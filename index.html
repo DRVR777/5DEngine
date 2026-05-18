@@ -5860,11 +5860,26 @@ function _tryShoot() {
   const _gunPos   = new THREE.Vector3(hp.u, hp.y + 1.5, hp.v);
   const _wepRange = wep.range || 80;
 
-  // Raycast from the camera against all solid scene objects (excludes hero + in-flight bullets)
-  const _bulletSet  = new Set(bullets3D.map(b => b.mesh));
-  const _aimTargets = scene.children.filter(obj => obj !== heroGroup && !_bulletSet.has(obj));
-  const _aimRay     = new THREE.Raycaster(camera.position.clone(), _aimDir, 0.1, _wepRange);
-  const _aimHits    = _aimRay.intersectObjects(_aimTargets, true);
+  // Raycast from the camera against solid Mesh objects only.
+  // scene.children includes Sprites (damage numbers), Lights, Points — raycasting Sprites
+  // without raycaster.camera set crashes with "Cannot read properties of null". We solve
+  // this by traversing the scene collecting ONLY isMesh objects, excluding:
+  //   • heroGroup descendants (body, arms, back-gun) — camera passes through them in 3rd-person
+  //   • camera descendants (_fpGunGroup) — FP gun is right in front of camera, would be hit first
+  //   • in-flight bullets — don't block your own shots
+  const _bulletSet = new Set(bullets3D.map(b => b.mesh));
+  const _aimTargets = [];
+  scene.traverse(obj => {
+    if (!obj.isMesh) return;
+    let _p = obj.parent;
+    while (_p) {
+      if (_p === heroGroup || _p === camera) return; // skip hero body + FP gun
+      _p = _p.parent;
+    }
+    if (!_bulletSet.has(obj)) _aimTargets.push(obj);
+  });
+  const _aimRay  = new THREE.Raycaster(camera.position.clone(), _aimDir, 0.1, _wepRange);
+  const _aimHits = _aimRay.intersectObjects(_aimTargets, false); // flat list, already traversed
 
   // aimPoint: first solid surface the reticle is over, or max-range fallback
   const _aimPt = _aimHits.length > 0
@@ -6146,7 +6161,9 @@ function tick() {
     const _breathMul = _breathHoldT < 1.5
       ? (_holdingBreath ? 0.05 + (_breathHoldT / 1.5) * 0.05 : 1.0)
       : 1.0 + (_breathHoldT - 1.5) * 2.2;
-    const _swayMul = (crouching ? 0.25 : 1.0) * _breathMul;
+    // iter 423: crouching const is declared later in tick() — TDZ crash. Inline the check.
+    const _isCrouching = !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen;
+    const _swayMul = (_isCrouching ? 0.25 : 1.0) * _breathMul;
     const _swayPitch = Math.sin(_scopeSwayT * 0.9) * 0.0015 * _swayMul;
     const _swayYaw   = Math.sin(_scopeSwayT * 0.6 + 1.2) * 0.0012 * _swayMul;
     camPitch += _swayPitch;
