@@ -1026,6 +1026,7 @@ import { createWeaponSystem } from "./src/systems/ecs_weapon.js";
 import { createScoreSystem } from "./src/systems/ecs_score.js";
 import { createAIMovementSystem } from "./src/systems/ecs_ai_movement.js";
 import { createInventorySystem, invAdd, invRemove, invCount, invHas } from "./src/systems/ecs_inventory.js";
+import { createStaminaSystem } from "./src/systems/ecs_stamina.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10127,6 +10128,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     window.Engine.invRemove = invRemove;
     window.Engine.invCount  = invCount;
     window.Engine.invHas    = invHas;
+
+    // Wire stamina system — priority 18 (after weapon:8, ai:12, status:15, before regen:35)
+    const _ecsStamina = createStaminaSystem();
+    Core.addSystem(_ecsStamina, 18, "stamina");
+    window.Engine.staminaSystem = _ecsStamina;
 
     // Wire regen system — priority 35 (after perk at 30)
     Core.addSystem(regenSystem, 35, "regen");
