@@ -24,7 +24,7 @@
 - [x] B4. Extract Minimap → src/ui/minimap.js
 - [x] B5. Extract High score → src/progression/high_score.js
 - [x] B6. Wire Save/Load → src/systems/save_load.js
-- [ ] B7. Extract particles → src/render/particle_system.js
+- [x] B7. Extract particles → src/render/vfx.js (note: particle_system.js already existed for InstancedMesh; vfx.js holds inline sphere/casing/damage-num/shockwave/muzzle-flash effects)
 - [ ] B8. Wire Multiplayer IIFE → src/social/multiplayer.js
 
 ## Phase 3 — Structural wiring

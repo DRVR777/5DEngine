@@ -1019,6 +1019,10 @@ import Sfx from "./src/audio/sfx.js";
 import Minimap from "./src/ui/minimap.js";
 import HighScore from "./src/progression/high_score.js";
 import { GameProgress } from "./src/systems/save_load.js";
+// VFX module — sphere particles, shell casings, floating damage numbers,
+// boss shockwaves, muzzle flash light. Separate from particle_system.js
+// (which uses InstancedMesh for high-count emitters like rain/smoke).
+import Vfx, { warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat } from "./src/render/vfx.js";
 // Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
 // We use .then chains (no top-level await) so the inline module also loads
 // cleanly in vm-based test sandboxes that don't support TLA.
@@ -2502,6 +2506,24 @@ addEventListener("resize", () => {
   if (composer) composer.setSize(innerWidth, innerHeight);
 });
 
+// ── VFX MODULE INIT ──────────────────────────────────────────────────────────
+// Must happen AFTER both scene and camera exist.
+// Vfx.init() allocates shared geometries (sphere, torus, cylinder), materials,
+// and the muzzle flash PointLight, then adds the light to the scene.
+// All the alias consts below replace the original inline functions that were
+// extracted into src/render/vfx.js (see extraction marker at ~line 3140).
+// "warnRingGeo / warnRingMat" are live named exports — after init() they hold
+// the actual TorusGeometry / MeshBasicMaterial for enemy grenade indicators.
+Vfx.init(THREE, scene, camera);
+const _warnRingGeo        = _vfxWarnGeo;                       // enemy grenade danger ring geometry (flat torus)
+const _warnRingMat        = _vfxWarnMat;                       // red transparent ring material
+const _spawnParticles     = Vfx.spawnParticles.bind(Vfx);      // burst of colored sphere particles
+const _ejectCasing        = Vfx.ejectCasing.bind(Vfx);         // brass cylinder shell casing physics
+const _spawnDamageNumber  = Vfx.spawnDamageNumber.bind(Vfx);   // floating "+42" world-space DOM label
+const _triggerMuzzleFlash = Vfx.triggerMuzzleFlash.bind(Vfx);  // briefly brightens PointLight at gun tip
+const _spawnShockwave     = Vfx.spawnShockwave.bind(Vfx);      // expanding boss-slam ring on ground
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Lighting: soft hemi + a key sun
 const _ambLight = new THREE.AmbientLight(0xffffff, 0.9);
 scene.add(_ambLight);
@@ -3131,174 +3153,42 @@ function _spawnWallScorch(u, y, v, nU, nV) {
   _wallScorches.push(mesh);
 }
 
-// Pooled sphere particles for muzzle flash, bullet impact, enemy death.
-const _particles   = [];
-const _pPool       = [];
-const _pGeo        = new THREE.SphereGeometry(0.06, 4, 4);
-const _pMatYellow  = new THREE.MeshBasicMaterial({ color: 0xffee00 });
-const _pMatOrange  = new THREE.MeshBasicMaterial({ color: 0xff6600 });
-const _pMatRed     = new THREE.MeshBasicMaterial({ color: 0xff2244 });
-const _pMatCyan    = new THREE.MeshBasicMaterial({ color: 0x00ccff });
-const _pMatWhite   = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const _pMatsMap    = { yellow:_pMatYellow, orange:_pMatOrange, red:_pMatRed, cyan:_pMatCyan, white:_pMatWhite };
+// ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
+// All of the following was moved to Vfx module (particles, casings, damage
+// numbers, warn ring geo, shockwaves). Aliases live at the Vfx.init() block
+// above (~line 2524). Safe to delete after confirming no regressions.
+//
+// const _particles = [], _pPool = [], _pGeo, _pMat*, _pMatsMap ...
+// const _shellGeo, _shellMat, _casings, _CASING_MAX; function _ejectCasing / _tickCasings ...
+// const _dmgNums; function _spawnDamageNumber / _tickDamageNumbers ...
+// const _warnRingGeo, _warnRingMat (now: Vfx.warnRingGeo / Vfx.warnRingMat via named export)
+// const _shockwaves, _swGeo, _swBaseMat; function _spawnShockwave / _tickShockwaves ...
+// ═════════════════════════════════════════════════════════════════════════════
 
-// Shell casings — small brass cylinders ejected sideways on shoot, gravity, bounce once, fade
-const _shellGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.065, 5);
-const _shellMat = new THREE.MeshBasicMaterial({ color: 0xccaa33 });
-const _casings = [];
-const _CASING_MAX = 40;
-function _ejectCasing(x, y, z, yaw) {
-  if (_casings.length >= _CASING_MAX) {
-    const old = _casings.shift();
-    scene.remove(old.mesh);
-  }
-  const mesh = new THREE.Mesh(_shellGeo, _shellMat.clone());
-  mesh.position.set(x, y, z);
-  scene.add(mesh);
-  const ejectAng = yaw + Math.PI * 0.5 + (Math.random() - 0.5) * 0.3;
-  _casings.push({
-    mesh,
-    vx: Math.sin(ejectAng) * (2 + Math.random()),
-    vy: 2.5 + Math.random() * 1.5,
-    vz: Math.cos(ejectAng) * (2 + Math.random()),
-    life: 1.8, bounced: false,
-  });
-}
-function _tickCasings(dt) {
-  for (let i = _casings.length - 1; i >= 0; i--) {
-    const c = _casings[i];
-    c.life -= dt;
-    if (c.life <= 0) { scene.remove(c.mesh); _casings.splice(i, 1); continue; }
-    c.vy -= 9.8 * dt;
-    c.mesh.position.x += c.vx * dt;
-    c.mesh.position.y += c.vy * dt;
-    c.mesh.position.z += c.vz * dt;
-    c.mesh.rotation.z += dt * 18;
-    if (!c.bounced && c.mesh.position.y <= 0.03) {
-      c.mesh.position.y = 0.03;
-      c.vy = Math.abs(c.vy) * 0.35;
-      c.vx *= 0.6; c.vz *= 0.6;
-      c.bounced = true;
-    }
-    c.mesh.material.opacity = Math.min(1, c.life / 0.4);
-    c.mesh.material.transparent = c.life < 0.4;
-  }
-}
-
-// Floating damage numbers — project 3D world pos to screen, rise and fade
-const _dmgNums = [];
-function _spawnDamageNumber(worldX, worldY, worldZ, text, color) {
-  const layer = document.getElementById("dmgNumLayer");
-  if (!layer) return;
-  const el = document.createElement("div");
-  el.textContent = text;
-  el.style.cssText = `position:absolute;font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-weight:bold;font-size:14px;color:${color};text-shadow:0 1px 3px #000a;pointer-events:none;user-select:none;white-space:nowrap;`;
-  layer.appendChild(el);
-  _dmgNums.push({ el, wx: worldX, wy: worldY, wz: worldZ, riseY: 0, life: 1.0 });
-}
-function _tickDamageNumbers(dt) {
-  for (let i = _dmgNums.length - 1; i >= 0; i--) {
-    const n = _dmgNums[i];
-    n.life -= dt * 1.4;
-    n.riseY += dt * 2.0;
-    if (n.life <= 0) { n.el.remove(); _dmgNums.splice(i, 1); continue; }
-    // Project to screen
-    const v = new THREE.Vector3(n.wx, n.wy + n.riseY, n.wz);
-    v.project(camera);
-    if (v.z > 1) { n.el.style.display = "none"; continue; }
-    const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
-    const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
-    n.el.style.left = sx + "px";
-    n.el.style.top  = sy + "px";
-    n.el.style.opacity = Math.max(0, n.life).toFixed(2);
-    n.el.style.display = "block";
-  }
-}
-
-// Enemy grenade danger warning ring — pulsing red circle on ground
-const _warnRingGeo = new THREE.TorusGeometry(3.2, 0.09, 6, 36);
-const _warnRingMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.75, depthWrite: false });
-_warnRingGeo.rotateX(Math.PI / 2); // lay flat on ground
-
-// Boss slam shockwave rings — expanding torus on ground, fades over 0.55s
-const _shockwaves = [];
-const _swGeo = new THREE.TorusGeometry(1, 0.07, 6, 40);
-const _swBaseMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.85, depthWrite: false });
-function _spawnShockwave(u, v) {
-  const mesh = new THREE.Mesh(_swGeo, _swBaseMat.clone());
-  mesh.rotation.x = Math.PI / 2;
-  mesh.position.set(u, 0.08, v);
-  scene.add(mesh);
-  _shockwaves.push({ mesh, maxR: 5, t: 0, dur: 0.55 });
-}
-function _tickShockwaves(dt) {
-  for (let i = _shockwaves.length - 1; i >= 0; i--) {
-    const sw = _shockwaves[i];
-    sw.t += dt;
-    const pct = Math.min(1, sw.t / sw.dur);
-    if (pct >= 1) { scene.remove(sw.mesh); _shockwaves.splice(i, 1); continue; }
-    sw.mesh.scale.setScalar(sw.maxR * pct);
-    sw.mesh.material.opacity = 0.85 * (1 - pct);
-  }
-}
-
-// Muzzle flash point light — moves to gun tip on each shot, fades in 60ms
-const _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8);
-scene.add(_muzzleLight);
-let _muzzleLightT = 0;
+// ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
+// Muzzle flash PointLight + _triggerMuzzleFlash are now owned by Vfx module.
+// _triggerMuzzleFlash alias is set at Vfx.init() block (~line 2524).
+// const _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8); scene.add(_muzzleLight);
+// let _muzzleLightT = 0;
+// function _triggerMuzzleFlash(x, y, z) { _muzzleLight.position.set(x, y, z); ... }
+// ═════════════════════════════════════════════════════════════════════════════
 
 // Player flashlight — SpotLight that tracks camera, toggled with F key
+// (NOT part of Vfx module — stays here because it's player-controlled, not combat VFX)
 const _flashLight = new THREE.SpotLight(0xfff8e0, 0, 22, 0.22, 0.55, 1.6);
 const _flashTarget = new THREE.Object3D();
 scene.add(_flashLight); scene.add(_flashTarget);
 _flashLight.target = _flashTarget;
 let _flashlightOn = false;
-function _triggerMuzzleFlash(x, y, z) {
-  _muzzleLight.position.set(x, y, z);
-  _muzzleLight.intensity = 4;
-  _muzzleLightT = 0.06;
-}
 
-function _spawnParticles(x, y, z, count, colorKey, speed, lifetime) {
-  const mat = _pMatsMap[colorKey] || _pMatYellow;
-  for (let i = 0; i < count; i++) {
-    const mesh = _pPool.length ? _pPool.pop() : new THREE.Mesh(_pGeo, mat);
-    mesh.material = mat;
-    mesh.position.set(x, y, z);
-    mesh.scale.setScalar(1);
-    mesh.visible = true;
-    scene.add(mesh);
-    const theta = Math.random() * Math.PI * 2;
-    const phi   = Math.acos(2 * Math.random() - 1);
-    const spd   = speed * (0.4 + Math.random() * 0.6);
-    _particles.push({
-      mesh,
-      vx: Math.sin(phi) * Math.cos(theta) * spd,
-      vy: (Math.random() * 0.5 + 0.5) * spd,
-      vz: Math.sin(phi) * Math.sin(theta) * spd,
-      life: lifetime, maxLife: lifetime,
-    });
-  }
-}
-
-function _tickParticles(dt) {
-  for (let i = _particles.length - 1; i >= 0; i--) {
-    const p = _particles[i];
-    p.life -= dt;
-    if (p.life <= 0) {
-      scene.remove(p.mesh);
-      _pPool.push(p.mesh);
-      _particles.splice(i, 1);
-      continue;
-    }
-    p.vx *= 0.88; p.vz *= 0.88;
-    p.vy -= 22 * dt;
-    p.mesh.position.x += p.vx * dt;
-    p.mesh.position.y += p.vy * dt;
-    p.mesh.position.z += p.vz * dt;
-    p.mesh.scale.setScalar(p.life / p.maxLife);
-  }
-}
+// ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
+// _spawnParticles and _tickParticles moved to Vfx module.
+// _spawnParticles alias set at Vfx.init() block (~line 2524).
+// _tickParticles is now called internally by Vfx.tick(dt) — no external tick needed.
+//
+// function _spawnParticles(x, y, z, count, colorKey, speed, lifetime) { ... }
+// function _tickParticles(dt) { ... }
+// ═════════════════════════════════════════════════════════════════════════════
 
 // ---- Hero animation system (AnimationMixer) --------------------------------
 // heroMixer is null until a GLB is dropped. When a GLB is loaded it replaces
@@ -6349,18 +6239,15 @@ function tick() {
     mesh.rotation.y += dt * 1.2;
   }
 
-  // Tick particles + damage numbers
-  _tickParticles(dt);
-  _tickDamageNumbers(dt);
-  _tickCasings(dt);
-  _tickShockwaves(dt);
+  // Tick all VFX subsystems in one call:
+  //   • sphere particle pool (bullet impacts, death bursts, muzzle sparks)
+  //   • floating damage numbers (world→screen projection + rise + fade)
+  //   • shell casings (physics: gravity + bounce + fade)
+  //   • boss shockwave rings (expanding torus + opacity ramp)
+  //   • muzzle flash PointLight decay (60ms fade from intensity 4 → 0)
+  Vfx.tick(dt);
+  // High-count instanced particle emitters (rain, smoke) — separate module
   if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
-  // Muzzle flash light decay
-  if (_muzzleLightT > 0) {
-    _muzzleLightT -= dt;
-    _muzzleLight.intensity = Math.max(0, (_muzzleLightT / 0.06) * 4);
-    if (_muzzleLightT <= 0) _muzzleLight.intensity = 0;
-  }
   // Flashlight — track camera position and forward direction each frame
   if (_flashlightOn) {
     _flashLight.position.copy(camera.position);
