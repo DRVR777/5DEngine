@@ -1036,6 +1036,7 @@ import { createEnrageSystem } from "./src/systems/ecs_enrage.js";
 import { createBossSlamSystem } from "./src/systems/ecs_boss_slam.js";
 import { createFastChargeSystem } from "./src/systems/ecs_fast_charge.js";
 import { createRobotEmpSystem } from "./src/systems/ecs_robot_emp.js";
+import { createHeavyThrowSystem } from "./src/systems/ecs_heavy_throw.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10148,6 +10149,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsRobotEmp = createRobotEmpSystem();
     Core.addSystem(_ecsRobotEmp, 15, "robot_emp");
     window.Engine.robotEmpSystem = _ecsRobotEmp;
+
+    // Wire heavy throw system — priority 13 (after ai_movement:12; emits grenade:throw)
+    const _ecsHeavyThrow = createHeavyThrowSystem();
+    Core.addSystem(_ecsHeavyThrow, 13, "heavy_throw");
+    window.Engine.heavyThrowSystem = _ecsHeavyThrow;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
