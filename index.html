@@ -1058,6 +1058,7 @@ import { createMineSystem } from "./src/systems/ecs_mine.js";
 import { createTurretSystem } from "./src/systems/ecs_turret.js";
 import { createFirePatchSystem } from "./src/systems/ecs_fire_patch.js";
 import { createPoisonPuddleSystem } from "./src/systems/ecs_poison_puddle.js";
+import { createCoinDropSystem } from "./src/systems/ecs_coin_drop.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10294,6 +10295,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     _ecsPoisonPuddle.wireListeners(Core);
     Core.addSystem(_ecsPoisonPuddle, 11, "poison_puddle");
     window.Engine.poisonPuddleSystem = _ecsPoisonPuddle;
+
+    // Wire coin drop system — priority 6 (after inventory:5, before combat)
+    const _ecsCoinDrop = createCoinDropSystem();
+    _ecsCoinDrop.wireListeners(Core);
+    Core.addSystem(_ecsCoinDrop, 6, "coin_drop");
+    window.Engine.coinDropSystem = _ecsCoinDrop;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
