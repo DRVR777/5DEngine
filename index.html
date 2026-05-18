@@ -373,6 +373,16 @@ let _perkRegenBonus = 0;    // hp/s bonus stacked onto regen rate
 let _perkSpeedBonus = 0;    // m/s added to sprint speed
 let _perkTimerInt   = null;  // interval id for countdown display
 const _activePerkLabels = []; // {label, color} of applied perks this session
+// EXTRACT-PLAN iter 520: perk_system.js → src/systems/perk_system.js
+// Export mountPerkSystem({ showToast, playSfx, addKillFeedEntry, heroInv, getWeapon,
+//   get: { grenadeCount, smokeGrenadeCount, heroHp, heroArmor, stamina, perkDmgMul,
+//          perkReloadMul, perkMaxHpBonus, perkLifesteal, perkRegenBonus, perkSpeedBonus },
+//   set: { ... }, Inv })
+// Returns: { showPerkPicker, refreshPerkHud, applyPerk, PERKS, activePerkLabels,
+//            perkDmgMul getter, perkReloadMul getter, perkLifesteal getter, etc. }
+// Deps defined here: _PERKS, _showPerkPicker, _refreshPerkHud, _applyPerk,
+//   _perkDmgMul, _perkReloadMul, _perkMaxHpBonus, _perkLifesteal, _perkRegenBonus,
+//   _perkSpeedBonus, _perkTimerInt, _activePerkLabels
 const _PERKS = [
   { id:"dmg",      label:"Power Shot",   desc:"+15% weapon damage",          color:"#ff8844", apply:() => { _perkDmgMul *= 1.15; } },
   { id:"speed",    label:"Sprinter",     desc:"+1 m/s sprint speed",          color:"#44ffcc", apply:() => { _perkSpeedBonus += 1; } },
@@ -440,6 +450,11 @@ function _applyPerk(perk, waveNum) {
   if (canvas && canvas.requestPointerLock) setTimeout(() => { try { canvas.requestPointerLock(); } catch(_e) {} }, 250);
 }
 const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
+// EXTRACT-PLAN iter 521: kill_tracking.js → src/systems/kill_tracking.js
+// _COIN_BY_TYPE, _trackKillAndPanic — pair with perk_system (lifesteal is here)
+// Deps: enemies, world, heroHp, HERO_MAX_HP, _perkMaxHpBonus, _perkLifesteal,
+//   _recentKillPos, _panicBroadcastT, _addKillFeedEntry, showToast, playSfx,
+//   _spawnDamageNumber
 function _trackKillAndPanic(killU, killV) {
   const t = performance.now() / 1000;
   if (_perkLifesteal && !_heroDead) {
@@ -483,6 +498,10 @@ const computerEntity = Object.assign(
   (WD.entities && WD.entities.computer) || { id: "pc1", u: -4, v: 4 }
 );
 
+// EXTRACT-PLAN iter 522: spawn_system.js → src/systems/spawn_system.js
+// Export mountSpawnSystem({ THREE, scene, buildingBlockers })
+// Returns: { addSpawnPoint, getSpawnPoint, spawnClearPos, spawnPoints, spawnMeshes }
+// Replaces: _addSpawnPoint, _getSpawnPoint, _spawnClearPos, _spawnPoints, _spawnMeshes
 // ---- Spawn points (N key in build mode places a respawn marker) ----
 const _spawnPoints = [{ u: 0, v: 0, label: "origin" }];  // always at least origin
 let _spawnMeshes = [];
@@ -530,6 +549,11 @@ let _heroDead = false;
 let _deathCountdownT = 0;
 const RESPAWN_DELAY = 5; // seconds
 
+// EXTRACT-PLAN iter 523: hero_lifecycle.js → src/systems/hero_lifecycle.js
+// Export mountHeroLifecycle({ get, set, world, actions })
+// Covers: _heroShowDeathScreen, _heroRespawn, _deathCountdownT, RESPAWN_DELAY
+// Deps: WaveManager, HighScore, _checkHighScore, enemyKills, score, world,
+//   playSfx, renderer, EventBus — all via get/set/actions
 function _heroShowDeathScreen() {
   _heroDead = true;
   _grenadePressT = 0;
@@ -596,6 +620,11 @@ function _heroRespawn() {
   });
 })();
 
+// EXTRACT-PLAN iter 524: game_reset.js → src/systems/game_reset.js
+// Export mountGameReset({ get, set, scene, world, actions })
+// resetGameState clears enemies/projectiles/mines/turrets/grenades, resets all state,
+// restarts WaveManager. Big dep list — inject via get/set/actions like keydown handler.
+// _turrets and _mines now live in gadget_system module — need gadget.clearAll() method.
 // ── resetGameState() ─────────────────────────────────────────────────────────
 // Full game reset: clears all active entities, resets stats, re-starts waves.
 // Called by: Play Again button, future game-mode-select screen, dev console.
@@ -673,6 +702,11 @@ const ARMOR_ABSORB   = 0.6; // fraction of hit taken from armor instead of HP
 window.Engine = window.Engine || {};
 window.Engine.debug = window.Engine.debug || { godMode: false, noclip: false };
 
+// EXTRACT-PLAN iter 525: dev_console.js → src/systems/dev_console.js
+// Self-contained IIFE (~200 lines). Export as mountDevConsole({ get, set, actions })
+// Commands include: heal, god, noclip, wave, spawn, tp, fps, restart, etc.
+// Key dep: direct access to many game state vars — wrap in get/set/actions.
+// Note: the backtick key toggle is registered inside the IIFE.
 // ---- Dev console (` key) ----
 (function() {
   const _con = document.getElementById("devConsole");
@@ -3519,6 +3553,12 @@ function _getAimAngle() {
   return h > 0.001 ? Math.atan2(d.x, d.z) : camYaw;
 }
 
+// EXTRACT-PLAN iter 526: shoot_system.js → src/combat/shoot_system.js
+// Export mountShootSystem({ THREE, scene, camera, renderer, world, enemies, bullets3D,
+//   get, set, actions })
+// Covers: _tryShoot (~135 lines) + _tryDroneShoot (~80 lines)
+// Big dep list: camYaw, camPitch, weaponAmmo, currentWeaponId, CFG.weapons,
+//   heroArmor, buildMode, computerOpen, _heroDead, pointerLocked, reloading, etc.
 function _tryShoot() {
   if (_shop.isOpen) return;
   if (_reloading) {
@@ -3751,6 +3791,17 @@ const FIXED_DT   = 1 / 60;  // 60 Hz physics tick
 let _physicsAcc  = 0;        // leftover time from last frame
 // ─────────────────────────────────────────────────────────────────────────────
 
+// EXTRACT-PLAN: tick() (~2900 lines) — extract in subsections:
+//   iter 527: enemy_ai_tick.js → src/entities/enemy_ai_tick.js (lines ~4756-5569)
+//     the main AI loop: BT, knockback, alerts, ranged attacks, movement
+//   iter 528: bullet_physics.js → src/systems/bullet_physics.js (lines ~4290-4560)
+//     hero bullet travel, hit detection, kill processing
+//   iter 529: hud_tick.js → src/ui/hud_tick.js (lines ~5570-6657)
+//     all HUD state updates (health bar, wave HUD, crosshair, blind effect, etc.)
+//   iter 530: vehicle_physics.js → src/vehicles/vehicle_physics.js (lines ~4050-4160)
+//     drone + ground vehicle physics (already have src/vehicles/ dir)
+//   iter 531: hero_physics.js → src/systems/hero_physics.js (lines ~3757-4050)
+//     hero movement, stamina, jump, gravity, sprint slide
 function tick() {
   const now = performance.now();
   const rawDt = Math.min(0.05, (now - lastT) / 1000);  // cap at 50ms (20fps min)
@@ -4052,6 +4103,7 @@ function tick() {
     const vSt  = vehicleStates.get(activeVehicleId);
 
     if (vDef && vDef.type === "drone") {
+// EXTRACT-PLAN see iter 530 note above — drone physics block starts here
       // ---- Drone flight physics (WASD=horizontal, Space=up, C=down) ----
       if (vSt.altY == null) vSt.altY = 0;
       const DRONE_H = 15, DRONE_V = 7;
@@ -4073,6 +4125,7 @@ function tick() {
         Object.assign(carState, vSt);
       }
     } else {
+// EXTRACT-PLAN see iter 530 note above — ground vehicle physics starts here
       // ---- Ground vehicle physics ----
       const throttle  = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
       // BUG FIX iter 418: A/D were inverted. Three.js rotation.y is counter-clockwise
@@ -4287,6 +4340,7 @@ function tick() {
     }
   }
 
+// EXTRACT-PLAN see iter 528 note above — bullet physics loop starts here
   // Tick bullets (substep dt to avoid tunneling past enemy)
   pistolCooldown = Math.max(0, pistolCooldown - dt);
   const substeps = 5;
@@ -4753,6 +4807,7 @@ function tick() {
     }
   }
 
+// EXTRACT-PLAN see iter 527 note above — enemy AI loop starts here (~800 lines)
   // Drive all enemy AI via BehaviorTree (patrol→chase→attack)
   // In peaceful mode enemies are static decorations — skip AI entirely.
   const _heroNowAI = world.players.get("hero");
@@ -5566,6 +5621,7 @@ function tick() {
 
   // Ambient soundscape disabled — oscillator hum removed per user request
 
+// EXTRACT-PLAN see iter 529 note above — HUD + render block starts here
   // --- render ---
   // Vehicle renders — one group per definition
   for (const vDef of VEHICLE_DEFS) {
@@ -6662,6 +6718,8 @@ setTimeout(function _firstLaunchGameModes() {
 const _checkHighScore = HighScore.check;
 // _bestRecord accessed via HighScore.get() at the two call sites below
 
+// EXTRACT-PLAN iter 532: save_system.js → src/systems/save_system.js
+// Covers: localStorage save/load, _loadGameState, _saveGameState
 // ---- Persistent game state (localStorage) ----
 // ═══ EXTRACTED → src/systems/save_load.js (GameProgress export) ══════════════
 // _saveGame, _loadGame, _applyGameData — wired via GameProgress.init() below
@@ -6776,6 +6834,8 @@ setTimeout(() => {
   }).catch((e) => console.warn("Assets: load threw:", e.message));
 }, 200);
 
+// EXTRACT-PLAN iter 533: app_wiring.js → src/bridges/app_wiring.js
+// Covers: OS app bindings — calculator, terminal, file manager, etc.
 // ───── Desktop OS app wiring ─────
 const APPS = buildComputerApps(() => ({
   getWeapon, pistolAmmo, Inv, heroInv, heroHealth, score, CFG,
