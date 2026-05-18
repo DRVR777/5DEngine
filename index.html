@@ -6269,6 +6269,12 @@ const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
 
 window._loadingDismissed = false;
+// Pre-allocated camera Vector3s — reused every tick via .set() to avoid GC pressure
+const _camTarget    = new THREE.Vector3();
+const _camOff       = new THREE.Vector3();
+const _camLook      = new THREE.Vector3();
+const _camAimTarget = new THREE.Vector3();
+const _camBuildLook = new THREE.Vector3();
 function tick() {
   const now = performance.now();
   let dt  = Math.min(0.05, (now - lastT) / 1000);
@@ -8234,7 +8240,8 @@ function tick() {
     _fpGunGroup.rotation.set(_rdAmt * 0.42 + _gunReloadX * 0.05, _rdAmt * -0.22, _meleeSwing * 0.9);
   }
   const _eyeH = firstPerson ? (1.78 - _crouchAmt * 0.75) : (1.2 - _crouchAmt * 0.4);
-  const camTarget = new THREE.Vector3(heroPos.x, heroPos.y + _eyeH, heroPos.z);
+  _camTarget.set(heroPos.x, heroPos.y + _eyeH, heroPos.z);
+  const camTarget = _camTarget;
   // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
   const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
   const sx = Math.cos(camYaw), sz = -Math.sin(camYaw);   // right vector
@@ -8242,11 +8249,12 @@ function tick() {
   if (buildMode) {
     // Freecam — camera floats independently so you can inspect the character
     camera.position.copy(freeCamPos);
-    camera.lookAt(new THREE.Vector3(
+    _camBuildLook.set(
       freeCamPos.x + Math.sin(freeCamYaw) * Math.cos(freeCamPitch) * 10,
       freeCamPos.y + Math.sin(freeCamPitch) * 10,
       freeCamPos.z + Math.cos(freeCamYaw) * Math.cos(freeCamPitch) * 10
-    ));
+    );
+    camera.lookAt(_camBuildLook);
   } else if (firstPerson) {
     // FP CAMERA — locked to hero head. Pitch ONLY changes look direction,
     // NEVER the camera position (fixes the "height drifts as you pitch"
@@ -8254,34 +8262,34 @@ function tick() {
     const _fpBobScale = aiming ? 0.15 : 1;
     const _fpBobY = Math.sin(_gunBobPhase) * (canSprint ? 0.028 : 0.014) * _fpBobScale;
     camera.position.set(heroPos.x, heroPos.y + (1.78 - _crouchAmt * 0.75) + _fpBobY, heroPos.z);
-    const look = camera.position.clone().add(new THREE.Vector3(
+    _camLook.set(
       fx * Math.cos(camPitch),
-      Math.sin(camPitch),     // mouse-down (pitch ↓) → look y ↓ → look DOWN
+      Math.sin(camPitch),
       fz * Math.cos(camPitch)
-    ).multiplyScalar(10));
-    camera.lookAt(look);
+    ).multiplyScalar(10).add(camera.position);
+    camera.lookAt(_camLook);
     if (!buildMode) camera.rotateZ(-_strafeRollAmt * 0.025);
   } else {
     // 3rd-person orbit. Camera position offsets behind + beside hero.
     // lookAt targets a point ~18m FORWARD along hero heading so the crosshair
     // points where the hero shoots (not at the hero's back).
     const sideAmt = Math.min(2.2, dist * 0.38) * camSide;
-    const camOff = new THREE.Vector3(
+    _camOff.set(
       -fx * Math.cos(camPitch) * dist + sx * sideAmt,
        Math.sin(-camPitch) * dist + 1.2,
       -fz * Math.cos(camPitch) * dist + sz * sideAmt
     );
-    camera.position.copy(camTarget.clone().add(camOff));
+    camera.position.copy(_camTarget).add(_camOff);
     // Look at a point ahead of the hero along the current yaw + pitch
     const aimDist = 18;
     // aimTarget: full sideAmt so pressing L actually shifts the forward
     // aim point with the camera instead of just rotating toward the hero.
-    const aimTarget = new THREE.Vector3(
+    _camAimTarget.set(
       heroPos.x + fx * aimDist * Math.cos(camPitch) + sx * sideAmt,
       heroPos.y + 1.2 + Math.sin(camPitch) * aimDist,
       heroPos.z + fz * aimDist * Math.cos(camPitch) + sz * sideAmt
     );
-    camera.lookAt(aimTarget);
+    camera.lookAt(_camAimTarget);
   }
   // Camera shake — random positional offset, fast exponential decay
   if (_camShakeAmt > 0.005) {
