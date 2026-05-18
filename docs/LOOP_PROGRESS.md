@@ -52,3 +52,14 @@ Next: FUTURE_FEATURES.md — F1 game mode select, F2 LAN probe, F3 collab world 
 
 ## ✓ FUTURE_FEATURES LOOP COMPLETE — iter 413 (2026-05-17)
 F1-F4 all implemented. Continuing: build forever.
+
+## Phase 6 — Peer Installer + Test Suite
+
+- [x] P1. setup_peer.py — 4-step installer (Python pkgs, Node.js, PostgreSQL 16, smoke test); handles winget, PATH detection, DB creation + schema.sql; works as plain script or compiled EXE
+- [x] P2. build_exe.bat — PyInstaller one-file build → dist/5DEngine-Setup.exe
+- [x] P3. tests/test_server_api.py — pytest for all game_server.py Flask REST endpoints (/api/status, /scan, /api/friend_request, /api/friend_accept, /api/friends, static serving)
+- [x] P4. tests/test_websocket.py — pytest for socket.io WebSocket events (connect/welcome, player joined/left, mp_name relay, mp_pos relay with sender ID, mp_event relay, friend_request broadcast)
+- [x] P5. tests/test_db.py — pytest for PostgreSQL schema integrity + CRUD (sessions, scenes, quest_progress) + server.js Node API (/api/ping, sessions, scenes, quest-progress); auto-skips if PG/Node not running
+- [x] P6. tests/run_tests.bat — Windows batch runner for all three suites with pass/fail summary
+
+## ✓ PEER INSTALLER + TEST SUITE COMPLETE — iter 416 (2026-05-17)
