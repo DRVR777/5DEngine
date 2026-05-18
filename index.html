@@ -5512,6 +5512,7 @@ addEventListener("keydown", (e) => {
     if (!inCar && nearestVeh && nearestDist < VDIST) {
       inCar = true; activeVehicleId = nearestVeh.id;
       _activeVehicleDef = VEHICLE_DEFS.find(v => v.id === nearestVeh.id) || null;
+      _platformsDirty = true;
     } else if (inCar && activeVehicleId) {
       inCar = false;
       const vst = vehicleStates.get(activeVehicleId);
@@ -5524,6 +5525,7 @@ addEventListener("keydown", (e) => {
       }
       activeVehicleId = null;
       _activeVehicleDef = null;
+      _platformsDirty = true;
     }
   }
 });
@@ -6273,6 +6275,9 @@ const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
 
 window._loadingDismissed = false;
+// Platform cache — rebuilt only when vehicles move; saves O(V) array build every tick
+let _platformCache = [];
+let _platformsDirty = true;
 // Pre-allocated camera Vector3s — reused every tick via .set() to avoid GC pressure
 const _camTarget    = new THREE.Vector3();
 const _camOff       = new THREE.Vector3();
@@ -6586,6 +6591,7 @@ function tick() {
       Object.assign(carState, vSt);
       const cp = world.players.get(activeVehicleId);
       world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
+      if (vSt.speed > 0.01) _platformsDirty = true;
     }
   } else {
     // All parked vehicles become dynamic blockers.
@@ -7969,18 +7975,22 @@ function tick() {
   // gets clamped to the highest platform whose XZ footprint contains
   // them (otherwise: ground at y=0). Inspired by Dreamworld §5.2.1.
   // Each platform: { u, v, w, d, topY, label }.
-  // Platforms — one hood + roof pair per vehicle, generated from VEHICLE_DEFS
-  const platforms = [];
-  for (const vDef of VEHICLE_DEFS) {
-    const vp = world.players.get(vDef.id);
-    if (!vp) continue;
-    const vw = (vDef.hitbox && vDef.hitbox.w) || 2;
-    const vd = (vDef.hitbox && vDef.hitbox.d) || 4;
-    platforms.push(
-      { u: vp.u, v: vp.v - vd * 0.2, w: vw * 0.8, d: vd * 0.5, topY: 0.9, label: vDef.id + "_hood" },
-      { u: vp.u, v: vp.v + vd * 0.1, w: vw * 0.9, d: vd * 0.4, topY: 1.4, label: vDef.id + "_roof" }
-    );
+  // Platforms — rebuilt only when dirty (vehicle entered/exited/moved)
+  if (_platformsDirty) {
+    _platformCache = [];
+    for (const vDef of VEHICLE_DEFS) {
+      const vp = world.players.get(vDef.id);
+      if (!vp) continue;
+      const vw = (vDef.hitbox && vDef.hitbox.w) || 2;
+      const vd = (vDef.hitbox && vDef.hitbox.d) || 4;
+      _platformCache.push(
+        { u: vp.u, v: vp.v - vd * 0.2, w: vw * 0.8, d: vd * 0.5, topY: 0.9, label: vDef.id + "_hood" },
+        { u: vp.u, v: vp.v + vd * 0.1, w: vw * 0.9, d: vd * 0.4, topY: 1.4, label: vDef.id + "_roof" }
+      );
+    }
+    _platformsDirty = false;
   }
+  const platforms = _platformCache;
   function _platformUnder(u, v, currentY) {
     // Return highest top whose XZ contains (u,v) AND whose top is at or below currentY.
     // The "at or below" condition prevents teleporting up through a ceiling.
