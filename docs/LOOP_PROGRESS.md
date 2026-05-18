@@ -20,7 +20,7 @@
 ## Phase 2 — Modular extractions
 - [x] B1. Extract Rain → src/world/rain.js
 - [x] B2. Extract Toast + Kill feed → src/ui/hud_notifications.js
-- [ ] B3. Extract playSfx + _setAmbient → src/audio/sfx.js
+- [x] B3. Extract playSfx + _setAmbient → src/audio/sfx.js
 - [ ] B4. Extract Minimap → src/ui/minimap.js
 - [ ] B5. Extract High score → src/progression/high_score.js
 - [ ] B6. Wire Save/Load → src/systems/save_load.js

@@ -1015,6 +1015,7 @@ import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
 const _addKillFeedEntry = Notifications.addKillFeedEntry;
+import Sfx from "./src/audio/sfx.js";
 // Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
 // We use .then chains (no top-level await) so the inline module also loads
 // cleanly in vm-based test sandboxes that don't support TLA.
@@ -4669,39 +4670,19 @@ const _shSearchEl = document.getElementById("shSearch");
 if (_shSearchEl) _shSearchEl.addEventListener("input", () => { if (worldBuilder) _renderSceneHierarchy(); });
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
-// Single shared mixer drives all in-world sound — bus speakers, gunshots,
-// click feedback. WebAudio context auto-resumes on first user gesture.
 let audioMixer = null;
 if (window.GTAAudio && window.WebAudioAdapter) {
   const adapter = window.WebAudioAdapter.createWebAudioAdapter();
   audioMixer = window.GTAAudio.createMixer({ adapter });
 }
-function playSfx(src, vol) {
-  if (!audioMixer) return;
-  audioMixer.play({ src: src, route: "sfx", volume: vol != null ? vol : 0.4 });
-}
-
-// Ambient loop nodes — persistent oscillator-based drones that cross-fade
-const _ambCtx = window.AudioContext || window.webkitAudioContext
-  ? new (window.AudioContext || window.webkitAudioContext)() : null;
-const _ambNodes = {};
-function _setAmbient(id, freq, type, targetVol, fadeSecs) {
-  if (!_ambCtx) return;
-  if (_ambCtx.state === "suspended") _ambCtx.resume();
-  if (!_ambNodes[id]) {
-    const osc = _ambCtx.createOscillator();
-    const gain = _ambCtx.createGain();
-    osc.type = type || "sine";
-    osc.frequency.value = freq;
-    gain.gain.value = 0;
-    osc.connect(gain);
-    gain.connect(_ambCtx.destination);
-    osc.start();
-    _ambNodes[id] = { osc, gain };
-  }
-  _ambNodes[id].osc.frequency.setTargetAtTime(freq, _ambCtx.currentTime, 0.3);
-  _ambNodes[id].gain.gain.setTargetAtTime(targetVol, _ambCtx.currentTime, fadeSecs || 1.5);
-}
+Sfx.init(audioMixer);
+// ═══ EXTRACTED → src/audio/sfx.js ════════════════════════════════════════════
+// function playSfx(src, vol) { ... }
+// const _ambCtx = ...; const _ambNodes = {};
+// function _setAmbient(id, freq, type, targetVol, fadeSecs) { ... }
+// ═════════════════════════════════════════════════════════════════════════════
+const playSfx = Sfx.playSfx;
+const _setAmbient = Sfx.setAmbient;
 
 // ---- in-world screen interaction (E + raycast → hit-test) ----------
 // Raycast from the camera through the screen center (crosshair) and
@@ -9042,7 +9023,7 @@ function tick() {
   // Combat-reactive ambient soundscape — updates every second
   if (!tick._ambT || now / 1000 - tick._ambT > 1.0) {
     tick._ambT = now / 1000;
-    if (_ambCtx && _ambCtx.state !== "closed") {
+    if (Sfx.isAmbientReady()) {
       // Wind drone — always present, quiet high-freq noise simulation
       _setAmbient("wind", 220, "sawtooth", 0.008, 2.5);
       // Single-pass ambient scan — count chasing + any-alive in one loop
