@@ -1,0 +1,24 @@
+{
+  "$version": 1,
+  "$type": "weapon",
+  "$id": "shotgun",
+  "$facets": {
+    "name": "Shotgun",
+    "ammoItem": "shotgun_12g",
+    "fireRate": 1.2,
+    "damage": 14,
+    "range": 20,
+    "speed": 70,
+    "magCap": 8,
+    "bulletRadius": 0.03,
+    "reloadDuration": 2800,
+    "pellets": 9,
+    "spread": 0.14,
+    "automatic": false
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../src/config/game_config.js",
+    "note": "Shotgun weapon definition."
+  }
+}

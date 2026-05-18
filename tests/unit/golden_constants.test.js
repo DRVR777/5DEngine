@@ -146,3 +146,58 @@ describe("applyPlayerDamage — monolith line 6607 parity", () => {
     expect(applyPlayerDamage(0, "pistol", "grunt", DM)).toBe(0);
   });
 });
+
+// ── Weapon atom validation ─────────────────────────────────────────────────────
+describe("data/weapons/* atoms — game_config.js parity", () => {
+  const WEAPON_IDS = ["pistol", "rifle", "shotgun", "smg", "sniper"];
+
+  for (const id of WEAPON_IDS) {
+    it(`${id}.json has holographic atom format`, () => {
+      const atom = loadAtom(`data/weapons/${id}.json`);
+      expect(atom.$version).toBe(1);
+      expect(atom.$type).toBe("weapon");
+      expect(atom.$id).toBe(id);
+      expect(atom.$facets).toBeDefined();
+      expect(atom.$refs).toBeDefined();
+      expect(atom.$meta).toBeDefined();
+    });
+  }
+
+  it("pistol: damage=20, fireRate=5, magCap=12, reloadDuration=1200", () => {
+    const f = loadAtom("data/weapons/pistol.json").$facets;
+    expect(f.damage).toBe(20);
+    expect(f.fireRate).toBe(5);
+    expect(f.magCap).toBe(12);
+    expect(f.reloadDuration).toBe(1200);
+    expect(f.ammoItem).toBe("pistol_9mm");
+  });
+
+  it("rifle: fireRate=12 (auto), damage=25, magCap=30", () => {
+    const f = loadAtom("data/weapons/rifle.json").$facets;
+    expect(f.fireRate).toBe(12);
+    expect(f.damage).toBe(25);
+    expect(f.magCap).toBe(30);
+    expect(f.automatic).toBe(true);
+  });
+
+  it("shotgun: pellets=9, spread=0.14, damage=14 per pellet", () => {
+    const f = loadAtom("data/weapons/shotgun.json").$facets;
+    expect(f.pellets).toBe(9);
+    expect(f.spread).toBe(0.14);
+    expect(f.damage).toBe(14);
+  });
+
+  it("sniper: damage=95 (highest), fireRate=0.7 (slowest), range=200", () => {
+    const f = loadAtom("data/weapons/sniper.json").$facets;
+    expect(f.damage).toBe(95);
+    expect(f.fireRate).toBe(0.7);
+    expect(f.range).toBe(200);
+    expect(f.magCap).toBe(5);
+  });
+
+  it("weapons index.json has all 5 types", () => {
+    const atom = loadAtom("data/weapons/index.json");
+    expect(atom.$type).toBe("index");
+    expect(atom.$facets.types).toEqual(["pistol", "rifle", "shotgun", "smg", "sniper"]);
+  });
+});

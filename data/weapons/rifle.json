@@ -1,0 +1,24 @@
+{
+  "$version": 1,
+  "$type": "weapon",
+  "$id": "rifle",
+  "$facets": {
+    "name": "Assault Rifle",
+    "ammoItem": "rifle_556",
+    "fireRate": 12,
+    "damage": 25,
+    "range": 80,
+    "speed": 160,
+    "magCap": 30,
+    "bulletRadius": 0.02,
+    "reloadDuration": 2000,
+    "pellets": 1,
+    "spread": 0.015,
+    "automatic": true
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../src/config/game_config.js",
+    "note": "Assault Rifle weapon definition."
+  }
+}

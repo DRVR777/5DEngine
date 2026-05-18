@@ -1,0 +1,24 @@
+{
+  "$version": 1,
+  "$type": "weapon",
+  "$id": "pistol",
+  "$facets": {
+    "name": "Pistol",
+    "ammoItem": "pistol_9mm",
+    "fireRate": 5,
+    "damage": 20,
+    "range": 50,
+    "speed": 120,
+    "magCap": 12,
+    "bulletRadius": 0.025,
+    "reloadDuration": 1200,
+    "pellets": 1,
+    "spread": 0,
+    "automatic": false
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../src/config/game_config.js",
+    "note": "Pistol weapon definition."
+  }
+}

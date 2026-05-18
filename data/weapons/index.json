@@ -1,0 +1,19 @@
+{
+  "$version": 1,
+  "$type": "index",
+  "$id": "weapons",
+  "$facets": {
+    "types": ["pistol", "rifle", "shotgun", "smg", "sniper"]
+  },
+  "$refs": {
+    "pistol":  { "type": "weapon", "id": "pistol" },
+    "rifle":   { "type": "weapon", "id": "rifle" },
+    "shotgun": { "type": "weapon", "id": "shotgun" },
+    "smg":     { "type": "weapon", "id": "smg" },
+    "sniper":  { "type": "weapon", "id": "sniper" }
+  },
+  "$meta": {
+    "source": "../src/config/game_config.js",
+    "note": "Index atom for all weapon types. Each weapon lives in data/weapons/<id>.json."
+  }
+}

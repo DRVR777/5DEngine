@@ -1,0 +1,24 @@
+{
+  "$version": 1,
+  "$type": "weapon",
+  "$id": "sniper",
+  "$facets": {
+    "name": "Sniper",
+    "ammoItem": "rifle_556",
+    "fireRate": 0.7,
+    "damage": 95,
+    "range": 200,
+    "speed": 250,
+    "magCap": 5,
+    "bulletRadius": 0.018,
+    "reloadDuration": 3500,
+    "pellets": 1,
+    "spread": 0,
+    "automatic": false
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../src/config/game_config.js",
+    "note": "Sniper weapon definition."
+  }
+}
