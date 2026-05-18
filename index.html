@@ -90,6 +90,7 @@ import { mountPerkSystem } from "./src/systems/perk_system.js";
 import { mountHeroLifecycle } from "./src/systems/hero_lifecycle.js";
 import { mountGameReset } from "./src/systems/game_reset.js";
 import { mountDevConsoleGame } from "./src/systems/dev_console_game.js";
+import { mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE } from "./src/systems/kill_tracking.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -367,8 +368,6 @@ let _comboCount = 0;      // kills in current combo (resets if gap > _COMBO_DECA
 let _comboLastT = 0;      // timestamp of most recent combo kill
 const _COMBO_DECAY = 3.5; // seconds without a kill to break the combo
 let _comboAnnouncedMul = 0; // last combo milestone (2/4/6/8) with audio+toast played
-let _recentKillPos = [];    // morale tracker: [{u, v, t}] of recent kills
-let _panicBroadcastT = -99; // last rout broadcast time (prevents spam)
 // Between-wave perk system
 let _perkDmgMul    = 1.0;   // stacks multiplicatively with kill-level damage
 let _perkReloadMul = 1.0;   // < 1 = faster reload
@@ -428,38 +427,27 @@ const _showPerkPicker = _perkSys.showPerkPicker;
 const _refreshPerkHud = _perkSys.refreshPerkHud;
 const _applyPerk      = _perkSys.applyPerk;
 const _activePerkLabels = _perkSys.activePerkLabels;
-const _COIN_BY_TYPE = { grunt: 1, fast: 1, poisoner: 2, incendiary: 2, heavy: 4, robot: 8, boss: 30, sniper: 3 };
-// EXTRACT-PLAN iter 521: kill_tracking.js → src/systems/kill_tracking.js
-// _COIN_BY_TYPE, _trackKillAndPanic — pair with perk_system (lifesteal is here)
-// Deps: enemies, world, heroHp, HERO_MAX_HP, _perkMaxHpBonus, _perkLifesteal,
-//   _recentKillPos, _panicBroadcastT, _addKillFeedEntry, showToast, playSfx,
-//   _spawnDamageNumber
-function _trackKillAndPanic(killU, killV) {
-  const t = performance.now() / 1000;
-  if (_perkLifesteal && !_heroDead) {
-    heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + 3);
-    _spawnDamageNumber(killU, 2.0, killV, "+3 HP", "#cc44cc");
-  }
-  _recentKillPos.push({ u: killU, v: killV, t });
-  _recentKillPos = _recentKillPos.filter(k => t - k.t < 4.0);
-  if (_recentKillPos.length >= 3 && t - _panicBroadcastT > 4.0) {
-    _panicBroadcastT = t;
-    let panicked = 0;
-    for (const en2 of enemies) {
-      if (en2.dead || en2._panicT > 0) continue;
-      const ep2 = world.players.get(en2.id);
-      if (!ep2) continue;
-      for (const k of _recentKillPos) {
-        if (Math.hypot(ep2.u - k.u, ep2.v - k.v) < 10) { en2._panicT = 3.0; panicked++; break; }
-      }
-    }
-    if (panicked > 0) {
-      _addKillFeedEntry(`⚠ ${panicked} ENEM${panicked > 1 ? "IES" : "Y"} ROUTING!`, "#ffff00");
-      showToast("Enemies routing!", "success", 1800);
-      playSfx("tone:500:120:triangle", 0.3);
-    }
-  }
-}
+// Kill tracking + COIN_BY_TYPE imported from src/systems/kill_tracking.js
+const _killTracking = mountKillTracking({
+  enemies, world,
+  get: {
+    perkLifesteal:  () => _perkLifesteal,
+    heroDead:       () => _heroDead,
+    heroHp:         () => heroHp,
+    HERO_MAX_HP:    () => HERO_MAX_HP,
+    perkMaxHpBonus: () => _perkMaxHpBonus,
+  },
+  set: {
+    heroHp: (v) => { heroHp = v; },
+  },
+  actions: {
+    spawnDamageNumber: (u, y, v, text, color) => _spawnDamageNumber(u, y, v, text, color),
+    addKillFeedEntry:  (text, color) => _addKillFeedEntry(text, color),
+    showToast:         (msg, type, dur) => showToast(msg, type, dur),
+    playSfx:           (t, v) => playSfx(t, v),
+  },
+});
+const _trackKillAndPanic = _killTracking.trackKillAndPanic;
 let hitMarkerUntil = 0;
 let _killMarkerUntil = 0, _killMarkerHs = false;
 let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
@@ -1886,7 +1874,7 @@ const _resetSys = mountGameReset({
     waveRestart:       () => { if (typeof WaveManager !== "undefined" && gameMode !== "peaceful") { WaveManager.reset(); WaveManager.start(); } },
     resetWeapon:       () => { currentWeaponId = "pistol"; pistolAmmo = (CFG.weapons.find(w => w.id === "pistol") || { magCap: 12 }).magCap; if (typeof _switchGunMesh === "function") _switchGunMesh("pistol"); },
     resetGrenades:     () => { grenadeCount = 3; smokeGrenadeCount = 2; flashbangCount = 2; _mineCount = 2; },
-    resetStats:        () => { score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0; _streakCount = 0; _lastKillT = 0; _panicBroadcastT = -99; _waveBeepLast = 0; },
+    resetStats:        () => { score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0; _streakCount = 0; _lastKillT = 0; _waveBeepLast = 0; _killTracking.resetPanic(); },
     resetLevel:        () => { _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false; },
     resetPerks:        () => { _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0; _perkSys.clearTimerAndReset(); },
     hidePerkPicker:    () => { const el = document.getElementById("perkPicker"); if (el) el.style.display = "none"; },
