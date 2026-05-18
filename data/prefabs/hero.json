@@ -1,13 +1,27 @@
 {
-  "name": "hero",
-  "_comment": "Hero entity prefab. Components are added at runtime; these are the initial values.",
-  "components": {
-    "Transform":     { "u": 0, "v": 0, "y": 0, "heading": 0 },
-    "Velocity":      { "u": 0, "v": 0, "y": 0 },
-    "Health":        { "hp": 100, "maxHp": 100, "armor": 0, "maxArmor": 75, "regen": 0.5 },
-    "PlayerControl": { "walkSpeed": 5, "sprintSpeed": 9, "jumpVel": 13 },
-    "Inventory":     { "slots": 36 },
-    "Faction":       { "id": "player" },
-    "Mesh":          { "type": "capsule", "radius": 0.35, "height": 1.8, "color": "0x00aaff" }
+  "$version": 1,
+  "$type": "prefab",
+  "$id": "hero",
+  "$facets": {
+    "prefab": {
+      "components": {
+        "Transform":     { "u": 0, "v": 0, "y": 0, "heading": 0 },
+        "Velocity":      { "u": 0, "v": 0, "y": 0 },
+        "Health":        { "hp": 100, "maxHp": 100, "armor": 0, "maxArmor": 75, "regenDelay": 5, "regenRate": 4 },
+        "PlayerControl": { "walkSpeed": 5, "sprintSpeed": 9, "jumpVel": 13, "stamina": 100 },
+        "Inventory":     { "slots": 36 },
+        "Faction":       { "id": "player" },
+        "Mesh":          { "type": "capsule", "radius": 0.35, "height": 1.8, "color": "0x00aaff" }
+      }
+    }
+  },
+  "$refs": {
+    "tuning.hero":    { "type": "tuning", "id": "hero" },
+    "tuning.physics": { "type": "tuning", "id": "physics" }
+  },
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1529-1536",
+    "note": "Component initial values read from tuning/hero.json at runtime. Mesh is procedural capsule — no OBJ asset."
   }
 }

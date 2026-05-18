@@ -20,7 +20,19 @@ Phases:
 
 ## Current task
 
-**Tick 1 — Rewrite all `/data/` files to the universal atom format.**
+**Tick 2 — Fix remaining 5 holographic violations + create individual enemy/perk/weapon atom files.**
+
+Steps:
+1. Rewrite `data/enemies/enemy_types.json` → split into `data/enemies/types/grunt.json` etc (8 files, one per type)
+2. Rewrite `data/enemies/damage_multipliers.json` → proper atom
+3. Rewrite `data/perks/perks.json` → split into `data/perks/types/<id>.json`
+4. Rewrite `data/shop/shop_items.json` → proper atom or split
+5. Rewrite `data/game_modes/game_modes.json` → proper atom
+6. npm test green. Commit: "iter 435: tick 2 — enemy+perk+shop+game_mode atoms"
+
+## Previous task (tick 1 — DONE)
+
+**Tick 1 — Start tuning extraction + fix 5 atom format violations.**
 
 Every JSON file in `/data/` must have exactly:
 ```json
@@ -41,14 +53,16 @@ Steps:
 ## Last tick
 
 ```
-timestamp: 2026-05-18
-summary:   tick 0 scaffolding — Core ECS runtime, Registry, NetworkBridge, 28 unit tests,
-           data layer (wrong format), docs
-files:     data/*, src/core/core.js, src/core/registry.js, src/net/network_bridge.js,
-           tests/unit/core.test.js, docs/*.md, package.json
-tests:     28/28 passed (vitest)
-commit:    iter 433 (pending push)
-outcome:   ok — tests green, format wrong (data files use $header not $version/$type/$id/$facets)
+timestamp: 2026-05-18T05:10Z
+summary:   tick 1 — 5 files fixed to universal atom format. Tuning atoms created.
+           data/tuning/physics.json, data/tuning/hero.json (new correct atoms).
+           data/prefabs/hero.json, data/prefabs/enemy_grunt.json, data/levels/level_thresholds.json (fixed).
+           5 violations remain: enemy_types, perks, shop_items, game_modes, damage_multipliers.
+files:     data/tuning/physics.json, data/tuning/hero.json, data/prefabs/hero.json,
+           data/prefabs/enemy_grunt.json, data/levels/level_thresholds.json
+tests:     28/28 passed
+commit:    iter 434
+outcome:   ok
 ```
 
 ## Queued

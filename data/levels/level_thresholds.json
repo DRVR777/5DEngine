@@ -1,10 +1,21 @@
 {
-  "_comment": "Kill counts required to advance hero in-session level (0–5). _LEVEL_THRESHOLDS from index.html:1220.",
-  "thresholds": [10, 20, 30, 40, 50],
-  "maxLevel": 5,
-  "perLevelBonus": {
-    "damageMultiplier": 0.1,
-    "speedBonus": 0.2,
-    "apexModeAtLevel": 5
+  "$version": 1,
+  "$type": "tuning",
+  "$id": "level_thresholds",
+  "$facets": {
+    "thresholds": [10, 20, 30, 40, 50],
+    "maxLevel": 5,
+    "damageMultiplierPerLevel": 0.1,
+    "speedBonusPerLevel": 0.2,
+    "apexModeAtLevel": 5,
+    "apexStaminaRestorePerKill": 5,
+    "hpBonusAtLevel4": 20,
+    "extraStaminaMaxAtLevel3": 25
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1220, 2767-2771",
+    "note": "thresholds=[10,20,30,40,50] from _LEVEL_THRESHOLDS const at line 1220. Per-level bonuses from _applyLevelBonus at lines 2767-2771. Level 5 = apex mode (kills restore stamina)."
   }
 }

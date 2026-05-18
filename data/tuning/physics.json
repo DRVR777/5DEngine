@@ -1,0 +1,24 @@
+{
+  "$version": 1,
+  "$type": "tuning",
+  "$id": "physics",
+  "$facets": {
+    "gravity": -25,
+    "fixedDt": 0.016666666666666666,
+    "maxFrameDt": 0.05,
+    "jumpVelocity": 13,
+    "camDistMin": 0,
+    "camDistMax": 15,
+    "camDefaultDist": 7,
+    "baseFov": 60,
+    "sprintFovBoost": 8,
+    "sniperScopeFov": 20,
+    "scrollZoomRate": 0.01
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "5479-5480, 6042, 6158",
+    "note": "gravity=-25 intentional (not -9.8, arcade feel). fixedDt=1/60 from FIXED_DT const at line 6042. baseFov=60 from camera.fov assignment at line 6158."
+  }
+}
