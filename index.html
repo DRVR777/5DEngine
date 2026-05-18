@@ -1033,6 +1033,7 @@ import { createLootDropSystem, DROP_TABLE } from "./src/systems/ecs_loot_drop.js
 import { createKnockbackSystem } from "./src/systems/ecs_knockback.js";
 import { createPlayerMovementSystem } from "./src/systems/ecs_player_movement.js";
 import { createEnrageSystem } from "./src/systems/ecs_enrage.js";
+import { createBossSlamSystem } from "./src/systems/ecs_boss_slam.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10130,6 +10131,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsEnrage = createEnrageSystem();
     Core.addSystem(_ecsEnrage, 13, "enrage");
     window.Engine.enrageSystem = _ecsEnrage;
+
+    // Wire boss slam system — priority 14 (after enrage:13, before status:15)
+    const _ecsBossSlam = createBossSlamSystem();
+    Core.addSystem(_ecsBossSlam, 14, "boss_slam");
+    window.Engine.bossSlamSystem = _ecsBossSlam;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
