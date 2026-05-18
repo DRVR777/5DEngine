@@ -7038,29 +7038,24 @@ function tick() {
       }
       if (hitCrate) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       // Hit a building?
-      let hitSolid = false;
+      let _hitBlocker = null;
       for (const bl of buildingBlockers) {
         if (Math.abs(b.posU - bl.u) < bl.hitbox.w / 2 &&
             Math.abs(b.posV - bl.v) < bl.hitbox.d / 2 &&
             b.posY >= 0 && b.posY <= bl.hitbox.h) {
-          hitSolid = true; break;
+          _hitBlocker = bl; break;
         }
       }
-      if (hitSolid) {
+      if (_hitBlocker) {
         _spawnParticles(b.posU, b.posY, b.posV, 4, "yellow", 4, 0.18);
         playSfx("tone:180:28:square", 0.09); // concrete/wall impact thud
-        // Scorch mark on wall face — find which AABB face was hit
-        const _hitBl = buildingBlockers.find(bl =>
-          Math.abs(b.posU - bl.u) < bl.hitbox.w / 2 &&
-          Math.abs(b.posV - bl.v) < bl.hitbox.d / 2);
-        if (_hitBl) {
-          const _fU = b.posU - _hitBl.u, _fV = b.posV - _hitBl.v;
-          const _pnU = _hitBl.hitbox.w / 2 - Math.abs(_fU);
-          const _pnV = _hitBl.hitbox.d / 2 - Math.abs(_fV);
-          const _nU = _pnU < _pnV ? (_fU > 0 ? 1 : -1) : 0;
-          const _nV = _pnU < _pnV ? 0 : (_fV > 0 ? 1 : -1);
-          _spawnWallScorch(b.posU, b.posY, b.posV, _nU, _nV);
-        }
+        // Scorch mark on wall face — use _hitBlocker ref carried from loop above
+        const _fU = b.posU - _hitBlocker.u, _fV = b.posV - _hitBlocker.v;
+        const _pnU = _hitBlocker.hitbox.w / 2 - Math.abs(_fU);
+        const _pnV = _hitBlocker.hitbox.d / 2 - Math.abs(_fV);
+        const _nU = _pnU < _pnV ? (_fU > 0 ? 1 : -1) : 0;
+        const _nV = _pnU < _pnV ? 0 : (_fV > 0 ? 1 : -1);
+        _spawnWallScorch(b.posU, b.posY, b.posV, _nU, _nV);
       }
       if (hitSolid || b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       b.mesh.position.set(b.posU, b.posY, b.posV);
