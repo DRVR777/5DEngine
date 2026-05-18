@@ -69,6 +69,7 @@
 <script type="module">
 import * as THREE from "three";
 import { mountHudTemplate } from "./src/ui/hud_template.js";
+import { createHeroAnimSystem } from "./src/entities/hero_animation.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -2367,128 +2368,7 @@ let _flashlightOn = false;
 // ═════════════════════════════════════════════════════════════════════════════
 
 // ---- Hero animation system (AnimationMixer) --------------------------------
-// heroMixer is null until a GLB is dropped. When a GLB is loaded it replaces
-// the primitive mesh and its clips are available via _heroClips.
-let heroMixer    = null;
-let _heroClips   = {};         // clip name → AnimationAction
-let _heroModelName = "primitive";
-
-// Animation state machine
-// Maps game state names → clip name strings (set via character editor UI)
-window._heroSMMap = { idle: "", walk: "", run: "", jump: "", attack: "", die: "" };
-window._heroSMBlend     = 0.2;   // crossfade duration in seconds
-window._heroSMTimeScale = 1.0;   // global playback speed multiplier
-let _heroSMCurrent = "";         // currently playing state key
-
-function _heroSMTransition(stateKey) {
-  if (!heroMixer || _heroSMCurrent === stateKey) return;
-  const clipName = window._heroSMMap[stateKey];
-  if (!clipName || !_heroClips[clipName]) return;
-  const incoming = _heroClips[clipName];
-  incoming.timeScale = window._heroSMTimeScale;
-  if (window._heroSMBlend > 0) {
-    for (const [, action] of Object.entries(_heroClips)) {
-      if (action !== incoming && action.isRunning()) action.crossFadeTo(incoming, window._heroSMBlend, true);
-    }
-    incoming.reset().play();
-  } else {
-    heroMixer.stopAllAction();
-    incoming.reset().play();
-  }
-  _heroSMCurrent = stateKey;
-}
-
-function _heroSMTick(onGround, moving, sprinting, jumping, dead) {
-  if (!heroMixer) return;
-  let target;
-  if (dead)                    target = "die";
-  else if (!onGround || jumping) target = "jump";
-  else if (moving && sprinting)  target = "run";
-  else if (moving)               target = "walk";
-  else                           target = "idle";
-  _heroSMTransition(target);
-}
-
-function _loadHeroGLB(url, nameHint) {
-  if (!window.AssetLoader || !window.AssetLoader.loadUrl) return;
-  window.AssetLoader.loadUrl(url, nameHint || "hero_model", (obj) => {
-    // Strip old primitive children
-    while (heroGroup.children.length) heroGroup.remove(heroGroup.children[0]);
-    obj.scale.setScalar(1);
-    obj.position.set(0, 0, 0);
-    heroGroup.add(obj);
-    // AnimationMixer
-    heroMixer = new THREE.AnimationMixer(obj);
-    _heroClips = {};
-    const srcClips = obj.animations || (obj._gltf && obj._gltf.animations) || [];
-    for (const clip of srcClips) {
-      _heroClips[clip.name] = heroMixer.clipAction(clip);
-    }
-    _heroModelName = nameHint || url.split("/").pop();
-    _refreshCharEditor();
-  });
-}
-
-function _refreshCharEditor() {
-  const panel = document.getElementById("charEditor");
-  if (!panel || panel.style.display === "none") return;
-  const nameEl = document.getElementById("charModelName");
-  if (nameEl) nameEl.textContent = _heroModelName;
-
-  // State machine UI
-  const smEl = document.getElementById("charStateMachine");
-  if (smEl) {
-    const clipNames = Object.keys(_heroClips);
-    const optionHtml = ["<option value=''>-- none --</option>",
-      ...clipNames.map(n => `<option value="${n}">${n}</option>`)].join("");
-    const states = Object.keys(window._heroSMMap);
-    smEl.innerHTML = states.map(s => {
-      const cur = window._heroSMMap[s] || "";
-      const isActive = _heroSMCurrent === s;
-      return `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-        <span style="color:${isActive?"#00ffaa":"#778899"};font-size:9px;width:42px;text-align:right">${s}</span>
-        <select data-sm-state="${s}"
-          style="flex:1;background:rgba(0,8,20,0.9);border:1px solid rgba(0,200,255,0.25);
-          color:#b8e8ff;border-radius:3px;font-size:9px;padding:1px 3px"
-          onchange="window._heroSMMap['${s}']=this.value;_heroSMCurrent=''">
-          ${optionHtml.replace(`value="${cur}"`, `value="${cur}" selected`)}
-        </select>
-      </div>`;
-    }).join("");
-  }
-
-  // All-clips list
-  const clipList = document.getElementById("charClipList");
-  if (!clipList) return;
-  const names = Object.keys(_heroClips);
-  if (names.length === 0) {
-    clipList.innerHTML = `<div style="color:#334455">no clips loaded</div>`;
-    return;
-  }
-  clipList.innerHTML = names.map(n => `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <span style="color:#b8e8ff;font-size:10px;overflow:hidden;text-overflow:ellipsis;max-width:120px" title="${n}">${n}</span>
-      <span style="display:flex;gap:3px">
-        <button onclick="window._heroPlayClip('${n}')"
-          style="background:rgba(0,200,255,0.12);border:1px solid rgba(0,200,255,0.3);
-          color:#00ccff;border-radius:3px;padding:1px 5px;font-size:9px;cursor:pointer">▶</button>
-        <button onclick="window._heroStopClip('${n}')"
-          style="background:rgba(255,68,102,0.1);border:1px solid rgba(255,68,102,0.3);
-          color:#ff4466;border-radius:3px;padding:1px 5px;font-size:9px;cursor:pointer">■</button>
-      </span>
-    </div>`).join("");
-}
-
-window._heroPlayClip = (name) => {
-  const action = _heroClips[name];
-  if (!action) return;
-  heroMixer.stopAllAction();
-  action.reset().play();
-};
-window._heroStopClip = (name) => {
-  const action = _heroClips[name];
-  if (action) action.stop();
-};
+const heroAnim = createHeroAnimSystem(THREE, heroGroup);
 
 // ---- Game Config Editor (K key in build mode) ----
 const _cfgDefaults = JSON.parse(JSON.stringify(window.GameConfig || {}));
@@ -2618,7 +2498,7 @@ renderer.domElement.addEventListener("drop", (e) => {
   if (charEd && charEd.style.display !== "none") {
     // Replace hero
     const url = URL.createObjectURL(file);
-    _loadHeroGLB(url, file.name);
+    heroAnim.loadGLB(url, file.name);
   }
 });
 
@@ -4268,7 +4148,7 @@ addEventListener("keydown", (e) => {
     if (ced) {
       const show = ced.style.display === "none";
       ced.style.display = show ? "block" : "none";
-      if (show) _refreshCharEditor();
+      if (show) heroAnim.refreshCharEditor();
     }
     e.preventDefault();
     return;
@@ -7828,17 +7708,11 @@ function tick() {
   }
 
   // Hero animation state machine + mixer
-  if (heroMixer) {
+  {
     const isMoving = (inputF !== 0 || inputR !== 0) && !buildMode;
     const isSprinting = !!keys["ShiftLeft"];
     const isDead = heroHp <= 0;
-    _heroSMTick(onGround, isMoving, isSprinting, !onGround && velocityY > 0.5, isDead);
-    heroMixer.update(dt);
-    // Keep active action timeScale synced
-    if (_heroSMCurrent && window._heroSMMap[_heroSMCurrent]) {
-      const a = _heroClips[window._heroSMMap[_heroSMCurrent]];
-      if (a) a.timeScale = window._heroSMTimeScale;
-    }
+    heroAnim.tick(onGround, isMoving, isSprinting, !onGround && velocityY > 0.5, isDead, dt);
   }
 
   // Scripted world objects — run each managed mesh's script if present
