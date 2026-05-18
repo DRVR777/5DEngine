@@ -36,5 +36,5 @@
 
 ## Phase 4 — Orphaned file audit
 - [x] D1. Classify 102 orphaned src/ files → docs/ORPHAN_AUDIT.md (101 files classified: 42 WIRED, 3 CROSS-REF, 2 DUPLICATE, 10 social/future, 10 economy/future, 14 world/future, 4 vehicle/future, 5 progression/future, ~11 scaffold)
-- [ ] D2. Fix leaderboard.js + leaderboards.js duplicate
-- [ ] D3. Fix minigame.js + minigames.js duplicate
+- [x] D2. Fix leaderboard.js + leaderboards.js duplicate — confirmed DISTINCT (network-broadcast vs offline-history); added disambiguation banners to both files
+- [x] D3. Fix minigame.js + minigames.js duplicate — confirmed DISTINCT (session-harness vs game-registry-hub); added disambiguation banners to both files

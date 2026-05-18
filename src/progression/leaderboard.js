@@ -1,4 +1,7 @@
-// leaderboard.js — per-stat leaderboards with Hub broadcast.
+// leaderboard.js — per-stat leaderboards with Hub broadcast (distributed/network).
+// DISAMBIGUATION: this file is GTALeaderboard — a NETWORK-SYNCHRONIZED per-stat board.
+// For the OFFLINE per-mission high-score store, see leaderboards.js (GTALeaderboards).
+// Rule: do NOT merge these. leaderboard.js = live networked; leaderboards.js = local history.
 // Maintains local entries, broadcasts updates over the Net hub so every
 // node converges. Subscribers can query top-N for any stat.
 (function (root, factory) {

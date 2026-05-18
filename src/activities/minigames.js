@@ -1,4 +1,7 @@
-// minigames.js — pluggable mini-game framework.
+// minigames.js — pluggable mini-game REGISTRY/HUB (GTAMinigames).
+// DISAMBIGUATION: this file is the HUB that catalogs and launches multiple game types.
+// For the per-run SESSION HARNESS (start/score/retry/finish lifecycle), see minigame.js (GTAMinigame).
+// Rule: do NOT merge. minigames.js = hub/registry; minigame.js = one session runner.
 // A mini-game is a state machine + render fn registered against this hub.
 // They run in-game (e.g. on the in-game computer or at a board entity).
 // Two reference games shipped: tic-tac-toe and a coin-flip dice game.

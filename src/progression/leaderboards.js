@@ -1,4 +1,7 @@
-// leaderboards.js — per-mission/minigame high-score store.
+// leaderboards.js — per-mission/minigame high-score store (local/offline).
+// DISAMBIGUATION: this file is GTALeaderboards — an OFFLINE per-mission store with time windows.
+// For the NETWORK-SYNCHRONIZED per-stat leaderboard, see leaderboard.js (GTALeaderboard).
+// Rule: do NOT merge these. leaderboards.js = local history; leaderboard.js = live networked.
 // One board per (boardId). Submit a score and we keep the top-N
 // entries (default 100). Filters by player, region, friend-set,
 // and time window (last hour / day / week / all-time). Sort orders:

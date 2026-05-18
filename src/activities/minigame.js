@@ -1,4 +1,7 @@
-// minigame.js — generic minigame harness.
+// minigame.js — generic minigame SESSION HARNESS (GTAMinigame).
+// DISAMBIGUATION: this file manages a single game RUN — start/score/retry/finish lifecycle.
+// For the REGISTRY/HUB that catalogs multiple game types, see minigames.js (GTAMinigames).
+// Rule: do NOT merge. minigame.js = one session; minigames.js = hub that picks which game to play.
 // A minigame is a 1-shot session with: start, score events, optional
 // retry budget, optional time limit, and a finish (win or lose).
 // Sessions are independent — multiple can run in parallel (eg. two
