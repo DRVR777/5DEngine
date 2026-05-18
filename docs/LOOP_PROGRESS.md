@@ -29,7 +29,7 @@
 
 ## Phase 3 — Structural wiring
 - [x] C1. Wire EventBus to 5 additional game events (HERO_DAMAGED, WEAPON_SWITCH, VEHICLE_ENTER, VEHICLE_EXIT, SCORE_CHANGED)
-- [ ] C2. Add Engine.require() no-op proxy
+- [x] C2. Add Engine.require() no-op proxy (added to src/core/engine.js, returns null if subsystem not registered)
 - [ ] C3. Fixed-timestep physics wrapper
 - [ ] C4. resetGameState() function
 - [ ] C5. GTAEngine null guard

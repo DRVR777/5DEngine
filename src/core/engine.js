@@ -57,6 +57,11 @@
 
   function has(name) { return _subsystems.has(name); }
 
+  // require(name) — same as get() but communicates intent ("I need this subsystem").
+  // Returns null rather than throwing if the subsystem isn't registered yet.
+  // Allows safe opt-in patterns: const audio = Engine.require("audio"); if (audio) audio.play(...)
+  function require(name) { return _subsystems.get(name) || null; }
+
   function list() { return [..._subsystems.keys()]; }
 
   // ---- Commands (for dev console) ----
@@ -146,6 +151,6 @@
   });
 
   // events — set to EventBus once it loads (see index.html init block)
-  const api = { register, get, has, list, time, debug, addCommand, runCommand, listCommands, events: null };
+  const api = { register, get, require, has, list, time, debug, addCommand, runCommand, listCommands, events: null };
   return api;
 });
