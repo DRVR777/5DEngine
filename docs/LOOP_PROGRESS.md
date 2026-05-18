@@ -23,7 +23,7 @@
 - [x] B3. Extract playSfx + _setAmbient → src/audio/sfx.js
 - [x] B4. Extract Minimap → src/ui/minimap.js
 - [x] B5. Extract High score → src/progression/high_score.js
-- [ ] B6. Wire Save/Load → src/systems/save_load.js
+- [x] B6. Wire Save/Load → src/systems/save_load.js
 - [ ] B7. Extract particles → src/render/particle_system.js
 - [ ] B8. Wire Multiplayer IIFE → src/social/multiplayer.js
 

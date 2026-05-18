@@ -1018,6 +1018,7 @@ const _addKillFeedEntry = Notifications.addKillFeedEntry;
 import Sfx from "./src/audio/sfx.js";
 import Minimap from "./src/ui/minimap.js";
 import HighScore from "./src/progression/high_score.js";
+import { GameProgress } from "./src/systems/save_load.js";
 // Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
 // We use .then chains (no top-level await) so the inline module also loads
 // cleanly in vm-based test sandboxes that don't support TLA.
@@ -8821,80 +8822,51 @@ const _checkHighScore = HighScore.check;
 // _bestRecord accessed via HighScore.get() at the two call sites below
 
 // ---- Persistent game state (localStorage) ----
-const SAVE_KEY = "5DEngine_save";
-
-function _saveGame() {
-  const heroNow = world.getPlayer ? world.getPlayer("hero") : { u: 0, v: 0, y: 0 };
-  const data = {
-    score,
-    enemyKills,
-    heroHp,
-    spawnPoints: _spawnPoints.filter(sp => sp.label !== "origin").map(sp => ({ u: sp.u, v: sp.v })),
-    questProgress: _quests.map(q => ({ id: q.id, steps: q.steps.map(s => s.done) })),
-    timestamp: Date.now(),
-  };
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (_) {}
-  // Cloud/local-db dual write (fire-and-forget — never blocks the frame)
-  if (typeof LocalDb !== "undefined" && LocalDb.isOnline()) {
-    LocalDb.saveSession({
+// ═══ EXTRACTED → src/systems/save_load.js (GameProgress export) ══════════════
+// _saveGame, _loadGame, _applyGameData — wired via GameProgress.init() below
+// ═════════════════════════════════════════════════════════════════════════════
+GameProgress.init(
+  () => {
+    const heroNow = world.getPlayer ? world.getPlayer("hero") : { u: 0, v: 0, y: 0 };
+    return {
       score, enemyKills, heroHp,
       heroMaxHp: HERO_MAX_HP,
       heroU: heroNow.u, heroV: heroNow.v, heroY: heroNow.y || 0,
       weaponId: currentWeaponId,
       inventory: (typeof _inventory !== "undefined") ? [..._inventory] : [],
-      questProgress: data.questProgress,
-    }).catch(() => {});
-    LocalDb.syncQuestProgress(_quests).catch(() => {});
-  }
-}
-
-function _applyGameData(data, source) {
-  if (data.score) score = data.score;
-  if (data.enemy_kills != null) enemyKills = data.enemy_kills;
-  else if (data.enemyKills) enemyKills = data.enemyKills;
-  if (data.hero_hp != null) heroHp = Math.min(data.hero_hp, HERO_MAX_HP);
-  else if (data.heroHp) heroHp = Math.min(data.heroHp, HERO_MAX_HP);
-  const spawnPts = data.spawn_points || data.spawnPoints;
-  if (Array.isArray(spawnPts)) {
-    for (const sp of spawnPts) _addSpawnPoint(sp.u, sp.v);
-  }
-  const qp = data.quest_progress || data.questProgress;
-  if (Array.isArray(qp)) {
-    for (const entry of qp) {
-      const q = _quests.find(q => q.id === (entry.id || entry.quest_id));
-      if (!q) continue;
-      const steps = entry.steps || entry.steps_done;
-      if (Array.isArray(steps)) {
-        for (let i = 0; i < steps.length && i < q.steps.length; i++) {
-          if (steps[i]) q.steps[i].done = true;
+      spawnPoints: _spawnPoints.filter(sp => sp.label !== "origin").map(sp => ({ u: sp.u, v: sp.v })),
+      questProgress: _quests.map(q => ({ id: q.id, steps: q.steps.map(s => s.done) })),
+    };
+  },
+  (data, source) => {
+    if (data.score) score = data.score;
+    if (data.enemy_kills != null) enemyKills = data.enemy_kills;
+    else if (data.enemyKills) enemyKills = data.enemyKills;
+    if (data.hero_hp != null) heroHp = Math.min(data.hero_hp, HERO_MAX_HP);
+    else if (data.heroHp) heroHp = Math.min(data.heroHp, HERO_MAX_HP);
+    const spawnPts = data.spawn_points || data.spawnPoints;
+    if (Array.isArray(spawnPts)) { for (const sp of spawnPts) _addSpawnPoint(sp.u, sp.v); }
+    const qp = data.quest_progress || data.questProgress;
+    if (Array.isArray(qp)) {
+      for (const entry of qp) {
+        const q = _quests.find(q => q.id === (entry.id || entry.quest_id));
+        if (!q) continue;
+        const steps = entry.steps || entry.steps_done;
+        if (Array.isArray(steps)) {
+          for (let i = 0; i < steps.length && i < q.steps.length; i++) { if (steps[i]) q.steps[i].done = true; }
         }
       }
+      _renderQuests();
     }
-    _renderQuests();
-  }
-  const age = data.saved_at
-    ? Math.round((Date.now() - new Date(data.saved_at).getTime()) / 60000)
-    : (data.timestamp ? Math.round((Date.now() - data.timestamp) / 60000) : 0);
-  showToast(`Save loaded from ${source} (${age}m ago) — score:${score} kills:${enemyKills}`, "info", 4000);
-}
-
-async function _loadGame() {
-  // Try local PostgreSQL server first, fall back to localStorage
-  if (typeof LocalDb !== "undefined") {
-    try {
-      const online = await LocalDb.ping();
-      if (online) {
-        const dbData = await LocalDb.loadLatestSession();
-        if (dbData) { _applyGameData(dbData, "DB"); return; }
-      }
-    } catch (_) {}
-  }
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    _applyGameData(JSON.parse(raw), "localStorage");
-  } catch (_) {}
-}
+    const age = data.saved_at
+      ? Math.round((Date.now() - new Date(data.saved_at).getTime()) / 60000)
+      : (data.timestamp ? Math.round((Date.now() - data.timestamp) / 60000) : 0);
+    showToast(`Save loaded from ${source} (${age}m ago) — score:${score} kills:${enemyKills}`, "info", 4000);
+  },
+  { getQuests: () => _quests }
+);
+const _saveGame = () => GameProgress.save();
+const _loadGame = () => GameProgress.load();
 
 // Auto-save every 30 seconds
 setInterval(_saveGame, 30000);

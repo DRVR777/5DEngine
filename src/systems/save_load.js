@@ -124,3 +124,52 @@
 
   return { SCHEMA, snapshot, restore, saveToStore, loadFromStore, createSlotManager };
 });
+
+// ── Game-progress save/load (localStorage + optional LocalDb) ─────────────────
+// Separate from the manifest/world-state system above.
+// Usage: GameProgress.init(getState, applyState, { showToast, _addSpawnPoint, _renderQuests })
+//        GameProgress.save()   GameProgress.load()
+
+const _PROGRESS_KEY = "5DEngine_save";
+let _getState = null, _applyState = null, _cbs = {};
+
+export const GameProgress = {
+  init(getState, applyState, callbacks) {
+    _getState = getState;
+    _applyState = applyState;
+    _cbs = callbacks || {};
+  },
+
+  save() {
+    if (!_getState) return;
+    const data = Object.assign({ timestamp: Date.now() }, _getState());
+    try { localStorage.setItem(_PROGRESS_KEY, JSON.stringify(data)); } catch (_) {}
+    const LocalDb = window.LocalDb;
+    if (typeof LocalDb !== "undefined" && LocalDb.isOnline()) {
+      const st = _getState();
+      LocalDb.saveSession(st).catch(() => {});
+      if (typeof _cbs.getQuests === "function")
+        LocalDb.syncQuestProgress(_cbs.getQuests()).catch(() => {});
+    }
+  },
+
+  async load() {
+    const LocalDb = window.LocalDb;
+    if (typeof LocalDb !== "undefined") {
+      try {
+        const online = await LocalDb.ping();
+        if (online) {
+          const dbData = await LocalDb.loadLatestSession();
+          if (dbData) { _applyState && _applyState(dbData, "DB"); return; }
+        }
+      } catch (_) {}
+    }
+    try {
+      const raw = localStorage.getItem(_PROGRESS_KEY);
+      if (!raw) return;
+      _applyState && _applyState(JSON.parse(raw), "localStorage");
+    } catch (_) {}
+  },
+};
+
+export default GameProgress;
