@@ -1,0 +1,29 @@
+{
+  "$version": 1,
+  "$type": "tuning",
+  "$id": "weapons",
+  "$facets": {
+    "falloffMin": 0.15,
+    "falloffFormula": "Math.max(falloffMin, 1 - (traveled / range) * falloffCoef)",
+    "defaultFalloff": 0,
+    "shotgunFalloff": 0.85,
+    "bulletTimeScale": 1.0,
+    "reloadCancelOnSwitch": true,
+    "maxWeaponSlots": 5
+  },
+  "$refs": {
+    "pistol":  "data/weapons/pistol.json",
+    "rifle":   "data/weapons/rifle.json",
+    "shotgun": "data/weapons/shotgun.json",
+    "smg":     "data/weapons/smg.json",
+    "sniper":  "data/weapons/sniper.json"
+  },
+  "$meta": {
+    "monolithSources": {
+      "falloffMin": "line 6606: Math.max(0.15, 1 - (b.traveled / (b.range||1)) * b.falloff)",
+      "falloffFormula": "line 6606",
+      "shotgunFalloff": "game_config.js shotgun falloff: 0.85",
+      "defaultFalloff": "line 5933: falloff: wep.falloff || 0 (0 = no falloff)"
+    }
+  }
+}
