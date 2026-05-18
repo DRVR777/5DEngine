@@ -35,6 +35,6 @@
 - [x] C5. GTAEngine null guard (added named throw guards for GTAEngine, GTABridge, GTAPhysics, GTARegistry, GTAInventory — clear error messages instead of cryptic TypeErrors)
 
 ## Phase 4 — Orphaned file audit
-- [ ] D1. Classify 102 orphaned src/ files → docs/ORPHAN_AUDIT.md
+- [x] D1. Classify 102 orphaned src/ files → docs/ORPHAN_AUDIT.md (101 files classified: 42 WIRED, 3 CROSS-REF, 2 DUPLICATE, 10 social/future, 10 economy/future, 14 world/future, 4 vehicle/future, 5 progression/future, ~11 scaffold)
 - [ ] D2. Fix leaderboard.js + leaderboards.js duplicate
 - [ ] D3. Fix minigame.js + minigames.js duplicate
