@@ -63,3 +63,13 @@ F1-F4 all implemented. Continuing: build forever.
 - [x] P6. tests/run_tests.bat — Windows batch runner for all three suites with pass/fail summary
 
 ## ✓ PEER INSTALLER + TEST SUITE COMPLETE — iter 416 (2026-05-17)
+
+## Phase 7 — ECS System Extractions (build forever)
+
+- [x] iter 479: ecs_poisoner_dart — direct venom dart attack 3.5-10m range 3.0-4.5s CD, 21 unit tests
+- [x] iter 480: ecs_enemy_bullet — enemy projectile travel + hero hit detection, 25 unit tests
+- [x] iter 481: ecs_enemy_regen — out-of-combat HP regen 4hp/tick 8s delay 1.8s display interval, 13 unit tests
+- [x] iter 482: ecs_enemy_separation — pairwise 1.2m overlap prevention 0.6 push, 10 unit tests
+- [x] iter 483: ecs_combo — kill streak multiplier x2-x8 3.5s decay milestone events, 17 unit tests
+- [x] iter 484: ecs_arena_clamp — 27.5m boundary enforcement safety net priority 16, 11 unit tests
+- [x] iter 485: ecs_enemy_blind — flash grenade blind effect 6m radius 0.5-3.0s duration, 15 unit tests
