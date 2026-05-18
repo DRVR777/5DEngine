@@ -5728,49 +5728,64 @@ const mini = document.getElementById("minimap").getContext("2d");
 const MINI_HALF = CFG.miniMapHalfExtent || 35;
 // ── HUD element cache — initialized once, avoids 40+ DOM traversals per tick
 const _dom = {
-  fpsCounter:       _dom.fpsCounter,
-  ammoHud:          _dom.ammoHud,
-  reloadCircle:     _dom.reloadCircle,
-  scopeOverlay:     _dom.scopeOverlay,
+  fpsCounter:       document.getElementById("fpsCounter"),
+  ammoHud:          document.getElementById("ammoHud"),
+  reloadCircle:     document.getElementById("reloadCircle"),
+  scopeOverlay:     document.getElementById("scopeOverlay"),
   crosshair:        document.getElementById("crosshair"),
-  killMarker:       _dom.killMarker,
-  dmgDirIndicator:  _dom.dmgDirIndicator,
-  hbGhost:          _dom.hbGhost,
-  hbFill:           _dom.hbFill,
-  hbVal:            _dom.hbVal,
-  armorBar:         _dom.armorBar,
-  arFill:           _dom.arFill,
-  arVal:            _dom.arVal,
-  stFill:           _dom.stFill,
-  bossHpBar:        _dom.bossHpBar,
-  bossHpFill:       _dom.bossHpFill,
-  bossHpVal:        _dom.bossHpVal,
-  bossName:         _dom.bossName,
-  comboHud:         _dom.comboHud,
-  comboMulText:     _dom.comboMulText,
-  comboFill:        _dom.comboFill,
-  wpName:           _dom.wpName,
-  wpAmmo:           _dom.wpAmmo,
-  wpReserve:        _dom.wpReserve,
-  wpMagBar:         _dom.wpMagBar,
-  wpGrenades:       _dom.wpGrenades,
-  vehicleDash:      _dom.vehicleDash,
-  vdSpeed:          _dom.vdSpeed,
-  vdGear:           _dom.vdGear,
-  waveHud:          _dom.waveHud,
-  waveLabel:        _dom.waveLabel,
-  waveDetail:       _dom.waveDetail,
-  waveBanner:       _dom.waveBanner,
-  waveBannerLabel:  _dom.waveBannerLabel,
-  waveBannerSub:    _dom.waveBannerSub,
-  heroLevelHud:     _dom.heroLevelHud,
-  waveChallengeHud: _dom.waveChallengeHud,
-  statusTint:       _dom.statusTint,
-  statusEffectsHud: _dom.statusEffectsHud,
-  clockHud:         _dom.clockHud,
-  grenadeWarn:      _dom.grenadeWarn,
-  grenCookTimer:    _dom.grenCookTimer,
+  killMarker:       document.getElementById("killMarker"),
+  dmgDirIndicator:  document.getElementById("dmgDirIndicator"),
+  hbGhost:          document.getElementById("hbGhost"),
+  hbFill:           document.getElementById("hbFill"),
+  hbVal:            document.getElementById("hbVal"),
+  armorBar:         document.getElementById("armorBar"),
+  arFill:           document.getElementById("arFill"),
+  arVal:            document.getElementById("arVal"),
+  stFill:           document.getElementById("stFill"),
+  bossHpBar:        document.getElementById("bossHpBar"),
+  bossHpFill:       document.getElementById("bossHpFill"),
+  bossHpVal:        document.getElementById("bossHpVal"),
+  bossName:         document.getElementById("bossName"),
+  comboHud:         document.getElementById("comboHud"),
+  comboMulText:     document.getElementById("comboMulText"),
+  comboFill:        document.getElementById("comboFill"),
+  wpName:           document.getElementById("wpName"),
+  wpAmmo:           document.getElementById("wpAmmo"),
+  wpReserve:        document.getElementById("wpReserve"),
+  wpMagBar:         document.getElementById("wpMagBar"),
+  wpGrenades:       document.getElementById("wpGrenades"),
+  vehicleDash:      document.getElementById("vehicleDash"),
+  vdSpeed:          document.getElementById("vdSpeed"),
+  vdGear:           document.getElementById("vdGear"),
+  waveHud:          document.getElementById("waveHud"),
+  waveLabel:        document.getElementById("waveLabel"),
+  waveDetail:       document.getElementById("waveDetail"),
+  waveBanner:       document.getElementById("waveBanner"),
+  waveBannerLabel:  document.getElementById("waveBannerLabel"),
+  waveBannerSub:    document.getElementById("waveBannerSub"),
+  heroLevelHud:     document.getElementById("heroLevelHud"),
+  waveChallengeHud: document.getElementById("waveChallengeHud"),
+  statusTint:       document.getElementById("statusTint"),
+  statusEffectsHud: document.getElementById("statusEffectsHud"),
+  clockHud:         document.getElementById("clockHud"),
+  grenadeWarn:      document.getElementById("grenadeWarn"),
+  grenCookTimer:    document.getElementById("grenCookTimer"),
 };
+
+// Pre-create dmgDir SVG elements once — update transform attr in tick() instead of rebuilding innerHTML
+const _SVG_NS = "http://www.w3.org/2000/svg";
+const _dmgDirSvg  = document.createElementNS(_SVG_NS, "svg");
+_dmgDirSvg.setAttribute("width", "120"); _dmgDirSvg.setAttribute("height", "120");
+_dmgDirSvg.setAttribute("viewBox", "-60 -60 120 120");
+const _dmgDirG    = document.createElementNS(_SVG_NS, "g");
+const _dmgDirPoly = document.createElementNS(_SVG_NS, "polygon");
+_dmgDirPoly.setAttribute("points", "0,-42 -10,-26 10,-26");
+_dmgDirPoly.setAttribute("fill", "rgba(255,40,40,0.9)");
+_dmgDirPoly.setAttribute("stroke", "rgba(255,80,80,0.5)");
+_dmgDirPoly.setAttribute("stroke-width", "1");
+_dmgDirG.appendChild(_dmgDirPoly);
+_dmgDirSvg.appendChild(_dmgDirG);
+if (_dom.dmgDirIndicator) _dom.dmgDirIndicator.appendChild(_dmgDirSvg);
 
 let _mmSweepAngle = 0;   // rotating radar sweep angle
 function drawMinimap() {
@@ -8735,10 +8750,7 @@ function tick() {
       const fade = Math.max(0, (_dmgDirUntil - performance.now()) / 1200);
       dmgDirEl.style.display = "block";
       dmgDirEl.style.opacity = (fade * 0.85).toFixed(2);
-      dmgDirEl.innerHTML = `<svg width="120" height="120" viewBox="-60 -60 120 120">
-        <g transform="rotate(${(relAngle * 180 / Math.PI).toFixed(1)})">
-          <polygon points="0,-42 -10,-26 10,-26" fill="rgba(255,40,40,0.9)" stroke="rgba(255,80,80,0.5)" stroke-width="1"/>
-        </g></svg>`;
+      _dmgDirG.setAttribute("transform", `rotate(${(relAngle * 180 / Math.PI).toFixed(1)})`);
     } else {
       dmgDirEl.style.display = "none";
     }
