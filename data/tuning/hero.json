@@ -3,25 +3,25 @@
   "$type": "tuning",
   "$id": "hero",
   "$facets": {
-    "maxHp": 100,
-    "maxArmor": 75,
-    "armorAbsorb": 0.6,
-    "regenDelay": 5,
-    "regenRate": 4,
-    "walkSpeed": 5,
-    "sprintSpeed": 9,
-    "jumpVelocity": 13,
-    "staminaMax": 100,
-    "staminaRegen": 14,
-    "staminaSprintCost": 20,
-    "lowHpThreshold": 20,
-    "healOnWaveClear": 15,
-    "lifestealPerKill": 3
+    "maxHp":           100,
+    "maxArmor":        75,
+    "armorAbsorb":     0.6,
+    "regenDelay":      5,
+    "regenRate":       4,
+    "walkSpeed":       5,
+    "sprintSpeed":     9,
+    "lifestealPerKill": 3,
+    "medkitHeal":      40,
+    "waveClearHeal":   15,
+    "hitMultiplierHeadshot":    1.85,
+    "hitMultiplierBackstab":    1.50,
+    "hitMultiplierFrontalBlock": 0.50,
+    "hitMultiplierCrit":        2.50
   },
   "$refs": {},
   "$meta": {
     "source": "../5DEngineMassive/index.html",
-    "extracted_from_lines": "1529-1536, 6008-6012, 2650",
-    "note": "armorAbsorb=0.6 means 60% of hit goes to armor first (line 1536). regenDelay=5s after last hit. regenRate=4hp/s. staminaSprintCost=20 per sprint action (line 5292). walkSpeed/sprintSpeed/jumpVelocity from game_config.js lines 96-98."
+    "extracted_from_lines": "1529-1536, 6607, 5179, 2650",
+    "note": "Core hero tuning constants."
   }
 }
