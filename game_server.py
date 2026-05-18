@@ -335,6 +335,114 @@ def on_event(data):
     emit("mp_event", data, broadcast=True, include_self=False)
 
 
+# ── WorldWideComms / MKii bridge relay ───────────────────────────────────────
+#
+# Relays binary frames between the browser (socket.io) and the local MKii
+# GameBridge process (TCP localhost:7780).
+#
+# Wire format (game_bridge.py protocol): [channel:1 big-endian][length:4 big-endian][data:N]
+#
+# Flow:
+#   Browser → socket.io "bridge_frame" {peerId, channel, data} → TCP frame → game_bridge:7780
+#   game_bridge:7780 → TCP frame → socket.io "bridge_frame" {channel, data} → Browser
+#
+# The relay connects to port 7780 lazily (first "bridge_frame" event). If the bridge
+# is not running the relay is silently skipped — the game continues without mkii.
+# ─────────────────────────────────────────────────────────────────────────────
+
+import struct as _struct
+
+_BRIDGE_HOST  = "127.0.0.1"
+_BRIDGE_PORT  = 7780
+_BRIDGE_HEADER_FMT  = "!BI"           # network-order: uint8 channel + uint32 length
+_BRIDGE_HEADER_SIZE = _struct.calcsize(_BRIDGE_HEADER_FMT)
+
+_bridge_sock = None        # TCP socket to game_bridge.py
+_bridge_lock = threading.Lock()
+
+
+def _bridge_connect():
+    """Try to open a TCP connection to the MKii GameBridge. Returns socket or None."""
+    global _bridge_sock
+    with _bridge_lock:
+        if _bridge_sock is not None:
+            return _bridge_sock
+        try:
+            s = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+            s.settimeout(1.0)
+            s.connect((_BRIDGE_HOST, _BRIDGE_PORT))
+            s.settimeout(None)
+            _bridge_sock = s
+            # Start reader thread once connected
+            threading.Thread(target=_bridge_reader, daemon=True).start()
+            print(f"[bridge] Connected to MKii GameBridge at {_BRIDGE_HOST}:{_BRIDGE_PORT}")
+            return _bridge_sock
+        except OSError:
+            return None
+
+
+def _bridge_reader():
+    """Background thread: read TCP frames from game_bridge and emit to all browser clients."""
+    global _bridge_sock
+    while True:
+        sock = _bridge_sock
+        if sock is None:
+            break
+        try:
+            header = b""
+            while len(header) < _BRIDGE_HEADER_SIZE:
+                chunk = sock.recv(_BRIDGE_HEADER_SIZE - len(header))
+                if not chunk:
+                    raise ConnectionError("bridge closed")
+                header += chunk
+            channel, length = _struct.unpack(_BRIDGE_HEADER_FMT, header)
+            data = b""
+            while len(data) < length:
+                chunk = sock.recv(length - len(data))
+                if not chunk:
+                    raise ConnectionError("bridge closed mid-frame")
+                data += chunk
+            # Decode JSON if possible, otherwise send raw hex
+            try:
+                payload = data.decode("utf-8")
+            except UnicodeDecodeError:
+                payload = data.hex()
+            socketio.emit("bridge_frame", {"channel": channel, "data": payload})
+        except (OSError, ConnectionError):
+            with _bridge_lock:
+                if _bridge_sock is sock:
+                    _bridge_sock = None
+            print("[bridge] MKii GameBridge disconnected")
+            break
+
+
+@socketio.on("bridge_frame")
+def on_bridge_frame(data):
+    """
+    Browser → bridge relay. Packs a socket.io bridge_frame into TCP wire format.
+    data: { peerId, channel, data }  (data is a JSON-serializable object)
+    """
+    channel = int(data.get("channel", 0))
+    payload = data.get("data", {})
+    try:
+        raw = json.dumps(payload).encode("utf-8")
+    except (TypeError, ValueError):
+        raw = str(payload).encode("utf-8")
+
+    sock = _bridge_connect()
+    if sock is None:
+        return  # bridge not running — silently drop
+
+    header = _struct.pack(_BRIDGE_HEADER_FMT, channel, len(raw))
+    try:
+        with _bridge_lock:
+            sock.sendall(header + raw)
+    except OSError:
+        with _bridge_lock:
+            global _bridge_sock
+            _bridge_sock = None
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
