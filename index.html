@@ -1045,6 +1045,7 @@ import { createMeleeAttackSystem } from "./src/systems/ecs_melee_attack.js";
 import { createMoralePanicSystem } from "./src/systems/ecs_morale_panic.js";
 import { createStaggerMovementSystem } from "./src/systems/ecs_stagger_movement.js";
 import { createGunshotAlertSystem } from "./src/systems/ecs_gunshot_alert.js";
+import { createRobotShootSystem } from "./src/systems/ecs_robot_shoot.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10202,6 +10203,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsGunshotAlert = createGunshotAlertSystem();
     Core.addSystem(_ecsGunshotAlert, 13, "gunshot_alert");
     window.Engine.gunshotAlertSystem = _ecsGunshotAlert;
+
+    // Wire robot shoot system — priority 13 (plasma bolt ranged attack every 1.5s)
+    const _ecsRobotShoot = createRobotShootSystem();
+    Core.addSystem(_ecsRobotShoot, 13, "robot_shoot");
+    window.Engine.robotShootSystem = _ecsRobotShoot;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
