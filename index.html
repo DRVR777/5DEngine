@@ -1050,6 +1050,7 @@ import { createPoisonerDartSystem } from "./src/systems/ecs_poisoner_dart.js";
 import { createEnemyBulletSystem } from "./src/systems/ecs_enemy_bullet.js";
 import { createEnemyRegenSystem } from "./src/systems/ecs_enemy_regen.js";
 import { createEnemySeparationSystem } from "./src/systems/ecs_enemy_separation.js";
+import { createComboSystem } from "./src/systems/ecs_combo.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10233,6 +10234,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsEnemySep = createEnemySeparationSystem();
     Core.addSystem(_ecsEnemySep, 13, "enemy_separation");
     window.Engine.enemySeparationSystem = _ecsEnemySep;
+
+    // Wire combo system — priority 6 (kill streak tracking with 3.5s decay)
+    const _ecsCombo = createComboSystem();
+    _ecsCombo.wireListeners(Core);
+    Core.addSystem(_ecsCombo, 6, "combo");
+    window.Engine.comboSystem = _ecsCombo;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
