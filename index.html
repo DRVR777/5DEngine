@@ -1037,6 +1037,7 @@ import { createBossSlamSystem } from "./src/systems/ecs_boss_slam.js";
 import { createFastChargeSystem } from "./src/systems/ecs_fast_charge.js";
 import { createRobotEmpSystem } from "./src/systems/ecs_robot_emp.js";
 import { createHeavyThrowSystem } from "./src/systems/ecs_heavy_throw.js";
+import { createBossRockSystem } from "./src/systems/ecs_boss_rock.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10154,6 +10155,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsHeavyThrow = createHeavyThrowSystem();
     Core.addSystem(_ecsHeavyThrow, 13, "heavy_throw");
     window.Engine.heavyThrowSystem = _ecsHeavyThrow;
+
+    // Wire boss rock system — priority 14 (after enrage:13; emits grenade:throw)
+    const _ecsBossRock = createBossRockSystem();
+    Core.addSystem(_ecsBossRock, 14, "boss_rock");
+    window.Engine.bossRockSystem = _ecsBossRock;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
