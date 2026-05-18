@@ -82,6 +82,7 @@ import { mountWeaponSelector } from "./src/ui/weapon_selector.js";
 import { buildComputerApps, addDynamicIcons } from "./src/systems/computer_apps.js";
 import { mountComputerUI } from "./src/ui/computer_ui_events.js";
 import { mountMouseInput } from "./src/systems/mouse_input.js";
+import { mountHudElements } from "./src/ui/hud_cache.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -4051,69 +4052,7 @@ const WALK    = CFG.walkSpeed    || 5;
 const SPRINT  = CFG.sprintSpeed  || 9;
 
 // ---- main loop ----
-const hud = document.getElementById("hud");
-const mini = document.getElementById("minimap").getContext("2d");
-const MINI_HALF = CFG.miniMapHalfExtent || 35;
-// ── HUD element cache — initialized once, avoids 40+ DOM traversals per tick
-const _dom = {
-  fpsCounter:       document.getElementById("fpsCounter"),
-  ammoHud:          document.getElementById("ammoHud"),
-  reloadCircle:     document.getElementById("reloadCircle"),
-  scopeOverlay:     document.getElementById("scopeOverlay"),
-  crosshair:        document.getElementById("crosshair"),
-  killMarker:       document.getElementById("killMarker"),
-  dmgDirIndicator:  document.getElementById("dmgDirIndicator"),
-  hbGhost:          document.getElementById("hbGhost"),
-  hbFill:           document.getElementById("hbFill"),
-  hbVal:            document.getElementById("hbVal"),
-  armorBar:         document.getElementById("armorBar"),
-  arFill:           document.getElementById("arFill"),
-  arVal:            document.getElementById("arVal"),
-  stFill:           document.getElementById("stFill"),
-  bossHpBar:        document.getElementById("bossHpBar"),
-  bossHpFill:       document.getElementById("bossHpFill"),
-  bossHpVal:        document.getElementById("bossHpVal"),
-  bossName:         document.getElementById("bossName"),
-  comboHud:         document.getElementById("comboHud"),
-  comboMulText:     document.getElementById("comboMulText"),
-  comboFill:        document.getElementById("comboFill"),
-  wpName:           document.getElementById("wpName"),
-  wpAmmo:           document.getElementById("wpAmmo"),
-  wpReserve:        document.getElementById("wpReserve"),
-  wpMagBar:         document.getElementById("wpMagBar"),
-  wpGrenades:       document.getElementById("wpGrenades"),
-  vehicleDash:      document.getElementById("vehicleDash"),
-  vdSpeed:          document.getElementById("vdSpeed"),
-  vdGear:           document.getElementById("vdGear"),
-  waveHud:          document.getElementById("waveHud"),
-  waveLabel:        document.getElementById("waveLabel"),
-  waveDetail:       document.getElementById("waveDetail"),
-  waveBanner:       document.getElementById("waveBanner"),
-  waveBannerLabel:  document.getElementById("waveBannerLabel"),
-  waveBannerSub:    document.getElementById("waveBannerSub"),
-  heroLevelHud:     document.getElementById("heroLevelHud"),
-  waveChallengeHud: document.getElementById("waveChallengeHud"),
-  statusTint:       document.getElementById("statusTint"),
-  statusEffectsHud: document.getElementById("statusEffectsHud"),
-  clockHud:         document.getElementById("clockHud"),
-  grenadeWarn:      document.getElementById("grenadeWarn"),
-  grenCookTimer:    document.getElementById("grenCookTimer"),
-};
-
-// Pre-create dmgDir SVG elements once — update transform attr in tick() instead of rebuilding innerHTML
-const _SVG_NS = "http://www.w3.org/2000/svg";
-const _dmgDirSvg  = document.createElementNS(_SVG_NS, "svg");
-_dmgDirSvg.setAttribute("width", "120"); _dmgDirSvg.setAttribute("height", "120");
-_dmgDirSvg.setAttribute("viewBox", "-60 -60 120 120");
-const _dmgDirG    = document.createElementNS(_SVG_NS, "g");
-const _dmgDirPoly = document.createElementNS(_SVG_NS, "polygon");
-_dmgDirPoly.setAttribute("points", "0,-42 -10,-26 10,-26");
-_dmgDirPoly.setAttribute("fill", "rgba(255,40,40,0.9)");
-_dmgDirPoly.setAttribute("stroke", "rgba(255,80,80,0.5)");
-_dmgDirPoly.setAttribute("stroke-width", "1");
-_dmgDirG.appendChild(_dmgDirPoly);
-_dmgDirSvg.appendChild(_dmgDirG);
-if (_dom.dmgDirIndicator) _dom.dmgDirIndicator.appendChild(_dmgDirSvg);
+const { dom: _dom, hud, mini, MINI_HALF, dmgDirSvg: _dmgDirSvg, dmgDirG: _dmgDirG } = mountHudElements(CFG);
 
 // ═══ EXTRACTED → src/ui/minimap.js ═══════════════════════════════════════════
 // drawMinimap() — full 250-line body moved to Minimap.draw(ctx, state)
