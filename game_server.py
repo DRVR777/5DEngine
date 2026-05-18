@@ -18,8 +18,12 @@ No port-forwarding needed — same WiFi/LAN is enough.
 import os
 import uuid
 import time
+import json
+import platform
 import socket as _socket
-from flask import Flask, request, send_file, send_from_directory
+import urllib.request
+import concurrent.futures
+from flask import Flask, request, send_file, send_from_directory, jsonify
 from flask_socketio import SocketIO, emit
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -53,6 +57,85 @@ def index():
 @app.route("/<path:filename>")
 def static_files(filename):
     return send_from_directory(BASE_DIR, filename)
+
+
+# ── F2: LAN discovery API ─────────────────────────────────────────────────────
+
+@app.route("/api/status")
+def api_status():
+    """
+    Identity endpoint — lets /scan confirm a host is running 5DEngine, not
+    just any random service on port 5050.
+    Returns: { server, version, playerCount, hostName, port }
+    """
+    port_num = int(os.environ.get("PORT", 5050))
+    return jsonify({
+        "server":      "5dengine",
+        "version":     1,
+        "playerCount": len(_players),
+        "hostName":    platform.node(),
+        "port":        port_num,
+    })
+
+
+@app.route("/scan")
+def scan_lan():
+    """
+    LAN discovery: scans the /24 subnet of this machine's primary IP,
+    probing port 5050 on each host with a 0.25 s TCP timeout.
+    Hosts that respond get a secondary HTTP check against /api/status
+    to confirm they are actually running 5DEngine (not some other app).
+
+    Returns: { servers: [{ ip, hostName, playerCount, port }], localIp }
+    """
+    local_ip = _get_local_ip()
+
+    # Derive the /24 prefix (e.g. "192.168.1" from "192.168.1.42")
+    parts = local_ip.rsplit(".", 1)
+    if len(parts) != 2:
+        return jsonify({"servers": [], "error": "cannot_determine_subnet",
+                        "localIp": local_ip})
+    subnet_prefix = parts[0]
+
+    def _probe(n):
+        """
+        Check one IP. Returns a server dict on success, None otherwise.
+        Two-stage: TCP probe (fast) → HTTP /api/status confirm (accurate).
+        """
+        ip = f"{subnet_prefix}.{n}"
+        if ip == local_ip:
+            return None   # skip ourselves
+        # Stage 1 — TCP SYN: is port 5050 even open?
+        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        sock.settimeout(0.25)
+        try:
+            sock.connect((ip, 5050))
+        except OSError:
+            return None
+        finally:
+            sock.close()
+        # Stage 2 — HTTP: confirm it speaks the 5DEngine status API
+        try:
+            url = f"http://{ip}:5050/api/status"
+            with urllib.request.urlopen(url, timeout=1) as resp:
+                data = json.loads(resp.read())
+            if data.get("server") == "5dengine":
+                return {
+                    "ip":          ip,
+                    "hostName":    data.get("hostName", ip),
+                    "playerCount": data.get("playerCount", 0),
+                    "port":        data.get("port", 5050),
+                }
+        except Exception:
+            pass
+        return None
+
+    # Scan all 254 host addresses concurrently (32 threads → ~2 s worst case)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=32) as ex:
+        results = list(ex.map(_probe, range(1, 255)))
+
+    servers = [r for r in results if r is not None]
+    return jsonify({"servers": servers, "localIp": local_ip})
 
 
 # ── SocketIO: lifecycle ───────────────────────────────────────────────────────
