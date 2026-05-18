@@ -1647,6 +1647,8 @@ window._spawnEnemyAtHero = function(typeName) {
   enemies.push(nEn);
   world.setPlayer(eid, 0, 0, 0, eu, ev);
   enemyMeshes.set(eid, _makeEnemyMesh(nEn));
+  // Build flat mesh child cache — avoid em.group.traverse() every tick
+  { const _emRef = enemyMeshes.get(eid); nEn._meshChildren = []; if (_emRef && _emRef.group) _emRef.group.traverse(ch => { if (ch.isMesh && ch.material && !ch._isHpBar) nEn._meshChildren.push(ch); }); }
   // Tint elite enemy gold
   if (nEn._elite) {
     const _em = enemyMeshes.get(eid);
@@ -7310,10 +7312,10 @@ function tick() {
         playSfx("tone:60:350:sawtooth", 0.75);
         showToast(en.type === "boss" ? "★ BOSS ENRAGED!" : "HEAVY ENRAGED!", "danger", 2500);
       }
-      if (en.mesh && en.mesh.children) {
+      if (en._meshChildren && en._meshChildren.length) {
         const _pulse = _hpFrac < 0.25 ? (0.5 + 0.5 * Math.sin(now / (_isEnrageable ? 70 : 120))) : 0;
-        for (const ch of en.mesh.children) {
-          if (ch.isMesh && ch.material && !ch._isHpBar) {
+        for (const ch of en._meshChildren) {
+          if (ch.material) {
             if (!ch._origColor) ch._origColor = ch.material.color.clone();
             ch.material.color.setRGB(
               Math.min(1, ch._origColor.r + _pulse * (_isEnrageable ? 0.9 : 0.6)),
@@ -7338,8 +7340,8 @@ function tick() {
         }
         if (en.mesh && en.mesh.children) {
           const _yFlash = 0.5 + 0.5 * Math.sin(now / 70);
-          for (const ch of en.mesh.children) {
-            if (ch.isMesh && ch.material && !ch._isHpBar) {
+          for (const ch of (en._meshChildren || [])) {
+            if (ch.material) {
               if (!ch._origColor) ch._origColor = ch.material.color.clone();
               ch.material.color.setRGB(
                 Math.min(1, ch._origColor.r + _yFlash * 0.7),
@@ -7622,10 +7624,10 @@ function tick() {
               const snPhase = (nowS - en._sniperPhaseT) % 4.0;
               const isLockon = snPhase >= 2.8;
               // Flash red during lock-on
-              if (en.mesh && en.mesh.children) {
+              if (en._meshChildren && en._meshChildren.length) {
                 const _sFlash = isLockon ? (0.5 + 0.5 * Math.sin(now / (isLockon ? 60 : 200))) : 0;
-                for (const ch of en.mesh.children) {
-                  if (ch.isMesh && ch.material && !ch._isHpBar) {
+                for (const ch of en._meshChildren) {
+                  if (ch.material) {
                     if (!ch._origColor) ch._origColor = ch.material.color.clone();
                     ch.material.color.setRGB(Math.min(1, ch._origColor.r + _sFlash * 0.9), ch._origColor.g * (1 - _sFlash * 0.6), ch._origColor.b * (1 - _sFlash * 0.6));
                   }
@@ -7777,12 +7779,12 @@ function tick() {
         // Brief flash on first appear
         if (_sf < 0.25) {
           const _fl = 1 - _sf / 0.25;
-          em.group.traverse(ch => { if (ch.isMesh && ch.material && ch.material.emissive) ch.material.emissiveIntensity = _fl * 2.5; });
+          for (const ch of (en._meshChildren || [])) { if (ch.material.emissive) ch.material.emissiveIntensity = _fl * 2.5; }
         }
       } else {
         em.group.scale.setScalar(1);
         if (en._spawnT) {
-          em.group.traverse(ch => { if (ch.isMesh && ch.material && ch.material.emissive) ch.material.emissiveIntensity = 0; });
+          for (const ch of (en._meshChildren || [])) { if (ch.material.emissive) ch.material.emissiveIntensity = 0; }
           en._spawnT = null;  // clear once animation completes
         }
       }
@@ -7810,24 +7812,22 @@ function tick() {
       if (en._hitFlashT > 0) {
         en._hitFlashT -= dt;
         en._hitFlashWas = true;
-        em.group.traverse(ch => {
-          if (ch.isMesh && ch.material && !ch._isHpBar) {
-            if (ch._origEmissive === undefined) {
-              ch._origEmissive = ch.material.emissive.getHex();
-              ch._origEmissiveInt = ch.material.emissiveIntensity || 0;
-            }
-            ch.material.emissive.setHex(0xffffff);
-            ch.material.emissiveIntensity = 2.0;
+        for (const ch of (en._meshChildren || [])) {
+          if (ch._origEmissive === undefined) {
+            ch._origEmissive = ch.material.emissive.getHex();
+            ch._origEmissiveInt = ch.material.emissiveIntensity || 0;
           }
-        });
+          ch.material.emissive.setHex(0xffffff);
+          ch.material.emissiveIntensity = 2.0;
+        }
       } else if (en._hitFlashWas) {
         en._hitFlashWas = false;
-        em.group.traverse(ch => {
-          if (ch.isMesh && ch.material && !ch._isHpBar && ch._origEmissive !== undefined) {
+        for (const ch of (en._meshChildren || [])) {
+          if (ch._origEmissive !== undefined) {
             ch.material.emissive.setHex(ch._origEmissive);
             ch.material.emissiveIntensity = ch._origEmissiveInt;
           }
-        });
+        }
       }
       // Blood/oil trail on low-HP enemies — drip particle every 0.12s below 30% HP
       if (en.hp / en.maxHp < 0.30) {
