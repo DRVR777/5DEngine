@@ -83,7 +83,7 @@ import { buildComputerApps, addDynamicIcons } from "./src/systems/computer_apps.
 import { mountComputerUI } from "./src/ui/computer_ui_events.js";
 import { mountMouseInput } from "./src/systems/mouse_input.js";
 import { mountHudElements } from "./src/ui/hud_cache.js";
-import { mountKeydownHandler } from "./src/systems/keydown_handler.js";
+import { mountKeydownHandler, mountKeyupHandler } from "./src/systems/keydown_handler.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -3579,26 +3579,26 @@ mountKeydownHandler({
   weaponDropMap: _WEAPON_DROP_MAP,
   coinByType:    _COIN_BY_TYPE,
 });;
-addEventListener("keyup", (e) => {
-  keys[e.code] = false;
-  // G release: throw cooked grenade
-  if (e.code === "KeyG" && _grenadePressT && !buildMode && !computerOpen && !_heroDead) {
-    const heldSec = (performance.now() - _grenadePressT) / 1000;
-    _grenadePressT = 0;
-    if (heldSec >= 4.0) {
-      // Held too long — explodes in hand
-      const hm = world.players.get("hero");
-      heroHp = Math.max(0, heroHp - 50);
-      flashDamage(); _applyScreenShake(0.6);
-      _spawnParticles(hm.u, hm.y + 1.0, hm.v, 100, "orange", 18, 2.0);
-      playSfx("tone:80:350:sawtooth", 0.9);
-      showToast("GRENADE COOKED — OUCH! -50 HP", "danger", 1800);
-      grenadeCount = Math.max(0, grenadeCount - 1);
-      if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
-    } else {
-      _throwGrenade(2.5 - heldSec);
-    }
-  }
+mountKeyupHandler({
+  keys,
+  getState: () => ({
+    buildMode, computerOpen, _heroDead, _grenadePressT,
+    heroHp, world, grenadeCount,
+  }),
+  set: {
+    grenadePressT: (v) => { _grenadePressT = v; },
+    heroHp:        (v) => { heroHp = v; },
+    grenadeCount:  (v) => { grenadeCount = v; },
+  },
+  actions: {
+    flashDamage:        flashDamage,
+    applyScreenShake:   _applyScreenShake,
+    spawnParticles:     _spawnParticles,
+    playSfx:            playSfx,
+    showToast:          showToast,
+    heroShowDeathScreen:_heroShowDeathScreen,
+    throwGrenade:       _throwGrenade,
+  },
 });
 
 let camYaw = 0;

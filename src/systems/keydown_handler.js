@@ -470,3 +470,38 @@ export function mountKeydownHandler({
     }
   });
 }
+
+// Keyup handler — key release tracking + grenade cook/throw on G release.
+// mountKeyupHandler(deps) → void  (registers addEventListener at call time)
+export function mountKeyupHandler({
+  keys,
+  getState,
+  set,
+  actions,
+}) {
+  if (typeof document === "undefined") return;
+
+  addEventListener("keyup", (e) => {
+    keys[e.code] = false;
+
+    // G release: throw cooked grenade, or explode in hand if over-cooked
+    const s = getState();
+    if (e.code === "KeyG" && s._grenadePressT && !s.buildMode && !s.computerOpen && !s._heroDead) {
+      const heldSec = (performance.now() - s._grenadePressT) / 1000;
+      set.grenadePressT(0);
+      if (heldSec >= 4.0) {
+        const hm = s.world.players.get("hero");
+        set.heroHp(Math.max(0, s.heroHp - 50));
+        actions.flashDamage();
+        actions.applyScreenShake(0.6);
+        actions.spawnParticles(hm.u, hm.y + 1.0, hm.v, 100, "orange", 18, 2.0);
+        actions.playSfx("tone:80:350:sawtooth", 0.9);
+        actions.showToast("GRENADE COOKED — OUCH! -50 HP", "danger", 1800);
+        set.grenadeCount(Math.max(0, s.grenadeCount - 1));
+        if (s.heroHp - 50 <= 0 && !s._heroDead) actions.heroShowDeathScreen();
+      } else {
+        actions.throwGrenade(2.5 - heldSec);
+      }
+    }
+  });
+}

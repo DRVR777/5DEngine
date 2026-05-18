@@ -280,3 +280,35 @@ describe("mouse-mode toggle (KeyM)", () => {
     expect(src).toContain("entry.screen.widthM >= 5");
   });
 });
+
+describe("mountKeyupHandler", () => {
+  it("exports mountKeyupHandler", () => {
+    expect(src).toMatch(/export\s+function\s+mountKeyupHandler/);
+  });
+
+  it("registers keyup listener", () => {
+    expect(src).toContain('"keyup"');
+    expect(src).toContain("keys[e.code] = false");
+  });
+
+  it("clears grenadePressT on G release", () => {
+    expect(src).toContain("set.grenadePressT(0)");
+  });
+
+  it("throws grenade with cook time on normal release", () => {
+    expect(src).toContain("actions.throwGrenade(2.5 - heldSec)");
+  });
+
+  it("over-cook explodes in hand and damages hero", () => {
+    expect(src).toContain("heldSec >= 4.0");
+    expect(src).toContain("set.heroHp(Math.max(0, s.heroHp - 50))");
+  });
+
+  it("calls flashDamage on over-cook", () => {
+    expect(src).toContain("actions.flashDamage()");
+  });
+
+  it("decrements grenadeCount on over-cook", () => {
+    expect(src).toContain("set.grenadeCount(Math.max(0, s.grenadeCount - 1))");
+  });
+});
