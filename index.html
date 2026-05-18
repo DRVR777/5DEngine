@@ -1648,7 +1648,7 @@ window._spawnEnemyAtHero = function(typeName) {
   world.setPlayer(eid, 0, 0, 0, eu, ev);
   enemyMeshes.set(eid, _makeEnemyMesh(nEn));
   // Build flat mesh child cache — avoid em.group.traverse() every tick
-  { const _emRef = enemyMeshes.get(eid); nEn._meshChildren = []; if (_emRef && _emRef.group) _emRef.group.traverse(ch => { if (ch.isMesh && ch.material && !ch._isHpBar) nEn._meshChildren.push(ch); }); }
+  { const _emRef = enemyMeshes.get(eid); nEn._meshChildren = []; if (_emRef && _emRef.group) { _emRef.group.traverse(ch => { if (ch.isMesh && ch.material && !ch._isHpBar) nEn._meshChildren.push(ch); }); _emRef._alertBubble = _emRef.group.getObjectByName("_alertBubble"); _emRef._typeGem     = _emRef.group.getObjectByName("_typeGem"); } }
   // Tint elite enemy gold
   if (nEn._elite) {
     const _em = enemyMeshes.get(eid);
@@ -7799,14 +7799,14 @@ function tick() {
       const _barVisible = hpFrac < 1.0 && (!en._hpBarShowT || (now / 1000 - en._hpBarShowT) < 2.5);
       if (em.hpPivot) { em.hpPivot.visible = _barVisible; em.hpPivot.rotation.y = camYaw - en.heading; }
       // Detection "!" sprite — show briefly when enemy spots hero
-      { const _ab = em.group.getObjectByName("_alertBubble");
+      { const _ab = em._alertBubble;
         if (_ab) {
           if (en._alertT > 0) { en._alertT -= dt; _ab.visible = true; const _ps = 0.45 + 0.15 * Math.sin(now / 90); _ab.scale.set(_ps, _ps, 1); }
           else _ab.visible = false;
         }
       }
       // Spin the type indicator gem
-      const gem = em.group.getObjectByName("_typeGem");
+      const gem = em._typeGem;
       if (gem) gem.rotation.y += dt * 2.5;
       // Hit flash — white emissive burst 0.08s on bullet impact
       if (en._hitFlashT > 0) {
@@ -7855,7 +7855,7 @@ function tick() {
         em.group.scale.setScalar(1 - f * 0.5);    // shrink slightly
         em.group.visible = true;
         if (em.hpPivot) em.hpPivot.visible = false;
-        const _ab2 = em.group.getObjectByName("_alertBubble");
+        const _ab2 = em._alertBubble;
         if (_ab2) _ab2.visible = false;
       } else {
         em.group.visible = false;
