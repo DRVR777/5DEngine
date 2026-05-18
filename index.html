@@ -1035,6 +1035,7 @@ import { createPlayerMovementSystem } from "./src/systems/ecs_player_movement.js
 import { createEnrageSystem } from "./src/systems/ecs_enrage.js";
 import { createBossSlamSystem } from "./src/systems/ecs_boss_slam.js";
 import { createFastChargeSystem } from "./src/systems/ecs_fast_charge.js";
+import { createRobotEmpSystem } from "./src/systems/ecs_robot_emp.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10142,6 +10143,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsFastCharge = createFastChargeSystem();
     Core.addSystem(_ecsFastCharge, 11, "fast_charge");
     window.Engine.fastChargeSystem = _ecsFastCharge;
+
+    // Wire robot EMP system — priority 15 (after ai_movement:12; emits hero:emped)
+    const _ecsRobotEmp = createRobotEmpSystem();
+    Core.addSystem(_ecsRobotEmp, 15, "robot_emp");
+    window.Engine.robotEmpSystem = _ecsRobotEmp;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
