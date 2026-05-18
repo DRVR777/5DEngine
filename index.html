@@ -1017,6 +1017,7 @@ import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
 import { pickupSystem, spawnPickup } from "./src/systems/ecs_pickup.js";
+import { createShopSystem } from "./src/systems/ecs_shop.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10077,8 +10078,14 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
 
     // Also expose for console/debug access
     if (!window.Engine) window.Engine = {};
+    // Wire shop system — priority 25 (after pickup at 20)
+    const shopAtom = await Core.loadData("data/shop/shop_items.json");
+    const _ecsShop = createShopSystem(shopAtom.$facets, { HERO_MAX_ARMOR: 75 });
+    Core.addSystem(_ecsShop, 25, "shop");
+
     window.Engine.waveSystem  = _ecsWave;
     window.Engine.spawnPickup = spawnPickup;
+    window.Engine.shopSystem  = _ecsShop;
 
     console.info("[ECS] Core ready —", Core.snapshot());
   } catch (e) {
