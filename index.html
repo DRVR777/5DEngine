@@ -9473,7 +9473,11 @@ const _mp = (function () {
       const mesh = _makeGhostMesh(name || id);
       const initPos = pos ? new THREE.Vector3(pos.u || 0, pos.y || 0, pos.v || 0) : new THREE.Vector3();
       mesh.position.copy(initPos);
-      _peers.set(id, { name: name || id, mesh, targetPos: initPos.clone() });
+      // F4: vel + velTime for dead-reckoning; inVehicle for lerp-factor selection
+      _peers.set(id, {
+        name: name || id, mesh, targetPos: initPos.clone(),
+        vel: new THREE.Vector3(), velTime: 0, inVehicle: false,
+      });
       if (typeof showToast === "function") showToast(`Player "${name || id}" joined!`, "success", 2500);
     }
 
@@ -9514,8 +9518,24 @@ const _mp = (function () {
     _sock.on("mp_pos", (data) => {
       const p = _peers.get(data.id);
       if (!p) return;
-      p.targetPos.set(data.u || 0, data.y || 0, data.v || 0);
-      if (data.heading != null) p.targetHeading = data.heading;
+      const now = performance.now();
+      const newU = data.u || 0, newY = data.y || 0, newV = data.v || 0;
+      // F4 — velocity estimate for dead-reckoning
+      // Only compute when the gap is plausible (10–500ms — avoids stale startup values)
+      if (p.velTime > 0) {
+        const dtMs = now - p.velTime;
+        if (dtMs >= 10 && dtMs < 500) {
+          p.vel.set(
+            (newU - p.targetPos.x) / (dtMs / 1000),
+            (newY - p.targetPos.y) / (dtMs / 1000),
+            (newV - p.targetPos.z) / (dtMs / 1000),
+          );
+        }
+      }
+      p.velTime = now;
+      p.targetPos.set(newU, newY, newV);
+      if (data.heading   != null) p.targetHeading = data.heading;
+      if (data.inVehicle != null) p.inVehicle     = data.inVehicle;
     });
 
     _sock.on("mp_event", (data) => {
@@ -9539,12 +9559,28 @@ const _mp = (function () {
     });
 
     // ── Tick: smooth-lerp ghost meshes toward received positions ────────────
+    // F4 dead-reckoning: when no packet has arrived for >60 ms and the peer
+    // is in a vehicle, we extrapolate targetPos forward using the last
+    // computed velocity so the ghost doesn't visibly stall between packets.
+    // Extrapolation is capped at 300 ms to avoid teleporting on reconnect.
+    // Lerp factor: 8 for vehicles (wider gap tolerance), 12 for walkers.
     function tick(dt) {
+      const now = performance.now();
       for (const [, p] of _peers) {
         if (!p.mesh) continue;
-        // Position lerp — 12 = ~83ms to close gap at 60fps (very smooth on LAN)
-        p.mesh.position.lerp(p.targetPos, Math.min(1, dt * 12));
-        // Yaw lerp
+
+        // Dead-reckoning for vehicles: project targetPos along vel
+        let drTarget = p.targetPos;
+        const msSinceUpdate = p.velTime > 0 ? now - p.velTime : 0;
+        if (p.inVehicle && msSinceUpdate > 60 && p.velTime > 0) {
+          const extrapolateS = Math.min(msSinceUpdate / 1000, 0.3);
+          drTarget = p.targetPos.clone().addScaledVector(p.vel, extrapolateS);
+        }
+
+        const lerpK = p.inVehicle ? 8 : 12;  // vehicles: smoother (slower correction)
+        p.mesh.position.lerp(drTarget, Math.min(1, dt * lerpK));
+
+        // Yaw lerp (same rate for both vehicle and foot)
         if (p.targetHeading != null) {
           let dH = p.targetHeading - p.mesh.rotation.y;
           while (dH >  Math.PI) dH -= Math.PI * 2;
@@ -9562,14 +9598,16 @@ const _mp = (function () {
     function send(heroPos) {
       if (!_sock.connected) return;
       _sock.emit("mp_pos", {
-        u:       heroPos.u || 0,
-        v:       heroPos.v || 0,
-        y:       heroPos.y || 0,
-        heading: typeof camYaw !== "undefined"        ? camYaw        : 0,
-        weapon:  typeof currentWeaponId !== "undefined" ? currentWeaponId : "pistol",
-        hp:      typeof heroHp !== "undefined"        ? heroHp        : 100,
-        anim:    typeof isSprinting !== "undefined" && isSprinting ? "sprint"
-               : typeof crouching  !== "undefined" && crouching  ? "crouch" : "idle",
+        u:         heroPos.u || 0,
+        v:         heroPos.v || 0,
+        y:         heroPos.y || 0,
+        heading:   typeof camYaw !== "undefined"          ? camYaw          : 0,
+        weapon:    typeof currentWeaponId !== "undefined" ? currentWeaponId : "pistol",
+        hp:        typeof heroHp !== "undefined"          ? heroHp          : 100,
+        anim:      typeof isSprinting !== "undefined" && isSprinting ? "sprint"
+                 : typeof crouching  !== "undefined" && crouching  ? "crouch" : "idle",
+        // F4: lets peers select dead-reckoning params (vehicle vs foot)
+        inVehicle: typeof inCar !== "undefined" ? !!inCar : false,
       });
     }
 
