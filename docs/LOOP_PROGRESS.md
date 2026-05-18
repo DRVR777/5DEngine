@@ -42,3 +42,7 @@ Next: FUTURE_FEATURES.md — F1 game mode select, F2 LAN probe, F3 collab world 
 - [x] D1. Classify 102 orphaned src/ files → docs/ORPHAN_AUDIT.md (101 files classified: 42 WIRED, 3 CROSS-REF, 2 DUPLICATE, 10 social/future, 10 economy/future, 14 world/future, 4 vehicle/future, 5 progression/future, ~11 scaffold)
 - [x] D2. Fix leaderboard.js + leaderboards.js duplicate — confirmed DISTINCT (network-broadcast vs offline-history); added disambiguation banners to both files
 - [x] D3. Fix minigame.js + minigames.js duplicate — confirmed DISTINCT (session-harness vs game-registry-hub); added disambiguation banners to both files
+
+## Phase 5 — Future Features
+
+- [x] F1. Game Mode Select Screen — `gameMode` var (solo/coop_build/wave_defense), APPS.gamemodes entry, 🎮 icon in grid, click handler (data-action="set-mode"), auto-opens on first launch via 500ms setTimeout. EventBus.emit("GAME_MODE_CHANGED") for F3.

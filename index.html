@@ -1852,6 +1852,12 @@ window.setRain = Rain.setRain;  // keep global API for console/external callers
 // Computer and NPC prompt state
 let nearComputer = false;
 let computerOpen = false;
+
+// F1 — Game Mode Select
+// "solo" | "coop_build" | "wave_defense"
+// Read by tick() and future F3 sync code to gate multiplayer build logic.
+let gameMode = "solo";
+let _firstLaunch = true;   // cleared after the player picks a mode on first open
 let _nearNpc = null;
 
 // Weapon registry — look up active weapon from CFG.weapons by id
@@ -8759,6 +8765,26 @@ function tick() {
 }
 requestAnimationFrame(tick);
 
+// F1 — Show Game Mode Select on very first launch.
+// Waits 500 ms so the scene renders one frame first (avoids black-screen flash).
+// Opens the overlay directly (no cinematic) and navigates straight to Game Modes.
+// _firstLaunch is cleared when the player picks a mode; never fires again.
+setTimeout(function _firstLaunchGameModes() {
+  if (!_firstLaunch) return;
+  // Use finishComputerEntry() to mark the overlay as open (sets computerOpen = true,
+  // exits pointer lock, etc.) — same as pressing E, but without the 0.45s dolly anim.
+  finishComputerEntry();
+  // Navigate straight to the Game Modes app (skip the home-screen grid)
+  const homeEl  = document.getElementById("appHome");
+  const titleEl = document.getElementById("appTitle");
+  const bodyEl  = document.getElementById("appBody");
+  const winEl   = document.getElementById("appWindow");
+  if (homeEl)  homeEl.style.display  = "none";
+  if (titleEl) titleEl.textContent   = APPS.gamemodes.title;
+  if (bodyEl)  bodyEl.innerHTML      = APPS.gamemodes.body();
+  if (winEl)   winEl.classList.add("open");
+}, 500);
+
 // ---- High score (separate from save) ----
 // ═══ EXTRACTED → src/progression/high_score.js ════════════════════════════════
 // const _HS_KEY, let _bestRecord, function _checkHighScore — all moved to module
@@ -9019,6 +9045,45 @@ ${devLines}
 ${wireLines}</pre>`;
     },
   },
+  // F1 — Game Mode Select: shows current mode + lets player switch.
+  // Adding a new mode = add an entry to the `modes` array below. Nothing else.
+  gamemodes: {
+    title: "🎮 Game Modes",
+    body: () => {
+      const modes = [
+        { id: "solo",         icon: "🎯", label: "Solo",
+          desc: "Single-player — explore, build, and survive alone." },
+        { id: "coop_build",   icon: "🏗️",  label: "Co-op Build",
+          desc: "Collaborative building. Sync build actions with nearby players (F3)." },
+        { id: "wave_defense", icon: "🌊", label: "Wave Defense",
+          desc: "Survive escalating enemy waves. Turrets recommended." },
+      ];
+      const rows = modes.map(m => {
+        const active  = gameMode === m.id;
+        const border  = active ? "2px solid #44ccff" : "1px solid #4488cc44";
+        const bg      = active ? "#0a2040"           : "#050d1a";
+        const check   = active
+          ? `<span style="color:#44ccff;font-weight:bold;margin-left:auto;font-size:13px">✓ Active</span>`
+          : "";
+        // Whole row is the click target — data-action is picked up by the
+        // computerOverlay click handler below (same pattern as Insert/Eject).
+        return `<div data-action="set-mode" data-mode="${m.id}"
+          style="display:flex;align-items:center;gap:12px;padding:10px 14px;margin:6px 0;
+                 background:${bg};border:${border};border-radius:6px;cursor:pointer">
+          <span style="font-size:20px;pointer-events:none">${m.icon}</span>
+          <div style="flex:1;pointer-events:none">
+            <div style="color:#eee;font-weight:bold;font-size:13px">${m.label}</div>
+            <div style="color:#88a;font-size:11px;margin-top:2px">${m.desc}</div>
+          </div>
+          ${check}
+        </div>`;
+      }).join("");
+      return `<div style="color:#88a;font-size:12px;margin-bottom:10px">
+        Select a game mode — you can change this any time from the Game Modes app.
+        <br>Current: <b style="color:#44ccff">${gameMode}</b>
+      </div>${rows}`;
+    },
+  },
   files: {
     title: "📁 Files",
     body: () => {
@@ -9059,9 +9124,10 @@ ${lines}</pre>
   const grid = document.querySelector("#computerOverlay .grid");
   if (!grid) return;
   const extras = [
-    { id: "browser", icon: "🌐", label: "Browser" },
-    { id: "devices", icon: "🔌", label: "Devices" },
-    { id: "files",   icon: "📁", label: "Files" },
+    { id: "gamemodes", icon: "🎮", label: "Game Modes" }, // F1
+    { id: "browser",   icon: "🌐", label: "Browser" },
+    { id: "devices",   icon: "🔌", label: "Devices" },
+    { id: "files",     icon: "📁", label: "Files" },
   ];
   for (const e of extras) {
     if (grid.querySelector('[data-app="' + e.id + '"]')) continue;
@@ -9112,6 +9178,26 @@ document.getElementById("computerOverlay").addEventListener("click", (e) => {
     }
     return;
   }
+  // F1 — Game mode row click (data-action="set-mode")
+  const modeEl = e.target.closest("[data-action='set-mode']");
+  if (modeEl) {
+    const mode = modeEl.dataset.mode;
+    if (mode) {
+      gameMode = mode;
+      _firstLaunch = false;
+      playSfx("blip", 0.6);
+      // Re-render to show the checkmark on the newly selected mode
+      document.getElementById("appBody").innerHTML = APPS.gamemodes.body();
+      // Let other systems react (F3 co-op sync checks this)
+      if (typeof EventBus !== "undefined") {
+        EventBus.emit("GAME_MODE_CHANGED", { mode });
+      }
+      // Close overlay after a short beat so the player sees the checkmark
+      setTimeout(() => closeComputer(), 700);
+    }
+    return;
+  }
+
   const app = e.target.closest(".app");
   if (!app) return;
   const id = app.dataset.app;
