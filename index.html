@@ -78,6 +78,7 @@ import { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./src/systems/npc_dialog.js
 import { mountQuestPanel } from "./src/systems/quest_panel.js";
 import { mountShopPanel } from "./src/economy/shop_panel.js";
 import { mountSettingsPanel } from "./src/systems/settings_panel.js";
+import { mountWeaponSelector } from "./src/ui/weapon_selector.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -915,28 +916,11 @@ function getWeapon() {
   };
 }
 // Weapon selector bar — momentarily shown when switching
-let _weaponSelectorTimeout = null;
-function _showWeaponSelector() {
-  const el = document.getElementById("weaponSelector");
-  if (!el) return;
-  const weps = CFG.weapons || [];
-  el.style.display = "flex";
-  el.style.opacity = "1";
-  el.innerHTML = weps.map((w, i) => {
-    const isActive = w.id === currentWeaponId;
-    return `<div style="background:${isActive?"rgba(0,200,255,0.18)":"rgba(2,8,22,0.88)"};border:1px solid ${isActive?"rgba(0,200,255,0.6)":"rgba(0,200,255,0.2)"};border-radius:5px;padding:5px 14px;font-family:ui-monospace,monospace;font-size:10px;color:${isActive?"#00ccff":"#4488aa"};display:flex;gap:8px;align-items:center">
-      <span style="color:#4488aa;font-size:9px">${i+1}</span>
-      <span>${(w.name||w.id).toUpperCase()}</span>
-      ${isActive?'<span style="color:#ffd166;font-size:9px">▶</span>':""}
-    </div>`;
-  }).join("");
-  if (_weaponSelectorTimeout) clearTimeout(_weaponSelectorTimeout);
-  _weaponSelectorTimeout = setTimeout(() => {
-    el.style.transition = "opacity 0.4s";
-    el.style.opacity = "0";
-    setTimeout(() => { el.style.display = "none"; el.style.transition = ""; }, 420);
-  }, 1800);
-}
+const _weaponSelector = mountWeaponSelector({
+  getCFG: () => (typeof CFG !== "undefined" ? CFG : {}),
+  getActiveWeaponId: () => currentWeaponId,
+});
+const _showWeaponSelector = () => _weaponSelector.show();
 
 // Per-weapon magazine ammo tracker; undefined = full mag on first read
 const weaponAmmo = new Map();
