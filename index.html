@@ -1012,6 +1012,9 @@
 <script type="module">
 import * as THREE from "three";
 import Rain from "./src/world/rain.js";
+import Notifications from "./src/ui/hud_notifications.js";
+const showToast = Notifications.showToast;
+const _addKillFeedEntry = Notifications.addKillFeedEntry;
 // Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
 // We use .then chains (no top-level await) so the inline module also loads
 // cleanly in vm-based test sandboxes that don't support TLA.
@@ -1679,40 +1682,13 @@ window._spawnEnemyAtHero = function(typeName) {
   }
 };
 
-// ---- Kill feed ----
-function _addKillFeedEntry(text, color = "#ff4466") {
-  const feed = document.getElementById("killFeed");
-  if (!feed) return;
-  // Cap at 5 visible entries — remove oldest if overflow
-  while (feed.children.length >= 5) feed.removeChild(feed.firstChild);
-  const el = document.createElement("div");
-  el.style.cssText = `color:${color};font-family:ui-monospace,monospace;font-size:11px;` +
-    `background:rgba(2,8,22,0.88);border:1px solid rgba(255,68,102,0.3);border-radius:4px;` +
-    `padding:4px 12px;animation:toastIn 0.15s ease-out forwards;letter-spacing:0.06em`;
-  el.textContent = text;
-  feed.appendChild(el);
-  setTimeout(() => {
-    el.style.transition = "opacity 0.4s";
-    el.style.opacity = "0";
-    setTimeout(() => feed.contains(el) && feed.removeChild(el), 420);
-  }, 3200);
-}
-
-// ---- Toast notification system ----
-function showToast(msg, type = "info", duration = 3000) {
-  const container = document.getElementById("toastContainer");
-  if (!container) return;
-  const el = document.createElement("div");
-  el.className = "toast" + (type !== "info" ? " " + type : "");
-  el.textContent = msg;
-  container.appendChild(el);
-  setTimeout(() => {
-    el.style.transition = "opacity 0.3s";
-    el.style.opacity = "0";
-    setTimeout(() => container.contains(el) && container.removeChild(el), 320);
-  }, duration);
-}
-window.showToast = showToast;
+// ═══ EXTRACTED → src/ui/hud_notifications.js ══════════════════════════════════
+// // ---- Kill feed ----
+// function _addKillFeedEntry(text, color) { ... }
+// // ---- Toast notification system ----
+// function showToast(msg, type, duration) { ... }
+// ═══════════════════════════════════════════════════════════════════════════════
+window.showToast = Notifications.showToast;  // keep global API
 
 // ---- NPC Dialog system ----
 const _npcDialogs = {
