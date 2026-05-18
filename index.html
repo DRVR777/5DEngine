@@ -1419,59 +1419,72 @@ function _heroRespawn() {
 (function() {
   const btn = document.getElementById("victoryPlayAgain");
   if (!btn) return;
+  // victoryPlayAgain button delegates to resetGameState() so other callers
+  // (game mode select screen, dev console "restart" command) can reuse it.
   btn.addEventListener("click", () => {
     const vEl = document.getElementById("victoryOverlay");
     if (vEl) vEl.style.display = "none";
-    // Remove all wave-spawned enemies from scene, world, and arrays
-    for (let _ei = enemies.length - 1; _ei >= 0; _ei--) {
-      const _re = enemies[_ei];
-      if (_re.id && _re.id.startsWith("en_spawned_")) {
-        const _rem = enemyMeshes.get(_re.id);
-        if (_rem) { scene.remove(_rem.group); if (_rem.laserLine) scene.remove(_rem.laserLine); enemyMeshes.delete(_re.id); }
-        if (world.players) world.players.delete(_re.id);
-        enemies.splice(_ei, 1);
-      }
-    }
-    // Clear environmental hazards
-    for (const _fp of firePatches) scene.remove(_fp.mesh); firePatches.length = 0;
-    for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
-    for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
-    for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
-    for (const _tt of _turrets) scene.remove(_tt.group); _turrets.length = 0;
-    // Clear in-flight projectiles
-    for (const _rb of bullets3D) scene.remove(_rb.mesh); bullets3D.length = 0;
-    for (const _eb of enemyBullets) scene.remove(_eb.mesh); enemyBullets.length = 0;
-    for (const _rg of grenades3D) { scene.remove(_rg.mesh); if (_rg._warnRing) scene.remove(_rg._warnRing); } grenades3D.length = 0;
-    // Clear mines, smoke, speed orbs, weapon pickups
-    for (const _rm of _mines) scene.remove(_rm.mesh); _mines.length = 0;
-    for (const _sz of smokeZones) scene.remove(_sz.mesh); smokeZones.length = 0;
-    for (const _so of _speedOrbs) scene.remove(_so.mesh); _speedOrbs.length = 0;
-    for (const _wp of weaponPickups) scene.remove(_wp.mesh); weaponPickups.length = 0;
-    // Reset consumable counts
-    grenadeCount = 3; smokeGrenadeCount = 2; flashbangCount = 2; _mineCount = 2;
-    // Reset inventory and weapon ammo to starting state
-    heroInv.slots.fill(null);
-    for (const _riW of (CFG.weapons || [])) {
-      Inv.addItem(heroInv, "gun_" + _riW.id, 1);
-      Inv.addItem(heroInv, _riW.ammoItem || "pistol_9mm", _riW.magCap * 4);
-    }
-    Inv.addItem(heroInv, "medkit", 2);
-    weaponAmmo.clear();
-    for (const _riW2 of (CFG.weapons || [])) weaponAmmo.set(_riW2.id, _riW2.magCap || 12);
-    currentWeaponId = "pistol"; pistolAmmo = (CFG.weapons.find(w => w.id === "pistol") || {magCap: 12}).magCap;
-    if (typeof _switchGunMesh === "function") _switchGunMesh("pistol");
-    _heroRespawn();
-    if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
-    score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
-    _streakCount = 0; _lastKillT = 0; _panicBroadcastT = -99; _waveBeepLast = 0;
-    _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false;
-    _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0;
-    if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
-    const _ppOv = document.getElementById("perkPicker"); if (_ppOv) _ppOv.style.display = "none";
-    _activePerkLabels.length = 0; _refreshPerkHud();
-    const _lvlEl = _dom.heroLevelHud; if (_lvlEl) _lvlEl.textContent = "";
+    resetGameState();
   });
 })();
+
+// ── resetGameState() ─────────────────────────────────────────────────────────
+// Full game reset: clears all active entities, resets stats, re-starts waves.
+// Called by: Play Again button, future game-mode-select screen, dev console.
+// Exposed as window.resetGameState for emergency use from the browser console.
+function resetGameState() {
+  // Remove all wave-spawned enemies from scene, world, and arrays
+  for (let _ei = enemies.length - 1; _ei >= 0; _ei--) {
+    const _re = enemies[_ei];
+    if (_re.id && _re.id.startsWith("en_spawned_")) {
+      const _rem = enemyMeshes.get(_re.id);
+      if (_rem) { scene.remove(_rem.group); if (_rem.laserLine) scene.remove(_rem.laserLine); enemyMeshes.delete(_re.id); }
+      if (world.players) world.players.delete(_re.id);
+      enemies.splice(_ei, 1);
+    }
+  }
+  // Clear environmental hazards
+  for (const _fp of firePatches) scene.remove(_fp.mesh); firePatches.length = 0;
+  for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
+  for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
+  for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
+  for (const _tt of _turrets) scene.remove(_tt.group); _turrets.length = 0;
+  // Clear in-flight projectiles
+  for (const _rb of bullets3D) scene.remove(_rb.mesh); bullets3D.length = 0;
+  for (const _eb of enemyBullets) scene.remove(_eb.mesh); enemyBullets.length = 0;
+  for (const _rg of grenades3D) { scene.remove(_rg.mesh); if (_rg._warnRing) scene.remove(_rg._warnRing); } grenades3D.length = 0;
+  // Clear mines, smoke, speed orbs, weapon pickups
+  for (const _rm of _mines) scene.remove(_rm.mesh); _mines.length = 0;
+  for (const _sz of smokeZones) scene.remove(_sz.mesh); smokeZones.length = 0;
+  for (const _so of _speedOrbs) scene.remove(_so.mesh); _speedOrbs.length = 0;
+  for (const _wp of weaponPickups) scene.remove(_wp.mesh); weaponPickups.length = 0;
+  // Reset consumable counts
+  grenadeCount = 3; smokeGrenadeCount = 2; flashbangCount = 2; _mineCount = 2;
+  // Reset inventory and weapon ammo to starting state
+  heroInv.slots.fill(null);
+  for (const _riW of (CFG.weapons || [])) {
+    Inv.addItem(heroInv, "gun_" + _riW.id, 1);
+    Inv.addItem(heroInv, _riW.ammoItem || "pistol_9mm", _riW.magCap * 4);
+  }
+  Inv.addItem(heroInv, "medkit", 2);
+  weaponAmmo.clear();
+  for (const _riW2 of (CFG.weapons || [])) weaponAmmo.set(_riW2.id, _riW2.magCap || 12);
+  currentWeaponId = "pistol"; pistolAmmo = (CFG.weapons.find(w => w.id === "pistol") || {magCap: 12}).magCap;
+  if (typeof _switchGunMesh === "function") _switchGunMesh("pistol");
+  _heroRespawn();
+  if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
+  // Reset all per-session stats and progression state
+  score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0;
+  _streakCount = 0; _lastKillT = 0; _panicBroadcastT = -99; _waveBeepLast = 0;
+  _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false;
+  _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0;
+  if (_perkTimerInt) { clearInterval(_perkTimerInt); _perkTimerInt = null; }
+  const _ppOv = document.getElementById("perkPicker"); if (_ppOv) _ppOv.style.display = "none";
+  _activePerkLabels.length = 0; _refreshPerkHud();
+  const _lvlEl = _dom.heroLevelHud; if (_lvlEl) _lvlEl.textContent = "";
+}
+window.resetGameState = resetGameState; // expose for browser console and future game-mode-select screen
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Difficulty multipliers — set by difficulty selection screen, persist across respawns
 let _diffHpMul  = 1.0;

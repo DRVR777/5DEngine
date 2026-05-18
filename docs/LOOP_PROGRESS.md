@@ -31,7 +31,7 @@
 - [x] C1. Wire EventBus to 5 additional game events (HERO_DAMAGED, WEAPON_SWITCH, VEHICLE_ENTER, VEHICLE_EXIT, SCORE_CHANGED)
 - [x] C2. Add Engine.require() no-op proxy (added to src/core/engine.js, returns null if subsystem not registered)
 - [x] C3. Fixed-timestep physics wrapper (FIXED_DT=1/60 + _physicsAcc accumulator wired into tick(); _physicsSteps/_physicsAlpha available for future subsystem migration)
-- [ ] C4. resetGameState() function
+- [x] C4. resetGameState() function (extracted from victoryPlayAgain click handler; exposed as window.resetGameState for console/game-mode-select reuse)
 - [ ] C5. GTAEngine null guard
 
 ## Phase 4 — Orphaned file audit
