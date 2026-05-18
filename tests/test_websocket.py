@@ -26,20 +26,28 @@ SERVER_PY   = os.path.join(os.path.dirname(__file__), "..", "game_server.py")
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def ws_server():
-    """Start game_server.py for WebSocket tests (session-scoped, killed at end)."""
-    env = {**os.environ, "PORT": str(SERVER_PORT)}
+    """
+    Start game_server.py for a single WebSocket test, then kill it.
+
+    Function-scoped (one server per test) so that thread state from previous
+    tests' WebSocket connections never bleeds into the next test.  The first
+    few tests run in ~1-2 s each so the overhead is acceptable.
+    """
+    env = {**os.environ, "PORT": str(SERVER_PORT),
+           "PYTHONIOENCODING": "utf-8", "TEST_HTTP": "1"}
     proc = subprocess.Popen(
         [sys.executable, SERVER_PY],
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        encoding="utf-8",
     )
-    # Wait for server to be ready
+    # Wait for server to be ready (up to 10 s)
     import requests
-    deadline = time.time() + 8
+    deadline = time.time() + 10
     ready = False
     while time.time() < deadline:
         try:
@@ -196,19 +204,30 @@ class TestMpEvent:
         """
         A /api/friend_request POST should broadcast mp_event {type:'friend_request'}
         to all connected socket clients.
+
+        We use a short-lived urllib.request call (not requests) so we don't
+        accidentally reuse a connection that socket.io has upgraded to WebSocket.
         """
-        import requests as req
+        import urllib.request
+        import json as _json
 
         c1 = _make_client()
-        c1.receive(timeout=3)  # welcome
+        c1.receive(timeout=3)  # consume welcome
 
         try:
-            req.post(
+            body = _json.dumps({"fromIp": "3.3.3.3", "fromName": "FriendBot"}).encode()
+            req = urllib.request.Request(
                 f"{BASE_URL}/api/friend_request",
-                json={"fromIp": "3.3.3.3", "fromName": "FriendBot"},
-                timeout=3,
+                data=body,
+                method="POST",
+                headers={"Content-Type": "application/json"},
             )
-            event = c1.receive(timeout=4)
+            # Use a fresh urllib connection — no shared pool with socket.io client
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                resp_data = _json.loads(resp.read())
+            assert resp_data.get("ok") is True
+
+            event = c1.receive(timeout=5)
             assert event[0] == "mp_event", f"Got {event[0]}"
             assert event[1].get("type") == "friend_request"
             assert event[1].get("fromIp") == "3.3.3.3"

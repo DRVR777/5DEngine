@@ -112,33 +112,43 @@ class TestSchema:
 
 
 # ── 2. CRUD: engine_sessions ──────────────────────────────────────────────────
+# Schema: user_id TEXT, world_name TEXT, score INT, hero_hp INT, ...
+# UNIQUE: (user_id, world_name)
 
 class TestSessionsCRUD:
     @skip_if_no_psycopg2
     def test_insert_and_select_session(self, pg):
         cur = pg.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        player_id = "pytest-player-001"
-        # Upsert a session
+        # Upsert using real schema columns
         cur.execute("""
-            INSERT INTO engine_sessions (player_id, data)
-            VALUES (%s, %s)
-            ON CONFLICT (player_id) DO UPDATE SET data = EXCLUDED.data
-            RETURNING player_id
-        """, (player_id, psycopg2.extras.Json({"hp": 100, "pos": [0, 0, 0]})))
+            INSERT INTO engine_sessions (user_id, world_name, score, hero_hp)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (user_id, world_name) DO UPDATE
+                SET score   = EXCLUDED.score,
+                    hero_hp = EXCLUDED.hero_hp
+            RETURNING user_id, score
+        """, ("pytest-player-001", "pytest-world", 42, 80))
         row = cur.fetchone()
-        assert row["player_id"] == player_id
+        assert row["user_id"] == "pytest-player-001"
+        assert row["score"] == 42
 
     @skip_if_no_psycopg2
     def test_select_session(self, pg):
         cur = pg.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("SELECT data FROM engine_sessions WHERE player_id = %s",
-                    ("pytest-player-001",))
+        cur.execute(
+            "SELECT score, hero_hp FROM engine_sessions "
+            "WHERE user_id = %s AND world_name = %s",
+            ("pytest-player-001", "pytest-world"),
+        )
         row = cur.fetchone()
         assert row is not None
-        assert row["data"]["hp"] == 100
+        assert row["score"] == 42
+        assert row["hero_hp"] == 80
 
 
 # ── 3. CRUD: engine_scenes ────────────────────────────────────────────────────
+# Schema: user_id TEXT, world_name TEXT, name TEXT, objects JSONB, ...
+# UNIQUE: (user_id, world_name, name)
 
 class TestScenesCRUD:
     _scene_id = None
@@ -147,10 +157,13 @@ class TestScenesCRUD:
     def test_insert_scene(self, pg):
         cur = pg.cursor()
         cur.execute("""
-            INSERT INTO engine_scenes (name, data)
-            VALUES (%s, %s)
+            INSERT INTO engine_scenes (user_id, world_name, name, objects)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (user_id, world_name, name) DO UPDATE
+                SET objects = EXCLUDED.objects
             RETURNING id
-        """, ("pytest-scene", psycopg2.extras.Json({"objects": []})))
+        """, ("pytest-user", "pytest-world", "pytest-scene",
+              psycopg2.extras.Json([])))
         (scene_id,) = cur.fetchone()
         TestScenesCRUD._scene_id = scene_id
         assert scene_id is not None
@@ -176,27 +189,30 @@ class TestScenesCRUD:
 
 
 # ── 4. CRUD: engine_quest_progress ───────────────────────────────────────────
+# Schema: user_id TEXT, quest_id TEXT (from engine_quest_defs.quest_id),
+#         steps_done BOOLEAN[], is_complete BOOLEAN
+# UNIQUE: (user_id, quest_id)
 
 class TestQuestProgressCRUD:
     @skip_if_no_psycopg2
     def test_insert_and_select_progress(self, pg):
         cur = pg.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        # Get a valid quest_def id
-        cur.execute("SELECT id FROM engine_quest_defs LIMIT 1")
+        # Get a valid quest_id string (TEXT, not the serial PK)
+        cur.execute("SELECT quest_id FROM engine_quest_defs LIMIT 1")
         row = cur.fetchone()
         if row is None:
             pytest.skip("No quest_defs seeded")
-        quest_id = row["id"]
+        quest_id = row["quest_id"]  # e.g. "intro"
 
-        player_id = "pytest-player-001"
         cur.execute("""
-            INSERT INTO engine_quest_progress (player_id, quest_id, status)
-            VALUES (%s, %s, 'active')
-            ON CONFLICT (player_id, quest_id) DO UPDATE SET status = 'active'
-            RETURNING status
-        """, (player_id, quest_id))
+            INSERT INTO engine_quest_progress (user_id, quest_id, is_complete)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (user_id, quest_id) DO UPDATE
+                SET is_complete = EXCLUDED.is_complete
+            RETURNING is_complete
+        """, ("pytest-player-001", quest_id, False))
         result = cur.fetchone()
-        assert result["status"] == "active"
+        assert result["is_complete"] is False
 
 
 # ── 5. server.js HTTP API ─────────────────────────────────────────────────────

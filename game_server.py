@@ -20,15 +20,24 @@ No port-forwarding needed — same WiFi/LAN is enough.
 """
 
 import os
+import sys
 import ssl
 import uuid
 import time
 import json
+import threading
 import platform
 import socket as _socket
 import urllib.request
 import concurrent.futures
-from flask import Flask, request, send_file, send_from_directory, jsonify
+
+# Force UTF-8 output so Unicode banners work on Windows consoles and in
+# subprocess captures (pytest, PyInstaller, etc.) regardless of locale.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+from flask import Flask, request, send_file, send_from_directory, jsonify, Response
 from flask_socketio import SocketIO, emit
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -37,6 +46,26 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "5dengine-lan-mp"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading",
                     ping_timeout=10, ping_interval=5)
+
+# ── CORS ─────────────────────────────────────────────────────────────────────
+# Required so that a browser tab on port 5050 can POST /api/friend_request to
+# a server on port 5051 (or any other origin) without the browser blocking it.
+
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"]  = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return response
+
+@app.route("/api/<path:path>", methods=["OPTIONS"])
+def handle_preflight(path):
+    """Handle CORS preflight (OPTIONS) requests for all /api/* endpoints."""
+    return Response(status=204, headers={
+        "Access-Control-Allow-Origin":  "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    })
 
 # ── In-memory state ───────────────────────────────────────────────────────────
 
@@ -51,6 +80,23 @@ _pending_requests = {}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _emit_bg(event, data):
+    """
+    Emit a socket.io event from a plain daemon thread with an app context.
+
+    Calling socketio.emit() directly inside a Flask HTTP route handler can
+    deadlock in threading async_mode because Werkzeug's thread pool may be
+    saturated by long-lived WebSocket connections, leaving no thread to drain
+    the emit queue. Running the emit in a separate daemon thread side-steps
+    this completely — the HTTP response returns immediately and the broadcast
+    fires independently.
+    """
+    def _do():
+        with app.app_context():
+            socketio.emit(event, data)
+    threading.Thread(target=_do, daemon=True).start()
+
 
 def _get_local_ip():
     s = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
@@ -181,12 +227,7 @@ def api_friend_request():
             "fromName": from_name,
             "ts":       time.time(),
         })
-    # Broadcast so any open Friends app can refresh live
-    socketio.emit("mp_event", {
-        "type":     "friend_request",
-        "fromIp":   from_ip,
-        "fromName": from_name,
-    })
+    _emit_bg("mp_event", {"type": "friend_request", "fromIp": from_ip, "fromName": from_name})
     return jsonify({"ok": True})
 
 
@@ -206,12 +247,7 @@ def api_friend_accept():
     _pending_requests[my_ip] = [
         r for r in _pending_requests.get(my_ip, []) if r["fromIp"] != from_ip
     ]
-    # Let the requester know they were accepted
-    socketio.emit("mp_event", {
-        "type":   "friend_accepted",
-        "byIp":   my_ip,
-        "fromIp": from_ip,
-    })
+    _emit_bg("mp_event", {"type": "friend_accepted", "byIp": my_ip, "fromIp": from_ip})
     return jsonify({"ok": True, "friends": list(_friend_list.get(my_ip, []))})
 
 
@@ -305,13 +341,15 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5050))
     ip   = _get_local_ip()
 
-    # Detect HTTPS capability (requires pyopenssl + cryptography)
+    # Detect HTTPS capability (requires pyopenssl + cryptography).
+    # Set env var TEST_HTTP=1 to force HTTP regardless (used by pytest fixtures).
     use_https = False
-    try:
-        import OpenSSL  # noqa: F401 — just checking it's installed
-        use_https = True
-    except ImportError:
-        pass
+    if not os.environ.get("TEST_HTTP"):
+        try:
+            import OpenSSL  # noqa: F401 — just checking it's installed
+            use_https = True
+        except ImportError:
+            pass
 
     protocol = "https" if use_https else "http"
     ssl_ctx  = "adhoc" if use_https else None

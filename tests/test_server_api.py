@@ -36,13 +36,15 @@ def server():
     The server auto-uses HTTPS only if pyopenssl is importable; we run HTTP
     here by passing PORT env and relying on the server's import logic.
     """
-    env = {**os.environ, "PORT": str(SERVER_PORT)}
+    env = {**os.environ, "PORT": str(SERVER_PORT),
+           "PYTHONIOENCODING": "utf-8", "TEST_HTTP": "1"}
     proc = subprocess.Popen(
         [sys.executable, SERVER_PY],
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        encoding="utf-8",
     )
 
     # Wait up to 8 seconds for the server to be ready
