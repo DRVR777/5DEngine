@@ -76,6 +76,7 @@ import { createLanSession } from "./src/social/lan_session.js";
 import { createWeaponVisuals } from "./src/combat/weapon_visuals.js";
 import { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./src/systems/npc_dialog.js";
 import { mountQuestPanel } from "./src/systems/quest_panel.js";
+import { mountShopPanel } from "./src/economy/shop_panel.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -948,7 +949,6 @@ let pistolAmmo = 12;       // keep for backwards-compat ammoHud render; mirrors 
 let pistolCooldown = 0;
 
 // Shop system — Tab to open, coin-based purchases
-let shopOpen = false;
 const _SHOP_ITEMS = [
   { id: "ammo_pistol",  name: "Pistol Ammo",    desc: "+30 pistol rounds",         cost: 2,  action: () => { Inv.addItem(heroInv, "pistol_9mm", 30); } },
   { id: "ammo_rifle",   name: "Rifle Ammo",      desc: "+30 rifle rounds",          cost: 3,  action: () => { Inv.addItem(heroInv, "rifle_556",  30); } },
@@ -970,50 +970,13 @@ const _SHOP_ITEMS = [
   { id: "ammo_smg",    name: "SMG Ammo",        desc: "+40 rounds (SMG uses pistol ammo)", cost: 3,  action: () => { Inv.addItem(heroInv, "pistol_9mm", 40); } },
   { id: "ammo_sniper", name: "Sniper Rounds",   desc: "+10 rounds (sniper uses rifle ammo)", cost: 4,  action: () => { Inv.addItem(heroInv, "rifle_556", 10); } },
 ];
-function _openShop() {
-  if (computerOpen || buildMode) return;
-  shopOpen = true;
-  document.exitPointerLock && document.exitPointerLock();
-  const el = document.getElementById("shopOverlay");
-  const grid = document.getElementById("shopGrid");
-  if (!el || !grid) return;
-  el.classList.add("open");
-  _renderShopGrid();
-}
-function _renderShopGrid() {
-  const grid = document.getElementById("shopGrid");
-  const coinEl = document.getElementById("shopCoinDisplay");
-  if (coinEl) coinEl.textContent = score;
-  if (!grid) return;
-  grid.innerHTML = _SHOP_ITEMS.map(item => {
-    const canAfford = score >= item.cost;
-    return `<div class="shopItem${canAfford ? "" : " disabled"}" data-id="${item.id}">
-      <div class="iName">${item.name}</div>
-      <div class="iDesc">${item.desc}</div>
-      <div class="iCost">${item.cost} coins</div>
-    </div>`;
-  }).join("");
-  grid.querySelectorAll(".shopItem:not(.disabled)").forEach(el => {
-    el.addEventListener("click", () => {
-      const item = _SHOP_ITEMS.find(i => i.id === el.dataset.id);
-      if (!item || score < item.cost) return;
-      score -= item.cost;
-      item.action();
-      playSfx("tone:900:80:sine", 0.5);
-      showToast(`Bought: ${item.name}`, "success", 1200);
-      _renderShopGrid();
-    });
-  });
-}
-function _closeShop() {
-  shopOpen = false;
-  const el = document.getElementById("shopOverlay");
-  if (el) el.classList.remove("open");
-  document.getElementById("gameCanvas")?.requestPointerLock?.();
-}
-document.addEventListener("DOMContentLoaded", () => {
-  const closeBtn = document.getElementById("shopClose");
-  if (closeBtn) closeBtn.addEventListener("click", _closeShop);
+const _shop = mountShopPanel({
+  items: _SHOP_ITEMS,
+  getScore: () => score,
+  setScore: (n) => { score = n; },
+  showToast,
+  playSfx,
+  isBlocked: () => computerOpen || buildMode,
 });
 
 // Settings panel — O key opens, Escape closes
@@ -1130,7 +1093,7 @@ function _makeTurretGroup(u, v) {
   return { group: g, head, led };
 }
 function _placeTurret() {
-  if (_heroDead || buildMode || inCar || shopOpen) return;
+  if (_heroDead || buildMode || inCar || _shop.isOpen) return;
   const active = _turrets.filter(t => !t.dead).length;
   if (active >= 2) { showToast("Max 2 turrets already deployed!", "danger", 1400); return; }
   if (score < _TURRET_COST) { showToast(`Need ${_TURRET_COST} coins to deploy turret!`, "danger", 1400); return; }
@@ -3658,8 +3621,8 @@ addEventListener("keydown", (e) => {
         else window._openCreativeInv && window._openCreativeInv();
       }
     } else if (!computerOpen) {
-      if (shopOpen) _closeShop();
-      else _openShop();
+      if (_shop.isOpen) _shop.close();
+      else _shop.open();
     }
     e.preventDefault(); return;
   }
@@ -3668,7 +3631,7 @@ addEventListener("keydown", (e) => {
     const kpEl = document.getElementById("keybindPanel");
     if (kpEl && kpEl.style.display !== "none") { kpEl.style.display = "none"; e.preventDefault(); return; }
     if (settingsOpen) { _closeSettings(); e.preventDefault(); return; }
-    if (shopOpen) { _closeShop(); e.preventDefault(); return; }
+    if (_shop.isOpen) { _shop.close(); e.preventDefault(); return; }
     const ci = document.getElementById("creativeInv");
     if (ci && ci.classList.contains("open")) { window._closeCreativeInv && window._closeCreativeInv(); e.preventDefault(); return; }
   }
@@ -4175,7 +4138,7 @@ let pointerLocked = false;
 document.addEventListener("click", () => {
   const _diffOpen = (document.getElementById("difficultyScreen") || {}).style?.display === "flex";
   if (!pointerLocked && !buildMode && !computerOpen && !computerEntering &&
-      !shopOpen && !settingsOpen && !_npcDialog.isOpen && !_diffOpen) {
+      !_shop.isOpen && !settingsOpen && !_npcDialog.isOpen && !_diffOpen) {
     renderer.domElement.requestPointerLock();
   }
 });
@@ -4406,7 +4369,7 @@ function _getAimAngle() {
 }
 
 function _tryShoot() {
-  if (shopOpen) return;
+  if (_shop.isOpen) return;
   if (_reloading) {
     // Reload cancel — fire with remaining mag ammo (interrupts reload)
     if (pistolAmmo > 0) {
@@ -8287,7 +8250,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       if (typeof closeComputer === "function") closeComputer();
       computerOpen = false; computerEntering = false;
       _firstLaunch = false;
-      if (typeof shopOpen    !== "undefined") shopOpen    = false;
+      _shop.close();
       if (typeof settingsOpen !== "undefined") settingsOpen = false;
     },
     // ── Weapon helpers ────────────────────────────────────────────────────────
@@ -8321,8 +8284,8 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     dropMine:       () => { try { _dropMine();             return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
 
     // ── UI panels ─────────────────────────────────────────────────────────────
-    openShop:       () => { try { _openShop();            return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    closeShop:      () => { try { _closeShop();           return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    openShop:       () => { try { _shop.open();            return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
+    closeShop:      () => { try { _shop.close();           return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     openSettings:   () => { try { _openSettings();        return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     closeSettings:  () => { try { _closeSettings();       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
     showPerkPicker: (wave) => { try { _showPerkPicker(wave || 1); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
@@ -8345,7 +8308,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
       pointerLocked,
       bulletCount:      bullets3D.length,
       scopeVisible:     document.getElementById("scopeOverlay")?.style?.display === "block",
-      shopOpen:         typeof shopOpen !== "undefined" ? shopOpen : false,
+      shopOpen:         _shop.isOpen,
       settingsOpen:     typeof settingsOpen !== "undefined" ? settingsOpen : false,
       npcDialogOpen:    _npcDialog.isOpen,
       buildMode:        typeof buildMode !== "undefined" ? buildMode : false,
