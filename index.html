@@ -1065,6 +1065,7 @@ import { createHealthPickupSystem } from "./src/systems/ecs_health_pickup.js";
 import { createAmmoPickupSystem } from "./src/systems/ecs_ammo_pickup.js";
 import { createWeaponPickupSystem } from "./src/systems/ecs_weapon_pickup.js";
 import { createGrenadeCrateSystem } from "./src/systems/ecs_grenade_crate.js";
+import { createArmorVestSystem } from "./src/systems/ecs_armor_vest.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10343,6 +10344,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     _ecsGrenadeCrate.wireListeners(Core);
     Core.addSystem(_ecsGrenadeCrate, 6, "grenade_crate");
     window.Engine.grenadeCrateSystem = _ecsGrenadeCrate;
+
+    // Wire armor vest system — priority 6 (static resupply; 1.3m collect 60s respawn)
+    const _ecsArmorVest = createArmorVestSystem();
+    _ecsArmorVest.wireListeners(Core);
+    Core.addSystem(_ecsArmorVest, 6, "armor_vest");
+    window.Engine.armorVestSystem = _ecsArmorVest;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
