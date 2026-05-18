@@ -1061,6 +1061,7 @@ import { createPoisonPuddleSystem } from "./src/systems/ecs_poison_puddle.js";
 import { createCoinDropSystem } from "./src/systems/ecs_coin_drop.js";
 import { createSpeedOrbSystem } from "./src/systems/ecs_speed_orb.js";
 import { createArmorShardSystem } from "./src/systems/ecs_armor_shard.js";
+import { createHealthPickupSystem } from "./src/systems/ecs_health_pickup.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10315,6 +10316,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     _ecsArmorShard.wireListeners(Core);
     Core.addSystem(_ecsArmorShard, 6, "armor_shard");
     window.Engine.armorShardSystem = _ecsArmorShard;
+
+    // Wire health pickup system — priority 6 (pickup tier; 1.2m collect)
+    const _ecsHealthPickup = createHealthPickupSystem();
+    _ecsHealthPickup.wireListeners(Core);
+    Core.addSystem(_ecsHealthPickup, 6, "health_pickup");
+    window.Engine.healthPickupSystem = _ecsHealthPickup;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
