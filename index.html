@@ -81,6 +81,7 @@ import { mountSettingsPanel } from "./src/systems/settings_panel.js";
 import { mountWeaponSelector } from "./src/ui/weapon_selector.js";
 import { buildComputerApps, addDynamicIcons } from "./src/systems/computer_apps.js";
 import { mountComputerUI } from "./src/ui/computer_ui_events.js";
+import { mountMouseInput } from "./src/systems/mouse_input.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -4007,122 +4008,39 @@ function closeComputer() {
   }, 50);
 }
 
-// Scroll wheel: switch weapons in play mode, zoom camera in build mode.
-renderer.domElement.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  if (buildMode) {
-    camDist = Math.max(CAM_DIST_MIN, Math.min(CAM_DIST_MAX, camDist + e.deltaY * 0.01));
-    return;
-  }
-  if (computerOpen || computerEntering || _heroDead) return;
-  const weps = CFG.weapons || [];
-  if (weps.length < 2) return;
-  const idx = weps.findIndex(w => w.id === currentWeaponId);
-  const dir = e.deltaY > 0 ? 1 : -1;
-  const next = ((idx + dir) % weps.length + weps.length) % weps.length;
-  weaponAmmo.set(currentWeaponId, pistolAmmo);
-  currentWeaponId = weps[next].id;
-  const nw = weps[next];
-  pistolAmmo = weaponAmmo.has(nw.id) ? weaponAmmo.get(nw.id) : nw.magCap;
-  if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
-  _switchGunMesh(currentWeaponId);
-  playSfx("click", 0.4);
-  reloadMsg = nw.name || nw.id; reloadMsgUntil = performance.now() + 800;
-  // Notify any listeners (HUD, multiplayer sync, analytics) that weapon changed
-  if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.WEAPON_SWITCH, { weaponId: currentWeaponId, ammo: pistolAmmo });
-  _showWeaponSelector();
-}, { passive: false });
-
-// Right-click hold to aim — pulls the camera in tight, narrows FOV slightly,
-// and the arms raise to a sighting pose.
-renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
-renderer.domElement.addEventListener("mousedown", (e) => {
-  if (e.button === 2 && !buildMode) { aiming = true; e.preventDefault(); }
-});
-addEventListener("mouseup", (e) => {
-  if (e.button === 2) aiming = false;
-  if (e.button === 0 && buildMode && worldBuilder) {
-    worldBuilder.dragEnd();
-    worldBuilder.endAxisDrag();
-  }
-});
-// Releasing pointer lock should also drop the aim
-document.addEventListener("pointerlockchange", () => {
-  if (!document.pointerLockElement) aiming = false;
-});
-
-// Pointer lock for true freelook (GTA-style). Click the canvas to capture, ESC to release.
-// In build mode the lock is NOT requested on click (UI needs mouse freedom);
-// press R instead to toggle fly-cam lock while in build mode.
 let pointerLocked = false;
-// iter 421: document-level click listener so ANY click (including on HUD elements)
-// re-acquires pointer lock. The canvas-only listener silently failed whenever a HUD
-// element (ammo counter, wave display, etc.) intercepted the click first.
-document.addEventListener("click", () => {
-  const _diffOpen = (document.getElementById("difficultyScreen") || {}).style?.display === "flex";
-  if (!pointerLocked && !buildMode && !computerOpen && !computerEntering &&
-      !_shop.isOpen && !_settings.isOpen && !_npcDialog.isOpen && !_diffOpen) {
-    renderer.domElement.requestPointerLock();
-  }
+mountMouseInput({
+  getState: () => ({
+    buildMode, computerOpen, computerEntering, _heroDead,
+    mouseMode, aiming, pointerLocked, freeCamYaw, freeCamPitch,
+    camYaw, camPitch, camDist, CAM_DIST_MIN, CAM_DIST_MAX, CFG,
+    currentWeaponId, pistolAmmo, _reloading,
+  }),
+  getRenderer:        () => renderer,
+  getWorldBuilder:    () => worldBuilder,
+  getActiveMouseScreen: () => activeMouseScreen,
+  getMouseModeCursor:   () => mouseModeCursor,
+  getShop:            () => _shop,
+  getSettings:        () => _settings,
+  getNpcDialog:       () => _npcDialog,
+  setCamYaw:          (v) => { camYaw = v; },
+  setCamPitch:        (v) => { camPitch = v; },
+  setFreeCamYaw:      (v) => { freeCamYaw = v; },
+  setFreeCamPitch:    (v) => { freeCamPitch = v; },
+  setCamDist:         (v) => { camDist = v; },
+  setAiming:          (v) => { aiming = v; },
+  setPointerLocked:   (v) => { pointerLocked = v; },
+  setCurrentWeaponId: (v) => { currentWeaponId = v; },
+  setPistolAmmo:      (v) => { pistolAmmo = v; },
+  setWeaponAmmoEntry: (id, ammo) => { weaponAmmo.set(id, ammo); },
+  getWeaponAmmoEntry: (id) => weaponAmmo.get(id),
+  setReloading:       (v) => { _reloading = v; },
+  setReloadMsg:       (v) => { reloadMsg = v; },
+  setReloadMsgUntil:  (v) => { reloadMsgUntil = v; },
+  switchGunMesh:      _switchGunMesh,
+  showWeaponSelector: _showWeaponSelector,
+  playSfx,
 });
-document.addEventListener("pointerlockchange", () => {
-  pointerLocked = document.pointerLockElement === renderer.domElement;
-});
-
-// Drag fallback (works even without pointer lock)
-let dragging = false;
-let lastMouseX = 0, lastMouseY = 0;
-renderer.domElement.addEventListener("mousedown", (e) => {
-  if (pointerLocked) return;
-  dragging = true; lastMouseX = e.clientX; lastMouseY = e.clientY;
-});
-addEventListener("mouseup", () => { dragging = false; });
-addEventListener("mousemove", (e) => {
-  // BUILD MODE: axis drag or ground-plane drag
-  if (buildMode && worldBuilder) {
-    const rect = renderer.domElement.getBoundingClientRect();
-    const ndc = {
-      x: ((e.clientX - rect.left) / rect.width)  * 2 - 1,
-      y: -((e.clientY - rect.top)  / rect.height) * 2 + 1,
-    };
-    if (worldBuilder.isAxisDragging()) { worldBuilder.updateAxisDrag(ndc); return; }
-    if (worldBuilder.isDragging())     { worldBuilder.dragMove(ndc); return; }
-  }
-  // Mouse-mode on a big screen: mouse movement drives the screen cursor
-  // (not the camera). Sensitivity scales with screen resolution so it
-  // feels consistent on a 50ft vs 1000ft canvas.
-  if (mouseMode && activeMouseScreen) {
-    const mx = (typeof e.movementX === "number") ? e.movementX : 0;
-    const my = (typeof e.movementY === "number") ? e.movementY : 0;
-    const sens = 1.5;
-    mouseModeCursor.x = Math.max(0, Math.min(activeMouseScreen.resolutionW,
-      mouseModeCursor.x + mx * sens));
-    mouseModeCursor.y = Math.max(0, Math.min(activeMouseScreen.resolutionH,
-      mouseModeCursor.y + my * sens));
-    return;
-  }
-  let dx, dy;
-  if (pointerLocked) {
-    dx = e.movementX; dy = e.movementY;
-  } else {
-    if (!dragging) return;
-    dx = e.clientX - lastMouseX; dy = e.clientY - lastMouseY;
-    lastMouseX = e.clientX; lastMouseY = e.clientY;
-  }
-  if (buildMode) {
-    // Freecam look: update freeCamYaw/Pitch (unbounded pitch for full orbit)
-    freeCamYaw   -= dx * 0.003;
-    freeCamPitch -= dy * 0.003;
-    freeCamPitch = Math.max(-1.4, Math.min(1.4, freeCamPitch));
-  } else {
-    const isScopedIn = aiming && currentWeaponId === "sniper";
-    const sensMul = isScopedIn ? 1 / _settings.getSniperSens() : 1;
-    camYaw   -= dx * 0.003 * sensMul;
-    camPitch -= dy * 0.003 * sensMul;
-    camPitch = Math.max(-1.2, Math.min(0.4, camPitch));
-  }
-});
-
 // ---- physics-lite ----
 let velocityY = 0;
 let _canDoubleJump = false; // resets to true on ground jump, consumed by mid-air Space
