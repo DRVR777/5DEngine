@@ -1028,6 +1028,7 @@ import { createAIMovementSystem } from "./src/systems/ecs_ai_movement.js";
 import { createInventorySystem, invAdd, invRemove, invCount, invHas } from "./src/systems/ecs_inventory.js";
 import { createStaminaSystem } from "./src/systems/ecs_stamina.js";
 import { createGrenadeSystem } from "./src/systems/ecs_grenade.js";
+import { createBulletSystem, spawnBullet } from "./src/systems/ecs_bullet.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10134,6 +10135,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsStamina = createStaminaSystem();
     Core.addSystem(_ecsStamina, 18, "stamina");
     window.Engine.staminaSystem = _ecsStamina;
+
+    // Wire bullet system — priority 9 (after weapon:8, before combat:10)
+    const _ecsBullet = createBulletSystem();
+    Core.addSystem(_ecsBullet, 9, "bullet");
+    window.Engine.bulletSystem = _ecsBullet;
+    window.Engine.spawnBullet  = spawnBullet;
 
     // Wire grenade system — priority 22 (after stamina:18, before regen:35)
     const _ecsGrenade = createGrenadeSystem();
