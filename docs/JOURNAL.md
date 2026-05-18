@@ -43,3 +43,40 @@ including feel preservation methodology). Added vitest to package.json.
 
 **Notes:**
 Key insight absorbed from user: "all elements are made of atoms / all atoms are the same / but elements aren't the same." The ThingaFile format from How to Be Modular.txt is the atom. Registry pattern is F=ma. User confirmed local clone approach (no GitHub rename). 5DEngineMassive is at C:\Users\Quandale Dingle\5DEngineMassive. ECS layer is additive — index.html (9700+ lines) untouched. Feel preservation methodology added to LOOP_PROMPT.md: tuning atoms, golden tests, shadow mode, port in dependency order.
+
+---
+
+## tick 1 — 2026-05-18T05:10Z
+
+**Did:**
+Fixed 5 holographic format violations. Created tuning atoms extracted from monolith.
+Rewrote data/prefabs/hero.json, data/prefabs/enemy_grunt.json, data/levels/level_thresholds.json.
+Created data/tuning/physics.json (gravity=-25, fixedDt, camera constants).
+Created data/tuning/hero.json (maxHp, armorAbsorb=0.6, walkSpeed, sprintSpeed, stamina, lifesteal).
+5 violations remained after tick 1: enemy_types, perks, shop_items, game_modes, damage_multipliers.
+
+**Tests:** 28/28 passed
+**Commit:** iter 434
+
+---
+
+## tick 2 — 2026-05-18T05:23Z
+
+**Did:**
+Resolved ALL remaining holographic violations. 0 BAD files.
+Created 8 individual enemy type atoms in data/enemies/types/ (grunt, heavy, fast, poisoner,
+incendiary, robot, boss, sniper). Each is $type=entity with combat stats + $refs to damage_multipliers.
+Created 10 individual perk atoms in data/perks/types/ (dmg, speed, regen, reload, maxhp,
+grenades, smoke, armor, vampire, ammo). Each is $type=perk with effect descriptor.
+Rewrote collection files as index/lookup atoms:
+  - enemy_types.json → $type=index, $refs to all 8 types
+  - perks.json → $type=index, $refs to all 10 perks
+  - shop_items.json → $type=lookup, $facets keyed by id (13 items including bundle op)
+  - game_modes.json → $type=lookup, $facets keyed by id (4 modes)
+Created vitest.config.js scoping test runner to tests/unit/ only (excludes empty visual stubs).
+
+**Format check:** 28/28 atoms OK, 0 violations
+**Tests:** 28/28 passed
+**Commit:** iter 435
+
+**Next:** Tick 3 — wire core.js into index.html as additive import. Register prefabs from data/.

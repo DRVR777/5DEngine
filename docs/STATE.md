@@ -20,15 +20,13 @@ Phases:
 
 ## Current task
 
-**Tick 2 — Fix remaining 5 holographic violations + create individual enemy/perk/weapon atom files.**
+**Tick 3 — Wire `src/core/core.js` into index.html as parallel additive import.**
 
 Steps:
-1. Rewrite `data/enemies/enemy_types.json` → split into `data/enemies/types/grunt.json` etc (8 files, one per type)
-2. Rewrite `data/enemies/damage_multipliers.json` → proper atom
-3. Rewrite `data/perks/perks.json` → split into `data/perks/types/<id>.json`
-4. Rewrite `data/shop/shop_items.json` → proper atom or split
-5. Rewrite `data/game_modes/game_modes.json` → proper atom
-6. npm test green. Commit: "iter 435: tick 2 — enemy+perk+shop+game_mode atoms"
+1. Add `import { Core } from './src/core/core.js';` after line 1013 in index.html
+2. Load & register hero + enemy prefabs at startup from data/ atoms
+3. Boot Core alongside existing engine (no removal of monolith code yet)
+4. npm test green. Commit: "iter 436: tick 3 — core.js wired into index.html, prefabs registered"
 
 ## Previous task (tick 1 — DONE)
 
@@ -53,15 +51,17 @@ Steps:
 ## Last tick
 
 ```
-timestamp: 2026-05-18T05:10Z
-summary:   tick 1 — 5 files fixed to universal atom format. Tuning atoms created.
-           data/tuning/physics.json, data/tuning/hero.json (new correct atoms).
-           data/prefabs/hero.json, data/prefabs/enemy_grunt.json, data/levels/level_thresholds.json (fixed).
-           5 violations remain: enemy_types, perks, shop_items, game_modes, damage_multipliers.
-files:     data/tuning/physics.json, data/tuning/hero.json, data/prefabs/hero.json,
-           data/prefabs/enemy_grunt.json, data/levels/level_thresholds.json
+timestamp: 2026-05-18T05:23Z
+summary:   tick 2 — 0 holographic violations. 8 enemy type atoms + 10 perk atoms created.
+           enemy_types/perks/shop_items/game_modes rewritten as index/lookup atoms.
+           damage_multipliers.json fixed. vitest.config.js scoped to tests/unit/ only.
+files:     data/enemies/types/{grunt,heavy,fast,poisoner,incendiary,robot,boss,sniper}.json (new)
+           data/perks/types/{dmg,speed,regen,reload,maxhp,grenades,smoke,armor,vampire,ammo}.json (new)
+           data/enemies/enemy_types.json, data/perks/perks.json,
+           data/shop/shop_items.json, data/game_modes/game_modes.json (fixed)
+           vitest.config.js (new)
 tests:     28/28 passed
-commit:    iter 434
+commit:    iter 435
 outcome:   ok
 ```
 
