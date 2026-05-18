@@ -402,6 +402,13 @@ export function mountGadgetSystem({
     }
   }
 
+  function clearAll() {
+    for (const t of _turrets) scene.remove(t.group);
+    _turrets.length = 0;
+    for (const mn of _mines) scene.remove(mn.mesh);
+    _mines.length = 0;
+  }
+
   return {
     deploySmokeZone,
     placeTurret,
@@ -412,5 +419,6 @@ export function mountGadgetSystem({
     throwFlashbang,
     throwGrenade,
     explodeGrenade,
+    clearAll,
   };
 }

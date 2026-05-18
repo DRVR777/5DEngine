@@ -181,6 +181,15 @@ describe("explodeGrenade", () => {
   });
 });
 
+describe("clearAll", () => {
+  it("removes turret groups and mine meshes from scene", () => {
+    expect(src).toContain("scene.remove(t.group)");
+    expect(src).toContain("scene.remove(mn.mesh)");
+    expect(src).toContain("_turrets.length = 0");
+    expect(src).toContain("_mines.length = 0");
+  });
+});
+
 describe("heroBlindT", () => {
   it("writes heroBlindT via set.heroBlindT on flashbang", () => {
     expect(src).toContain("set.heroBlindT(");

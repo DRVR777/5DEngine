@@ -85,6 +85,7 @@ import { mountMouseInput } from "./src/systems/mouse_input.js";
 import { mountHudElements } from "./src/ui/hud_cache.js";
 import { mountKeydownHandler, mountKeyupHandler } from "./src/systems/keydown_handler.js";
 import { mountGadgetSystem } from "./src/systems/gadget_system.js";
+import { mountSpawnSystem } from "./src/systems/spawn_system.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
 import { createWaveSystem } from "./src/systems/ecs_wave.js";
@@ -503,48 +504,11 @@ const computerEntity = Object.assign(
 // Returns: { addSpawnPoint, getSpawnPoint, spawnClearPos, spawnPoints, spawnMeshes }
 // Replaces: _addSpawnPoint, _getSpawnPoint, _spawnClearPos, _spawnPoints, _spawnMeshes
 // ---- Spawn points (N key in build mode places a respawn marker) ----
-const _spawnPoints = [{ u: 0, v: 0, label: "origin" }];  // always at least origin
-let _spawnMeshes = [];
-
-function _addSpawnPoint(u, v) {
-  const sp = { u, v, label: `SP${_spawnPoints.length + 1}` };
-  _spawnPoints.push(sp);
-  const geo = new THREE.CylinderGeometry(0.3, 0.8, 0.15, 8);
-  const mat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.8 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(u, 0.08, v);
-  scene.add(mesh);
-  _spawnMeshes.push({ mesh, sp });
-  return sp;
-}
-
-function _getSpawnPoint() {
-  return _spawnPoints[Math.floor(Math.random() * _spawnPoints.length)];
-}
-
-// Returns a (u,v) at radius [minR,maxR] from (cu,cv) that doesn't overlap any building.
-// Retries up to maxTries times; falls back to a safe open-field spot if all fail.
-function _spawnClearPos(minR, maxR, maxTries, cu, cv) {
-  cu = cu || 0; cv = cv || 0;
-  maxTries = maxTries || 30;
-  const margin = 0.7; // enemy half-width + buffer so they don't clip wall edge
-  for (let _t = 0; _t < maxTries; _t++) {
-    const ang = Math.random() * Math.PI * 2;
-    const r   = minR + Math.random() * (maxR - minR);
-    const u   = cu + Math.cos(ang) * r;
-    const v   = cv + Math.sin(ang) * r;
-    let blocked = false;
-    for (const bl of buildingBlockers) {
-      if (Math.abs(bl.u) >= 26 || Math.abs(bl.v) >= 26) continue; // skip arena boundary walls
-      const hw = bl.hitbox.w / 2 + margin;
-      const hd = bl.hitbox.d / 2 + margin;
-      if (Math.abs(u - bl.u) < hw && Math.abs(v - bl.v) < hd) { blocked = true; break; }
-    }
-    if (!blocked) return { u, v };
-  }
-  return { u: 15, v: 0 }; // guaranteed-clear fallback
-}
-
+const _spawnSys     = mountSpawnSystem({ THREE, getScene: () => scene, buildingBlockers });
+const _spawnPoints  = _spawnSys.spawnPoints;
+const _addSpawnPoint  = _spawnSys.addSpawnPoint;
+const _getSpawnPoint  = _spawnSys.getSpawnPoint;
+const _spawnClearPos  = _spawnSys.spawnClearPos;
 let _heroDead = false;
 let _deathCountdownT = 0;
 const RESPAWN_DELAY = 5; // seconds
@@ -645,13 +609,12 @@ function resetGameState() {
   for (const _pp of poisonPuddles) scene.remove(_pp.mesh); poisonPuddles.length = 0;
   for (const _ws of _wallScorches) _ws.visible = false; _wallScorches.length = 0;
   for (const _asd of armorShards) scene.remove(_asd.mesh); armorShards.length = 0;
-  for (const _tt of _turrets) scene.remove(_tt.group); _turrets.length = 0;
+  gadget.clearAll(); // clears _turrets and _mines (both live in gadget module)
   // Clear in-flight projectiles
   for (const _rb of bullets3D) scene.remove(_rb.mesh); bullets3D.length = 0;
   for (const _eb of enemyBullets) scene.remove(_eb.mesh); enemyBullets.length = 0;
   for (const _rg of grenades3D) { scene.remove(_rg.mesh); if (_rg._warnRing) scene.remove(_rg._warnRing); } grenades3D.length = 0;
-  // Clear mines, smoke, speed orbs, weapon pickups
-  for (const _rm of _mines) scene.remove(_rm.mesh); _mines.length = 0;
+  // Clear smoke, speed orbs, weapon pickups
   for (const _sz of smokeZones) scene.remove(_sz.mesh); smokeZones.length = 0;
   for (const _so of _speedOrbs) scene.remove(_so.mesh); _speedOrbs.length = 0;
   for (const _wp of weaponPickups) scene.remove(_wp.mesh); weaponPickups.length = 0;
