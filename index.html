@@ -1040,6 +1040,7 @@ import { createHeavyThrowSystem } from "./src/systems/ecs_heavy_throw.js";
 import { createBossRockSystem } from "./src/systems/ecs_boss_rock.js";
 import { createPoisonerSpitSystem } from "./src/systems/ecs_poisoner_spit.js";
 import { createIncendiaryBombSystem } from "./src/systems/ecs_incendiary_bomb.js";
+import { createSniperShootSystem } from "./src/systems/ecs_sniper_shoot.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10172,6 +10173,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsIncendiaryBomb = createIncendiaryBombSystem();
     Core.addSystem(_ecsIncendiaryBomb, 13, "incendiary_bomb");
     window.Engine.incendiaryBombSystem = _ecsIncendiaryBomb;
+
+    // Wire sniper shoot system — priority 13 (after ai_movement:12)
+    const _ecsSniperShoot = createSniperShootSystem();
+    Core.addSystem(_ecsSniperShoot, 13, "sniper_shoot");
+    window.Engine.sniperShootSystem = _ecsSniperShoot;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
