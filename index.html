@@ -1179,6 +1179,8 @@ const enemy = enemies[0];
 const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
 // Cached boss ref — set on spawn, check .dead for liveness (avoids O(E) scan every frame)
 let _liveBoss = null;
+// Shared alert broadcast timestamp — set when any enemy spots hero; avoids O(E²) inner loop
+let _alertBroadcastT = -99;
 let enemyKills = 0;
 let _shotsFired = 0;
 let _shotsHit = 0;
@@ -7290,20 +7292,12 @@ function tick() {
         playSfx(`tone:${alertFreq}:120:sawtooth`, 0.22);
         en._wasChasing = true;
         en._alertT = 1.6; // show "!" for 1.6s after detection
-        // Alert propagation — wake nearby allies within 8m
-        for (const _ae of enemies) {
-          if (_ae === en || _ae.dead || _ae._wasChasing) continue;
-          const _aep = world.players.get(_ae.id);
-          if (!_aep) continue;
-          if (Math.hypot(_aep.u - ep.u, _aep.v - ep.v) < 8) {
-            _ae._wasChasing = true;
-            _ae._alertT = 1.0;
-            _ae._lastHeroPos = { u: _heroNowAI.u, v: _heroNowAI.v };
-          }
-        }
+        _alertBroadcastT = now / 1000; // broadcast to all enemies via shared timestamp
       } else if (!canSee) {
         en._wasChasing = false;
       }
+      // Receive broadcast alert — show "!" bubble without O(E²) inner loop
+      if (!en._wasChasing && (now / 1000 - _alertBroadcastT) < 1.5) en._alertT = 1.0;
 
       // Low-HP behavior: grunts/fast/etc slow; boss/heavy ENRAGE (faster, brighter)
       const _hpFrac = en.hp / en.maxHp;
