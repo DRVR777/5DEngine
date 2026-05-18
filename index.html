@@ -1369,6 +1369,29 @@ function _getSpawnPoint() {
   return _spawnPoints[Math.floor(Math.random() * _spawnPoints.length)];
 }
 
+// Returns a (u,v) at radius [minR,maxR] from (cu,cv) that doesn't overlap any building.
+// Retries up to maxTries times; falls back to a safe open-field spot if all fail.
+function _spawnClearPos(minR, maxR, maxTries, cu, cv) {
+  cu = cu || 0; cv = cv || 0;
+  maxTries = maxTries || 30;
+  const margin = 0.7; // enemy half-width + buffer so they don't clip wall edge
+  for (let _t = 0; _t < maxTries; _t++) {
+    const ang = Math.random() * Math.PI * 2;
+    const r   = minR + Math.random() * (maxR - minR);
+    const u   = cu + Math.cos(ang) * r;
+    const v   = cv + Math.sin(ang) * r;
+    let blocked = false;
+    for (const bl of buildingBlockers) {
+      if (Math.abs(bl.u) >= 26 || Math.abs(bl.v) >= 26) continue; // skip arena boundary walls
+      const hw = bl.hitbox.w / 2 + margin;
+      const hd = bl.hitbox.d / 2 + margin;
+      if (Math.abs(u - bl.u) < hw && Math.abs(v - bl.v) < hd) { blocked = true; break; }
+    }
+    if (!blocked) return { u, v };
+  }
+  return { u: 15, v: 0 }; // guaranteed-clear fallback
+}
+
 let _heroDead = false;
 let _deathCountdownT = 0;
 const RESPAWN_DELAY = 5; // seconds
@@ -1652,10 +1675,9 @@ window._teleportHero = function(u, v) {
 };
 window._spawnEnemyAtHero = function(typeName) {
   const hp = world.players.get("hero");
-  const ang = Math.random() * Math.PI * 2;
-  const dist = 4 + Math.random() * 4;
-  const eu = hp.u + Math.cos(ang) * dist;
-  const ev = hp.v + Math.sin(ang) * dist;
+  const _ersp = _spawnClearPos(4, 8, 20, hp.u, hp.v);
+  const eu = _ersp.u;
+  const ev = _ersp.v;
   const template = typeName
     ? (_ENEMY_TYPES.find(t => t.type === typeName) || _ENEMY_TYPES[0])
     : _ENEMY_TYPES[Math.floor(Math.random() * _ENEMY_TYPES.length)];
@@ -7640,9 +7662,8 @@ function tick() {
       }
       if (_dElapsed > ENEMY_RESPAWN_DELAY && !en.id.startsWith("en_spawned_")) {
         en.dead = false; en.hp = en.maxHp; en._fireDmgT = 0; _hudEnemyHpDirty = true;
-        const ang = Math.random() * Math.PI * 2;
-        en.u = Math.cos(ang) * (12 + Math.random() * 8);
-        en.v = Math.sin(ang) * (12 + Math.random() * 8);
+        const _rsp = _spawnClearPos(12, 20);
+        en.u = _rsp.u; en.v = _rsp.v;
         world.setPlayer(en.id, 0, 0, 0, en.u, en.v);
       }
     }
