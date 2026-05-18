@@ -2487,11 +2487,11 @@ if (typeof TriggerZones !== "undefined") {
   // Listen for any zone events on window for scripting
   window.addEventListener("zoneEnter", (e) => {
     const { entityId, zoneId } = e.detail;
-    if (typeof ScriptRunner !== "undefined") ScriptRunner.dispatchZoneEvent("enter", zoneId, entityId);
+    if (typeof ScriptRunner !== "undefined" && typeof ScriptRunner.dispatchZoneEvent === "function") ScriptRunner.dispatchZoneEvent("enter", zoneId, entityId);
   });
   window.addEventListener("zoneExit", (e) => {
     const { entityId, zoneId } = e.detail;
-    if (typeof ScriptRunner !== "undefined") ScriptRunner.dispatchZoneEvent("exit", zoneId, entityId);
+    if (typeof ScriptRunner !== "undefined" && typeof ScriptRunner.dispatchZoneEvent === "function") ScriptRunner.dispatchZoneEvent("exit", zoneId, entityId);
   });
 }
 
@@ -7572,6 +7572,7 @@ function tick() {
         en._hitFlashT -= dt;
         en._hitFlashWas = true;
         for (const ch of (en._meshChildren || [])) {
+          if (!ch.material || !ch.material.emissive) continue;
           if (ch._origEmissive === undefined) {
             ch._origEmissive = ch.material.emissive.getHex();
             ch._origEmissiveInt = ch.material.emissiveIntensity || 0;
