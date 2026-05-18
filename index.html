@@ -1013,6 +1013,7 @@
 </script>
 <script type="module">
 import * as THREE from "three";
+import { Core } from "./src/core/core.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10019,6 +10020,46 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
   console.info("[5DTest] test bridge active");
 }
 // ── End test bridge ───────────────────────────────────────────────────────────
+
+// ═══ TICK 3 — ECS Core boot (additive, parallel runtime) ═══════════════════
+// Core runs alongside the monolith. No monolith code is removed or replaced.
+// Prefabs are registered from data/ atoms. Tick integration comes in Tick 4+.
+// Wrapped in try/catch — Core failing never breaks the existing game.
+(async function _bootECS() {
+  try {
+    // Hero prefab: load atom, register the $facets.prefab sub-object
+    const heroAtom = await Core.loadData("data/prefabs/hero.json");
+    Core.registerPrefab("hero", heroAtom.$facets.prefab);
+
+    // Enemy types: load index, then each stat atom → convert to component spec
+    const enemyIndex = await Core.loadData("data/enemies/enemy_types.json");
+    await Promise.all(enemyIndex.$facets.types.map(async (typeId) => {
+      const atom = await Core.loadData(`data/enemies/types/${typeId}.json`);
+      const f = atom.$facets;
+      Core.registerPrefab(`enemy_${typeId}`, {
+        components: {
+          Transform: { u: 0, v: 0, y: 0, heading: 0 },
+          Velocity:  { u: 0, v: 0, y: 0 },
+          Health:    { hp: f.hp, maxHp: f.maxHp, armor: 0 },
+          EnemyAI:   Object.assign(
+            { type: atom.$id, state: "wander", alertT: -99, lastAttackT: -99,
+              damage: f.damage, attackRange: f.attackRange,
+              sightRange: f.sightRange, moveSpeed: f.moveSpeed,
+              wanderSpeed: f.wanderSpeed },
+            f.ability ? { ability: f.ability } : {}
+          ),
+          Faction:   { id: "enemy" },
+          Mesh:      { type: "capsule", radius: f.bodyRadius, height: f.bodyHeight, color: f.color },
+        }
+      });
+    }));
+
+    console.info("[ECS] Core ready —", Core.snapshot());
+  } catch (e) {
+    console.warn("[ECS] Core boot failed (non-fatal):", e.message);
+  }
+})();
+// ═══════════════════════════════════════════════════════════════════════════════
 </script>
 </body>
 </html>
