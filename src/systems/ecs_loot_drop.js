@@ -56,7 +56,7 @@ function _processKill(core, entityId, heroId, dropTable) {
   if (!ai || !t) return;
 
   const type = ai.type ?? "grunt";
-  core.emit("enemy:killed", { entityId, type, heroId: heroId ?? null });
+  core.emit("enemy:killed", { entityId, type, heroId: heroId ?? null, u: t.u, v: t.v });
 
   const def = dropTable[type];
   if (!def) return;
