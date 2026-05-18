@@ -6275,7 +6275,9 @@ function tick() {
     } else {
       // ---- Ground vehicle physics ----
       const throttle  = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-      const steerIn   = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);   // D=right, A=left
+      // BUG FIX iter 418: A/D were inverted. Three.js rotation.y is counter-clockwise
+      // from above, so positive steer (D) was turning LEFT. Negating maps D→right, A→left.
+      const steerIn   = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);   // A=+1 (CCW=left), D=-1 (CW=right)
       const handbrake = !!keys["Space"];
       const next = Bridge.carPhysicsStep(world, activeVehicleId, vSt, throttle, steerIn, dt, {
         blockers:     buildingBlockers,
@@ -6748,7 +6750,9 @@ function tick() {
         const _nV = _pnU < _pnV ? 0 : (_fV > 0 ? 1 : -1);
         _spawnWallScorch(b.posU, b.posY, b.posV, _nU, _nV);
       }
-      if (hitSolid || b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
+      // BUG FIX iter 418: hitSolid was never declared — _hitBlocker is the correct
+      // variable (set to null or the building object a few lines above at line ~6732).
+      if (_hitBlocker || b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       b.mesh.position.set(b.posU, b.posY, b.posV);
     }
   }
@@ -8835,8 +8839,12 @@ requestAnimationFrame(tick);
 // _firstLaunch is cleared when the player picks a mode; never fires again.
 setTimeout(function _firstLaunchGameModes() {
   if (!_firstLaunch) return;
-  // Use finishComputerEntry() to mark the overlay as open (sets computerOpen = true,
-  // exits pointer lock, etc.) — same as pressing E, but without the 0.45s dolly anim.
+  // BUG FIX iter 418: finishComputerEntry() does NOT call exitPointerLock() —
+  // that lives in beginComputerEntry(). Without this explicit call the pointer
+  // stays locked and the game-mode select overlay is visible but unclickable
+  // (user would have to press Escape first, which was the reported bug).
+  if (document.pointerLockElement) document.exitPointerLock();
+  // Mark overlay as open (sets computerOpen = true, shows the overlay element).
   finishComputerEntry();
   // Navigate straight to the Game Modes app (skip the home-screen grid)
   const homeEl  = document.getElementById("appHome");
