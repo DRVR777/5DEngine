@@ -1044,6 +1044,7 @@ import { createSniperShootSystem } from "./src/systems/ecs_sniper_shoot.js";
 import { createMeleeAttackSystem } from "./src/systems/ecs_melee_attack.js";
 import { createMoralePanicSystem } from "./src/systems/ecs_morale_panic.js";
 import { createStaggerMovementSystem } from "./src/systems/ecs_stagger_movement.js";
+import { createGunshotAlertSystem } from "./src/systems/ecs_gunshot_alert.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10196,6 +10197,11 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsStaggerMovement = createStaggerMovementSystem();
     Core.addSystem(_ecsStaggerMovement, 13, "stagger_movement");
     window.Engine.staggerMovementSystem = _ecsStaggerMovement;
+
+    // Wire gunshot alert system — priority 13 (approaches shot position while not chasing)
+    const _ecsGunshotAlert = createGunshotAlertSystem();
+    Core.addSystem(_ecsGunshotAlert, 13, "gunshot_alert");
+    window.Engine.gunshotAlertSystem = _ecsGunshotAlert;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();

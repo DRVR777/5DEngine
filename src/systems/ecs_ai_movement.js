@@ -67,13 +67,13 @@ export function createAIMovementSystem() {
       if (ai._charging) continue; // fast_charge system owns movement this tick
       if (core.getComponent(id, "Stagger")) continue; // stagger_movement system owns this tick
 
+      // Compute sight before further checks that need it
       const sightRange  = ai.sightRange  ?? 12;
       const attackRange = ai.attackRange ?? 1.8;
       const loseRange   = sightRange * LOSE_RANGE_MUL;
       const moveSpeed   = ai.moveSpeed   ?? 2.4;
       const wanderSpeed = ai.wanderSpeed ?? 1.0;
 
-      // Distance and direction to hero
       let dist = Infinity, dx = 0, dz = 0;
       if (heroT) {
         dx = heroT.u - t.u;
@@ -82,7 +82,9 @@ export function createAIMovementSystem() {
       }
 
       const canSee = heroT != null && dist <= sightRange;
-      const state  = ai.state ?? "wander";
+      if (ai._heardShotT > 0 && !canSee) continue; // gunshot_alert owns movement
+
+      const state = ai.state ?? "wander";
 
       // ── State transitions ────────────────────────────────────────────────────
       if (canSee && state !== "chase") {
