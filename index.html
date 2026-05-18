@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+<link rel="icon" href="data:,">
 <title>5DEngine — third person on multi_dim_engine</title>
 <style>
   :root {
@@ -999,8 +1000,8 @@
 <script>
 (function(){
   var s=document.createElement("script");
-  s.src="/socket.io/socket.io.js";
-  s.onerror=function(){};   // silent fail when not running game_server.py
+  s.src="https://cdn.socket.io/4.7.5/socket.io.min.js";
+  s.onerror=function(){};   // silent fail when offline
   document.head.appendChild(s);
 })();
 </script>
@@ -3721,7 +3722,7 @@ function _spawnSpeedOrb(u, v) {
   const mesh = new THREE.Mesh(_speedOrbGeo, _speedOrbMat.clone());
   mesh.position.set(u, 0.7, v);
   scene.add(mesh);
-  _speedOrbs.push({ mesh, u, v, collected: false, _birthT: now / 1000 });
+  _speedOrbs.push({ mesh, u, v, collected: false, _birthT: performance.now() / 1000 });
 }
 
 // Coin drops from killed enemies (separate from world coin pickups)
