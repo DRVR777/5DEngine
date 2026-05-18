@@ -1047,6 +1047,7 @@ import { createStaggerMovementSystem } from "./src/systems/ecs_stagger_movement.
 import { createGunshotAlertSystem } from "./src/systems/ecs_gunshot_alert.js";
 import { createRobotShootSystem } from "./src/systems/ecs_robot_shoot.js";
 import { createPoisonerDartSystem } from "./src/systems/ecs_poisoner_dart.js";
+import { createEnemyBulletSystem } from "./src/systems/ecs_enemy_bullet.js";
 import Rain from "./src/world/rain.js";
 import Notifications from "./src/ui/hud_notifications.js";
 const showToast = Notifications.showToast;
@@ -10214,6 +10215,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).has(
     const _ecsPoisonerDart = createPoisonerDartSystem();
     Core.addSystem(_ecsPoisonerDart, 13, "poisoner_dart");
     window.Engine.poisonerDartSystem = _ecsPoisonerDart;
+
+    // Wire enemy bullet system — priority 11 (moves projectiles, checks hero hit)
+    const _ecsEnemyBullet = createEnemyBulletSystem();
+    _ecsEnemyBullet.wireListeners(Core); // subscribe to ranged attack events
+    Core.addSystem(_ecsEnemyBullet, 11, "enemy_bullet");
+    window.Engine.enemyBulletSystem = _ecsEnemyBullet;
 
     // Wire inventory system — priority 5 (before everything so ammo is ready)
     const _ecsInventory = createInventorySystem();
