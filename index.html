@@ -6281,6 +6281,9 @@ let _platformsDirty = true;
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
 let _lastHudEnemyHpStr = "";
+// Mag bar dirty-flag — skip innerHTML rebuild when ammo unchanged
+let _lastMagBarAmmo = -1;
+let _lastMagBarReloading = false;
 // Pre-allocated camera Vector3s — reused every tick via .set() to avoid GC pressure
 const _camTarget    = new THREE.Vector3();
 const _camOff       = new THREE.Vector3();
@@ -9073,7 +9076,8 @@ function tick() {
     if (!_isLowAmmo) _lowAmmoWarnedAt = -1;
     // Mag segment bar — one pip per bullet, capped at 30 displayed
     const magBar = _dom.wpMagBar;
-    if (magBar) {
+    if (magBar && (pistolAmmo !== _lastMagBarAmmo || _reloading !== _lastMagBarReloading)) {
+      _lastMagBarAmmo = pistolAmmo; _lastMagBarReloading = _reloading;
       const cap = Math.min(_wp.magCap || 12, 30);
       const filled = Math.min(pistolAmmo, cap);
       const reloading = _reloading;
