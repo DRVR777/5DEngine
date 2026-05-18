@@ -5551,8 +5551,15 @@ document.addEventListener("pointerlockchange", () => {
 // In build mode the lock is NOT requested on click (UI needs mouse freedom);
 // press R instead to toggle fly-cam lock while in build mode.
 let pointerLocked = false;
-renderer.domElement.addEventListener("click", () => {
-  if (!pointerLocked && !buildMode && !computerOpen && !computerEntering) renderer.domElement.requestPointerLock();
+// iter 421: document-level click listener so ANY click (including on HUD elements)
+// re-acquires pointer lock. The canvas-only listener silently failed whenever a HUD
+// element (ammo counter, wave display, etc.) intercepted the click first.
+document.addEventListener("click", () => {
+  const _diffOpen = (document.getElementById("difficultyScreen") || {}).style?.display === "flex";
+  if (!pointerLocked && !buildMode && !computerOpen && !computerEntering &&
+      !shopOpen && !settingsOpen && !_npcDialogOpen && !_diffOpen) {
+    renderer.domElement.requestPointerLock();
+  }
 });
 document.addEventListener("pointerlockchange", () => {
   pointerLocked = document.pointerLockElement === renderer.domElement;
