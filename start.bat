@@ -1,47 +1,29 @@
 @echo off
 title 5DEngine Launcher
 echo.
-echo  ============================
-echo   5DEngine — Starting server
-echo  ============================
+echo  ================================
+echo   5DEngine — Two-server launcher
+echo  ================================
 echo.
 
-REM Check Python
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo  ERROR: Python not found. Install Python from python.org
-    pause
-    exit /b 1
-)
+REM Kill any previous instances on these ports
+for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":8080 " ^| findstr LISTENING') do taskkill /PID %%a /F >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":8081 " ^| findstr LISTENING') do taskkill /PID %%a /F >nul 2>&1
 
-REM Check if Flask + SocketIO are available (needed for multiplayer)
-python -c "import flask, flask_socketio" >nul 2>&1
-if errorlevel 1 (
-    echo  Flask not found — using Python built-in server ^(no multiplayer^)
-    echo  To enable multiplayer: pip install flask flask-socketio
-    echo.
-    echo  Starting http://localhost:5050 ...
-    start "" "http://localhost:5050"
-    python -m http.server 5050
-    goto :eof
-)
+echo  Starting Player 1 server on http://localhost:8080 ...
+start "5DEngine P1 :8080" cmd /k "npx serve . --listen 8080 --no-clipboard"
 
-REM Check if pyopenssl is available (enables HTTPS + secure WebSockets)
-python -c "import OpenSSL" >nul 2>&1
-if errorlevel 1 (
-    echo  pyopenssl not found — running HTTP ^(no HTTPS^)
-    echo  For HTTPS: pip install pyopenssl cryptography
-    echo.
-    echo  Starting http://localhost:5050 ...
-    start "" cmd /c "timeout /t 2 /nobreak >nul && start http://localhost:5050"
-) else (
-    echo  HTTPS enabled ^(self-signed cert^)
-    echo  Browser will warn once — click Advanced ^> Proceed to localhost
-    echo.
-    echo  Starting https://localhost:5050 ...
-    start "" cmd /c "timeout /t 2 /nobreak >nul && start https://localhost:5050"
-)
+echo  Starting Player 2 server on http://localhost:8081 ...
+start "5DEngine P2 :8081" cmd /k "npx serve . --listen 8081 --no-clipboard"
 
-echo  Press Ctrl+C to stop the server.
+echo  Waiting 2 seconds for servers to start...
+timeout /t 2 /nobreak >nul
+
+echo  Opening browsers...
+start "" "http://localhost:8080"
+start "" "http://localhost:8081"
+
 echo.
-python game_server.py
+echo  Both servers running.
+echo  Close the two server windows to stop.
+echo.
