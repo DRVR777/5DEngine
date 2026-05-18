@@ -1,0 +1,19 @@
+{
+  "$version": 1,
+  "$type": "perk",
+  "$id": "vampire",
+  "$facets": {
+    "label": "Vampire",
+    "desc": "Kills restore 3 HP",
+    "color": "#cc44cc",
+    "effect": { "op": "flag", "target": "_perkLifesteal", "value": true }
+  },
+  "$refs": {
+    "healValue": { "type": "tuning", "id": "hero", "facet": "lifestealPerKill" }
+  },
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1194-1210",
+    "note": "Sets _perkLifesteal flag. Heal amount (3 HP) from tuning/hero.json lifestealPerKill."
+  }
+}

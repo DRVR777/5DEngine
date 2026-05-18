@@ -1,0 +1,17 @@
+{
+  "$version": 1,
+  "$type": "perk",
+  "$id": "regen",
+  "$facets": {
+    "label": "Battle Medic",
+    "desc": "+3 HP/s regen rate",
+    "color": "#44ff88",
+    "effect": { "op": "add", "target": "_perkRegenBonus", "value": 3 }
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1194-1210",
+    "note": "Adds to _perkRegenBonus. Base regen = 4 HP/s from tuning/hero.json (after regenDelay=5s)."
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$version": 1,
+  "$type": "entity",
+  "$id": "grunt",
+  "$facets": {
+    "color": "0xff0044",
+    "hp": 80,
+    "maxHp": 80,
+    "moveSpeed": 2.4,
+    "damage": 6,
+    "attackRange": 1.6,
+    "sightRange": 12,
+    "dropAmmo": "pistol_9mm",
+    "dropQty": 12,
+    "dropHealth": 0,
+    "wanderSpeed": 1.0,
+    "bodyRadius": 0.4,
+    "bodyHeight": 1.1
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1162-1192",
+    "note": "Standard melee enemy. No ability. Drops pistol ammo."
+  }
+}

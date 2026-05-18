@@ -1,0 +1,17 @@
+{
+  "$version": 1,
+  "$type": "perk",
+  "$id": "maxhp",
+  "$facets": {
+    "label": "Resilient",
+    "desc": "+25 max HP, heal 15",
+    "color": "#ff4466",
+    "effect": { "op": "add", "target": "_perkMaxHpBonus", "value": 25, "healOnApply": 15 }
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1194-1210",
+    "note": "Raises maxHp ceiling AND immediately heals 15. Bug in iter 431: HP bar RangeError — was fixed by clamping bar width after bonus apply."
+  }
+}

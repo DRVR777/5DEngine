@@ -1,0 +1,26 @@
+{
+  "$version": 1,
+  "$type": "entity",
+  "$id": "fast",
+  "$facets": {
+    "color": "0xff6600",
+    "hp": 40,
+    "maxHp": 40,
+    "moveSpeed": 5.0,
+    "damage": 4,
+    "attackRange": 1.2,
+    "sightRange": 16,
+    "dropAmmo": "pistol_9mm",
+    "dropQty": 6,
+    "dropHealth": 0,
+    "wanderSpeed": 2.5,
+    "bodyRadius": 0.28,
+    "bodyHeight": 0.9
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1162-1192",
+    "note": "Low HP, very fast. Hard to hit with shotgun spread bonus from damage_multipliers."
+  }
+}

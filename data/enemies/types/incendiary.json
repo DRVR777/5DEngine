@@ -1,0 +1,27 @@
+{
+  "$version": 1,
+  "$type": "entity",
+  "$id": "incendiary",
+  "$facets": {
+    "color": "0xffaa00",
+    "hp": 70,
+    "maxHp": 70,
+    "moveSpeed": 2.2,
+    "damage": 5,
+    "attackRange": 1.8,
+    "sightRange": 12,
+    "dropAmmo": "pistol_9mm",
+    "dropQty": 10,
+    "dropHealth": 0,
+    "wanderSpeed": 0.9,
+    "bodyRadius": 0.4,
+    "bodyHeight": 1.1,
+    "ability": "fire_patch"
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1162-1192",
+    "note": "Leaves fire patch. Burns player on contact."
+  }
+}

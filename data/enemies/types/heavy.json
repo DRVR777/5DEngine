@@ -1,0 +1,28 @@
+{
+  "$version": 1,
+  "$type": "entity",
+  "$id": "heavy",
+  "$facets": {
+    "color": "0x880022",
+    "hp": 200,
+    "maxHp": 200,
+    "moveSpeed": 1.2,
+    "damage": 18,
+    "attackRange": 2.0,
+    "sightRange": 10,
+    "dropAmmo": "pistol_9mm",
+    "dropQty": 24,
+    "dropHealth": 30,
+    "wanderSpeed": 0.6,
+    "bodyRadius": 0.55,
+    "bodyHeight": 1.5
+  },
+  "$refs": {
+    "damageResist": { "type": "lookup", "id": "damage_multipliers", "facet": "heavy" }
+  },
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1162-1192",
+    "note": "Slow tanky melee. No ability. Drops pistol ammo + health."
+  }
+}

@@ -1,98 +1,31 @@
-[
-  {
-    "id": "ammo_pistol",
-    "name": "Pistol Ammo",
-    "desc": "+30 pistol rounds",
-    "cost": 2,
-    "effect": { "op": "addItem", "item": "pistol_9mm", "qty": 30 }
+{
+  "$version": 1,
+  "$type": "lookup",
+  "$id": "shop_items",
+  "$facets": {
+    "ammo_pistol":  { "name": "Pistol Ammo",     "desc": "+30 pistol rounds",               "cost": 2,  "effect": { "op": "addItem",    "item": "pistol_9mm",  "qty": 30 } },
+    "ammo_rifle":   { "name": "Rifle Ammo",       "desc": "+30 rifle rounds",                "cost": 3,  "effect": { "op": "addItem",    "item": "rifle_556",   "qty": 30 } },
+    "ammo_shotgun": { "name": "Shotgun Shells",   "desc": "+16 shotgun shells",              "cost": 3,  "effect": { "op": "addItem",    "item": "shotgun_12g", "qty": 16 } },
+    "ammo_smg":     { "name": "SMG Ammo",         "desc": "+40 rounds (SMG uses pistol ammo)","cost": 3, "effect": { "op": "addItem",    "item": "pistol_9mm",  "qty": 40 } },
+    "ammo_sniper":  { "name": "Sniper Rounds",    "desc": "+10 rounds (sniper uses rifle ammo)","cost": 4,"effect": { "op": "addItem",   "item": "rifle_556",   "qty": 10 } },
+    "medkit":       { "name": "Medkit",           "desc": "+1 medkit (press H to use)",      "cost": 4,  "effect": { "op": "addItem",    "item": "medkit",      "qty": 1  } },
+    "grenade":      { "name": "Grenades x3",      "desc": "+3 grenades",                     "cost": 5,  "effect": { "op": "addCounter", "target": "grenadeCount",      "value": 3, "max": 9 } },
+    "smoke_x3":     { "name": "Smoke Pack x3",    "desc": "+3 smoke grenades (T)",           "cost": 4,  "effect": { "op": "addCounter", "target": "smokeGrenadeCount", "value": 3, "max": 9 } },
+    "flash_x2":     { "name": "Flashbang x2",     "desc": "+2 flashbangs (U)",               "cost": 6,  "effect": { "op": "addCounter", "target": "flashbangCount",    "value": 2, "max": 6 } },
+    "mines_x3":     { "name": "Mine Kit x3",      "desc": "+3 trap mines (M)",               "cost": 5,  "effect": { "op": "addCounter", "target": "_mineCount",        "value": 3, "max": 9 } },
+    "armor":        { "name": "Armor Shard",      "desc": "+25 armor (absorbs 60% dmg)",     "cost": 8,  "effect": { "op": "addClamped", "target": "heroArmor", "value": 25, "max": "HERO_MAX_ARMOR" } },
+    "ammo_max":     { "name": "Full Resupply",    "desc": "Fill all ammo + 2 medkits",       "cost": 15, "effect": { "op": "bundle", "actions": [
+      { "op": "addItem", "item": "pistol_9mm",  "qty": 60 },
+      { "op": "addItem", "item": "rifle_556",   "qty": 60 },
+      { "op": "addItem", "item": "shotgun_12g", "qty": 32 },
+      { "op": "addItem", "item": "medkit",      "qty": 2  }
+    ]}},
+    "grenade_max":  { "name": "Grenade Crate",   "desc": "Max grenades (9)",                "cost": 12, "effect": { "op": "set", "target": "grenadeCount", "value": 9 } }
   },
-  {
-    "id": "ammo_rifle",
-    "name": "Rifle Ammo",
-    "desc": "+30 rifle rounds",
-    "cost": 3,
-    "effect": { "op": "addItem", "item": "rifle_556", "qty": 30 }
-  },
-  {
-    "id": "ammo_shotgun",
-    "name": "Shotgun Shells",
-    "desc": "+16 shotgun shells",
-    "cost": 3,
-    "effect": { "op": "addItem", "item": "shotgun_12g", "qty": 16 }
-  },
-  {
-    "id": "medkit",
-    "name": "Medkit",
-    "desc": "+1 medkit (press H to use)",
-    "cost": 4,
-    "effect": { "op": "addItem", "item": "medkit", "qty": 1 }
-  },
-  {
-    "id": "grenade",
-    "name": "Grenades x3",
-    "desc": "+3 grenades",
-    "cost": 5,
-    "effect": { "op": "addCounter", "target": "grenadeCount", "value": 3, "max": 9 }
-  },
-  {
-    "id": "armor",
-    "name": "Armor Shard",
-    "desc": "+25 armor (absorbs 60% dmg)",
-    "cost": 8,
-    "effect": { "op": "addClamped", "target": "heroArmor", "value": 25, "max": "HERO_MAX_ARMOR" }
-  },
-  {
-    "id": "ammo_max",
-    "name": "Full Resupply",
-    "desc": "Fill all ammo + 2 medkits",
-    "cost": 15,
-    "effect": { "op": "bundle", "actions": [
-      { "op": "addItem", "item": "pistol_9mm", "qty": 60 },
-      { "op": "addItem", "item": "rifle_556",  "qty": 60 },
-      { "op": "addItem", "item": "shotgun_12g","qty": 32 },
-      { "op": "addItem", "item": "medkit",     "qty": 2  }
-    ]}
-  },
-  {
-    "id": "grenade_max",
-    "name": "Grenade Crate",
-    "desc": "Max grenades (9)",
-    "cost": 12,
-    "effect": { "op": "set", "target": "grenadeCount", "value": 9 }
-  },
-  {
-    "id": "smoke_x3",
-    "name": "Smoke Pack ×3",
-    "desc": "+3 smoke grenades (T)",
-    "cost": 4,
-    "effect": { "op": "addCounter", "target": "smokeGrenadeCount", "value": 3, "max": 9 }
-  },
-  {
-    "id": "flash_x2",
-    "name": "Flashbang ×2",
-    "desc": "+2 flashbangs (U)",
-    "cost": 6,
-    "effect": { "op": "addCounter", "target": "flashbangCount", "value": 2, "max": 6 }
-  },
-  {
-    "id": "mines_x3",
-    "name": "Mine Kit ×3",
-    "desc": "+3 trap mines (M)",
-    "cost": 5,
-    "effect": { "op": "addCounter", "target": "_mineCount", "value": 3, "max": 9 }
-  },
-  {
-    "id": "ammo_smg",
-    "name": "SMG Ammo",
-    "desc": "+40 rounds (SMG uses pistol ammo)",
-    "cost": 3,
-    "effect": { "op": "addItem", "item": "pistol_9mm", "qty": 40 }
-  },
-  {
-    "id": "ammo_sniper",
-    "name": "Sniper Rounds",
-    "desc": "+10 rounds (sniper uses rifle ammo)",
-    "cost": 4,
-    "effect": { "op": "addItem", "item": "rifle_556", "qty": 10 }
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1212-1240",
+    "note": "All shop items keyed by id. Cost in kill-credits. Bundle op runs all actions atomically."
   }
-]
+}

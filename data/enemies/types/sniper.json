@@ -1,0 +1,29 @@
+{
+  "$version": 1,
+  "$type": "entity",
+  "$id": "sniper",
+  "$facets": {
+    "color": "0x220033",
+    "hp": 55,
+    "maxHp": 55,
+    "moveSpeed": 0.9,
+    "damage": 45,
+    "attackRange": 20,
+    "sightRange": 22,
+    "dropAmmo": "rifle_556",
+    "dropQty": 15,
+    "dropHealth": 0,
+    "wanderSpeed": 0.3,
+    "bodyRadius": 0.4,
+    "bodyHeight": 1.1,
+    "ability": "long_range_shot"
+  },
+  "$refs": {
+    "damageResist": { "type": "lookup", "id": "damage_multipliers", "facet": "sniper" }
+  },
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1162-1192",
+    "note": "Glass cannon. Very long attackRange=20. Shotgun most effective at close range (1.5x). Takes reduced sniper damage (0.8x — mirrors the player sniper)."
+  }
+}

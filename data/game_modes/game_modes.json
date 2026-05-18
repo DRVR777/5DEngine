@@ -1,36 +1,39 @@
-[
-  {
-    "id": "peaceful",
-    "label": "Peaceful",
-    "icon": "🕊️",
-    "desc": "No enemies. Explore and build freely.",
-    "enemySpawn": false,
-    "waveSystem": false
+{
+  "$version": 1,
+  "$type": "lookup",
+  "$id": "game_modes",
+  "$facets": {
+    "peaceful": {
+      "label": "Peaceful",
+      "desc": "No enemies. Explore and build freely.",
+      "enemySpawn": false,
+      "waveSystem": false
+    },
+    "solo": {
+      "label": "Solo Combat",
+      "desc": "Fight enemies solo. Wave defense rules apply.",
+      "enemySpawn": true,
+      "waveSystem": true
+    },
+    "wave_defense": {
+      "label": "Wave Defense",
+      "desc": "Defend against escalating enemy waves.",
+      "enemySpawn": true,
+      "waveSystem": true,
+      "scalingFactor": 1.2
+    },
+    "coop_build": {
+      "label": "Co-op Build",
+      "desc": "Build together via LAN sync. No wave enemies.",
+      "enemySpawn": false,
+      "waveSystem": false,
+      "mpSync": true
+    }
   },
-  {
-    "id": "solo",
-    "label": "Solo Combat",
-    "icon": "⚔️",
-    "desc": "Fight enemies solo. Wave defense rules apply.",
-    "enemySpawn": true,
-    "waveSystem": true
-  },
-  {
-    "id": "wave_defense",
-    "label": "Wave Defense",
-    "icon": "🏰",
-    "desc": "Defend against escalating enemy waves.",
-    "enemySpawn": true,
-    "waveSystem": true,
-    "scalingFactor": 1.2
-  },
-  {
-    "id": "coop_build",
-    "label": "Co-op Build",
-    "icon": "🔧",
-    "desc": "Build together via LAN sync. No wave enemies.",
-    "enemySpawn": false,
-    "waveSystem": false,
-    "mpSync": true
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1242-1260",
+    "note": "Keyed by id. scalingFactor multiplies enemy HP/damage each wave in wave_defense. mpSync enables LAN state broadcast."
   }
-]
+}

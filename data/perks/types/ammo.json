@@ -1,0 +1,17 @@
+{
+  "$version": 1,
+  "$type": "perk",
+  "$id": "ammo",
+  "$facets": {
+    "label": "Ammo Dump",
+    "desc": "+40 ammo for active weapon",
+    "color": "#ffd166",
+    "effect": { "op": "addAmmo", "value": 40 }
+  },
+  "$refs": {},
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1194-1210",
+    "note": "Adds 40 to currently equipped weapon's ammo pool. Amount is not capped."
+  }
+}

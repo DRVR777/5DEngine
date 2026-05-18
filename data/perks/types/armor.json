@@ -1,0 +1,19 @@
+{
+  "$version": 1,
+  "$type": "perk",
+  "$id": "armor",
+  "$facets": {
+    "label": "Fortified",
+    "desc": "+30 armor",
+    "color": "#88ccff",
+    "effect": { "op": "add", "target": "heroArmor", "value": 30, "max": "HERO_MAX_ARMOR" }
+  },
+  "$refs": {
+    "cap": { "type": "tuning", "id": "hero", "facet": "maxArmor" }
+  },
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1194-1210",
+    "note": "Capped at HERO_MAX_ARMOR = 75 from tuning/hero.json. Armor absorbs 60% of each hit."
+  }
+}

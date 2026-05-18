@@ -1,72 +1,25 @@
-[
-  {
-    "id": "dmg",
-    "label": "Power Shot",
-    "desc": "+15% weapon damage",
-    "color": "#ff8844",
-    "effect": { "op": "multiply", "target": "_perkDmgMul", "value": 1.15 }
+{
+  "$version": 1,
+  "$type": "index",
+  "$id": "perks",
+  "$facets": {
+    "types": ["dmg", "speed", "regen", "reload", "maxhp", "grenades", "smoke", "armor", "vampire", "ammo"]
   },
-  {
-    "id": "speed",
-    "label": "Sprinter",
-    "desc": "+1 m/s sprint speed",
-    "color": "#44ffcc",
-    "effect": { "op": "add", "target": "_perkSpeedBonus", "value": 1 }
+  "$refs": {
+    "dmg":      { "type": "perk", "id": "dmg" },
+    "speed":    { "type": "perk", "id": "speed" },
+    "regen":    { "type": "perk", "id": "regen" },
+    "reload":   { "type": "perk", "id": "reload" },
+    "maxhp":    { "type": "perk", "id": "maxhp" },
+    "grenades": { "type": "perk", "id": "grenades" },
+    "smoke":    { "type": "perk", "id": "smoke" },
+    "armor":    { "type": "perk", "id": "armor" },
+    "vampire":  { "type": "perk", "id": "vampire" },
+    "ammo":     { "type": "perk", "id": "ammo" }
   },
-  {
-    "id": "regen",
-    "label": "Battle Medic",
-    "desc": "+3 HP/s regen rate",
-    "color": "#44ff88",
-    "effect": { "op": "add", "target": "_perkRegenBonus", "value": 3 }
-  },
-  {
-    "id": "reload",
-    "label": "Quick Hands",
-    "desc": "15% faster reloads",
-    "color": "#88aaff",
-    "effect": { "op": "multiply", "target": "_perkReloadMul", "value": 0.85 }
-  },
-  {
-    "id": "maxhp",
-    "label": "Resilient",
-    "desc": "+25 max HP, heal 15",
-    "color": "#ff4466",
-    "effect": { "op": "add", "target": "_perkMaxHpBonus", "value": 25, "healOnApply": 15 }
-  },
-  {
-    "id": "grenades",
-    "label": "Grenadier",
-    "desc": "+3 frag grenades",
-    "color": "#ff6600",
-    "effect": { "op": "addItem", "target": "grenadeCount", "value": 3, "max": 9 }
-  },
-  {
-    "id": "smoke",
-    "label": "Smoke Screen",
-    "desc": "+2 smoke grenades",
-    "color": "#aaaacc",
-    "effect": { "op": "addItem", "target": "smokeGrenadeCount", "value": 2, "max": 9 }
-  },
-  {
-    "id": "armor",
-    "label": "Fortified",
-    "desc": "+30 armor",
-    "color": "#88ccff",
-    "effect": { "op": "add", "target": "heroArmor", "value": 30, "max": "HERO_MAX_ARMOR" }
-  },
-  {
-    "id": "vampire",
-    "label": "Vampire",
-    "desc": "Kills restore 3 HP",
-    "color": "#cc44cc",
-    "effect": { "op": "flag", "target": "_perkLifesteal", "value": true }
-  },
-  {
-    "id": "ammo",
-    "label": "Ammo Dump",
-    "desc": "+40 ammo for active weapon",
-    "color": "#ffd166",
-    "effect": { "op": "addAmmo", "value": 40 }
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1194-1210",
+    "note": "Index atom. Each perk lives in data/perks/types/<id>.json. 3 perks offered per wave-clear selection."
   }
-]
+}

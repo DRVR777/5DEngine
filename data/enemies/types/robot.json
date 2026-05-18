@@ -1,0 +1,29 @@
+{
+  "$version": 1,
+  "$type": "entity",
+  "$id": "robot",
+  "$facets": {
+    "color": "0x4466aa",
+    "hp": 350,
+    "maxHp": 350,
+    "moveSpeed": 1.0,
+    "damage": 25,
+    "attackRange": 2.2,
+    "sightRange": 14,
+    "dropAmmo": "rifle_556",
+    "dropQty": 20,
+    "dropHealth": 40,
+    "wanderSpeed": 0.4,
+    "bodyRadius": 0.42,
+    "bodyHeight": 1.3,
+    "ability": "ranged_projectile"
+  },
+  "$refs": {
+    "damageResist": { "type": "lookup", "id": "damage_multipliers", "facet": "robot" }
+  },
+  "$meta": {
+    "source": "../5DEngineMassive/index.html",
+    "extracted_from_lines": "1162-1192",
+    "note": "Ranged projectile attacker. High HP. Sniper rounds most effective (1.8x from damage_multipliers)."
+  }
+}
