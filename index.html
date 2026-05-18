@@ -1099,6 +1099,12 @@ Promise.all([
   const { RenderPass }     = renderMod;
   const { UnrealBloomPass } = bloomMod;
   composer = new EffectComposer(renderer);
+  // Match RT color space to renderer output so Three.js reuses the same
+  // shader variants instead of recompiling for a different output encoding.
+  // Mismatched color spaces cause refreshUniformsCommon to crash when the
+  // new variant's uniform map is empty (uniforms.opacity === undefined).
+  composer.renderTarget1.texture.colorSpace = THREE.SRGBColorSpace;
+  composer.renderTarget2.texture.colorSpace = THREE.SRGBColorSpace;
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(
     new THREE.Vector2(innerWidth, innerHeight),
