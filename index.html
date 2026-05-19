@@ -72,100 +72,58 @@
 </script>
 <script type="module">
 import * as THREE from "three";
-import { mountHudTemplate } from "./src/ui/hud_template.js";
-import { createHeroAnimSystem } from "./src/entities/hero_animation.js";
-import { mountConfigEditor } from "./src/systems/config_editor.js";
-import { mountSceneHierarchy } from "./src/systems/scene_hierarchy.js";
-import { createLanSession } from "./src/social/lan_session.js";
-import { mountDuelMode }   from "./src/systems/duel_mode.js";
-import { createWeaponVisuals } from "./src/combat/weapon_visuals.js";
-import { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./src/systems/npc_dialog.js";
-import { mountQuestPanel } from "./src/systems/quest_panel.js";
-import { mountShopPanel } from "./src/economy/shop_panel.js";
-import { mountSettingsPanel } from "./src/systems/settings_panel.js";
-import { mountWeaponSelector } from "./src/ui/weapon_selector.js";
-import { buildComputerApps, addDynamicIcons } from "./src/systems/computer_apps.js";
-import { mountComputerUI } from "./src/ui/computer_ui_events.js";
-import { mountMouseInput } from "./src/systems/mouse_input.js";
-import { mountHudElements } from "./src/ui/hud_cache.js";
-import { mountKeydownHandler, mountKeyupHandler } from "./src/systems/keydown_handler.js";
-import { mountGadgetSystem } from "./src/systems/gadget_system.js";
-import { mountSpawnSystem } from "./src/systems/spawn_system.js";
-import { mountPerkSystem } from "./src/systems/perk_system.js";
-import { mountHeroLifecycle } from "./src/systems/hero_lifecycle.js";
-import { mountGameReset } from "./src/systems/game_reset.js";
-import { mountDevConsoleGame } from "./src/systems/dev_console_game.js";
-import { mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE } from "./src/systems/kill_tracking.js";
-import { mountShootSystem } from "./src/combat/shoot_system.js";
-import { mountDecalSystem } from "./src/render/decals.js";
-import { mountBarrelSystem } from "./src/systems/barrel_system.js";
-import { mountCrateSystem }  from "./src/systems/crate_system.js";
-import { mountLevelSystem } from "./src/systems/level_system.js";
-import { Core } from "./src/core/core.js";
-import { combatSystem } from "./src/systems/ecs_combat.js";
-import { createWaveSystem } from "./src/systems/ecs_wave.js";
-import { pickupSystem, spawnPickup } from "./src/systems/ecs_pickup.js";
-import { createShopSystem } from "./src/systems/ecs_shop.js";
-import { createPerkSystem } from "./src/systems/ecs_perk.js";
-import { createAgentDispatch } from "./src/systems/ecs_agent_dispatch.js";
-import { createStatusEffectSystem } from "./src/systems/ecs_status_effects.js";
-import { regenSystem } from "./src/systems/ecs_regen.js";
-import { createWeaponSystem } from "./src/systems/ecs_weapon.js";
-import { createScoreSystem } from "./src/systems/ecs_score.js";
-import { createAIMovementSystem } from "./src/systems/ecs_ai_movement.js";
-import { createInventorySystem, invAdd, invRemove, invCount, invHas } from "./src/systems/ecs_inventory.js";
-import { createStaminaSystem } from "./src/systems/ecs_stamina.js";
-import { createGrenadeSystem } from "./src/systems/ecs_grenade.js";
-import { createBulletSystem, spawnBullet } from "./src/systems/ecs_bullet.js";
-import { createLootDropSystem, DROP_TABLE } from "./src/systems/ecs_loot_drop.js";
-import { createKnockbackSystem } from "./src/systems/ecs_knockback.js";
-import { createPlayerMovementSystem } from "./src/systems/ecs_player_movement.js";
-import { createEnrageSystem } from "./src/systems/ecs_enrage.js";
-import { createBossSlamSystem } from "./src/systems/ecs_boss_slam.js";
-import { createFastChargeSystem } from "./src/systems/ecs_fast_charge.js";
-import { createRobotEmpSystem } from "./src/systems/ecs_robot_emp.js";
-import { createHeavyThrowSystem } from "./src/systems/ecs_heavy_throw.js";
-import { createBossRockSystem } from "./src/systems/ecs_boss_rock.js";
-import { createPoisonerSpitSystem } from "./src/systems/ecs_poisoner_spit.js";
-import { createIncendiaryBombSystem } from "./src/systems/ecs_incendiary_bomb.js";
-import { createSniperShootSystem } from "./src/systems/ecs_sniper_shoot.js";
-import { createMeleeAttackSystem } from "./src/systems/ecs_melee_attack.js";
-import { createMoralePanicSystem } from "./src/systems/ecs_morale_panic.js";
-import { createStaggerMovementSystem } from "./src/systems/ecs_stagger_movement.js";
-import { createGunshotAlertSystem } from "./src/systems/ecs_gunshot_alert.js";
-import { createRobotShootSystem } from "./src/systems/ecs_robot_shoot.js";
-import { createPoisonerDartSystem } from "./src/systems/ecs_poisoner_dart.js";
-import { createEnemyBulletSystem } from "./src/systems/ecs_enemy_bullet.js";
-import { createEnemyRegenSystem } from "./src/systems/ecs_enemy_regen.js";
-import { createEnemySeparationSystem } from "./src/systems/ecs_enemy_separation.js";
-import { createComboSystem } from "./src/systems/ecs_combo.js";
-import { createArenaClampSystem } from "./src/systems/ecs_arena_clamp.js";
-import { createEnemyBlindSystem } from "./src/systems/ecs_enemy_blind.js";
-import { createSmokeZoneSystem } from "./src/systems/ecs_smoke_zone.js";
-import { createMineSystem } from "./src/systems/ecs_mine.js";
-import { createTurretSystem } from "./src/systems/ecs_turret.js";
-import { createFirePatchSystem } from "./src/systems/ecs_fire_patch.js";
-import { createPoisonPuddleSystem } from "./src/systems/ecs_poison_puddle.js";
-import { createCoinDropSystem } from "./src/systems/ecs_coin_drop.js";
-import { createSpeedOrbSystem } from "./src/systems/ecs_speed_orb.js";
-import { createArmorShardSystem } from "./src/systems/ecs_armor_shard.js";
-import { createHealthPickupSystem } from "./src/systems/ecs_health_pickup.js";
-import { createAmmoPickupSystem } from "./src/systems/ecs_ammo_pickup.js";
-import { createWeaponPickupSystem } from "./src/systems/ecs_weapon_pickup.js";
-import { createGrenadeCrateSystem } from "./src/systems/ecs_grenade_crate.js";
-import { createArmorVestSystem } from "./src/systems/ecs_armor_vest.js";
-import Rain from "./src/world/rain.js";
-import Notifications from "./src/ui/hud_notifications.js";
+import {
+  // UI
+  mountHudTemplate, mountHudElements, mountWeaponSelector, mountComputerUI,
+  Notifications, Minimap,
+  // Entities
+  createHeroAnimSystem,
+  // Systems
+  mountConfigEditor, mountSceneHierarchy, mountDuelMode,
+  mountNpcDialog, DEFAULT_NPC_DIALOGS,
+  mountQuestPanel, mountShopPanel, mountSettingsPanel,
+  buildComputerApps, addDynamicIcons,
+  mountMouseInput, mountKeydownHandler, mountKeyupHandler,
+  mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
+  mountHeroLifecycle, mountGameReset, mountDevConsoleGame,
+  mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
+  mountLevelSystem, mountBarrelSystem, mountCrateSystem, GameProgress,
+  // Combat
+  mountShootSystem, createWeaponVisuals,
+  // Render
+  mountDecalSystem, Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
+  // Social
+  createLanSession,
+  // Core
+  Core,
+  // World
+  Rain,
+  // Audio
+  Sfx,
+  // Progression
+  HighScore,
+  // ECS systems
+  combatSystem, createWaveSystem, pickupSystem, spawnPickup,
+  createShopSystem, createPerkSystem, createAgentDispatch, createStatusEffectSystem,
+  regenSystem, createWeaponSystem, createScoreSystem, createAIMovementSystem,
+  createInventorySystem, invAdd, invRemove, invCount, invHas,
+  createStaminaSystem, createGrenadeSystem, createBulletSystem, spawnBullet,
+  createLootDropSystem, DROP_TABLE,
+  createKnockbackSystem, createPlayerMovementSystem, createEnrageSystem,
+  createBossSlamSystem, createFastChargeSystem, createRobotEmpSystem,
+  createHeavyThrowSystem, createBossRockSystem, createPoisonerSpitSystem,
+  createIncendiaryBombSystem, createSniperShootSystem, createMeleeAttackSystem,
+  createMoralePanicSystem, createStaggerMovementSystem, createGunshotAlertSystem,
+  createRobotShootSystem, createPoisonerDartSystem, createEnemyBulletSystem,
+  createEnemyRegenSystem, createEnemySeparationSystem, createComboSystem,
+  createArenaClampSystem, createEnemyBlindSystem, createSmokeZoneSystem,
+  createMineSystem, createTurretSystem, createFirePatchSystem, createPoisonPuddleSystem,
+  createCoinDropSystem, createSpeedOrbSystem, createArmorShardSystem,
+  createHealthPickupSystem, createAmmoPickupSystem, createWeaponPickupSystem,
+  createGrenadeCrateSystem, createArmorVestSystem,
+} from "./src/engine_modules.js";
 const showToast = Notifications.showToast;
 const _addKillFeedEntry = Notifications.addKillFeedEntry;
-import Sfx from "./src/audio/sfx.js";
-import Minimap from "./src/ui/minimap.js";
-import HighScore from "./src/progression/high_score.js";
-import { GameProgress } from "./src/systems/save_load.js";
-// VFX module — sphere particles, shell casings, floating damage numbers,
-// boss shockwaves, muzzle flash light. Separate from particle_system.js
-// (which uses InstancedMesh for high-count emitters like rain/smoke).
-import Vfx, { warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat } from "./src/render/vfx.js";
 // Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
 // We use .then chains (no top-level await) so the inline module also loads
 // cleanly in vm-based test sandboxes that don't support TLA.
