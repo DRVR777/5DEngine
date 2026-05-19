@@ -67,6 +67,9 @@ export { mountShopPanel } from "./economy/shop_panel.js";
 // ── Core ─────────────────────────────────────────────────────────────────────
 export { Core } from "./core/core.js";
 
+// ── Config ────────────────────────────────────────────────────────────────────
+export { ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS } from "./config/enemy_types.js";
+
 // ── World ─────────────────────────────────────────────────────────────────────
 export { default as Rain }     from "./world/rain.js";
 export { mountWorldLayout }    from "./world/world_layout.js";
