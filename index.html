@@ -1092,7 +1092,7 @@ const _levelSys = mountLevelSystem({
 const _applyLevelUpBuff = _levelSys.applyLevelUpBuff;
 
 // ═══ EXTRACTED → src/render/skybox.js (iter 555)
-mountSkybox({ THREE, scene, ambLight: _ambLight, sun, showToast });
+const { skyboxPresets: _skyboxPresets } = mountSkybox({ THREE, scene, ambLight: _ambLight, sun, showToast });
 
 // ═══ EXTRACTED → src/render/environment.js (iter 548)
 const { skyUniforms, ground, sky, grid } = mountEnvironment({ THREE, scene, buildings });

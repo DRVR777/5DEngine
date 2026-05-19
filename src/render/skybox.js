@@ -37,4 +37,6 @@ export function mountSkybox({ THREE, scene, ambLight, sun, showToast }) {
     const rad = azimuthDeg * Math.PI / 180;
     sun.position.set(Math.sin(rad) * 30, 30, Math.cos(rad) * 30);
   };
+
+  return { skyboxPresets: _presets };
 }

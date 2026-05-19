@@ -8,6 +8,10 @@ describe("skybox", () => {
     expect(src).toContain("export function mountSkybox");
   });
 
+  it("returns skyboxPresets so wave manager can reference them", () => {
+    expect(src).toContain("return { skyboxPresets: _presets }");
+  });
+
   it("has 5 presets: day, sunset, night, holo, space", () => {
     expect(src).toContain("day:");
     expect(src).toContain("sunset:");
