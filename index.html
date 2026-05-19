@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2430,6 +2430,7 @@ let _slideT = 0, _slideDU = 0, _slideDV = 0, _ctrlWasDown = false; // sprint sli
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 // ═══ EXTRACTED → src/config/hero_stats.js (iter 562) — STAMINA_MAX/DRAIN/REGEN/LOCKOUT imported at top
 let _heroExtraStaminaMax = 0; // bonus from kill level 3
+const _staminaTick = mountStaminaTick({ STAMINA_DRAIN, STAMINA_REGEN, STAMINA_MAX, STAMINA_LOCKOUT, get: { stamina: () => _stamina, heroEmpT: () => _heroEmpT, heroExtraStaminaMax: () => _heroExtraStaminaMax }, set: { stamina: v => { _stamina = v; }, heroEmpT: v => { _heroEmpT = v; } } });
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _perkReloadMul);
@@ -2798,13 +2799,7 @@ function tick() {
   const crouchSpeedMul = 1 - _crouchAmt * 0.4; // 60% speed when fully crouched
   // Stamina — drains while sprinting, regens otherwise; requires STAMINA_LOCKOUT to re-enter sprint
   const wantsSprint = !!(keys["ShiftLeft"] || keys["ShiftRight"]) && !crouching && !inCar && !_heroDead;
-  if (_heroEmpT > 0) _heroEmpT -= dt;
-  const canSprint = wantsSprint && _stamina >= (isSprinting ? 1 : STAMINA_LOCKOUT) && _heroEmpT <= 0;
-  if (canSprint && (inputF !== 0 || inputR !== 0)) {
-    _stamina = Math.max(0, _stamina - STAMINA_DRAIN * dt);
-  } else if (!wantsSprint || _stamina <= 0) {
-    _stamina = Math.min(STAMINA_MAX + _heroExtraStaminaMax, _stamina + STAMINA_REGEN * dt);
-  }
+  const canSprint = _staminaTick.tick(dt, { wantsSprint, isSprinting, inputMoving: (inputF !== 0 || inputR !== 0) });
   // iter 431: isMoving declared below (line ~6274) but used here — TDZ crash. Hoist it.
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
   if (_speedBoostT > 0) {
