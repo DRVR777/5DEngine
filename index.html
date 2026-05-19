@@ -933,7 +933,7 @@ const { spawnDecal: _spawnDecal, spawnWallScorch: _spawnWallScorch, wallScorches
 // ═════════════════════════════════════════════════════════════════════════════
 
 // ═══ EXTRACTED → src/render/flashlight.js (iter 559)
-const { flashLight: _flashLight, flashTarget: _flashTarget } = mountFlashlight({ THREE, scene });
+const { flashLight: _flashLight, flashTarget: _flashTarget, tick: _flashlightTick } = mountFlashlight({ THREE, scene, getCamera: () => camera });
 let _flashlightOn = false;
 
 // ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
@@ -2787,13 +2787,8 @@ function tick() {
   Vfx.tick(dt);
   // High-count instanced particle emitters (rain, smoke) — separate module
   if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
-  // Flashlight — track camera position and forward direction each frame
-  if (_flashlightOn) {
-    _flashLight.position.copy(camera.position);
-    const _fdir = new THREE.Vector3(); camera.getWorldDirection(_fdir);
-    _flashTarget.position.copy(camera.position).addScaledVector(_fdir, 10);
-    _flashTarget.updateMatrixWorld();
-  }
+  // Flashlight camera tracking — extracted → src/render/flashlight.js (iter 662)
+  _flashlightTick(_flashlightOn);
   // Trigger zones — check hero + all enemies
   if (typeof TriggerZones !== "undefined") {
     const hz = world.players.get("hero");
