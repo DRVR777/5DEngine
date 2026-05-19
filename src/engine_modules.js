@@ -17,6 +17,7 @@ export { createHeroAnimSystem } from "./entities/hero_animation.js";
 export { mountConfigEditor }    from "./systems/config_editor.js";
 export { mountSceneHierarchy }  from "./systems/scene_hierarchy.js";
 export { mountDuelMode }        from "./systems/duel_mode.js";
+export { mountDifficultySelect } from "./systems/difficulty_select.js";
 export { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./systems/npc_dialog.js";
 export { mountQuestPanel }      from "./systems/quest_panel.js";
 export { mountSettingsPanel }   from "./systems/settings_panel.js";
