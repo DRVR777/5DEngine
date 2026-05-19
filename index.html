@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2611,6 +2611,7 @@ const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmo
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
 const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
+const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
 const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeWarnTick   = mountGrenadeWarnTick({ actions: { getWarnEl: () => _dom.grenadeWarn || null } });
 const _enemyFootstepTick = mountEnemyFootstepTick({ get: { enFsT: () => _enFsT }, set: { enFsT: v => { _enFsT = v; } }, actions: { getHeroPos: () => world.players.get("hero") || null, getEnemyPos: id => world.players.get(id) || null, playSfx: (str, vol) => playSfx(str, vol) } });
@@ -3296,59 +3297,7 @@ function tick() {
 
   _grenadePhysicsTick.tick(dt, { grenades: grenades3D, gravity: GRAVITY, nowMs: now });
 
-  // Grenade arc preview — show dotted arc when F is held
-  if (!_arcDots) {
-    const mat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.7 });
-    const geo = new THREE.SphereGeometry(0.06, 6, 4);
-    _arcDots = Array.from({ length: _ARC_DOT_COUNT }, () => {
-      const m = new THREE.Mesh(geo, mat);
-      m.visible = false;
-      scene.add(m);
-      return m;
-    });
-  }
-  // Grenade cook safety — if held > 4s and G still down, auto-detonate in hand
-  if (_grenadePressT && !_heroDead && (performance.now() - _grenadePressT) / 1000 >= 4.0) {
-    const hm = world.players.get("hero");
-    _grenadePressT = 0; grenadeCount = Math.max(0, grenadeCount - 1);
-    heroHp = Math.max(0, heroHp - 50); flashDamage(); _applyScreenShake(0.6);
-    _spawnParticles(hm.u, hm.y + 1.0, hm.v, 100, "orange", 18, 2.0);
-    playSfx("tone:80:350:sawtooth", 0.9);
-    showToast("GRENADE COOKED — OUCH! -50 HP", "danger", 1800);
-    if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
-  }
-
-  const _showArc = !buildMode && !computerOpen && !_heroDead && grenadeCount > 0 && keys["KeyG"];
-  if (_showArc) {
-    const hp = world.players.get("hero");
-    const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
-    let au = hp.u + fx * 0.5, ay = hp.y + 1.2, av = hp.v + fz * 0.5;
-    let vU = fx * 13, vY = 6, vV = fz * 13;
-    const step = 0.08;
-    const _cookSec = _grenadePressT ? (performance.now() - _grenadePressT) / 1000 : 0;
-    const _fuseLeft = Math.max(0, 2.5 - _cookSec);
-    const _cookDanger = _cookSec >= 3.0;
-    for (let i = 0; i < _ARC_DOT_COUNT; i++) {
-      au += vU * step; ay += vY * step; av += vV * step;
-      vY -= 9.8 * step;
-      if (ay < 0) ay = 0;
-      _arcDots[i].position.set(au, ay, av);
-      _arcDots[i].visible = true;
-      _arcDots[i].material.color.set(_cookDanger ? 0xff2200 : 0xff8800);
-      _arcDots[i].material.opacity = 0.7 * (1 - i / _ARC_DOT_COUNT);
-    }
-    // Cook timer HUD
-    const _ctEl = _dom.grenCookTimer;
-    if (_ctEl) {
-      _ctEl.style.display = "block";
-      _ctEl.textContent = _cookDanger ? `COOK: ${_fuseLeft.toFixed(1)}s ⚠` : `FUSE: ${_fuseLeft.toFixed(1)}s`;
-      _ctEl.style.color = _cookDanger ? "#ff2222" : "#ffd166";
-    }
-  } else {
-    if (_arcDots) _arcDots.forEach(d => { d.visible = false; });
-    const _ctEl = _dom.grenCookTimer;
-    if (_ctEl) _ctEl.style.display = "none";
-  }
+  _grenadeArcTick.tick(dt, { buildMode, computerOpen, heroDead: _heroDead, grenadeCount, keyG: !!keys["KeyG"], heroU: heroNow.u, heroV: heroNow.v, heroY: heroNow.y, camYaw, grenadePressT: _grenadePressT, performanceNow: performance.now() });
 
   // Line-of-sight check (segment vs AABB slab test, ignores boundary walls by position)
   function _hasLOS(u0, v0, u1, v1) {
