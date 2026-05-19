@@ -34,6 +34,7 @@ export { mountHeroInventory }   from "./systems/hero_inventory.js";
 export { mountEntityHooks }     from "./systems/entity_hooks.js";
 export { mountWeaponAmmo }      from "./systems/weapon_ammo.js";
 export { mountDamageFeedback }  from "./systems/damage_feedback.js";
+export { mountHeartbeat }       from "./systems/heartbeat.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";
