@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2611,6 +2611,7 @@ const _grenadeCrateTick  = mountGrenadeCrateTick({ get: { grenadeCount: () => gr
 const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmor, maxArmor: () => HERO_MAX_ARMOR }, set: { heroArmor: v => { heroArmor = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
+const _firePatchTick     = mountFirePatchTick({ get: { heroHp: () => heroHp, heroFireT: () => _heroFireT }, set: { heroHp: v => { heroHp = v; }, heroFireT: v => { _heroFireT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), applyBurning: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning"); }, applyScreenShake: amt => _applyScreenShake(amt), getEnemyPos: id => world.players.get(id) || null, spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), onEnemyKill: (en, u, v) => { enemyKills++; _comboCount++; _comboLastT = now / 1000; _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${en.type}`, "#ff6600"); _trackKillAndPanic(u, v); _spawnDecal(u, v, "blood"); _spawnCoinDrop(u, v, (_COIN_BY_TYPE[en.type] || 1) * Math.min(8, _comboCount)); _spawnAmmoPickup(u, v, en.dropQty || 12, en.dropAmmo); if (en._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); } if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel); }, explodeBarrel: (u, v) => _explodeBarrel(u, v) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
 let _lastHudEnemyHpStr = "";
@@ -4279,67 +4280,7 @@ function tick() {
 
   _armorShardTick.tick(dt, { pickups: armorShards, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
-  // Fire patches — decay, flicker, damage hero/enemies inside radius
-  for (let _fpi = firePatches.length - 1; _fpi >= 0; _fpi--) {
-    const fp = firePatches[_fpi];
-    fp.timeLeft -= dt;
-    if (fp.timeLeft <= 0) {
-      scene.remove(fp.mesh);
-      firePatches.splice(_fpi, 1);
-      continue;
-    }
-    fp.mesh.material.opacity = 0.55 * Math.min(1, fp.timeLeft / 1.5) * (0.8 + 0.2 * Math.sin(now / 120));
-    // Hero damage
-    if (Math.hypot(heroNow.u - fp.u, heroNow.v - fp.v) < fp.radius) {
-      fp.dmgT -= dt;
-      if (fp.dmgT <= 0) {
-        fp.dmgT = 0.5;
-        if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning");
-        heroHp = Math.max(0, heroHp - 6);
-        _applyScreenShake(0.04);
-        _heroFireT = Math.max(_heroFireT, 2.5);
-      }
-    }
-    // Enemy damage
-    for (const _fpe of enemies) {
-      if (_fpe.dead) continue;
-      const _fpep = world.players.get(_fpe.id);
-      if (!_fpep) continue;
-      if (Math.hypot(_fpep.u - fp.u, _fpep.v - fp.v) < fp.radius) {
-        _fpe._fireDmgT = (_fpe._fireDmgT || 0) - dt;
-        if (_fpe._fireDmgT <= 0) {
-          _fpe._fireDmgT = 0.5;
-          _fpe.hp = Math.max(0, _fpe.hp - 8);
-          _fpe._hpBarShowT = now / 1000;
-          _fpe._hitFlashT = 0.06;
-          _spawnDamageNumber(_fpep.u, 1.8, _fpep.v, "8", "#ff6600");
-          if (_fpe.hp <= 0 && !_fpe.dead) {
-            _fpe.dead = true; _fpe.respawnT = now / 1000;
-            enemyKills++; _comboCount++; _comboLastT = now / 1000;
-            _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${_fpe.type}`, "#ff6600");
-            _trackKillAndPanic(_fpep.u, _fpep.v);
-            _spawnDecal(_fpep.u, _fpep.v, "blood");
-            _spawnCoinDrop(_fpep.u, _fpep.v, (_COIN_BY_TYPE[_fpe.type] || 1) * Math.min(8, _comboCount));
-            _spawnAmmoPickup(_fpep.u, _fpep.v, _fpe.dropQty || 12, _fpe.dropAmmo);
-            if (_fpe._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); }
-            if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel);
-          }
-        }
-      }
-    }
-    // Barrel ignition — fire patches heat nearby barrels, chain to explosion
-    for (const _fpBar of barrels) {
-      if (_fpBar.exploded) continue;
-      if (Math.hypot(_fpBar.u - fp.u, _fpBar.v - fp.v) < fp.radius + 0.4) {
-        _fpBar._fireDmgT = (_fpBar._fireDmgT || 0) - dt;
-        if (_fpBar._fireDmgT <= 0) {
-          _fpBar._fireDmgT = 0.5;
-          _fpBar.hp = Math.max(0, _fpBar.hp - 8);
-          if (_fpBar.hp <= 0) { _fpBar.exploded = true; _fpBar.mesh.visible = false; _explodeBarrel(_fpBar.u, _fpBar.v); }
-        }
-      }
-    }
-  }
+  _firePatchTick.tick(dt, { patches: firePatches, heroU: heroNow.u, heroV: heroNow.v, nowMs: now, nowSec: now / 1000, enemies, barrels });
 
   _poisonPuddleTick.tick(dt, { pickups: poisonPuddles, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
