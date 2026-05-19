@@ -124,6 +124,7 @@ export { mountPoisonPuddleTick }  from "./systems/poison_puddle_tick.js";
 export { mountSmokeZoneTick }     from "./systems/smoke_zone_tick.js";
 export { mountGrenadeCrateTick }  from "./systems/grenade_crate_tick.js";
 export { mountArmorVestTick }     from "./systems/armor_vest_tick.js";
+export { mountCoinDropTick }      from "./systems/coin_drop_tick.js";
 export { default as Vfx, warnRingGeo, warnRingMat } from "./render/vfx.js";
 
 // ── Social ───────────────────────────────────────────────────────────────────
