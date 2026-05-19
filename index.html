@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2610,6 +2610,7 @@ const _smokeZoneTick     = mountSmokeZoneTick({ actions: { spawnSmoke: (u, y, v)
 const _grenadeCrateTick  = mountGrenadeCrateTick({ get: { grenadeCount: () => grenadeCount }, set: { grenadeCount: v => { grenadeCount = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
 const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmor, maxArmor: () => HERO_MAX_ARMOR }, set: { heroArmor: v => { heroArmor = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
+const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
 let _lastHudEnemyHpStr = "";
@@ -4349,39 +4350,7 @@ function tick() {
 
   _smokeZoneTick.tick(dt, { zones: smokeZones });
 
-  // Weapon pickups — walk over to fill mag + get reserve ammo for that weapon
-  for (const wp of weaponPickups) {
-    if (wp.collected) continue;
-    wp.mesh.rotation.y += dt * 1.8;
-    wp.mesh.position.y = 0.35 + Math.sin(now / 350 + wp.u) * 0.1;
-    if (wp.pillar) wp.pillar.material.opacity = 0.25 + 0.15 * Math.sin(now / 400 + wp.u);
-    if (Math.hypot(heroNow.u - wp.u, heroNow.v - wp.v) < 1.2) {
-      wp.collected = true;
-      scene.remove(wp.mesh);
-      const wDef = (CFG.weapons || []).find(w => w.id === wp.weaponId);
-      if (wDef) {
-        weaponAmmo.set(wDef.id, wDef.magCap);
-        Inv.addItem(heroInv, wDef.ammoItem, wDef.magCap * 2);
-      }
-      playSfx("tone:900:80:sine", 0.5); playSfx("tone:1200:60:sine", 0.3);
-      _spawnParticles(wp.u, 0.5, wp.v, 14, "white", 5, 0.4);
-      // Auto-equip looted weapon if current gun is dry (empty mag + no reserve)
-      const _curReserve = wDef ? Inv.countItem(heroInv, (getWeapon().ammoItem || "pistol_9mm")) : 0;
-      const _autoEquip = pistolAmmo <= 0 && _curReserve <= 0 && wDef && wp.weaponId !== currentWeaponId;
-      if (_autoEquip) {
-        weaponAmmo.set(currentWeaponId, 0);
-        currentWeaponId = wDef.id;
-        pistolAmmo = wDef.magCap;
-        if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
-        _switchGunMesh(currentWeaponId);
-        _weaponSwitchT = 0.3;
-        playSfx("click", 0.5);
-        _showWeaponSelector();
-      }
-      showToast(`Looted ${wDef ? (wDef.name || wp.weaponId).toUpperCase() : wp.weaponId.toUpperCase()}${_autoEquip ? " — AUTO-EQUIPPED!" : " — mag filled!"}`, "success", 2400);
-      _addKillFeedEntry(`★ WEAPON LOOTED — ${wp.weaponId.toUpperCase()}`, "#aaddff");
-    }
-  }
+  _weaponPickupTick.tick(dt, { pickups: weaponPickups, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
   _grenadeCrateTick.tick(dt, { crates: grenadeCrates, heroU: heroNow.u, heroV: heroNow.v, nowSec: now / 1000, nowMs: now });
 
