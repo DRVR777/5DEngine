@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -247,9 +247,16 @@ let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
 // ═══ _STREAK_WINDOW, _COMBO_DECAY extracted → src/config/combat_stats.js (iter 566)
-let _comboCount = 0;      // kills in current combo (resets if gap > _COMBO_DECAY)
-let _comboLastT = 0;      // timestamp of most recent combo kill
-let _comboAnnouncedMul = 0; // last combo milestone (2/4/6/8) with audio+toast played
+let _comboCount = 0;
+let _comboLastT = 0;
+let _comboAnnouncedMul = 0;
+// ═══ EXTRACTED → src/systems/combo_announcer.js (iter 592)
+const _comboAnnouncer = mountComboAnnouncer({
+  DECAY: _COMBO_DECAY,
+  get: { comboCount: () => _comboCount, comboLastT: () => _comboLastT, comboAnnouncedMul: () => _comboAnnouncedMul },
+  set: { comboCount: v => { _comboCount = v; }, comboAnnouncedMul: v => { _comboAnnouncedMul = v; } },
+  actions: { showToast, playSfx },
+});
 // Between-wave perk system
 let _perkDmgMul    = 1.0;   // stacks multiplicatively with kill-level damage
 let _perkReloadMul = 1.0;   // < 1 = faster reload
@@ -5325,24 +5332,7 @@ function tick() {
   // Kill combo multiplier HUD
   {
     const _cNow = now / 1000;
-    if (_comboCount > 0 && _cNow - _comboLastT > _COMBO_DECAY) { _comboCount = 0; _comboAnnouncedMul = 0; }
-    // Combo milestone audio + toast at x2, x4, x6, x8
-    const _curMul = Math.min(8, _comboCount);
-    if (_curMul >= 2) {
-      const _milestones = [2, 4, 6, 8];
-      for (const _m of _milestones) {
-        if (_curMul >= _m && _comboAnnouncedMul < _m) {
-          _comboAnnouncedMul = _m;
-          const _mLabels = { 2: "DOUBLE KILL!", 4: "QUAD KILL!", 6: "RAMPAGE!", 8: "GODLIKE!" };
-          const _mFreqs  = { 2: 660, 4: 880, 6: 1100, 8: 1400 };
-          const _mColors = { 2: "warning", 4: "danger", 6: "danger", 8: "success" };
-          showToast(`${_mLabels[_m]} x${_m}`, _mColors[_m], 1800);
-          playSfx(`tone:${_mFreqs[_m]}:80:sine`, 0.45);
-          playSfx(`tone:${_mFreqs[_m] * 1.5}:60:sine`, 0.25);
-          break;
-        }
-      }
-    }
+    _comboAnnouncer.tick(_cNow); // decay + milestone audio (extracted iter 592)
     const comboHudEl = _dom.comboHud;
     const comboMulEl = _dom.comboMulText;
     const comboFillEl = _dom.comboFill;
