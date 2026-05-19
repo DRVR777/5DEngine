@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2598,6 +2598,7 @@ const {
 
 window._loadingDismissed = false;
 const _platformSys = mountPlatformSystem();
+const _vehicleRenderTick = mountVehicleRenderTick();
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
 let _lastHudEnemyHpStr = "";
@@ -4139,48 +4140,7 @@ function tick() {
 
   // Ambient soundscape disabled — oscillator hum removed per user request
 
-// EXTRACT-PLAN see iter 529 note above — HUD + render block starts here
-  // --- render ---
-  // Vehicle renders — one group per definition
-  for (const vDef of VEHICLE_DEFS) {
-    const vp   = world.players.get(vDef.id);
-    const vst  = vehicleStates.get(vDef.id);
-    const vGrp = vehicleMeshes.get(vDef.id);
-    if (!vGrp || !vp) continue;
-    const vpRender = Bridge.engineToRenderPos(vp);
-    vGrp.position.set(vpRender.x, vpRender.y, vpRender.z);
-
-    if (vDef.type === "drone") {
-      // Drone: always visible even when riding; rotors spin; tilts with movement
-      vGrp.visible = true;
-      vGrp.rotation.y = vst ? vst.heading : 0;
-      const rotSpd = (vst && vst.speed > 0.5) ? 28 : 12;
-      if (vGrp._rotors) for (const r of vGrp._rotors) r.rotation.y += dt * rotSpd;
-      // Tilt toward movement direction — smooth lerp
-      const tiltAmt = inCar && activeVehicleId === vDef.id && vst && vst.speed > 0.3 ? 0.18 : 0;
-      vGrp.rotation.x += (tiltAmt * (keys["KeyW"] ? -1 : keys["KeyS"] ? 1 : 0) - vGrp.rotation.x) * Math.min(1, dt * 6);
-      vGrp.rotation.z += (tiltAmt * (keys["KeyD"] ? -1 : keys["KeyA"] ? 1 : 0) - vGrp.rotation.z) * Math.min(1, dt * 6);
-    } else if (vDef.type === "mech") {
-      vGrp.rotation.y = vst ? vst.heading : 0;
-      vGrp.visible = true; // mech stays visible when piloting
-      // Animate mech legs based on speed
-      if (vGrp._legs && vst) {
-        const mechWalk = (vst._walkT = (vst._walkT || 0) + dt * Math.abs(vst.speed) * 0.8);
-        const mechSwing = Math.sin(mechWalk) * 0.35;
-        if (vGrp._legs[0]) vGrp._legs[0].thighM.rotation.x =  mechSwing;
-        if (vGrp._legs[1]) vGrp._legs[1].thighM.rotation.x = -mechSwing;
-      }
-    } else {
-      vGrp.rotation.y = vst ? vst.heading : 0;
-      // Spin wheels proportional to speed (rotation.x = rolling around cylinder axis after z-tilt)
-      if (vGrp._wheels && vst && vst.speed !== 0) {
-        const wheelRadius = 0.35;
-        const spinDelta = (vst.speed / wheelRadius) * dt;
-        for (const wh of vGrp._wheels) wh.rotation.x -= spinDelta;
-      }
-      vGrp.visible = true; // car stays visible when riding (TP camera shows it)
-    }
-  }
+  _vehicleRenderTick.tick(dt, { vehicleDefs: VEHICLE_DEFS, vehicleMeshes, vehicleStates, activeVehicleId, inCar, keys, toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) });
 
   const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
   // hero visibility is set below after firstPerson is computed
