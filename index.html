@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2417,6 +2417,7 @@ let _wasSniperScope = false;
 let _sniperSavedCamDist = 7; // camDist restored when scope is dropped
 let _lastSwayPitch = 0;  // sway offset applied last frame — subtracted before re-applying
 let _lastSwayYaw   = 0;
+const _sniperSway = mountSniperSway({ get: { scopeSwayT: () => _scopeSwayT, breathHoldT: () => _breathHoldT, lastSwayPitch: () => _lastSwayPitch, lastSwayYaw: () => _lastSwayYaw, camPitch: () => camPitch, camYaw: () => camYaw }, set: { scopeSwayT: v => { _scopeSwayT = v; }, breathHoldT: v => { _breathHoldT = v; }, lastSwayPitch: v => { _lastSwayPitch = v; }, lastSwayYaw: v => { _lastSwayYaw = v; }, camPitch: v => { camPitch = v; }, camYaw: v => { camYaw = v; } } });
 let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
 let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
@@ -2724,40 +2725,8 @@ function tick() {
     crosshairDiv.style.boxShadow   = _heroApexMode ? "0 0 8px rgba(255,200,0,0.5)" : "0 0 6px rgba(0,200,255,0.4)";
   }
 
-  // Sniper scope sway — gentle breathing oscillation while scoped (reduced when crouching)
-  // Shift = breath hold: near-zero sway for 1.5s, then trembling increases
-  if (isSniperScope && !_heroDead) {
-    _scopeSwayT += dt;
-    const _holdingBreath = !!(keys["ShiftLeft"] || keys["ShiftRight"]);
-    if (_holdingBreath) {
-      _breathHoldT = Math.min(_breathHoldT + dt, 3.0);
-    } else {
-      _breathHoldT = Math.max(0, _breathHoldT - dt * 2.5);
-    }
-    const _breathMul = _breathHoldT < 1.5
-      ? (_holdingBreath ? 0.05 + (_breathHoldT / 1.5) * 0.05 : 1.0)
-      : 1.0 + (_breathHoldT - 1.5) * 2.2;
-    // iter 423: crouching const is declared later in tick() — TDZ crash. Inline the check.
-    const _isCrouching = !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen;
-    const _swayMul = (_isCrouching ? 0.25 : 1.0) * _breathMul;
-    // iter 431: sway must be an absolute offset, not an accumulated delta.
-    // Subtract last frame's sway before applying this frame's so camPitch/camYaw
-    // only hold the instantaneous oscillation position — no drift.
-    camPitch -= _lastSwayPitch;
-    camYaw   -= _lastSwayYaw;
-    _lastSwayPitch = Math.sin(_scopeSwayT * 0.9) * 0.0025 * _swayMul;
-    _lastSwayYaw   = Math.sin(_scopeSwayT * 0.6 + 1.2) * 0.002 * _swayMul;
-    camPitch += _lastSwayPitch;
-    camYaw   += _lastSwayYaw;
-  } else {
-    // Remove any sway offset still baked into camPitch/camYaw when exiting scope
-    camPitch -= _lastSwayPitch;
-    camYaw   -= _lastSwayYaw;
-    _lastSwayPitch = 0;
-    _lastSwayYaw   = 0;
-    _scopeSwayT = 0;
-    _breathHoldT = 0;
-  }
+  // Sniper scope sway — breathing oscillation while scoped (crouching/breath-hold modulate amplitude)
+  _sniperSway.tick(dt, { isSniperScope, heroDead: _heroDead, holdingBreath: !!(keys["ShiftLeft"] || keys["ShiftRight"]), crouching: !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen });
 
   // Snap-zone keybinds — lerp camDist toward snapZoomTarget if set
   if (snapZoomTarget != null && window.CameraSpine) {
