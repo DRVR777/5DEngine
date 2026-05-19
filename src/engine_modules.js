@@ -34,6 +34,7 @@ export { mountLevelSystem }     from "./systems/level_system.js";
 export { mountBarrelSystem }    from "./systems/barrel_system.js";
 export { mountCrateSystem }     from "./systems/crate_system.js";
 export { mountHazardZones }     from "./systems/hazard_zones.js";
+export { mountDropSpawner, WEAPON_DROP_MAP } from "./systems/drop_spawner.js";
 export { GameProgress }         from "./systems/save_load.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────

@@ -87,7 +87,8 @@ import {
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountGameReset, mountDevConsoleGame,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
-  mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones, GameProgress,
+  mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -1490,136 +1491,9 @@ const carGroup = vehicleMeshes.get(VEHICLE_DEFS[0].id) || new THREE.Group();
 const carBody   = carGroup._bodyMesh || carGroup;
 
 // Ammo pickups dropped by killed enemies
-const ammoPickups = [];  // [{ mesh, u, v, qty, collected }]
-const ammoPickupGeo = new THREE.BoxGeometry(0.18, 0.08, 0.28);
-const ammoPickupMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, metalness: 0.5, roughness: 0.4 });
-
-function _spawnAmmoPickup(u, v, qty, ammoItem) {
-  qty = qty || CFG.ammoDropQty || 12;
-  ammoItem = ammoItem || getWeapon().ammoItem || "pistol_9mm";
-  const mesh = new THREE.Mesh(ammoPickupGeo, ammoPickupMat);
-  mesh.position.set(u, 0.4, v);
-  mesh.castShadow = true;
-  scene.add(mesh);
-  ammoPickups.push({ mesh, u, v, qty, ammoItem, collected: false });
-}
-
-// Weapon pickups — dropped by heavy/robot/boss on death
-const weaponPickups = [];
-const _WEAPON_DROP_MAP = { heavy: "rifle", robot: "smg", boss: "sniper" };
-const _WEAPON_PICKUP_COLORS = { rifle: 0x445566, smg: 0x226699, sniper: 0x224433 };
-function _spawnWeaponPickup(u, v, weaponId) {
-  const col = _WEAPON_PICKUP_COLORS[weaponId] || 0x556677;
-  const grp = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.55, 0.08, 0.14),
-    new THREE.MeshStandardMaterial({ color: col, metalness: 0.75, roughness: 0.3, emissive: col, emissiveIntensity: 0.5 })
-  );
-  const grip = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1, 0.16, 0.1),
-    new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.4, roughness: 0.7 })
-  );
-  grip.position.set(-0.1, -0.1, 0);
-  grp.add(body); grp.add(grip);
-  // Light pillar — tall transparent cylinder beacon
-  const _pillarCol = col;
-  const pillar = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.04, 0.04, 6, 6),
-    new THREE.MeshBasicMaterial({ color: _pillarCol, transparent: true, opacity: 0.35, depthWrite: false })
-  );
-  pillar.position.set(0, 3, 0);
-  grp.add(pillar);
-  grp.position.set(u, 0.35, v);
-  grp.rotation.y = Math.random() * Math.PI * 2;
-  scene.add(grp);
-  weaponPickups.push({ mesh: grp, u, v, weaponId, collected: false, pillar });
-}
-
-// Grenade crates — static supply caches that restock grenades
-const grenadeCrates = [];
-(function _spawnGrenadeCrates() {
-  const cratePositions = [[10, -10], [-10, 10], [0, 18], [-14, -4]];
-  const geo = new THREE.BoxGeometry(0.5, 0.4, 0.5);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x336633, metalness: 0.3, roughness: 0.6 });
-  const lineMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00aa22, emissiveIntensity: 0.6 });
-  for (const [cu, cv] of cratePositions) {
-    const mesh = new THREE.Mesh(geo, mat.clone());
-    mesh.position.set(cu, 0.2, cv); mesh.castShadow = true; scene.add(mesh);
-    // Orange cross stripe
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.08, 0.12), lineMat.clone());
-    stripe.position.set(0, 0, 0); mesh.add(stripe);
-    grenadeCrates.push({ mesh, u: cu, v: cv, respawnT: -Infinity, active: true });
-  }
-})();
-
-// Armor vest pickups — 3 placed around the map, restore 25 armor, respawn 60s
-const armorPickups = [];
-(function _spawnArmorVests() {
-  const positions = [[18, 5], [-16, 14], [4, -20]];
-  const geo  = new THREE.BoxGeometry(0.4, 0.55, 0.25);
-  const mat  = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xcc9900, emissiveIntensity: 0.5, metalness: 0.5, roughness: 0.4 });
-  for (const [au, av] of positions) {
-    const mesh = new THREE.Mesh(geo, mat.clone());
-    mesh.position.set(au, 0.3, av); mesh.castShadow = true; scene.add(mesh);
-    armorPickups.push({ mesh, u: au, v: av, respawnT: -Infinity, active: true });
-  }
-})();
-
-// Armor shards — small gold pickups dropped by boss/heavy on death
-const armorShards = [];
-const _armorShardGeo = new THREE.TetrahedronGeometry(0.22, 0);
-const _armorShardMat = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xcc8800, emissiveIntensity: 0.7, metalness: 0.6, roughness: 0.3 });
-function _spawnArmorShard(u, v, amount) {
-  const off = () => (Math.random() - 0.5) * 1.0;
-  const du = u + off(), dv = v + off();
-  const mesh = new THREE.Mesh(_armorShardGeo, _armorShardMat.clone());
-  mesh.position.set(du, 0.5, dv); mesh.castShadow = true; scene.add(mesh);
-  armorShards.push({ mesh, u: du, v: dv, amount, collected: false });
-}
-
-// Health pack pickups dropped by heavy enemies
-const healthPickups = [];
-const healthPickupGeo = new THREE.OctahedronGeometry(0.22, 0);
-const healthPickupMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00bb44, emissiveIntensity: 0.5 });
-
-function _spawnHealthPickup(u, v, amount) {
-  const off = () => (Math.random() - 0.5) * 0.8;
-  const du = u + off(), dv = v + off();
-  const mesh = new THREE.Mesh(healthPickupGeo, healthPickupMat);
-  mesh.position.set(du, 0.6, dv);
-  mesh.castShadow = true;
-  scene.add(mesh);
-  healthPickups.push({ mesh, u: du, v: dv, amount, collected: false });
-}
-
-// Speed boost orbs — spawned at wave start after wave 2; 4s of 1.5x movement speed
-const _speedOrbs = [];
-let _speedBoostT = 0;  // seconds of speed boost remaining
-let _speedTrailT = 0;  // throttle for speed boost trail particles
-const _speedOrbGeo = new THREE.DodecahedronGeometry(0.22, 0);
-const _speedOrbMat = new THREE.MeshStandardMaterial({ color: 0xffdd00, emissive: 0xffa500, emissiveIntensity: 0.9, metalness: 0.2 });
-function _spawnSpeedOrb(u, v) {
-  const mesh = new THREE.Mesh(_speedOrbGeo, _speedOrbMat.clone());
-  mesh.position.set(u, 0.7, v);
-  scene.add(mesh);
-  _speedOrbs.push({ mesh, u, v, collected: false, _birthT: performance.now() / 1000 });
-}
-
-// Coin drops from killed enemies (separate from world coin pickups)
-const coinDrops = [];
-
-function _spawnCoinDrop(u, v, value) {
-  value = value || 1;
-  const off = () => (Math.random() - 0.5) * 0.8;
-  const du = u + off(), dv = v + off();
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.18, 8, 8),
-    new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x554400, metalness: 0.7, roughness: 0.2 })
-  );
-  mesh.position.set(du, 0.5, dv);
-  scene.add(mesh);
-  coinDrops.push({ mesh, u: du, v: dv, value, collected: false });
-}
+// ═══ EXTRACTED → src/systems/drop_spawner.js (iter 544) ══════════════════════
+// spawnAmmoPickup, spawnWeaponPickup, spawnHealthPickup, spawnArmorShard, spawnCoinDrop
+// ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops — mounted below
 
 // ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
 // firePatches, poisonPuddles, _spawnFirePatch, _spawnPoisonPuddle — mounted below
@@ -3315,6 +3189,16 @@ const {
   spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle,
   firePatches, poisonPuddles,
 } = mountHazardZones({ THREE, scene });
+
+// ── Drop spawner — iter 544 ───────────────────────────────────────────────────
+const {
+  spawnAmmoPickup:   _spawnAmmoPickup,
+  spawnWeaponPickup: _spawnWeaponPickup,
+  spawnHealthPickup: _spawnHealthPickup,
+  spawnArmorShard:   _spawnArmorShard,
+  spawnCoinDrop:     _spawnCoinDrop,
+  ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops,
+} = mountDropSpawner({ THREE, scene, CFG, get: { weapon: () => getWeapon() } });
 
 window._loadingDismissed = false;
 // Platform cache — rebuilt only when vehicles move; saves O(V) array build every tick
