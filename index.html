@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2609,6 +2609,7 @@ const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmo
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
 const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
+const _cameraPosTick     = mountCameraPosTick({ vectors: { camTarget: _camTarget, camOff: _camOff, camLook: _camLook, camAimTarget: _camAimTarget, camBuildLook: _camBuildLook }, actions: { getCamera: () => camera } });
 const _proximityTick     = mountProximityTick({ get: { dialogOpen: () => _npcDialog.isOpen, computerOpen: () => computerOpen }, set: { nearComputer: v => { nearComputer = v; }, nearNpc: n => { _nearNpc = n; } }, actions: { getComputerPos: () => computerEntity, getScreenFront: () => screenFront || null, getNpcDefs: () => NPC_DEFS, getNpcPos: id => world.players.get(id) || null } });
 const _deviceBusTick     = mountDeviceBusTick({ actions: { getDeviceBus: () => typeof deviceBus !== "undefined" ? deviceBus : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0 }, hasAudioMixer: () => typeof audioMixer !== "undefined" && !!audioMixer, playSfx: (str, vol) => playSfx(str, vol), pollMon1Bridge: () => { if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint(); } } });
 const _screenMeshTick    = mountScreenMeshTick({ actions: { getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleScreen: () => window._buildConsoleScreen || null, getBuildConsoleMesh: () => window._buildConsoleMesh || null, intersectMesh: (mesh) => { const _r = new THREE.Raycaster(); _r.setFromCamera({ x: 0, y: 0 }, camera); return _r.intersectObject(mesh, false); }, setHoverRegion: id => { window._bcHoverRegion = id; } } });
@@ -3937,58 +3938,8 @@ function tick() {
   _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   // FP gun position/rotation — extracted → src/systems/fp_gun_pos_tick.js (iter 612)
   _fpGunPosTick.tick(dt, now, { active: _fpGunActive, aiming, reloading: _reloading, reloadStart: _reloadStart, reloadDur: RELOAD_DUR(), canSprint, gunBobPhase: _gunBobPhase, gunKickZ: _gunKickZ, gunReloadX: _gunReloadX, meleeSwing: _meleeSwing });
-  const _eyeH = firstPerson ? (1.78 - _crouchAmt * 0.75) : (1.2 - _crouchAmt * 0.4);
-  _camTarget.set(heroPos.x, heroPos.y + _eyeH, heroPos.z);
-  const camTarget = _camTarget;
-  // Camera-forward (from camera to hero): +sin(yaw), +cos(yaw)
-  const fx = Math.sin(camYaw), fz = Math.cos(camYaw);
-  const sx = Math.cos(camYaw), sz = -Math.sin(camYaw);   // right vector
-
-  if (buildMode) {
-    // Freecam — camera floats independently so you can inspect the character
-    camera.position.copy(freeCamPos);
-    _camBuildLook.set(
-      freeCamPos.x + Math.sin(freeCamYaw) * Math.cos(freeCamPitch) * 10,
-      freeCamPos.y + Math.sin(freeCamPitch) * 10,
-      freeCamPos.z + Math.cos(freeCamYaw) * Math.cos(freeCamPitch) * 10
-    );
-    camera.lookAt(_camBuildLook);
-  } else if (firstPerson) {
-    // FP CAMERA — locked to hero head. Pitch ONLY changes look direction,
-    // NEVER the camera position (fixes the "height drifts as you pitch"
-    // and "looks up when you pull mouse down" bugs).
-    const _fpBobScale = aiming ? 0.15 : 1;
-    const _fpBobY = Math.sin(_gunBobPhase) * (canSprint ? 0.028 : 0.014) * _fpBobScale;
-    camera.position.set(heroPos.x, heroPos.y + (1.78 - _crouchAmt * 0.75) + _fpBobY, heroPos.z);
-    _camLook.set(
-      fx * Math.cos(camPitch),
-      Math.sin(camPitch),
-      fz * Math.cos(camPitch)
-    ).multiplyScalar(10).add(camera.position);
-    camera.lookAt(_camLook);
-    if (!buildMode) camera.rotateZ(-_strafeRollAmt * 0.025);
-  } else {
-    // 3rd-person orbit. Camera position offsets behind + beside hero.
-    // lookAt targets a point ~18m FORWARD along hero heading so the crosshair
-    // points where the hero shoots (not at the hero's back).
-    const sideAmt = Math.min(2.2, dist * 0.38) * camSide;
-    _camOff.set(
-      -fx * Math.cos(camPitch) * dist + sx * sideAmt,
-       Math.sin(-camPitch) * dist + 1.2,
-      -fz * Math.cos(camPitch) * dist + sz * sideAmt
-    );
-    camera.position.copy(_camTarget).add(_camOff);
-    // Look at a point ahead of the hero along the current yaw + pitch
-    const aimDist = 18;
-    // aimTarget: full sideAmt so pressing L actually shifts the forward
-    // aim point with the camera instead of just rotating toward the hero.
-    _camAimTarget.set(
-      heroPos.x + fx * aimDist * Math.cos(camPitch) + sx * sideAmt,
-      heroPos.y + 1.2 + Math.sin(camPitch) * aimDist,
-      heroPos.z + fz * aimDist * Math.cos(camPitch) + sz * sideAmt
-    );
-    camera.lookAt(_camAimTarget);
-  }
+  // Camera positioning (eye height + build/FP/3P branches) — extracted → src/systems/camera_pos_tick.js (iter 653)
+  _cameraPosTick.tick(dt, { buildMode, firstPerson, heroPos, freeCamPos, freeCamYaw, freeCamPitch, camYaw, camPitch, dist, crouchAmt: _crouchAmt, gunBobPhase: _gunBobPhase, aiming, canSprint, camSide, strafeRollAmt: _strafeRollAmt });
   _camShakeTick.tick(dt);
 
   // Find nearest vehicle for proximity prompt
