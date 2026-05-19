@@ -127,6 +127,7 @@ export { mountArmorVestTick }     from "./systems/armor_vest_tick.js";
 export { mountCoinDropTick }      from "./systems/coin_drop_tick.js";
 export { mountWeaponPickupTick }  from "./systems/weapon_pickup_tick.js";
 export { mountFirePatchTick }     from "./systems/fire_patch_tick.js";
+export { mountLegacyPickupTick }  from "./systems/legacy_pickup_tick.js";
 export { default as Vfx, warnRingGeo, warnRingMat } from "./render/vfx.js";
 
 // ── Social ───────────────────────────────────────────────────────────────────

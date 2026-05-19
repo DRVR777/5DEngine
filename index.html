@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2611,6 +2611,7 @@ const _grenadeCrateTick  = mountGrenadeCrateTick({ get: { grenadeCount: () => gr
 const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmor, maxArmor: () => HERO_MAX_ARMOR }, set: { heroArmor: v => { heroArmor = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
+const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
 const _firePatchTick     = mountFirePatchTick({ get: { heroHp: () => heroHp, heroFireT: () => _heroFireT }, set: { heroHp: v => { heroHp = v; }, heroFireT: v => { _heroFireT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), applyBurning: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning"); }, applyScreenShake: amt => _applyScreenShake(amt), getEnemyPos: id => world.players.get(id) || null, spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), onEnemyKill: (en, u, v) => { enemyKills++; _comboCount++; _comboLastT = now / 1000; _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${en.type}`, "#ff6600"); _trackKillAndPanic(u, v); _spawnDecal(u, v, "blood"); _spawnCoinDrop(u, v, (_COIN_BY_TYPE[en.type] || 1) * Math.min(8, _comboCount)); _spawnAmmoPickup(u, v, en.dropQty || 12, en.dropAmmo); if (en._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); } if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel); }, explodeBarrel: (u, v) => _explodeBarrel(u, v) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
@@ -4299,23 +4300,7 @@ function tick() {
 
   _coinDropTick.tick(dt, { pickups: coinDrops, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
-  // pickups (collect within 1.2 units; bob coin meshes)
-  const collected = Bridge.collectPickup(world, "hero", pickups, 1.2);
-  if (collected) {
-    score++;
-    const m = pickupMeshes.get(collected);
-    if (m) scene.remove(m);
-    showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500);
-    _quest.completeQuestStep("intro", 0);
-    if (score >= 3) _quest.completeQuestStep("intro", 1);
-    if (score >= pickups.length) _quest.completeQuestStep("intro", 2);
-  }
-  for (const pk of pickups) {
-    if (pk.collected) continue;
-    const m = pickupMeshes.get(pk.id);
-    m.position.y = 1.0 + Math.sin(now / 300 + pk.u) * 0.15;
-    m.rotation.y += dt * 2;
-  }
+  _legacyPickupTick.tick(dt, { pickups, nowMs: now });
 
   // day-night cycle (60s full day for demo speed) — drives sky shader + sun
   const dn = Bridge.dayNightPhase(now / 1000, 60);
