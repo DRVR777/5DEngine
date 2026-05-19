@@ -119,6 +119,7 @@ export { mountEnemyPoisonerRangedSpitTick } from "./systems/enemy_poisoner_range
 export { mountEnemyFastChargeTick }          from "./systems/enemy_fast_charge_tick.js";
 export { mountEnemySniperTick }              from "./systems/enemy_sniper_tick.js";
 export { mountEnemyStrafeMeleeTick }         from "./systems/enemy_strafe_melee_tick.js";
+export { mountEnemyRobotPlasmaTick }         from "./systems/enemy_robot_plasma_tick.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────
 export { mountShootSystem }    from "./combat/shoot_system.js";
