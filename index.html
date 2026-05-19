@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2399,7 +2399,8 @@ const _clockHudTick  = mountClockHudTick({ actions: { getDayNightHour: () => (ty
 const _vignetteTick  = mountVignetteTick({ get: { vignetteAmt: () => _vignetteAmt }, set: { vignetteAmt: v => { _vignetteAmt = v; } } });
 const _statBarsTick  = mountStatBarsTick({ get: { hpGhost: () => _hpGhost }, set: { hpGhost: v => { _hpGhost = v; } } });
 const _bossBarTick   = mountBossBarTick();
-const _comboHudTick  = mountComboHudTick();
+const _comboHudTick    = mountComboHudTick();
+const _vehicleDashTick = mountVehicleDashTick();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
@@ -5127,24 +5128,8 @@ function tick() {
     if (grenEl) grenEl.innerHTML = `⬡ ${grenadeCount} frag <span style="color:#555">[G]</span>  ◎ ${smokeGrenadeCount} smoke <span style="color:#555">[T]</span>  ◈ ${flashbangCount} flash <span style="color:#555">[U]</span>  ⊠ ${_mineCount} mine${_mineCount !== 1 ? "s" : ""} <span style="color:#555">[M]</span>`;
   }
 
-  // Vehicle dashboard
-  const vDash = _dom.vehicleDash;
-  if (vDash) {
-    if (inCar && activeVehicleId) {
-      vDash.style.display = "block";
-      const vst2 = vehicleStates.get(activeVehicleId);
-      const aVDef = _activeVehicleDef;
-      const isDrone2 = aVDef && aVDef.type === "drone";
-      const kmh = vst2 ? Math.abs(vst2.speed * 3.6).toFixed(0) : "0";
-      const gear2 = isDrone2 ? `ALT ${(vst2.altY || 0).toFixed(1)}m` : (vst2 ? (vst2.gearName || "N") : "N");
-      const speedEl = _dom.vdSpeed;
-      const gearEl  = _dom.vdGear;
-      if (speedEl) speedEl.textContent = isDrone2 ? `${kmh} km/h` : kmh;
-      if (gearEl)  { gearEl.textContent = gear2; gearEl.style.color = isDrone2 ? "#00bbff" : (gear2 === "R" ? "#ff4466" : "#ffd166"); }
-    } else {
-      vDash.style.display = "none";
-    }
-  }
+  // Vehicle dashboard — extracted → src/systems/vehicle_dash_tick.js (iter 608)
+  _vehicleDashTick.tick(inCar && activeVehicleId, vehicleStates.get(activeVehicleId) || null, !!((_activeVehicleDef) && _activeVehicleDef.type === "drone"), { vehicleDash: _dom.vehicleDash, vdSpeed: _dom.vdSpeed, vdGear: _dom.vdGear });
 
   // Combat-reactive ambient soundscape — updates every second
   if (!tick._ambT || now / 1000 - tick._ambT > 1.0) {
