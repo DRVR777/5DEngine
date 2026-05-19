@@ -111,6 +111,7 @@ export { mountDropSpawner, WEAPON_DROP_MAP } from "./systems/drop_spawner.js";
 export { GameProgress }         from "./systems/save_load.js";
 export { mountEnemyRobotEmpTick }    from "./systems/enemy_robot_emp_tick.js";
 export { mountEnemyHeavyGrenadeTick } from "./systems/enemy_heavy_grenade_tick.js";
+export { mountEnemyBossRockTick }     from "./systems/enemy_boss_rock_tick.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────
 export { mountShootSystem }    from "./combat/shoot_system.js";

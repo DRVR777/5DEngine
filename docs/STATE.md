@@ -1,17 +1,17 @@
 STATE.md — loop progress tracker (updated each iter)
 
-Last completed iter: 667
-index.html total lines: 4161  (was 4181 at iter 666, -20 this iter)
-index.html code lines:  3338
+Last completed iter: 668
+index.html total lines: 4140  (was 4161 at iter 667, -21 this iter)
+index.html code lines:  3318
 
 Current target: enemy AI loop sub-extractions (Phase 1, Technique A)
-Next sub-block: Iter C — Boss rock throw
+Next sub-block: Iter D — Poisoner acid spit
 
 Enemy AI sub-extraction status:
   A: Robot EMP burst          ✓ done (iter 666)
   B: Heavy grenade throw      ✓ done (iter 667)
-  C: Boss rock throw          □ next
-  D: Poisoner acid spit       □
+  C: Boss rock throw          ✓ done (iter 668)
+  D: Poisoner acid spit       □ next
   E: Incendiary bomb          □
   F: Boss ground slam         □
   G: Poisoner ranged spit     □
