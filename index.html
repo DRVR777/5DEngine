@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2391,6 +2391,7 @@ const _heartbeat = mountHeartbeat({
 });
 let _hpGhost = 100;       // lagging HP ghost bar — catches up slowly after damage
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
+const _fpsTick = mountFpsTick({ get: { fpsFrames: () => _fpsFrames, fpsWindowT: () => _fpsWindowT, fpsDisplay: () => _fpsDisplay }, set: { fpsFrames: v => { _fpsFrames = v; }, fpsWindowT: v => { _fpsWindowT = v; }, fpsDisplay: v => { _fpsDisplay = v; } }, actions: { onNewFps: fps => { if (typeof Engine !== "undefined") { Engine.debug.fpsHistory.push(fps); if (Engine.debug.fpsHistory.length > 60) Engine.debug.fpsHistory.shift(); } } } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
@@ -2635,20 +2636,8 @@ function tick() {
   // Engine namespace time tick
   if (typeof Engine !== "undefined") Engine.time.tick(now);
 
-  // FPS counter
-  _fpsFrames++;
-  if (now - _fpsWindowT >= 1000) {
-    _fpsDisplay = Math.round(_fpsFrames * 1000 / (now - _fpsWindowT));
-    _fpsFrames = 0;
-    _fpsWindowT = now;
-    // Feed FPS into Engine.debug for dev console badge
-    if (typeof Engine !== "undefined") {
-      Engine.debug.fpsHistory.push(_fpsDisplay);
-      if (Engine.debug.fpsHistory.length > 60) Engine.debug.fpsHistory.shift();
-    }
-  }
-  const fpsEl = _dom.fpsCounter;
-  if (fpsEl) fpsEl.textContent = _fpsDisplay + " FPS";
+  // FPS counter — extracted → src/systems/fps_tick.js (iter 599)
+  _fpsTick.tick(now, _dom.fpsCounter);
 
   // Ammo HUD — shows current weapon mag / reserve
   const ammoEl = _dom.ammoHud;
