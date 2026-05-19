@@ -3574,7 +3574,7 @@ function tick() {
   _platformSys.tick(dt, { vehicles: VEHICLE_DEFS.map(vDef => ({ id: vDef.id, pos: world.players.get(vDef.id), hitbox: vDef.hitbox })) });
 
   const hero = world.players.get("hero");
-  const { onGround } = _jumpGravityTick.tick(dt, { spaceDown: !!keys["Space"], buildMode });
+  ({ onGround } = _jumpGravityTick.tick(dt, { spaceDown: !!keys["Space"], buildMode }));
 
   _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching, onGround });
 
