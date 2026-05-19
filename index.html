@@ -104,6 +104,7 @@ import {
   Core,
   // Config
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
+  makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
   // World
   Rain, mountWorldLayout,
   // Audio
@@ -478,15 +479,11 @@ let _diffHpMul  = 1.0;
 let _diffDmgMul = 1.0;
 let _diffLabel  = "";  // e.g. "NORMAL", shown as badge in wave HUD
 
-// Hero hp (iter 10) — visible bar in HUD
-const HERO_MAX_HP    = CFG.heroMaxHp    || 100;
-const HERO_REGEN_DELAY = CFG.heroRegenDelay || 5;
-const HERO_REGEN_RATE  = CFG.heroRegenRate  || 4;
+// ═══ EXTRACTED → src/config/hero_stats.js (iter 560)
+const { HERO_MAX_HP, HERO_REGEN_DELAY, HERO_REGEN_RATE } = makeHeroStats(CFG);
 let heroHp = HERO_MAX_HP;
 let heroLastDamageT = -Infinity;
-let heroArmor = 0;          // 0..75; absorbs 60% of incoming damage
-const HERO_MAX_ARMOR = 75;
-const ARMOR_ABSORB   = 0.6; // fraction of hit taken from armor instead of HP
+let heroArmor = 0;
 
 // Engine debug namespace (godMode, noclip checks are guarded by typeof Engine)
 window.Engine = window.Engine || {};
@@ -2577,9 +2574,7 @@ let _dodgeVelU = 0;     // world-space dodge impulse (u axis)
 let _dodgeVelV = 0;     // world-space dodge impulse (v axis)
 let _dodgeT = 0;        // seconds remaining on active dodge (iframes window)
 let _dodgeBashDone = false; // prevents multiple bash hits per roll
-const DODGE_DURATION  = 0.25;  // seconds of boost + iframes
-const DODGE_SPEED     = 18;    // units/sec burst
-const DODGE_COOLDOWN  = 1.1;   // seconds before next dodge
+// ═══ EXTRACTED → src/config/hero_stats.js (iter 560) — DODGE_DURATION/SPEED/COOLDOWN imported at top
 let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _hitPunchPitch = 0; // spring: upward camera kick when taking damage
