@@ -99,6 +99,7 @@ import { mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE } from "./src/systems/
 import { mountShootSystem } from "./src/combat/shoot_system.js";
 import { mountDecalSystem } from "./src/render/decals.js";
 import { mountBarrelSystem } from "./src/systems/barrel_system.js";
+import { mountCrateSystem }  from "./src/systems/crate_system.js";
 import { mountLevelSystem } from "./src/systems/level_system.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
@@ -1327,43 +1328,8 @@ const walkState = { t: 0 };
 // ═══ EXTRACTED → src/systems/barrel_system.js (iter 540) ════════════════════
 // _makeBarrel, _explodeBarrel, barrels — mounted below after all deps declared
 
-// Loot crates — shootable/meleeable wooden boxes that drop random loot when destroyed
-const _crateGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
-const _crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5c20, roughness: 0.85, metalness: 0.05 });
-const _crateEdgeMat = new THREE.MeshStandardMaterial({ color: 0x5a3a10, roughness: 0.9, metalness: 0.0 });
-const _crateEdgeGeo = new THREE.BoxGeometry(0.92, 0.06, 0.92);
-
-function _makeCrate(u, v) {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(_crateGeo, _crateMat);
-  body.position.y = 0.45; body.castShadow = true; g.add(body);
-  // Three wooden slat bands
-  for (const ey of [0.18, 0.45, 0.72]) {
-    const slat = new THREE.Mesh(_crateEdgeGeo, _crateEdgeMat);
-    slat.position.y = ey; g.add(slat);
-  }
-  g.position.set(u, 0, v);
-  g.rotation.y = Math.random() * Math.PI * 2;
-  scene.add(g);
-  return { u, v, hp: 35, maxHp: 35, mesh: g, broken: false };
-}
-
-const _crateLoot = ["ammo", "health", "coin", "coin", "ammo"];
-function _breakCrate(crate) {
-  crate.broken = true; crate.mesh.visible = false;
-  _spawnParticles(crate.u, 0.5, crate.v, 20, "orange", 6, 0.55);
-  playSfx("tone:180:80:square", 0.35);
-  const loot = _crateLoot[Math.floor(Math.random() * _crateLoot.length)];
-  if (loot === "ammo")   _spawnAmmoPickup(crate.u, crate.v, 20, getWeapon().ammoItem);
-  else if (loot === "health") _spawnHealthPickup(crate.u, crate.v, 25);
-  else { score += 2; showToast("+2 coins from crate!", "success", 800); }
-  _spawnDamageNumber(crate.u, 1.0, crate.v, "CRACK!", "#cc8833");
-}
-
-const crates = [
-  {u:6,v:6},{u:-6,v:6},{u:6,v:-6},{u:-6,v:-6},
-  {u:14,v:8},{u:-14,v:8},{u:8,v:-14},{u:-8,v:14}
-].map(p => _makeCrate(p.u, p.v));
+// ═══ EXTRACTED → src/systems/crate_system.js (iter 541) ═════════════════════
+// _makeCrate, _breakCrate, crates — mounted below after all deps declared
 
 // ═══ EXTRACTED → src/render/decals.js (iter 539) ════════════════════════════
 const { spawnDecal: _spawnDecal, spawnWallScorch: _spawnWallScorch } =
@@ -3387,6 +3353,26 @@ const { makeBarrel: _makeBarrel, explodeBarrel: _explodeBarrel, barrels } = moun
     applyScreenShake:    _applyScreenShake,
     flashDamage,
     heroShowDeathScreen: _heroShowDeathScreen,
+  },
+});
+
+// ── Crate system — iter 541 ──────────────────────────────────────────────────
+const { makeCrate: _makeCrate, breakCrate: _breakCrate, crates } = mountCrateSystem({
+  THREE, scene,
+  get: {
+    score:  () => score,
+    weapon: () => getWeapon(),
+  },
+  set: {
+    score: (v) => { score = v; },
+  },
+  actions: {
+    playSfx,
+    showToast,
+    spawnParticles:   _spawnParticles,
+    spawnAmmoPickup:  _spawnAmmoPickup,
+    spawnHealthPickup: _spawnHealthPickup,
+    spawnDamageNumber: _spawnDamageNumber,
   },
 });
 
