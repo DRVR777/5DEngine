@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2616,6 +2616,7 @@ const _deviceBusTick     = mountDeviceBusTick({ actions: { getDeviceBus: () => t
 const _screenMeshTick    = mountScreenMeshTick({ actions: { getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleScreen: () => window._buildConsoleScreen || null, getBuildConsoleMesh: () => window._buildConsoleMesh || null, intersectMesh: (mesh) => { const _r = new THREE.Raycaster(); _r.setFromCamera({ x: 0, y: 0 }, camera); return _r.intersectObject(mesh, false); }, setHoverRegion: id => { window._bcHoverRegion = id; } } });
 const _debugHudTick      = mountDebugHudTick({ actions: { getVehDist: id => Bridge.uvDist(world, "hero", id), setHudHtml: html => { hud.innerHTML = html; }, clearEnemyHpDirty: () => { _hudEnemyHpDirty = false; } } });
 const _enemyMeshTick     = mountEnemyMeshTick({ actions: { getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), spawnClearPos: (r1, r2) => _spawnClearPos(r1, r2), setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), markHudDirty: () => { _hudEnemyHpDirty = true; } } });
+const _vehiclePhysicsTick = mountVehiclePhysicsTick({ actions: { key: k => !!keys[k], getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), carPhysicsStep: (vId, vSt, throttle, steerIn, dt, opts) => Bridge.carPhysicsStep(world, vId, vSt, throttle, steerIn, dt, opts), updateCarState: next => Object.assign(carState, next), markPlatformDirty: () => _platformSys.markDirty() } });
 const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
 const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
@@ -2810,56 +2811,8 @@ function tick() {
   }
 
   if (!buildMode && inCar && activeVehicleId) {
-    // Per-vehicle physics — all params come from the vehicle def
-    const vDef = _activeVehicleDef;
-    const vSt  = vehicleStates.get(activeVehicleId);
-
-    if (vDef && vDef.type === "drone") {
-// EXTRACT-PLAN see iter 530 note above — drone physics block starts here
-      // ---- Drone flight physics (WASD=horizontal, Space=up, C=down) ----
-      if (vSt.altY == null) vSt.altY = 0;
-      const DRONE_H = 15, DRONE_V = 7;
-      const mf = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-      const mr = (keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0);
-      const mv = (keys["Space"] ? 1 : 0) - (keys["KeyC"] ? 1 : 0);
-      vSt.altY = Math.max(0, Math.min(40, vSt.altY + mv * DRONE_V * dt));
-      const cp = world.players.get(activeVehicleId);
-      // Guard: drone player slot might not be registered yet on first frame
-      if (cp) {
-        const dfx = Math.sin(camYaw), dfz = Math.cos(camYaw);
-        const drx = Math.cos(camYaw), drz = -Math.sin(camYaw);
-        const du = (dfx * mf + drx * mr) * DRONE_H * dt;
-        const dv = (dfz * mf + drz * mr) * DRONE_H * dt;
-        world.setPlayer(activeVehicleId, 0, vSt.altY, 0, cp.u + du, cp.v + dv);
-        world.setPlayer("hero", 0, vSt.altY, 0, cp.u + du, cp.v + dv);
-        vSt.speed = Math.hypot(du, dv) / dt;
-        vSt.heading = (mf !== 0 || mr !== 0) ? Math.atan2(dfx * mf + drx * mr, dfz * mf + drz * mr) : vSt.heading;
-        Object.assign(carState, vSt);
-      }
-    } else {
-// EXTRACT-PLAN see iter 530 note above — ground vehicle physics starts here
-      // ---- Ground vehicle physics ----
-      const throttle  = (keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0);
-      // BUG FIX iter 418: A/D were inverted. Three.js rotation.y is counter-clockwise
-      // from above, so positive steer (D) was turning LEFT. Negating maps D→right, A→left.
-      const steerIn   = (keys["KeyA"] ? 1 : 0) - (keys["KeyD"] ? 1 : 0);   // A=+1 (CCW=left), D=-1 (CW=right)
-      const handbrake = !!keys["Space"];
-      const next = Bridge.carPhysicsStep(world, activeVehicleId, vSt, throttle, steerIn, dt, {
-        blockers:     buildingBlockers,
-        carHitbox:    vDef ? vDef.hitbox    : { w: 2, d: 4 },
-        handbrake,
-        maxSpeed:     vDef ? vDef.maxSpeed  : 24,
-        acceleration: vDef ? vDef.acceleration : 8,
-        braking:      vDef ? vDef.braking   : 18,
-        handling:     vDef ? vDef.handling  : 1.0,
-      });
-      vSt.speed = next.speed; vSt.heading = next.heading;
-      vSt.gear  = next.gear;  vSt.gearName = next.gearName;
-      Object.assign(carState, vSt);
-      const cp = world.players.get(activeVehicleId);
-      world.setPlayer("hero", 0, 0, 0, cp.u, cp.v);
-      if (vSt.speed > 0.01) _platformSys.markDirty();
-    }
+    // Vehicle physics (drone + ground) — extracted → src/systems/vehicle_physics_tick.js (iter 658)
+    _vehiclePhysicsTick.tick(dt, { vDef: _activeVehicleDef, vSt: vehicleStates.get(activeVehicleId), activeVehicleId, blockers: buildingBlockers });
   } else {
     const _heroNow = world.players.get("hero");
     const CAR_BLOCKER_H = 0.75;
