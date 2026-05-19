@@ -86,7 +86,7 @@ import {
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
-  mountAmmoReloadTick,
+  mountAmmoReloadTick, mountCrouchSpeedTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2451,7 +2451,7 @@ let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
 let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
 let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
 let _heroShotAlertU = 0, _heroShotAlertV = 0, _heroShotAlertT = 0; // last shot pos alert to nearby enemies
-let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
+// _crouchAmt managed by mountCrouchSpeedTick (iter 660)
 let _slideT = 0, _slideDU = 0, _slideDV = 0, _ctrlWasDown = false; // sprint slide state
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 // ═══ EXTRACTED → src/config/hero_stats.js (iter 562) — STAMINA_MAX/DRAIN/REGEN/LOCKOUT imported at top
@@ -2619,6 +2619,7 @@ const _debugHudTick      = mountDebugHudTick({ actions: { getVehDist: id => Brid
 const _enemyMeshTick     = mountEnemyMeshTick({ actions: { getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), spawnClearPos: (r1, r2) => _spawnClearPos(r1, r2), setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), markHudDirty: () => { _hudEnemyHpDirty = true; } } });
 const _vehiclePhysicsTick = mountVehiclePhysicsTick({ actions: { key: k => !!keys[k], getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), carPhysicsStep: (vId, vSt, throttle, steerIn, dt, opts) => Bridge.carPhysicsStep(world, vId, vSt, throttle, steerIn, dt, opts), updateCarState: next => Object.assign(carState, next), markPlatformDirty: () => _platformSys.markDirty() } });
 const _ammoReloadTick    = mountAmmoReloadTick({ set: { reloading: v => { _reloading = v; }, pistolAmmo: v => { pistolAmmo = v; }, pistolCooldown: v => { pistolCooldown = v; }, getPistolAmmo: () => pistolAmmo }, actions: { getReloadDur: () => RELOAD_DUR(), getMagCap: () => PISTOL_MAG_CAP(), getWeapon: () => getWeapon(), countInvAmmo: item => Inv.countItem(heroInv, item), removeInvAmmo: (item, n) => Inv.removeItem(heroInv, item, n), setAmmo: v => setAmmo(v), getReloadCircle: () => _dom.reloadCircle || null, getAmmoHud: () => _dom.ammoHud || null } });
+const _crouchSpeedTick   = mountCrouchSpeedTick({ actions: { spawnSprintTrail: () => { const _spTp = world.players.get("hero"); if (_spTp) _spawnParticles(_spTp.u, _spTp.y + 0.08, _spTp.v, 1, "orange", 1.2, 0.22); } } });
 const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
 const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
@@ -2759,29 +2760,17 @@ function tick() {
   // In build mode WASD drives the freecam; while dead, all movement blocked
   const inputF = (buildMode || _heroDead) ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
   const inputR = (buildMode || _heroDead) ? 0 : ((keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0));
-  const crouching = !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen;
-  const crouchTarget = crouching ? 1 : 0;
-  _crouchAmt += (crouchTarget - _crouchAmt) * Math.min(1, dt * 12);
-  const crouchSpeedMul = 1 - _crouchAmt * 0.4; // 60% speed when fully crouched
+  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
+  // Crouching spring, speed mul, move spread, sprint trail — extracted → src/systems/crouch_speed_tick.js (iter 660)
+  const { crouching, crouchAmt: _crouchAmt, crouchSpeedMul, moveSpreadTarget } = _crouchSpeedTick.tick(dt, { keys, buildMode, inCar, computerOpen, heroDead: _heroDead, aiming, isSprinting, isMoving, pointerLocked });
   // Stamina — drains while sprinting, regens otherwise; requires STAMINA_LOCKOUT to re-enter sprint
   const wantsSprint = !!(keys["ShiftLeft"] || keys["ShiftRight"]) && !crouching && !inCar && !_heroDead;
   const canSprint = _staminaTick.tick(dt, { wantsSprint, isSprinting, inputMoving: (inputF !== 0 || inputR !== 0) });
-  // iter 431: isMoving declared below (line ~6274) but used here — TDZ crash. Hoist it.
-  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
   const _speedBoostMul = _speedBoostTick.tick(dt, { isMoving, inCar, buildMode, heroDead: _heroDead });
   const _baseSpeed = canSprint ? (SPRINT + _heroLvlSpeedBonus + _perkSpeedBonus) : (WALK + _heroLvlSpeedBonus * 0.5) * crouchSpeedMul;
   const speed = _baseSpeed * _speedBoostMul;
 
-  // Movement accuracy penalty — grows while moving/sprinting, recovers at rest/aim
-  // isMoving hoisted above to fix TDZ with speed-boost trail
-  const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? (crouching ? 0.18 : 0.45) : (crouching ? 0 : 0)));
-
   _motionSprings.tick(dt, { moveSpreadTarget, isMoving, inCar, buildMode, heroDead: _heroDead, canSprint, inputR, aiming });
-  // Sprint trail — orange dust particles at hero feet when running at full sprint
-  if (isSprinting && isMoving && !_heroDead && pointerLocked && Math.random() < 0.45) {
-    const _spTp = world.players.get("hero");
-    if (_spTp) _spawnParticles(_spTp.u, _spTp.y + 0.08, _spTp.v, 1, "orange", 1.2, 0.22);
-  }
 
   if (!buildMode && inCar && activeVehicleId) {
     // Vehicle physics (drone + ground) — extracted → src/systems/vehicle_physics_tick.js (iter 658)
