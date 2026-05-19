@@ -192,7 +192,30 @@ PER-TICK WORKFLOW
   9. Run npm test -- confirm new tests pass.
   10. Replace the sub-block in index.html with the tick call.
   11. Run npm test -- confirm all tests still pass.
-  12. wc -l index.html -- confirm shrink (>=20 lines).
+  12. Measure BOTH line counts and confirm shrink:
+
+     Total lines (includes comments + blanks):
+       wc -l index.html
+
+     Code lines only (excludes blank lines and comment-only lines):
+       node -e "
+         const fs = require('fs');
+         const lines = fs.readFileSync('index.html','utf8').split('\n');
+         const code = lines.filter(l => {
+           const t = l.trim();
+           return t.length > 0 &&
+             !t.startsWith('//') && !t.startsWith('/*') &&
+             !t.startsWith('*') && !t.startsWith('<!--') &&
+             !t.startsWith('-->')  && t !== '*/' ;
+         });
+         console.log('Total:', lines.length, '| Code:', code.length,
+           '| Comments+blanks:', lines.length - code.length);
+       "
+
+     The per-tick shrink rule (>=20) applies to TOTAL lines. Adding
+     comments is fine and does NOT count against the shrink target.
+     Track code lines separately in STATE.md for honest progress.
+
   13. Commit. Format: `iter N: extract <subblock> from enemy AI loop`
   14. Push.
   15. Update docs/STATE.md with current progress.

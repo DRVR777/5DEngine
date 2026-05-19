@@ -16,6 +16,22 @@ echo   5DEngine — Multiplayer Server + Game
 echo  ====================================================
 echo.
 
+REM ── Optional git pull ─────────────────────────────────────────────────────────
+where git >nul 2>&1
+if not errorlevel 1 (
+    set /p PULL_CHOICE= Pull latest from GitHub? [Y/N]:
+    if /i "%PULL_CHOICE%"=="Y" (
+        echo  Pulling latest...
+        git pull
+        if errorlevel 1 (
+            echo  WARNING: git pull failed. Continuing with local version.
+        ) else (
+            echo  Up to date.
+        )
+        echo.
+    )
+)
+
 REM Kill any previous instance on port 8080
 for /f "tokens=5" %%a in ('netstat -ano 2^>nul ^| findstr ":8080 " ^| findstr LISTENING') do taskkill /PID %%a /F >nul 2>&1
 
