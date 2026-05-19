@@ -1,136 +1,238 @@
-# LOOP_PROMPT.md — extraction + real-tests
+LOOP_PROMPT.md — iter 666+, big-block extraction phase
 
-Read this prompt fully before any action. Re-read it at the top of every tick.
+You are the same agent. Iter 665 just shipped. index.html is at 4086 lines.
+The rate has decayed: last three iters extracted 3, 6, 11 lines respectively.
+That's not extraction anymore — that's nibbling. This prompt corrects course.
 
-## THE PRIMARY DIRECTIVE
+═══════════════════════════════════════════════════════════════════════
+THE HONEST DIAGNOSIS
+═══════════════════════════════════════════════════════════════════════
 
-Extraction is the first step of abstraction. Reduce index.html toward zero by
-moving discrete responsibilities into /src/ files. The smaller index.html gets,
-the more visible the abstraction patterns become. Keep going.
+You have been avoiding the big blocks. The "shrink every tick" rule
+combined with the 20-minute cadence has trained you to take the
+smallest safe extraction available. That worked for iters 540-650.
+It does not work now.
 
-Target: index.html below 1000 lines. Currently ~5833. The work remaining is
-large but mechanical. Do not stop. Do not philosophize. Extract.
+What is left in index.html, in priority order:
 
-## TEST DISCIPLINE — THIS IS THE THING THAT HAS BEEN FAILING
+  Lines  Range          Target                              Status
+  ───────────────────────────────────────────────────────────────────
+  519    3097-3615      src/entities/enemy_ai_tick.js       UNTOUCHED *
+  283    2801-3083      src/systems/bullet_physics.js       UNTOUCHED *
+  120    2079-2199      src/config/keydown_bindings.js      UNTOUCHED
+  59     3783-3841      src/systems/save_wiring.js          UNTOUCHED
+  50     1700-1750      src/systems/screen_interaction.js   UNTOUCHED
 
-2291+ tests passing. Bugs still surface during play. The gap is not a coverage
-problem. It is a test-shape problem. Most existing tests check "does the file
-contain this string." Real bugs crash at runtime.
+  * = the EXTRACT-PLAN inside index.html named these years ago and
+      they were never tackled. They are tackled now.
 
-NEW RULE — every extraction commit must include AT LEAST ONE of:
+Everything else in index.html is one of:
+  - Mount calls (`const _x = mountX({get, set, actions})`) -- these
+    do not extract; they collapse under a registry pattern, which is
+    abstraction work, not your job right now.
+  - HTML head, script tags, import map -- these stay.
+  - The tick function shell -- this stays.
+  - The big destructured import statement -- this stays until
+    abstraction.
 
-  (a) A smoke test that actually imports the new module and calls one
-      of its exported functions with realistic arguments. The test must
-      execute the function, not grep the source.
+Floor for extraction-only work: ~3200 lines. You can get there.
+Below that, abstraction takes over. That decision is not yours to
+make -- the human will make it when the named targets above are done.
 
-  (b) An integration test that mounts the new module alongside its
-      real dependencies (or minimal mocks) and ticks at least 5 frames,
-      asserting no error fires on the console error channel.
+═══════════════════════════════════════════════════════════════════════
+NEW SUCCESS CRITERION
+═══════════════════════════════════════════════════════════════════════
 
-  (c) A state-invariant test that runs the new module through a fuzz
-      of inputs (10+ random scenarios) and asserts properties hold:
-      no NaN positions, no negative health, no null derefs, no
-      undefined component reads, no quiet console.error.
+Per-tick rule: each tick must either
 
-  (d) A regression test for a bug listed in /docs/BUG_LOG.md.
-      If BUG_LOG is non-empty, this case takes priority until empty.
+  (a) Extract a sub-block of one of the FIVE NAMED TARGETS above, OR
+  (b) Be the final wire-up commit for a target whose pieces are done,
+      removing the now-empty placeholder from index.html, OR
+  (c) Convert a BUG_LOG entry to a regression test + fix.
 
-`toContain` tests are still allowed but DO NOT COUNT toward the per-extraction
-test requirement. They are documentation. You may write them in addition to a
-real test; you may not write them instead of a real test.
+Small nibbles (extracting computeXxx pure functions of <15 lines from
+already-extracted code) DO NOT COUNT. They are not bad, but they do
+not satisfy the per-tick rule. Save them for cleanup phase.
 
-## THE BUG LOG — /docs/BUG_LOG.md
+A tick that cannot satisfy (a), (b), or (c) WRITES A NOTE to
+docs/STUCK.md naming what it tried and why it failed, then exits
+without committing. Do NOT manufacture small extractions to keep the
+streak alive. The streak is the failure mode, not the goal.
 
-On every tick:
-  1. Read /docs/BUG_LOG.md
-  2. For every entry with status "open":
-     - Write the regression test FIRST, before any other work
-     - Run it; confirm it fails on the current code
-     - Fix the bug
-     - Confirm the test now passes
-     - Update the entry status to "fixed"
-     - Commit as "iter N: regression test for <description>"
+═══════════════════════════════════════════════════════════════════════
+HOW TO TACKLE A BIG BLOCK (the enemy AI loop, worked example)
+═══════════════════════════════════════════════════════════════════════
 
-Only after BUG_LOG has zero "open" entries proceed with extraction.
+The enemy AI loop (~519 lines) is the biggest target.
+It is NOT one extraction -- it is ~12 extractions, done in sequence,
+each one a self-contained per-type behavior sub-block. The wrapper
+loop (`for (const en of enemies) { ... }`) stays in index.html until
+the very last extraction, when it collapses to a single tick call.
 
-## WHAT A REAL TEST LOOKS LIKE
+Recommended sub-extraction order, from smallest/safest to largest:
 
---- Smoke test (catches TDZ, ReferenceError, syntax errors) ---
+  Iter A -- Robot EMP burst (~20 lines)
+           -> src/systems/enemy_robot_emp_tick.js
+  Iter B -- Heavy grenade throw (~22 lines)
+           -> src/systems/enemy_heavy_grenade_tick.js
+  Iter C -- Boss rock throw (~23 lines)
+           -> src/systems/enemy_boss_rock_tick.js
+  Iter D -- Poisoner acid spit (~23 lines)
+           -> src/systems/enemy_poisoner_spit_tick.js
+  Iter E -- Incendiary bomb (~23 lines)
+           -> src/systems/enemy_incendiary_tick.js
+  Iter F -- Boss ground slam (~30 lines)
+           -> src/systems/enemy_boss_slam_tick.js
+  Iter G -- Poisoner ranged spit (~16 lines)
+           -> src/systems/enemy_poisoner_dart_tick.js
+  Iter H -- Fast enemy charge (~19 lines)
+           -> src/systems/enemy_fast_charge_tick.js
+  Iter I -- Sniper aim+fire (~70 lines -- largest sub-block)
+           -> src/systems/enemy_sniper_tick.js
+  Iter J -- Strafe + melee (~70 lines)
+           -> src/systems/enemy_melee_tick.js
+  Iter K -- Robot plasma (~22 lines)
+           -> src/systems/enemy_robot_plasma_tick.js
+  Iter L -- Gunshot alert + panic + enrage + heard-shot + BT setup
+           (the loop scaffolding, ~150 lines)
+           -> src/systems/enemy_ai_scaffold_tick.js
 
-  import { mountBarrelSystem } from "../../src/systems/barrel_system.js";
-  import * as THREE from "three";
-  it("mountBarrelSystem instantiates without throwing", () => {
-    const scene = new THREE.Scene();
-    const sys = mountBarrelSystem({
-      THREE, scene, enemies: [], world: { players: new Map() },
-      coinByType: {}, weaponDropMap: {},
-      get: { heroDead: () => false, heroHp: () => 100, ... },
-      set: { heroHp: () => {}, ... },
-      actions: { playSfx: () => {}, spawnParticles: () => {}, ... },
-    });
-    expect(sys.makeBarrel).toBeTypeOf("function");
-    expect(Array.isArray(sys.barrels)).toBe(true);
-  });
+After Iter L, the entire enemy loop body has been extracted and the
+wrapper collapses to roughly:
 
---- Error-channel test (catches the entire crash class) ---
+  for (const en of enemies) {
+    if (gameMode === "peaceful") continue;
+    _enemyAiScaffold.tick(dt, en, /* shared state */);
+    _enemyMeshTick.tickEntry(en, ...);
+  }
 
-  it("five frames of tick produce no console errors", async () => {
-    const errors = [];
-    const orig = console.error;
-    console.error = (...a) => { errors.push(a.join(" ")); };
-    try {
-      const game = await bootMinimalGame();
-      for (let i = 0; i < 5; i++) game.tick(1/60);
-      expect(errors).toEqual([]);
-    } finally { console.error = orig; }
-  });
+Each iter saves ~20-30 lines. Total: ~450 lines saved across 12 ticks.
+That is a real pace. Do not try to do the whole loop in one tick.
 
---- State-invariant fuzz ---
+NOTE: Line numbers drift as extractions happen. Use grep to find the
+actual current location of distinctive comments like
+"Robot EMP burst" or "Boss rock throw".
 
-  it("hero never NaN or negative HP across 100 random damage events", () => {
-    const hero = bootHero();
-    for (let i = 0; i < 100; i++) {
-      applyDamageToHero(hero, Math.floor(Math.random() * 50));
-      expect(Number.isFinite(hero.hp)).toBe(true);
-      expect(hero.hp).toBeGreaterThanOrEqual(0);
-    }
-  });
+═══════════════════════════════════════════════════════════════════════
+TEST DISCIPLINE
+═══════════════════════════════════════════════════════════════════════
 
-## PER-TICK WORKFLOW
+For each big-block sub-extraction:
 
-  1. Read this prompt.
-  2. Read /docs/BUG_LOG.md. If any "open" entry exists, write its regression
-     test first. Only then proceed to extraction.
-  3. Pick the smallest logically-coherent block remaining in index.html.
-  4. Do the work:
-     - Read target code
-     - Write the new module file
-     - Write at least one REAL test (smoke/behavioral/invariant/error-channel)
-     - Wire the call into index.html
-     - Run `npm test` — must be green
-     - Confirm index.html is smaller
-  5. Commit: `iter N: <action>` (single concern)
-  6. Push.
-  7. Schedule next tick.
+  1. SMOKE TEST -- import the new module, call its tick function
+     with minimal real-shaped fake deps. Must not throw.
 
-## HARD RULES
+  2. BEHAVIORAL TEST -- for any sub-block that has an observable
+     side effect (spawn bullet, deal damage, apply status effect),
+     write a test asserting the effect happens. Example:
 
-1. index.html must shrink every tick.
-2. Every commit includes AT LEAST one real test. toContain tests do not count.
-3. BUG_LOG.md takes priority over extraction.
-4. Never delete an existing test in the same tick you add a new one.
-5. If `npm test` fails, revert and pick a different target.
-6. Maximum 5 files touched per tick.
-7. Do not refactor code outside the file being extracted.
-8. Do not optimize or tune numbers — you move code, not behavior.
-9. Check for /docs/HALT at start of every tick. If it exists, exit cleanly.
-10. Stop when index.html < 1000 lines — then switch to abstraction.
+       it("robot EMP within 4m disables hero sprint for 2.5s", () => {
+         const enemy = makeEnemy({ type: "robot", _empT: 0 });
+         const hero = { u: 0, v: 0, sprintBlocked: false };
+         const sys = mountEnemyRobotEmpTick({ ... });
+         sys.tick(0.016, enemy, { hero, nowSec: 0 });
+         expect(hero.sprintBlocked).toBe(true);
+         expect(enemy._empT).toBeCloseTo(8.0);
+       });
 
-## NOTE TO THE HUMAN — how to add bugs
+  3. NO toContain TESTS as the primary validation. Allowed only as
+     supplementary documentation.
 
-When you encounter a bug during play:
-  1. Open /docs/BUG_LOG.md
-  2. Append: ## YYYY-MM-DD HH:MM — short description
-  3. Fill in: Symptom / Root cause (if known) / Why tests missed it
-  4. Set Status: open
-  The loop picks it up on its next tick automatically.
+═══════════════════════════════════════════════════════════════════════
+PER-TICK WORKFLOW
+═══════════════════════════════════════════════════════════════════════
+
+  1. Read this file (docs/LOOP_PROMPT.md).
+  2. Check docs/HALT -- if present, exit.
+  3. Read docs/BUG_LOG.md -- if any "open" entry, that is the tick.
+  4. Read docs/STATE.md -- what was the last sub-extraction done?
+     Which sub-block in the recommended sequence is next?
+  5. Identify the target sub-block in index.html using grep.
+  6. Read the sub-block. List every dependency:
+     - what state does it read? (heroPos, en.hp, now/1000)
+     - what state does it mutate? (en._empT, hero.sprintBlocked)
+     - what actions does it invoke? (spawnParticles, playSfx)
+  7. Write the new module with mount({get, set, actions}) signature.
+  8. Write the tests (smoke + behavioral).
+  9. Run npm test -- confirm new tests pass.
+  10. Replace the sub-block in index.html with the tick call.
+  11. Run npm test -- confirm all tests still pass.
+  12. wc -l index.html -- confirm shrink (>=20 lines).
+  13. Commit. Format: `iter N: extract <subblock> from enemy AI loop`
+  14. Push.
+  15. Update docs/STATE.md with current progress.
+  16. Append to docs/JOURNAL.md: what was done, lines saved, surprises.
+
+═══════════════════════════════════════════════════════════════════════
+HARD RULES
+═══════════════════════════════════════════════════════════════════════
+
+1. index.html must shrink by >=20 lines per tick (except BUG_LOG fix
+   ticks). If you cannot find a >=20-line extraction, write to
+   docs/STUCK.md and exit. DO NOT manufacture a small extraction.
+
+2. Big-block extractions are tackled in the recommended sub-order.
+   Skip a sub-block only with a documented reason in JOURNAL.md.
+
+3. The wrapper loop of any big block stays in index.html until ALL
+   of its sub-blocks are extracted.
+
+4. Every commit includes AT LEAST one behavioral test. toContain
+   tests do not satisfy this rule.
+
+5. If `npm test` fails after your changes, revert. Do not push
+   broken tests.
+
+6. Maximum 6 files touched per tick.
+   (new module + tests + index.html + engine_modules.js + STATE.md
+   + JOURNAL.md = 6.)
+
+7. Do not refactor existing extracted modules.
+
+8. Do not change numbers, do not rename existing variables.
+   Move code, do not edit it.
+
+9. The game must remain playable after every tick.
+
+10. HALT FILE at docs/HALT -- if present, exit immediately.
+
+11. STUCK FILE at docs/STUCK.md -- if you cannot satisfy the per-tick
+    rule, write a stuck entry and exit:
+
+      ## YYYY-MM-DD HH:MM -- iter N stuck
+      Attempted: <sub-block name>
+      Why blocked: <one-sentence reason>
+      What I'd need to proceed: <what the human should do>
+
+    After 3 consecutive STUCK exits, stop scheduling further ticks.
+
+12. STOP CONDITIONS:
+    - index.html < 3200 lines AND no items left in FIVE NAMED TARGETS
+      -> write docs/HANDOFF.md, exit.
+    - docs/HALT exists.
+    - docs/STUCK.md has >=3 entries from consecutive ticks.
+
+═══════════════════════════════════════════════════════════════════════
+THE HANDOFF (when extraction is genuinely done)
+═══════════════════════════════════════════════════════════════════════
+
+When you reach a stop condition, write docs/HANDOFF.md with:
+
+  - Final index.html line count
+  - List of every module extracted in this phase
+  - Names of any blocks you could not extract and why
+  - Recommendation for next phase
+
+═══════════════════════════════════════════════════════════════════════
+THE THESIS
+═══════════════════════════════════════════════════════════════════════
+
+You did not lose your edge. You hit the boundary where the easy
+extractions ran out and the hard ones were sitting there. This prompt
+moves you onto the hard ones. They are bigger per iter, riskier per
+iter, and worth ~50x the line count of what you have been doing.
+
+Extraction is the first step of abstraction. You are still on the
+first step. Finish it.
+
+Begin.
