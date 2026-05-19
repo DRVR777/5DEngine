@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -447,34 +447,27 @@ mountDevConsoleGame({
   resetGameState:  () => resetGameState(),
 });
 
-// StatusEffects entity hooks — called by status_effects.js onTick callbacks
-window._entityDamage = function(entityId, amount, _type) {
-  if (entityId !== "hero") return;
-  if (typeof Engine !== "undefined" && Engine.debug.godMode) return;  // god mode
-  if (_dodgeT > 0) return;  // iframes during dodge roll
-  if (heroArmor > 0) {
-    const armorHit = Math.min(heroArmor, amount * ARMOR_ABSORB);
-    heroArmor = Math.max(0, heroArmor - armorHit);
-    amount = amount - armorHit;
-  }
-  heroHp = Math.max(0, heroHp - amount);
-  heroLastDamageT = performance.now() / 1000;
-  _waveChallengeNoDmg = false; // player took damage — "no damage" challenge failed
-  // Broadcast hero damage so HUD, effects, and multiplayer peers can react
-  if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DAMAGED, { amount, hp: heroHp });
-  if (heroHp <= 0) {
-    if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: "effect" });
-    if (!_heroDead) _heroShowDeathScreen();
-  }
-};
-window._entityHeal = function(entityId, amount) {
-  if (entityId !== "hero") return;
-  heroHp = Math.min(HERO_MAX_HP + _perkMaxHpBonus, heroHp + amount);
-};
-window._setHeroOpacity = function(v) {
-  const hg = window._heroGroup;
-  if (hg) hg.traverse(c => { if (c.material) c.material.transparent = true, c.material.opacity = v; });
-};
+// ═══ EXTRACTED → src/systems/entity_hooks.js (iter 587)
+mountEntityHooks({
+  ARMOR_ABSORB,
+  get: {
+    heroHp:         () => heroHp,
+    heroArmor:      () => heroArmor,
+    heroDead:       () => _heroDead,
+    HERO_MAX_HP:    () => HERO_MAX_HP,
+    perkMaxHpBonus: () => _perkMaxHpBonus,
+    dodgeT:         () => _dodgeT,
+  },
+  set: {
+    heroHp:             (v) => { heroHp = v; },
+    heroArmor:          (v) => { heroArmor = v; },
+    heroLastDamageT:    (v) => { heroLastDamageT = v; },
+    waveChallengeNoDmg: (v) => { _waveChallengeNoDmg = v; },
+  },
+  actions: {
+    heroShowDeathScreen: () => _heroShowDeathScreen(),
+  },
+});
 // Dev console hooks
 window._teleportHero = function(u, v) {
   world.setPlayer("hero", 0, 0, 0, u, v);
