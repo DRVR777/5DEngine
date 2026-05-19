@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2055,6 +2055,7 @@ const _throwFlashbang    = gadget.throwFlashbang;
 const _throwGrenade      = gadget.throwGrenade;
 const _explodeGrenade    = gadget.explodeGrenade;
 let _heroBlindT          = 0; // seconds of white-out flash; written by gadget.explodeGrenade via set.heroBlindT
+const _statusTintTick = mountStatusTintTick({ get: { heroBlindT: () => _heroBlindT, heroFireT: () => _heroFireT, heroEmpT: () => _heroEmpT }, set: { heroBlindT: v => { _heroBlindT = v; } }, actions: { getActiveEffects: id => (typeof StatusEffects !== "undefined") ? (StatusEffects.getActive(id) || []) : [] } });
 
 // ---- input ----
 const keys = Object.create(null);
@@ -4984,47 +4985,8 @@ function tick() {
 
   _burnTick.tick(dt, now / 1000); // hero on-fire DoT (extracted iter 591)
 
-  // Status effect screen tint — green for poison, orange for burning
-  { const stEl = _dom.statusTint;
-    const _burnActive = _heroFireT > 0;
-    const _sfxList = (typeof StatusEffects !== "undefined") ? (StatusEffects.getActive("hero") || []) : [];
-    const hasPoisoned = _sfxList.some(e => e.id === "poison");
-    const hasBurning  = _burnActive || _sfxList.some(e => e.id === "burning");
-    if (stEl) {
-      if (_heroBlindT > 0) {
-        _heroBlindT -= dt;
-        const _bFade = Math.min(1, _heroBlindT * 1.5);
-        stEl.style.background = `rgba(255,255,255,${_bFade.toFixed(2)})`;
-        stEl.style.opacity = "1";
-      } else if (hasPoisoned || hasBurning) {
-        const _pulse = 0.12 + 0.08 * Math.sin(now / 220);
-        const _r = hasBurning ? 255 : 0, _g = hasPoisoned ? 180 : (hasBurning ? 80 : 0), _b = 0;
-        stEl.style.background = `radial-gradient(ellipse at center, transparent 50%, rgba(${_r},${_g},${_b},0.7) 100%)`;
-        stEl.style.opacity = _pulse.toFixed(3);
-      } else {
-        stEl.style.opacity = "0";
-      }
-    }
-    // Status effect HUD pills
-    const _sfxHud = _dom.statusEffectsHud;
-    if (_sfxHud) {
-      const _pills = [];
-      if (hasPoisoned) {
-        const _pt = _sfxList.find(e => e.id === "poison");
-        const _ps = _pt && _pt.timeLeft ? Math.ceil(_pt.timeLeft) : "";
-        _pills.push(`<div style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(0,100,20,0.85);border:1px solid #00bb44;color:#66ff99;letter-spacing:0.08em">POISON${_ps ? " " + _ps + "s" : ""}</div>`);
-      }
-      if (hasBurning) {
-        const _bt = Math.ceil(_heroFireT);
-        _pills.push(`<div style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(100,30,0,0.85);border:1px solid #ff6600;color:#ffaa44;letter-spacing:0.08em">BURNING${_bt > 0 ? " " + _bt + "s" : ""}</div>`);
-      }
-      if (_heroEmpT > 0) {
-        _pills.push(`<div style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(0,20,80,0.85);border:1px solid #4488ff;color:#88bbff;letter-spacing:0.08em">EMP ${Math.ceil(_heroEmpT)}s</div>`);
-      }
-      _sfxHud.style.display = _pills.length ? "flex" : "none";
-      _sfxHud.innerHTML = _pills.join("");
-    }
-  }
+  // Status tint + HUD pills — extracted → src/systems/status_tint_tick.js (iter 602)
+  _statusTintTick.tick(dt, now, _dom.statusTint, _dom.statusEffectsHud);
 
   // mini-map (top-right)
   drawMinimap();

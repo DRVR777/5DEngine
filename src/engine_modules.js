@@ -46,6 +46,7 @@ export { mountSpeedBoostTick } from "./systems/speed_boost_tick.js";
 export { mountFpsTick }        from "./systems/fps_tick.js";
 export { mountCrosshairTick }  from "./systems/crosshair_tick.js";
 export { mountCombatHudTick }  from "./systems/combat_hud_tick.js";
+export { mountStatusTintTick } from "./systems/status_tint_tick.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";
