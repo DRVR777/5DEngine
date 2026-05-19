@@ -86,7 +86,7 @@ import {
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountHeroInventory, mountGameReset, mountDevConsoleGame, mountMediaPickups,
-  mountTriggerZoneInit, mountNavAndAchievements,
+  mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
   mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress,
@@ -710,25 +710,8 @@ window._setFogNear = v => { if (scene.fog) scene.fog.near = v; };
 window._setFogFar  = v => { if (scene.fog) scene.fog.far  = v; };
 _buildArenaBoundary(scene); // deferred here — scene now exists
 
-// Initialize ParticleSystem module with the live scene
-if (typeof ParticleSystem !== "undefined") ParticleSystem.init(THREE, scene);
-
-// Generate procedural terrain (off by default; enable with Terrain.generate() or env panel)
-// Terrain is initially hidden and can be toggled in the environment panel
-window._terrainEnabled = false;
-window._generateTerrain = function(opts) {
-  if (typeof Terrain === "undefined") return;
-  window._terrainEnabled = true;
-  window._terrainApi = Terrain.generate(THREE, scene, opts || {
-    size: 200, segments: 96, maxHeight: 6, seed: 42,
-  });
-  showToast("Terrain generated", "success", 2000);
-};
-window._removeTerrain = function() {
-  if (typeof Terrain !== "undefined") Terrain.dispose();
-  window._terrainEnabled = false;
-  window._terrainApi = null;
-};
+// ═══ EXTRACTED → src/systems/particle_terrain_init.js (iter 578)
+mountParticleAndTerrain({ THREE, scene, showToast });
 
 // ═══ EXTRACTED → src/systems/trigger_zone_init.js (iter 576)
 mountTriggerZoneInit({ THREE, scene, showToast });
