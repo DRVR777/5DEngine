@@ -87,7 +87,7 @@ import {
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountGameReset, mountDevConsoleGame,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
-  mountLevelSystem, mountBarrelSystem, mountCrateSystem, GameProgress,
+  mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones, GameProgress,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -1621,32 +1621,8 @@ function _spawnCoinDrop(u, v, value) {
   coinDrops.push({ mesh, u: du, v: dv, value, collected: false });
 }
 
-// Fire patches — spawned on incendiary death, damage anyone inside
-const firePatches = [];
-function _spawnFirePatch(u, v, radius, duration) {
-  radius = radius || 1.5; duration = duration || 6.0;
-  const mesh = new THREE.Mesh(
-    new THREE.CircleGeometry(radius, 12),
-    new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.55, depthWrite: false })
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(u, 0.04, v);
-  scene.add(mesh);
-  firePatches.push({ mesh, u, v, radius, timeLeft: duration, dmgT: 0 });
-}
-
-// Poison puddles — spawned on poisoner death, applies poison status to nearby hero
-const poisonPuddles = [];
-function _spawnPoisonPuddle(u, v) {
-  const mesh = new THREE.Mesh(
-    new THREE.CircleGeometry(1.2, 14),
-    new THREE.MeshBasicMaterial({ color: 0x44cc44, transparent: true, opacity: 0.5, depthWrite: false })
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(u, 0.03, v);
-  scene.add(mesh);
-  poisonPuddles.push({ mesh, u, v, radius: 1.2, timeLeft: 4.0, applyT: 0 });
-}
+// ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
+// firePatches, poisonPuddles, _spawnFirePatch, _spawnPoisonPuddle — mounted below
 
 // Pickup meshes
 const pickupMeshes = new Map();
@@ -3333,6 +3309,12 @@ const { makeCrate: _makeCrate, breakCrate: _breakCrate, crates } = mountCrateSys
     spawnDamageNumber: _spawnDamageNumber,
   },
 });
+
+// ── Hazard zones — iter 543 ───────────────────────────────────────────────────
+const {
+  spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle,
+  firePatches, poisonPuddles,
+} = mountHazardZones({ THREE, scene });
 
 window._loadingDismissed = false;
 // Platform cache — rebuilt only when vehicles move; saves O(V) array build every tick

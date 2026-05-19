@@ -33,6 +33,7 @@ export { mountKillTracking, COIN_BY_TYPE } from "./systems/kill_tracking.js";
 export { mountLevelSystem }     from "./systems/level_system.js";
 export { mountBarrelSystem }    from "./systems/barrel_system.js";
 export { mountCrateSystem }     from "./systems/crate_system.js";
+export { mountHazardZones }     from "./systems/hazard_zones.js";
 export { GameProgress }         from "./systems/save_load.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────
