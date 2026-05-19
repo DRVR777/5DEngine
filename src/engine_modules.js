@@ -50,6 +50,7 @@ export { mountStatusTintTick } from "./systems/status_tint_tick.js";
 export { mountClockHudTick }   from "./systems/clock_hud_tick.js";
 export { mountVignetteTick }   from "./systems/vignette_tick.js";
 export { mountStatBarsTick }   from "./systems/stat_bars_tick.js";
+export { mountBossBarTick }    from "./systems/boss_bar_tick.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";

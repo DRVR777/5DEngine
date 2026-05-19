@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2398,6 +2398,7 @@ const _combatHudTick = mountCombatHudTick();
 const _clockHudTick  = mountClockHudTick({ actions: { getDayNightHour: () => (typeof DayNight !== "undefined") ? DayNight.getHour() : null } });
 const _vignetteTick  = mountVignetteTick({ get: { vignetteAmt: () => _vignetteAmt }, set: { vignetteAmt: v => { _vignetteAmt = v; } } });
 const _statBarsTick  = mountStatBarsTick({ get: { hpGhost: () => _hpGhost }, set: { hpGhost: v => { _hpGhost = v; } } });
+const _bossBarTick   = mountBossBarTick();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
@@ -5080,29 +5081,8 @@ function tick() {
   // HP ghost, HP fill, armor, stamina bars — extracted → src/systems/stat_bars_tick.js (iter 605)
   _statBarsTick.tick(dt, { heroHp, heroMaxHp: HERO_MAX_HP, heroArmor, heroMaxArmor: HERO_MAX_ARMOR, stamina: _stamina, staminaMax: STAMINA_MAX, staminaExtraMax: _heroExtraStaminaMax, staminaLockout: STAMINA_LOCKOUT, apexMode: _heroApexMode, perkMaxHpBonus: _perkMaxHpBonus }, { hbGhost: _dom.hbGhost, hbFill: _dom.hbFill, hbVal: _dom.hbVal, armorBar: _dom.armorBar, arFill: _dom.arFill, arVal: _dom.arVal, stFill: _dom.stFill });
 
-  // Boss HP bar — shows when a live boss enemy exists
-  { const bossBarEl = _dom.bossHpBar;
-    const bossHpFillEl = _dom.bossHpFill;
-    const bossHpValEl  = _dom.bossHpVal;
-    const bossNameEl   = _dom.bossName;
-    if (bossBarEl) {
-      const liveBoss = (_liveBoss && !_liveBoss.dead) ? _liveBoss : null;
-      if (liveBoss) {
-        bossBarEl.style.display = "block";
-        const bFrac = Math.max(0, liveBoss.hp / liveBoss.maxHp);
-        const bPulse = bFrac < 0.3 ? `0 0 ${8 + 6 * Math.sin(now / 180)}px rgba(255,0,0,0.7)` : "0 0 12px rgba(255,40,0,0.3)";
-        if (bossHpFillEl) {
-          bossHpFillEl.style.width = (bFrac * 100).toFixed(1) + "%";
-          bossHpFillEl.style.background = bFrac > 0.5 ? "linear-gradient(90deg,#cc0000,#ff4400)" : bFrac > 0.25 ? "linear-gradient(90deg,#aa0000,#ff2200)" : "linear-gradient(90deg,#660000,#cc0000)";
-          bossHpFillEl.parentElement.style.boxShadow = bPulse;
-        }
-        if (bossHpValEl) bossHpValEl.textContent = `${Math.ceil(liveBoss.hp)} / ${liveBoss.maxHp}`;
-        if (bossNameEl)  bossNameEl.textContent = "☠ BOSS";
-      } else {
-        bossBarEl.style.display = "none";
-      }
-    }
-  }
+  // Boss HP bar — extracted → src/systems/boss_bar_tick.js (iter 606)
+  _bossBarTick.tick(now, (_liveBoss && !_liveBoss.dead) ? _liveBoss : null, { bossBar: _dom.bossHpBar, bossHpFill: _dom.bossHpFill, bossHpVal: _dom.bossHpVal, bossName: _dom.bossName });
 
   // Kill combo multiplier HUD
   {
