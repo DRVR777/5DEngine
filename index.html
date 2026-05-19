@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2410,6 +2410,7 @@ const _heroFaceTick      = mountHeroFaceTick({ get: { rotY: () => heroGroup.rota
 const _camShakeTick      = mountCamShakeTick({ get: { camShakeAmt: () => _camShakeAmt }, set: { camShakeAmt: v => { _camShakeAmt = v; } }, actions: { offsetCamera: (dx, dy) => { camera.position.x += dx; camera.position.y += dy; } } });
 const _heroKbTick        = mountHeroKnockbackTick({ get: { kbT: () => _heroKbT, kbU: () => _heroKbU, kbV: () => _heroKbV }, set: { kbT: v => { _heroKbT = v; }, kbU: v => { _heroKbU = v; }, kbV: v => { _heroKbV = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), resolveMove: (mover,du,dv) => GTAPhysics.resolveAABBMove(mover,du,dv,buildingBlockers) } });
 const _dodgeTick         = mountDodgeTick({ get: { dodgeCooldown: () => _dodgeCooldown, dodgeT: () => _dodgeT, dodgeVelU: () => _dodgeVelU, dodgeVelV: () => _dodgeVelV, dodgeBashDone: () => _dodgeBashDone }, set: { dodgeCooldown: v => { _dodgeCooldown = v; }, dodgeT: v => { _dodgeT = v; }, dodgeBashDone: v => { _dodgeBashDone = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), spawnTrail: (u,y,v) => { if (Math.random() < 0.7) _spawnParticles(u, y + 0.6, v, 2, "cyan", 2.5, 0.18); }, tryBash: heroPos => { const bd = Math.round(25 * _heroLvlDmgMul); for (const en of enemies) { if (en.dead) continue; const ep = world.players.get(en.id); if (Math.hypot(ep.u - heroPos.u, ep.v - heroPos.v) < 0.9) { en.hp = Math.max(0, en.hp - bd); en._hpBarShowT = now / 1000; const a = Math.atan2(ep.u - heroPos.u, ep.v - heroPos.v); en._kbU = Math.sin(a) * 5; en._kbV = Math.cos(a) * 5; en._kbT = 0.18; _spawnDamageNumber(ep.u, 1.4, ep.v, `BASH! ${bd}`, "#00ffff"); _spawnParticles(ep.u, 1.0, ep.v, 8, "cyan", 5, 0.2); playSfx("tone:180:60:sawtooth", 0.28); return true; } } return false; } } });
+const _enemyRegenTick    = mountEnemyRegenTick({ actions: { getPos: id => world.players.get(id), spawnDamageNumber: (u,y,v,t,c) => _spawnDamageNumber(u,y,v,t,c) } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -4091,21 +4092,7 @@ function tick() {
     }
   }
 
-  // Enemy HP regen — slow regen when out of combat (no damage taken in 8s + not chasing hero)
-  for (const _re of enemies) {
-    if (_re.dead || _re.hp >= _re.maxHp) continue;
-    const _recentDmg = _re._hpBarShowT && (now / 1000 - _re._hpBarShowT) < 8;
-    if (!_recentDmg && !_re._wasChasing) {
-      _re.hp = Math.min(_re.maxHp, _re.hp + 4 * dt);
-      // Visual telegraph — green "+HP" float every 1.8s while regenerating
-      _re._regenT = (_re._regenT || 0) - dt;
-      if (_re._regenT <= 0) {
-        _re._regenT = 1.8;
-        const _rep = world.players.get(_re.id);
-        if (_rep) _spawnDamageNumber(_rep.u, 2.0, _rep.v, "+HP", "#00ff66");
-      }
-    } else { _re._regenT = 0; }
-  }
+  _enemyRegenTick.tick(dt, { nowSec: now / 1000, enemies });
 
   // Enemy separation — push enemies apart when overlapping (prevents clumping)
   const SEP_DIST = 1.2, SEP_PUSH = 0.6;
