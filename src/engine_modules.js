@@ -77,6 +77,7 @@ export { mountScreenMeshTick }     from "./systems/screen_mesh_tick.js";
 export { mountDeviceBusTick }      from "./systems/device_bus_tick.js";
 export { mountProximityTick }      from "./systems/proximity_tick.js";
 export { mountCameraPosTick }      from "./systems/camera_pos_tick.js";
+export { mountCameraZoneTick }     from "./systems/camera_zone_tick.js";
 export { mountEnemyRegenTick }     from "./systems/enemy_regen_tick.js";
 export { mountEnemySepTick }       from "./systems/enemy_sep_tick.js";
 export { mountPlatformSystem }     from "./systems/platform_system.js";

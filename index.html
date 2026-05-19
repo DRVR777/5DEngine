@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2609,6 +2609,7 @@ const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmo
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
 const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
+const _cameraZoneTick    = mountCameraZoneTick({ get: { camDist: () => camDist, aimAmt: () => aimAmt, camDistMax: () => CAM_DIST_MAX }, actions: { evaluateSpine: (zoom, max) => (window.CameraSpine && window.CameraSpine.evaluate) ? window.CameraSpine.evaluate(zoom, { camDistMax: max }) : null, isActiveDrone: (inCar) => !!(inCar ? _activeVehicleDef : null) && (_activeVehicleDef.type === "drone"), setHeroGroupVisible: v => { heroGroup.visible = v; }, setShadowBlobVisible: v => { _shadowBlob.visible = v; }, setFpGunGroupVisible: v => { _fpGunGroup.visible = v; } } });
 const _cameraPosTick     = mountCameraPosTick({ vectors: { camTarget: _camTarget, camOff: _camOff, camLook: _camLook, camAimTarget: _camAimTarget, camBuildLook: _camBuildLook }, actions: { getCamera: () => camera } });
 const _proximityTick     = mountProximityTick({ get: { dialogOpen: () => _npcDialog.isOpen, computerOpen: () => computerOpen }, set: { nearComputer: v => { nearComputer = v; }, nearNpc: n => { _nearNpc = n; } }, actions: { getComputerPos: () => computerEntity, getScreenFront: () => screenFront || null, getNpcDefs: () => NPC_DEFS, getNpcPos: id => world.players.get(id) || null } });
 const _deviceBusTick     = mountDeviceBusTick({ actions: { getDeviceBus: () => typeof deviceBus !== "undefined" ? deviceBus : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0 }, hasAudioMixer: () => typeof audioMixer !== "undefined" && !!audioMixer, playSfx: (str, vol) => playSfx(str, vol), pollMon1Bridge: () => { if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint(); } } });
@@ -3908,29 +3909,8 @@ function tick() {
   _walkAnimTick.tick(dt, { groundSpeed: inCar ? 0 : Math.hypot(inputF, inputR) * speed, aimAmt, reloading: _reloading });
   _heroFaceTick.tick(dt, { aiming, inputF, inputR, forward, right, camYaw });
 
-  // Camera: pulls back along the inverse of `forward` vector (so we sit
-  // behind the hero). camDist=0 → first-person at head; >0.5 → 3rd person
-  // with a side offset (GTA-style over-the-shoulder). L toggles shoulder.
-  // Aim-mode pulls camera in (~60% as far) for an over-the-shoulder ADS feel.
-  const aimMul = 1 - 0.4 * aimAmt;
-  // camera_spine.js — map camDist to one of 4 named zones for consistent
-  // visibility/input rules. Aim shrinks the effective zoom proportionally.
-  const spineZoom = Math.max(0, Math.min(1, camDist / CAM_DIST_MAX)) * aimMul;
-  const spine = (window.CameraSpine && window.CameraSpine.evaluate)
-    ? window.CameraSpine.evaluate(spineZoom, { camDistMax: CAM_DIST_MAX })
-    : null;
-  const dist = inCar ? Math.max(camDist, 6) : camDist * aimMul;
-  // Zone-driven visibility: spine says when the hero mesh should be hidden
-  // (INSIDE + FIRST_PERSON). Falls back to old behavior if spine not loaded.
-  const spineZone = spine ? spine.zone : null;
-  const firstPerson = !inCar && (spineZone === "INSIDE" || spineZone === "FIRST_PERSON" || dist < 0.5);
-  const _activeDef = inCar ? _activeVehicleDef : null;
-  const _isDrone   = _activeDef && _activeDef.type === "drone";
-  heroGroup.visible = buildMode || (_isDrone ? false : (!inCar && (spine ? spine.params.heroVisible : !firstPerson)));
-  _shadowBlob.visible = !inCar && !firstPerson && !buildMode;
-  // FP gun overlay: show when in first-person and not in menus
-  const _fpGunActive = firstPerson && !buildMode && !inCar && !computerOpen && !_heroDead;
-  _fpGunGroup.visible = _fpGunActive;
+  // Camera zone, spine, mesh visibility — extracted → src/systems/camera_zone_tick.js (iter 654)
+  const { firstPerson, spineZone, dist, spine, fpGunActive: _fpGunActive } = _cameraZoneTick.tick(dt, { buildMode, inCar, computerOpen, heroDead: _heroDead });
   // Melee cooldown + swing spring
   if (_meleeCooldown > 0) _meleeCooldown -= dt;
   _dodgeTick.tick(dt);
