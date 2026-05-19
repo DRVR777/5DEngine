@@ -50,6 +50,7 @@ export { mountHeroMesh }          from "./render/hero_mesh.js";
 
 // ── Static supplies ───────────────────────────────────────────────────────────
 export { mountStaticSupply }      from "./systems/static_supply.js";
+export { mountSpeedOrbSpawner }   from "./systems/speed_orb_spawner.js";
 export { default as Vfx, warnRingGeo, warnRingMat } from "./render/vfx.js";
 
 // ── Social ───────────────────────────────────────────────────────────────────

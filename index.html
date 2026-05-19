@@ -93,7 +93,7 @@ import {
   mountShootSystem, createWeaponVisuals,
   // Render
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory, mountEnvironment, mountHeroMesh,
-  mountStaticSupply,
+  mountStaticSupply, mountSpeedOrbSpawner,
   Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
   // Social
   createLanSession,
@@ -1265,18 +1265,11 @@ const carBody   = carGroup._bodyMesh || carGroup;
 // ═══ EXTRACTED → src/systems/static_supply.js (iter 550)
 const { grenadeCrates, armorPickups } = mountStaticSupply({ THREE, scene });
 
-// Speed boost orbs — spawned at wave start after wave 2; 4s of 1.5x movement speed
-const _speedOrbs = [];
+// ═══ EXTRACTED → src/systems/speed_orb_spawner.js (iter 551)
+// _speedBoostT / _speedTrailT remain here — mutated by lifecycle + tick
 let _speedBoostT = 0;
 let _speedTrailT = 0;
-const _speedOrbGeo = new THREE.DodecahedronGeometry(0.22, 0);
-const _speedOrbMat = new THREE.MeshStandardMaterial({ color: 0xffdd00, emissive: 0xffa500, emissiveIntensity: 0.9, metalness: 0.2 });
-function _spawnSpeedOrb(u, v) {
-  const mesh = new THREE.Mesh(_speedOrbGeo, _speedOrbMat.clone());
-  mesh.position.set(u, 0.7, v);
-  scene.add(mesh);
-  _speedOrbs.push({ mesh, u, v, collected: false, _birthT: performance.now() / 1000 });
-}
+const { speedOrbs: _speedOrbs, spawnSpeedOrb: _spawnSpeedOrb } = mountSpeedOrbSpawner({ THREE, scene });
 
 // ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
 // firePatches, poisonPuddles, _spawnFirePatch, _spawnPoisonPuddle — mounted below
