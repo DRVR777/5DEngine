@@ -3,6 +3,7 @@ import { it, expect, describe } from "vitest";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
+import { mountGameReset } from "../../src/systems/game_reset.js";
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(path.join(__dir, "../../src/systems/game_reset.js"), "utf8");
@@ -126,4 +127,72 @@ describe("actions called", () => {
 
 it("returns resetGameState", () => {
   expect(src).toContain("return { resetGameState }");
+});
+
+// ── Real behavioral tests ────────────────────────────────────────────────────
+
+function makeResetSys(overrides = {}) {
+  return mountGameReset({
+    scene: { remove: () => {} },
+    world: { players: new Map() },
+    Inv: { addItem: () => {} },
+    CFG: { weapons: [] },
+    enemies: [],
+    enemyMeshes: new Map(),
+    bullets3D: [], enemyBullets: [], grenades3D: [],
+    smokeZones: [], firePatches: [], poisonPuddles: [],
+    wallScorches: [], armorShards: [], speedOrbs: [], weaponPickups: [],
+    heroInv: { slots: new Array(10).fill(null) },
+    weaponAmmo: { clear: () => {}, set: () => {} },
+    actions: {
+      gadgetClearAll: () => {}, resetGrenades: () => {}, resetWeapon: () => {},
+      heroRespawn: () => {}, waveRestart: () => {}, resetStats: () => {},
+      resetLevel: () => {}, resetPerks: () => {}, hidePerkPicker: () => {},
+      refreshPerkHud: () => {}, clearHeroLevelHud: () => {},
+    },
+    ...overrides,
+  });
+}
+
+it("resetGameState hides and empties wallScorches (regression: was undefined → threw)", () => {
+  const ws1 = { visible: true };
+  const ws2 = { visible: true };
+  const wallScorches = [ws1, ws2];
+  const sys = makeResetSys({ wallScorches });
+  sys.resetGameState();
+  expect(wallScorches.length).toBe(0);
+  expect(ws1.visible).toBe(false);
+  expect(ws2.visible).toBe(false);
+});
+
+it("resetGameState clears firePatches and poisonPuddles arrays", () => {
+  const fp = { mesh: {} };
+  const pp = { mesh: {} };
+  const firePatches = [fp];
+  const poisonPuddles = [pp];
+  const sys = makeResetSys({ firePatches, poisonPuddles });
+  sys.resetGameState();
+  expect(firePatches.length).toBe(0);
+  expect(poisonPuddles.length).toBe(0);
+});
+
+it("resetGameState calls all required action callbacks without throwing", () => {
+  const called = [];
+  const actions = {
+    gadgetClearAll: () => called.push("gadgetClearAll"),
+    resetGrenades:  () => called.push("resetGrenades"),
+    resetWeapon:    () => called.push("resetWeapon"),
+    heroRespawn:    () => called.push("heroRespawn"),
+    waveRestart:    () => called.push("waveRestart"),
+    resetStats:     () => called.push("resetStats"),
+    resetLevel:     () => called.push("resetLevel"),
+    resetPerks:     () => called.push("resetPerks"),
+    hidePerkPicker: () => called.push("hidePerkPicker"),
+    refreshPerkHud: () => called.push("refreshPerkHud"),
+    clearHeroLevelHud: () => called.push("clearHeroLevelHud"),
+  };
+  makeResetSys({ actions }).resetGameState();
+  expect(called).toContain("gadgetClearAll");
+  expect(called).toContain("heroRespawn");
+  expect(called).toContain("resetPerks");
 });

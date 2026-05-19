@@ -54,5 +54,5 @@ export function mountDecalSystem({ THREE, scene }) {
     _wallScorches.push(mesh);
   }
 
-  return { spawnDecal, spawnWallScorch };
+  return { spawnDecal, spawnWallScorch, wallScorches: _wallScorches };
 }

@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { describe, it, expect } from "vitest";
+import { mountDecalSystem } from "../../src/render/decals.js";
 
 const src = readFileSync("src/render/decals.js", "utf8");
 
@@ -48,4 +49,40 @@ describe("decals", () => {
     expect(src).toContain("nU * 0.025");
     expect(src).toContain("nV * 0.025");
   });
+});
+
+// ── Real smoke test — imports and calls the module ──────────────────────────
+// Regression: mountDecalSystem previously did not return wallScorches, so
+// index.html passed undefined to mountGameReset → resetGameState() threw
+// "wallScorches is not iterable" on every game reset.
+
+const makeMesh = () => ({
+  position: { set() {} },
+  rotation: { x: 0, y: 0, z: 0, set() {} },
+  scale: { setScalar() {} },
+  visible: true,
+  material: { opacity: 0.65, clone() { return this; } },
+});
+
+const THREE_STUB = {
+  MeshBasicMaterial: class { constructor() { return { opacity: 0, clone() { return this; } }; } },
+  CircleGeometry:    class { constructor() {} },
+  PlaneGeometry:     class { constructor() {} },
+  Mesh:              class { constructor() { return makeMesh(); } },
+  DoubleSide: 2,
+};
+const SCENE_STUB = { add() {}, remove() {} };
+
+it("mountDecalSystem returns wallScorches as a live Array (regression fix)", () => {
+  const result = mountDecalSystem({ THREE: THREE_STUB, scene: SCENE_STUB });
+  expect(typeof result.spawnDecal).toBe("function");
+  expect(typeof result.spawnWallScorch).toBe("function");
+  expect(Array.isArray(result.wallScorches)).toBe(true);
+});
+
+it("spawnWallScorch pushes into wallScorches array", () => {
+  const result = mountDecalSystem({ THREE: THREE_STUB, scene: SCENE_STUB });
+  expect(result.wallScorches.length).toBe(0);
+  result.spawnWallScorch(1, 0.5, 2, 0, 1);
+  expect(result.wallScorches.length).toBe(1);
 });
