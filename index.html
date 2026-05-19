@@ -86,6 +86,7 @@ import {
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountHeroInventory, mountGameReset, mountDevConsoleGame, mountMediaPickups,
+  mountTriggerZoneInit,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
   mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress,
@@ -729,28 +730,8 @@ window._removeTerrain = function() {
   window._terrainApi = null;
 };
 
-// Initialize TriggerZones with the live scene (debug wireframes shown in-world)
-if (typeof TriggerZones !== "undefined") {
-  TriggerZones.init(THREE, scene);
-  // Example: shop zone — heal player on enter
-  TriggerZones.addBox("zone_shop", { minU:-10, maxU:-4, minV:-6, maxV:0, minY:0, maxY:5 }, {
-    onEnter: (eid) => { if (eid === "hero") showToast("SHOP — Press E to browse", "info", 2500); },
-    onExit:  (eid) => { if (eid === "hero") showToast("Left SHOP", "info", 1500); },
-  }, { label: "SHOP", color: 0x00ffaa, debug: true });
-  // Combat zone — give a "DANGER" warning
-  TriggerZones.addBox("zone_danger", { minU:10, maxU:30, minV:10, maxV:30, minY:0, maxY:8 }, {
-    onEnter: (eid) => { if (eid === "hero") showToast("⚠ DANGER ZONE", "danger", 2000); },
-  }, { label: "DANGER", color: 0xff4466, debug: true });
-  // Listen for any zone events on window for scripting
-  window.addEventListener("zoneEnter", (e) => {
-    const { entityId, zoneId } = e.detail;
-    if (typeof ScriptRunner !== "undefined" && typeof ScriptRunner.dispatchZoneEvent === "function") ScriptRunner.dispatchZoneEvent("enter", zoneId, entityId);
-  });
-  window.addEventListener("zoneExit", (e) => {
-    const { entityId, zoneId } = e.detail;
-    if (typeof ScriptRunner !== "undefined" && typeof ScriptRunner.dispatchZoneEvent === "function") ScriptRunner.dispatchZoneEvent("exit", zoneId, entityId);
-  });
-}
+// ═══ EXTRACTED → src/systems/trigger_zone_init.js (iter 576)
+mountTriggerZoneInit({ THREE, scene, showToast });
 
 // Init AStar pathfinder with building data
 if (typeof AStar !== "undefined") {
