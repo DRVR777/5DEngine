@@ -26,8 +26,37 @@ export function mountComputerUI({
     });
   }
 
+  function _renderServerList(listEl, servers, localIp) {
+    const currentOrigin = window.location.origin;
+    if (servers.length === 0) {
+      listEl.innerHTML = `<div style="color:#888;font-size:12px">
+        No other 5DEngine servers found on LAN.
+      </div>`;
+      return;
+    }
+    listEl.innerHTML = servers.map(s => {
+      const url = `http://${s.ip}:${s.port}`;
+      const isCurrent = currentOrigin === url || s.self;
+      return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;margin:4px 0;
+                  background:#0a1e2a;border:1px solid ${isCurrent ? "#44cc66" : "#4488cc33"};border-radius:6px">
+        <div style="flex:1">
+          <div style="color:#eee;font-size:12px">${url}
+            ${isCurrent ? '<span style="color:#44cc66;font-size:10px"> ← this server</span>' : ""}
+          </div>
+          <div style="color:#888;font-size:11px">${s.playerCount || 0} player(s)</div>
+        </div>
+        ${!isCurrent ? `<button data-action="join-server" data-url="${url}"
+          style="background:#4488cc;border:0;color:#fff;padding:4px 12px;
+                 border-radius:4px;cursor:pointer;font-size:11px">
+          → Join
+        </button>` : ""}
+      </div>`;
+    }).join("");
+  }
+
   function wireServersApp() {
-    // Auto-load share URL from /api/me
+    // Auto-load share URL from /api/me and auto-populate server list from fast /scan
     const shareEl = document.getElementById("serverShareUrl");
     if (shareEl) {
       fetch("/api/me")
@@ -44,50 +73,45 @@ export function mountComputerUI({
         });
     }
 
+    // Fast pre-populate: use /scan (returns UDP-discovered servers immediately)
+    const listEl = document.getElementById("serverList");
+    if (listEl) {
+      fetch("/scan")
+        .then(r => r.json())
+        .then(data => {
+          const others = (data.servers || []).filter(s => !s.self);
+          if (others.length === 0) {
+            listEl.innerHTML = `<div style="color:#888;font-size:12px">
+              No other servers found yet — press <b>Scan LAN</b> for a full sweep, or wait for UDP auto-discovery.
+            </div>`;
+          } else {
+            _renderServerList(listEl, others, data.localIp);
+          }
+        })
+        .catch(() => {});
+    }
+
     const scanBtn = document.getElementById("serverScanBtn");
     if (!scanBtn) return;
     scanBtn.addEventListener("click", () => {
       const statusEl = document.getElementById("serverScanStatus");
       const listEl   = document.getElementById("serverList");
-      if (statusEl) statusEl.textContent = "Scanning…";
-      if (listEl)   listEl.innerHTML = `<div style="color:#888;font-size:12px">⏳ Scanning LAN…</div>`;
+      if (statusEl) statusEl.textContent = "Scanning LAN (~6s)…";
+      if (listEl)   listEl.innerHTML = `<div style="color:#888;font-size:12px">⏳ Probing subnet…</div>`;
 
-      fetch("/scan")
+      fetch("/scan/wait")
         .then(r => r.json())
         .then(data => {
           if (statusEl) statusEl.textContent = `LAN IP: ${data.localIp || "unknown"}`;
-          if (!listEl) return;
-          const servers = data.servers || [];
-          const currentOrigin = window.location.origin;
-          if (servers.length === 0) {
-            listEl.innerHTML = `<div style="color:#888;font-size:12px">
-              No 5DEngine servers found — make sure the host has started start.bat.
-            </div>`;
-            return;
-          }
-          listEl.innerHTML = servers.map(s => {
-            const url = `http://${s.ip}:${s.port}`;
-            const isCurrent = currentOrigin === url;
-            return `
-            <div style="display:flex;align-items:center;gap:10px;padding:10px;margin:4px 0;
-                        background:#0a1e2a;border:1px solid ${isCurrent ? "#44cc66" : "#4488cc33"};border-radius:6px">
-              <div style="flex:1">
-                <div style="color:#eee;font-size:12px">${url}
-                  ${isCurrent ? '<span style="color:#44cc66;font-size:10px"> ← you are here</span>' : ""}
-                </div>
-                <div style="color:#888;font-size:11px">${s.playerCount || 0} player(s)</div>
-              </div>
-              ${!isCurrent ? `<button data-action="join-server" data-url="${url}"
-                style="background:#4488cc;border:0;color:#fff;padding:4px 12px;
-                       border-radius:4px;cursor:pointer;font-size:11px">
-                → Join
-              </button>` : ""}
-            </div>`;
-          }).join("");
+          const localListEl = document.getElementById("serverList");
+          if (!localListEl) return;
+          const others = (data.servers || []).filter(s => !s.self);
+          _renderServerList(localListEl, others, data.localIp);
         })
         .catch(() => {
           if (statusEl) statusEl.textContent = "Scan failed";
-          if (listEl)   listEl.innerHTML = `<div style="color:#c44;font-size:12px">
+          const localListEl = document.getElementById("serverList");
+          if (localListEl) localListEl.innerHTML = `<div style="color:#c44;font-size:12px">
             ⚠ /scan unreachable — open via start.bat (not file://).
           </div>`;
         });
