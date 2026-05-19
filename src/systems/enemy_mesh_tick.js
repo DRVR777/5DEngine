@@ -62,10 +62,12 @@ export function mountEnemyMeshTick({ actions }) {
     em.group.visible = true;
 
     // HP bar: width, position, color, visibility
-    const hpFrac = en.hp / en.maxHp;
-    em.hpFg.scale.x = Math.max(0.001, hpFrac);
-    em.hpFg.position.x = -(1 - hpFrac) / 2;
-    em.hpFg.material.color.setHex(hpColor(hpFrac));
+    const hpFrac = en.maxHp > 0 ? Math.max(0, en.hp / en.maxHp) : 1;
+    if (em.hpFg) {
+      em.hpFg.scale.x = Math.max(0.001, hpFrac);
+      em.hpFg.position.x = -(1 - hpFrac) / 2;
+      em.hpFg.material.color.setHex(hpColor(hpFrac));
+    }
     const barVisible = hpFrac < 1.0 && (!en._hpBarShowT || (nowSec - en._hpBarShowT) < HP_BAR_SHOW_T);
     if (em.hpPivot) { em.hpPivot.visible = barVisible; em.hpPivot.rotation.y = camYaw - en.heading; }
 

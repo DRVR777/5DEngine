@@ -177,7 +177,7 @@ import {
   mountNpcDialog, DEFAULT_NPC_DIALOGS,
   mountQuestPanel, mountStarterQuests, mountFirstLaunch, mountShopPanel, mountSettingsPanel,
   buildComputerApps, addDynamicIcons,
-  mountMouseInput, mountKeydownHandler, mountKeyupHandler,
+  mountMouseInput, mountCanvasPrimaryAction, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountScreenInteraction, mountSaveWiring, mountWaveEvents, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
@@ -390,15 +390,24 @@ function releasePointerForModal() {
   }
 }
 function requestGameplayPointer() {
-  const blocker =
+  const _isBlocked = () =>
     document.getElementById("perkPicker")?.style?.display !== "none" ||
     document.getElementById("difficultyScreen")?.style?.display === "flex" ||
     computerOpen || computerEntering || buildMode || _heroDead;
-  if (blocker || typeof renderer === "undefined") return;
+  if (_isBlocked() || typeof renderer === "undefined") return;
   const canvas = renderer.domElement || document.querySelector("canvas");
-  if (canvas && !document.pointerLockElement) {
-    try { canvas.requestPointerLock(); } catch (_e) {}
-  }
+  if (!canvas || document.pointerLockElement) return;
+  // Defer by 120ms — browsers reject requestPointerLock if called immediately
+  // after exitPointerLock (Promise rejection: "lock lost"). Re-check blockers
+  // at call time so a perk picker or difficulty screen that appeared in that
+  // window doesn't get locked over.
+  setTimeout(() => {
+    if (document.pointerLockElement || _isBlocked()) return;
+    try {
+      const _p = canvas.requestPointerLock();
+      if (_p && typeof _p.catch === "function") _p.catch(() => {});
+    } catch (_e) {}
+  }, 120);
 }
 const _perkSys        = mountPerkSystem({
   Inv,
@@ -2361,69 +2370,8 @@ function drawMinimap() {
   });
 }
 
-// Click to shoot (registered after renderer/scene/camYaw all exist).
-// In mouse-mode we instead route LMB to the active screen's hit-test.
-renderer.domElement.addEventListener("mousedown", (e) => {
-  if (e.button !== 0) return;
-  // BUILD MODE: check gizmo axis first, then LMB picks scene objects.
-  if (buildMode && worldBuilder) {
-    // Build console LMB — if crosshair is on the build console screen, fire the region
-    if (pointerLocked && window._bcHoverRegion && window._buildConsoleScreen) {
-      const sc = window._buildConsoleScreen;
-      const region = (sc.hitRegions || []).find(r => r.id === window._bcHoverRegion);
-      if (region && typeof region.onClick === "function") { region.onClick(sc); e.preventDefault(); return; }
-    }
-    const rect = renderer.domElement.getBoundingClientRect();
-    const ndc = {
-      x: ((e.clientX - rect.left) / rect.width)  * 2 - 1,
-      y: -((e.clientY - rect.top)  / rect.height) * 2 + 1,
-    };
-    // Gizmo axis arrow clicked → start axis-locked drag
-    const axis = worldBuilder.pickGizmoAxis(ndc);
-    if (axis) {
-      worldBuilder.startAxisDrag(axis, ndc);
-      e.preventDefault();
-      return;
-    }
-    // Regular pick: raycast against ALL scene objects (buildings, car, spawned meshes)
-    const picked = worldBuilder.pickAt(ndc, { allScene: true });
-    const wasSelected = worldBuilder.getSelected();
-    if (e.shiftKey && picked) {
-      // Shift-click: add to multi-select list for grouping
-      if (window._builderMultiList) {
-        if (!window._builderMultiList.includes(picked)) {
-          window._builderMultiList.push(picked);
-          playSfx("blip", 0.2);
-        }
-      }
-      worldBuilder.select(picked);
-    } else if (picked && picked === wasSelected) {
-      worldBuilder.dragStart();
-    } else {
-      worldBuilder.select(picked);   // may be null (deselect)
-      if (!e.shiftKey) window._builderMultiList && (window._builderMultiList.length = 0);
-      playSfx("click", 0.3);
-    }
-    e.preventDefault();
-    return;
-  }
-  if (mouseMode && activeMouseScreen && window.ScreenMesh) {
-    // Convert screen-pixel cursor → UV (flip Y for THREE convention)
-    const uv = {
-      x: mouseModeCursor.x / activeMouseScreen.resolutionW,
-      y: 1 - mouseModeCursor.y / activeMouseScreen.resolutionH,
-    };
-    const region = window.ScreenMesh.hitTest(activeMouseScreen, uv);
-    if (region && typeof region.onClick === "function") region.onClick(activeMouseScreen);
-    e.preventDefault();
-    return;
-  }
-  if (!pointerLocked) return;
-  if (invDiv.classList.contains("open")) return;
-  if (computerOpen || computerEntering) return;
-  if (inCar && activeVehicleId && (_activeVehicleDef || {}).type === "drone") { _tryDroneShoot(); return; }
-  _tryShoot();
-});
+// Pseudocode: LMB on canvas routes to build picking, screen mouse-mode, or gameplay shoot.
+mountCanvasPrimaryAction({ renderer, get: { buildMode: () => buildMode, worldBuilder: () => worldBuilder, pointerLocked: () => pointerLocked, builderMultiList: () => window._builderMultiList, mouseMode: () => mouseMode, activeMouseScreen: () => activeMouseScreen, mouseModeCursor: () => mouseModeCursor, inventoryOpen: () => invDiv.classList.contains("open"), computerOpen: () => computerOpen, computerEntering: () => computerEntering, inCar: () => inCar, activeVehicleId: () => activeVehicleId, activeVehicleDef: () => _activeVehicleDef }, actions: { playSfx, getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleHover: () => window._bcHoverRegion, getBuildConsoleScreen: () => window._buildConsoleScreen, tryDroneShoot: _tryDroneShoot, tryShoot: _tryShoot } });
 
 // Central shoot function — called from click and from auto-fire tick
 let _mouseHeld = false;
@@ -2869,8 +2817,9 @@ function tick() {
 
     if (!en.dead) {
       _enemyAiScaffold.tick(dt, en, { heroU: _heroNowAI.u, heroV: _heroNowAI.v, nowMs: now, em, crouching, smokeZones, heroShotAlertT: _heroShotAlertT, heroShotAlertU: _heroShotAlertU, heroShotAlertV: _heroShotAlertV }); // → enemy_ai_scaffold_tick.js
-      if (_enemyMeshTick.tickEntry(en, em, dt, now, ENEMY_RESPAWN_DELAY)) continue;
     }
+    // tickEntry handles both alive visual updates and dead fall animation — must run for dead enemies too
+    if (_enemyMeshTick.tickEntry(en, em, dt, now, ENEMY_RESPAWN_DELAY)) continue;
   }
 
   _enemyRegenTick.tick(dt, { nowSec: now / 1000, enemies });

@@ -299,7 +299,12 @@ export function mountComputerUI({
             closeComputer();
             setTimeout(() => {
               const _dSc = document.getElementById("difficultyScreen");
-              if (_dSc) _dSc.style.display = "flex";
+              if (_dSc) {
+                _dSc.style.display = "flex";
+                // Release pointer lock so the player can click a difficulty button.
+                // requestGameplayPointer re-acquires it once a button is clicked.
+                if (document.pointerLockElement) document.exitPointerLock();
+              }
             }, 350);
           }, 700);
         }
