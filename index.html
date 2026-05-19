@@ -106,6 +106,7 @@ import {
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
   STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT, HERO_HITBOX,
+  makeMovementStats, CAM_DIST_MIN, CAM_DIST_MAX,
   // World
   Rain, mountWorldLayout,
   // Audio
@@ -2365,8 +2366,7 @@ let camYaw = 0;
 let camPitch = -0.25;
 let camDist = 7;          // 0..0.5 = first-person, > 0.5 = third-person
 let camSide = 1;          // +1 = right shoulder, -1 = left shoulder
-const CAM_DIST_MIN = 0;
-const CAM_DIST_MAX = 15;
+// ═══ CAM_DIST_MIN/MAX extracted → src/config/movement_stats.js (iter 565) — imported at top
 let camDistBeforeEntry = 7;     // restore zoom when leaving computer
 let aiming = false;             // RMB-hold zoom-aim state
 let aimAmt = 0;                 // smoothed [0..1] aim multiplier
@@ -2453,10 +2453,8 @@ mountMouseInput({
 let velocityY = 0;
 let _canDoubleJump = false; // resets to true on ground jump, consumed by mid-air Space
 let _spaceWasDown = false;  // rising-edge detection for double jump
-const GRAVITY = CFG.gravity      || -25;
-const JUMP_V  = CFG.jumpVelocity || 13;
-const WALK    = CFG.walkSpeed    || 5;
-const SPRINT  = CFG.sprintSpeed  || 9;
+// ═══ EXTRACTED → src/config/movement_stats.js (iter 565)
+const { GRAVITY, JUMP_V, WALK, SPRINT } = makeMovementStats(CFG);
 
 // ---- main loop ----
 const { dom: _dom, hud, mini, MINI_HALF, dmgDirSvg: _dmgDirSvg, dmgDirG: _dmgDirG } = mountHudElements(CFG);

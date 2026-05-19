@@ -76,6 +76,7 @@ export { ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS } from "./config/enemy_types.js";
 export { makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
          STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT,
          HERO_HITBOX } from "./config/hero_stats.js";
+export { makeMovementStats, CAM_DIST_MIN, CAM_DIST_MAX } from "./config/movement_stats.js";
 
 // ── World ─────────────────────────────────────────────────────────────────────
 export { default as Rain }     from "./world/rain.js";
