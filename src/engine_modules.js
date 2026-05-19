@@ -44,6 +44,7 @@ export { mountMotionSprings }  from "./systems/motion_springs.js";
 export { mountStaminaTick }    from "./systems/stamina_tick.js";
 export { mountSpeedBoostTick } from "./systems/speed_boost_tick.js";
 export { mountFpsTick }        from "./systems/fps_tick.js";
+export { mountCrosshairTick }  from "./systems/crosshair_tick.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";

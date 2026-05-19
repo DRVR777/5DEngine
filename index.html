@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2392,6 +2392,7 @@ const _heartbeat = mountHeartbeat({
 let _hpGhost = 100;       // lagging HP ghost bar — catches up slowly after damage
 let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 const _fpsTick = mountFpsTick({ get: { fpsFrames: () => _fpsFrames, fpsWindowT: () => _fpsWindowT, fpsDisplay: () => _fpsDisplay }, set: { fpsFrames: v => { _fpsFrames = v; }, fpsWindowT: v => { _fpsWindowT = v; }, fpsDisplay: v => { _fpsDisplay = v; } }, actions: { onNewFps: fps => { if (typeof Engine !== "undefined") { Engine.debug.fpsHistory.push(fps); if (Engine.debug.fpsHistory.length > 60) Engine.debug.fpsHistory.shift(); } } } });
+const _crosshairTick = mountCrosshairTick();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
@@ -2701,22 +2702,8 @@ function tick() {
   _wasSniperScope = isSniperScope;
   camera.fov = isSniperScope ? 20 : (60 + _sprintFovAmt * 8);
   camera.updateProjectionMatrix();
-  // Scope overlay shows immediately after snap (snap is atomic, no lerp delay)
-  const scopeEl = _dom.scopeOverlay;
-  if (scopeEl) scopeEl.style.display = isSniperScope ? "block" : "none";
-  // Hide crosshair while scoped; bloom size driven by _moveSpread when moving
-  const crosshairDiv = _dom.crosshair;
-  if (crosshairDiv) {
-    crosshairDiv.style.visibility = isSniperScope ? "hidden" : "visible";
-    const _chBase = aiming ? 10 : 16;
-    const _chBloom = _chBase + _moveSpread * 26;
-    crosshairDiv.style.width  = _chBloom.toFixed(1) + "px";
-    crosshairDiv.style.height = _chBloom.toFixed(1) + "px";
-    crosshairDiv.style.opacity = _heroDead ? "0" : "1";
-    // Apex mode — gold crosshair at max level
-    crosshairDiv.style.borderColor = _heroApexMode ? "rgba(255,210,0,0.85)" : "rgba(0,200,255,0.7)";
-    crosshairDiv.style.boxShadow   = _heroApexMode ? "0 0 8px rgba(255,200,0,0.5)" : "0 0 6px rgba(0,200,255,0.4)";
-  }
+  // Scope overlay + crosshair bloom/color — extracted → src/systems/crosshair_tick.js (iter 600)
+  _crosshairTick.tick(_dom.scopeOverlay, _dom.crosshair, { isSniperScope, aiming, moveSpread: _moveSpread, heroDead: _heroDead, heroApexMode: _heroApexMode });
 
   // Sniper scope sway — breathing oscillation while scoped (crouching/breath-hold modulate amplitude)
   _sniperSway.tick(dt, { isSniperScope, heroDead: _heroDead, holdingBreath: !!(keys["ShiftLeft"] || keys["ShiftRight"]), crouching: !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen });
