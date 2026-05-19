@@ -47,6 +47,7 @@ export { mountEnemyMeshFactory }  from "./render/enemy_mesh.js";
 export { mountVehicleMeshFactory } from "./render/vehicle_mesh.js";
 export { mountVehicleMeshes }     from "./render/vehicle_meshes.js";
 export { mountFlashlight }        from "./render/flashlight.js";
+export { mountBulletGeo }         from "./render/bullet_geo.js";
 export { mountEnvironment }       from "./render/environment.js";
 export { mountHeroMesh }          from "./render/hero_mesh.js";
 export { mountLighting }          from "./render/lighting.js";

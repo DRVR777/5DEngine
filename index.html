@@ -93,7 +93,7 @@ import {
   mountShootSystem, createWeaponVisuals,
   // Render
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
-  mountVehicleMeshes, mountFlashlight,
+  mountVehicleMeshes, mountFlashlight, mountBulletGeo,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -716,9 +716,8 @@ let smokeGrenadeCount = 2;
 let flashbangCount = 2;
 const smokeZones = [];
 let _mineCount = 2;
-// Tracer-style bullet — thin elongated box, rotated to face travel direction
-const bulletGeo = new THREE.BoxGeometry(0.025, 0.025, 0.28);
-const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });  // bright yellow
+// ═══ EXTRACTED → src/render/bullet_geo.js (iter 561)
+const { bulletGeo, bulletMat } = mountBulletGeo({ THREE });
 
 const damageFlashEl = document.getElementById("damageFlash");
 let damageFlashUntil = 0;
