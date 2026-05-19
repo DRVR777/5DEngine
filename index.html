@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2408,6 +2408,7 @@ const _fpGunPosTick      = mountFpGunPosTick({ get: { weaponSwitchT: () => _weap
 const _walkAnimTick      = mountWalkAnimTick({ get: { gunKickZ: () => _gunKickZ, gunReloadX: () => _gunReloadX }, set: { gunKickZ: v => { _gunKickZ = v; }, gunReloadX: v => { _gunReloadX = v; } }, actions: { walkCycle: (dt, gs) => Bridge.walkCyclePhase(walkState, dt, gs), setThighs: m => { thighL.rotation.x = +m; thighR.rotation.x = -m; }, setShins: m => { shinL.rotation.x = Math.max(0, m) * 0.75; shinR.rotation.x = Math.max(0, -m) * 0.75; }, setArms: (lx, rx) => { armL.rotation.x = lx; armR.rotation.x = rx; }, setGunMount: (px,py,pz,rx,ry,rz) => { _gunMount.position.set(px,py,pz); _gunMount.rotation.set(rx,ry,rz); }, setTorsoY: y => { torso.position.y = y; } } });
 const _heroFaceTick      = mountHeroFaceTick({ get: { rotY: () => heroGroup.rotation.y }, set: { rotY: v => { heroGroup.rotation.y = v; } } });
 const _camShakeTick      = mountCamShakeTick({ get: { camShakeAmt: () => _camShakeAmt }, set: { camShakeAmt: v => { _camShakeAmt = v; } }, actions: { offsetCamera: (dx, dy) => { camera.position.x += dx; camera.position.y += dy; } } });
+const _heroKbTick        = mountHeroKnockbackTick({ get: { kbT: () => _heroKbT, kbU: () => _heroKbU, kbV: () => _heroKbV }, set: { kbT: v => { _heroKbT = v; }, kbU: v => { _heroKbU = v; }, kbV: v => { _heroKbV = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), resolveMove: (mover,du,dv) => GTAPhysics.resolveAABBMove(mover,du,dv,buildingBlockers) } });
 const _weaponHudTick   = mountWeaponHudTick({ get: { lowAmmoWarnedAt: () => _lowAmmoWarnedAt, lastMagBarAmmo: () => _lastMagBarAmmo, lastMagBarReloading: () => _lastMagBarReloading }, set: { lowAmmoWarnedAt: v => { _lowAmmoWarnedAt = v; }, lastMagBarAmmo: v => { _lastMagBarAmmo = v; }, lastMagBarReloading: v => { _lastMagBarReloading = v; } }, actions: { getWeapon: () => getWeapon(), getReserve: ammoItem => Inv.countItem(heroInv, ammoItem), playSfx: (str, vol) => playSfx(str, vol) } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
@@ -4453,15 +4454,7 @@ function tick() {
   } else {
     _dodgeBashDone = false;
   }
-  if (_heroKbT > 0) {
-    _heroKbT -= dt;
-    const _kbp = world.players.get("hero");
-    const _kbMover = { u: _kbp.u, v: _kbp.v, hitbox: { w: 0.5, d: 0.5 } };
-    GTAPhysics.resolveAABBMove(_kbMover, _heroKbU * dt, _heroKbV * dt, buildingBlockers);
-    world.setPlayer("hero", _kbp.x, _kbp.y, _kbp.z, _kbMover.u, _kbMover.v);
-    _heroKbU *= Math.max(0, 1 - dt * 8);
-    _heroKbV *= Math.max(0, 1 - dt * 8);
-  }
+  _heroKbTick.tick(dt);
   _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   // FP gun position/rotation — extracted → src/systems/fp_gun_pos_tick.js (iter 612)
   _fpGunPosTick.tick(dt, now, { active: _fpGunActive, aiming, reloading: _reloading, reloadStart: _reloadStart, reloadDur: RELOAD_DUR(), canSprint, gunBobPhase: _gunBobPhase, gunKickZ: _gunKickZ, gunReloadX: _gunReloadX, meleeSwing: _meleeSwing });
