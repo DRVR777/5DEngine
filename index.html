@@ -178,7 +178,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -2527,6 +2527,7 @@ const _bossRockTick      = mountEnemyBossRockTick({ THREE, scene, warnRingGeo: _
 const _poisonerSpitTick  = mountEnemyPoisonerSpitTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _incendiaryTick    = mountEnemyIncendiaryTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _bossSlamTick      = mountEnemyBossSlamTick({ ARMOR_ABSORB, getHeroPos: () => world.players.get("hero"), getEnemyPos: id => world.players.get(id), enemies, actions: { playSfx, screenShake: _applyScreenShake, spawnParticles: _spawnParticles, spawnShockwave: _spawnShockwave, flashDamage, setHeroHp: v => { heroHp = v; }, setHeroArmor: v => { heroArmor = v; }, setHeroLastDamageT: v => { heroLastDamageT = v; }, onHeroDeath: () => { if (!_heroDead) _heroShowDeathScreen(); } } });
+const _poisonerRangedSpitTick = mountEnemyPoisonerRangedSpitTick({ THREE, scene, enemyBullets, actions: { playSfx } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -3404,22 +3405,7 @@ function tick() {
             _poisonerSpitTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_poisoner_spit_tick.js
             _incendiaryTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_incendiary_tick.js
             _bossSlamTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, dodgeT: _dodgeT, heroDead: _heroDead, godMode: typeof Engine !== "undefined" && Engine.debug.godMode, heroHp, heroArmor }); // → enemy_boss_slam_tick.js
-            // Poisoner ranged spit — lobs poison glob every 3-4.5s when 4-10m away with LOS
-            if (en.type === "poisoner" && canSee && dist > 3.5 && dist < 10) {
-              if (!en._spitT || now / 1000 - en._spitT > (en._spitInterval || 3.5)) {
-                en._spitT = now / 1000;
-                en._spitInterval = 3.0 + Math.random() * 1.5;
-                const _spAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
-                const _spMesh = new THREE.Mesh(new THREE.SphereGeometry(0.12, 5, 4),
-                  new THREE.MeshBasicMaterial({ color: 0x44cc44 }));
-                _spMesh.position.set(ep.u, ep.y + 1.1, ep.v); scene.add(_spMesh);
-                const _spTof = 0.9 + dist / 14;
-                enemyBullets.push({ mesh: _spMesh, posU: ep.u, posV: ep.v, posY: ep.y + 1.1,
-                  dirU: Math.sin(_spAng), dirV: Math.cos(_spAng), dirY: 0.18,
-                  speed: dist / _spTof, damage: 4, traveled: 0, range: 11, poisonOnHit: true });
-                playSfx("tone:200:70:sawtooth", 0.22);
-              }
-            }
+            _poisonerRangedSpitTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_poisoner_ranged_spit_tick.js
             // Fast enemy charge dash — burst toward hero at 2.2x extra speed for 0.4s, every 3.5-5.5s
             if (en.type === "fast" && canSee && dist > 2.0 && dist < 8) {
               if (!en._chargeCD || (now / 1000 - en._chargeCD) > (en._chargeInterval || 4.0)) {
