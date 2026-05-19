@@ -63,10 +63,13 @@ export function mountComputerUI({
         .then(r => r.json())
         .then(data => {
           if (!shareEl) return;
-          const url = data.shareUrl || `http://${data.lanIp}:${data.port}`;
-          shareEl.innerHTML = `<a href="${url}" target="_blank"
-            style="color:#88ddff;text-decoration:underline">${url}</a>
-            <span style="color:#44cc66;margin-left:8px">✓ ${data.playerCount} player(s) connected</span>`;
+          const mdns = data.shareUrl   || `http://${data.lanIp}:${data.port}`;
+          const ip   = data.shareUrlIp || mdns;
+          shareEl.innerHTML =
+            `<div><b style="color:#44ff88">Primary (no IP needed):</b> ` +
+            `<a href="${mdns}" target="_blank" style="color:#88ddff">${mdns}</a></div>` +
+            `<div style="color:#666;font-size:11px;margin-top:2px">Fallback (IP): ${ip} — ` +
+            `${data.playerCount} player(s) connected</div>`;
         })
         .catch(() => {
           if (shareEl) shareEl.textContent = window.location.href.split("?")[0];

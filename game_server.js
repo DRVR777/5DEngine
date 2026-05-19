@@ -17,7 +17,7 @@
 import express           from "express";
 import { createServer }  from "http";
 import { Server }        from "socket.io";
-import { networkInterfaces } from "os";
+import { networkInterfaces, hostname } from "os";
 import { createSocket }  from "dgram";
 import path              from "path";
 import { fileURLToPath } from "url";
@@ -35,7 +35,10 @@ function getLanIp() {
   }
   return "127.0.0.1";
 }
-const SERVER_IP = getLanIp();
+const SERVER_IP       = getLanIp();
+const SERVER_HOSTNAME = hostname().toLowerCase();   // e.g. "quandale-dingle"
+// On Win10+/macOS/Linux with mDNS, other devices can reach us at hostname.local
+const MDNS_URL        = `http://${SERVER_HOSTNAME}.local:${PORT}`;
 
 // ── App + HTTP + Socket.IO ──────────────────────────────────────────────────
 const app    = express();
@@ -146,9 +149,11 @@ app.get("/__health", (_req, res) => res.json({ ok: true, players: players.size }
 
 app.get("/api/me", (_req, res) => res.json({
   lanIp:       SERVER_IP,
+  hostname:    SERVER_HOSTNAME,
   port:        PORT,
   playerCount: players.size,
-  shareUrl:    `http://${SERVER_IP}:${PORT}`,
+  shareUrl:    MDNS_URL,              // primary: hostname.local (no IP needed)
+  shareUrlIp:  `http://${SERVER_IP}:${PORT}`,  // fallback: raw IP
 }));
 
 // /scan — trigger an HTTP sweep + return all discovered servers (including self)
@@ -260,10 +265,11 @@ http.listen(PORT, "0.0.0.0", () => {
   console.log("  ║       5DEngine Multiplayer Server        ║");
   console.log("  ╚══════════════════════════════════════════╝");
   console.log(`  Local  → http://localhost:${PORT}`);
-  console.log(`  LAN    → http://${SERVER_IP}:${PORT}   ← share this`);
+  console.log(`  LAN    → ${MDNS_URL}   ← share this (works on same network, no IP needed)`);
+  console.log(`  LAN IP → http://${SERVER_IP}:${PORT}   ← fallback if .local doesn't resolve`);
   console.log(`  Health → http://localhost:${PORT}/__health`);
   console.log("");
-  console.log("  Other 5DEngine servers on your LAN are auto-discovered via UDP.");
+  console.log("  Friend on same WiFi? Tell them to open the LAN URL above in any browser.");
   console.log("  Press Ctrl+C to stop.\n");
 
   // Start broadcasting presence immediately and every 5 s
