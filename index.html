@@ -184,7 +184,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick, mountEnemyFastChargeTick, mountEnemySniperTick, mountEnemyStrafeMeleeTick, mountEnemyRobotPlasmaTick,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick, mountEnemyFastChargeTick, mountEnemySniperTick, mountEnemyStrafeMeleeTick, mountEnemyRobotPlasmaTick, mountEnemyAiScaffoldTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -1102,7 +1102,10 @@ const _speedBoostTick = mountSpeedBoostTick({ get: { speedBoostT: () => _speedBo
 const { speedOrbs: _speedOrbs, spawnSpeedOrb: _spawnSpeedOrb } = mountSpeedOrbSpawner({ THREE, scene });
 
 // ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
-// firePatches, poisonPuddles, _spawnFirePatch, _spawnPoisonPuddle — mounted below
+const {
+  spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle,
+  firePatches, poisonPuddles,
+} = mountHazardZones({ THREE, scene });
 
 // ═══ EXTRACTED → src/render/pickup_mesh.js (iter 554)
 const { pickupMeshes } = mountPickupMeshes({ THREE, scene, pickups });
@@ -2538,6 +2541,7 @@ const _fastChargeTick          = mountEnemyFastChargeTick({ getEnemyPos: id => w
 const _sniperTick              = mountEnemySniperTick({ THREE, scene, enemyBullets, resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), getEnemyPos: id => world.players.get(id), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), actions: { playSfx, screenShake: _applyScreenShake, alertShot: () => { showToast("SNIPER SHOT INCOMING!", "danger", 800); _bulletTimeLeft = 0.38; } } });
 const _robotPlasmaTick         = mountEnemyRobotPlasmaTick({ THREE, scene, enemyBullets, actions: { playSfx } });
 const _strafeMeleeTick         = mountEnemyStrafeMeleeTick({ ARMOR_ABSORB, getHeroPos: () => world.players.get("hero"), getEnemyPos: id => world.players.get(id), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), applyStatusEffect: effect => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", effect); }, actions: { playSfx, flashDamage, screenShake: _applyScreenShake, setHeroHp: v => { heroHp = v; }, setHeroArmor: v => { heroArmor = v; }, setHeroLastDamageT: v => { heroLastDamageT = v; }, setDmgDir: (ang, until) => { _dmgDirAngle = ang; _dmgDirUntil = until; }, setHeroKb: (u, v, t) => { _heroKbU = u; _heroKbV = v; _heroKbT = t; }, setHeroFireT: v => { _heroFireT = Math.max(_heroFireT, v); }, onHeroDeath: () => { if (!_heroDead) _heroShowDeathScreen(); }, emitHeroDied: id => { if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: id }); } } });
+const _enemyAiScaffold         = mountEnemyAiScaffoldTick({ getEnemyPos: id => world.players.get(id), setEnemyPos: (id, a, b, c, u, v) => world.setPlayer(id, a, b, c, u, v), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), hasLOS: (u0, v0, u1, v1) => hasLOS(u0, v0, u1, v1, buildingBlockers), makeBt: opts => typeof BehaviorTree !== "undefined" ? BehaviorTree.makeEnemyTree(opts) : null, runBt: (bt, ctx) => { if (typeof BehaviorTree !== "undefined") BehaviorTree.run(bt, ctx); }, pathfind: (u0, v0, u1, v1) => typeof AStar !== "undefined" ? AStar.findPath(u0, v0, u1, v1) : null, getAlertBroadcastT: () => _alertBroadcastT, setAlertBroadcastT: t => { _alertBroadcastT = t; }, robotPlasmaTick: _robotPlasmaTick, empTick: _empTick, heavyGrenadeTick: _heavyGrenadeTick, bossRockTick: _bossRockTick, poisonerSpitTick: _poisonerSpitTick, incendiaryTick: _incendiaryTick, bossSlamTick: _bossSlamTick, poisonerRangedSpitTick: _poisonerRangedSpitTick, fastChargeTick: _fastChargeTick, sniperTick: _sniperTick, strafeMeleeTick: _strafeMeleeTick, getHeroDead: () => _heroDead, getGodMode: () => typeof Engine !== "undefined" && Engine.debug.godMode, getDodgeT: () => _dodgeT, getHeroHp: () => heroHp, getHeroArmor: () => heroArmor, actions: { playSfx, showToast, spawnParticles: _spawnParticles } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -2704,12 +2708,6 @@ const { makeCrate: _makeCrate, breakCrate: _breakCrate, crates } = mountCrateSys
     spawnDamageNumber: _spawnDamageNumber,
   },
 });
-
-// ── Hazard zones — iter 543 ───────────────────────────────────────────────────
-const {
-  spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle,
-  firePatches, poisonPuddles,
-} = mountHazardZones({ THREE, scene });
 
 // ── Drop spawner — iter 544 ───────────────────────────────────────────────────
 const {
@@ -3232,207 +3230,7 @@ function tick() {
     if (!em) continue;
 
     if (!en.dead) {
-      // Build BT on first encounter
-      if (!en._bt && typeof BehaviorTree !== "undefined") {
-        en._bt = BehaviorTree.makeEnemyTree({
-          sightRange:  en.sightRange  || 12,
-          attackRange: en.attackRange || 1.8,
-          attackCD:    1.0,
-          loseRange:   (en.sightRange || 12) * 2.5,
-        });
-        en._patrolAngle = Math.random() * Math.PI * 2;
-      }
-
-      // Apply knockback if active
-      if (en._kbT > 0) {
-        en._kbT -= dt;
-        const kbEp = world.players.get(en.id);
-        if (kbEp) world.setPlayer(en.id, kbEp.x, kbEp.y, kbEp.z, kbEp.u + en._kbU * dt, kbEp.v + en._kbV * dt);
-      }
-      const ep = world.players.get(en.id);
-      if (!ep) continue;
-      const dx = _heroNowAI.u - ep.u, dz = _heroNowAI.v - ep.v;
-      const dist = Math.hypot(dx, dz);
-      const _effSight = (en.sightRange || 12) * (crouching ? 0.6 : 1.0);
-      const _smokeBlind = smokeZones.some(sz => Math.hypot(ep.u-sz.u, ep.v-sz.v) < sz.radius || Math.hypot(_heroNowAI.u-sz.u, _heroNowAI.v-sz.v) < sz.radius);
-      if (en._blindT > 0) en._blindT -= dt;
-      const canSee = !_smokeBlind && !(en._blindT > 0) && dist <= _effSight && _hasLOS(ep.u, ep.v, _heroNowAI.u, _heroNowAI.v);
-      // Gunshot alert — enemies within 9m without LOS move toward last shot position
-      if (!canSee && !en._wasChasing && _heroShotAlertT > 0) {
-        const _adist = Math.hypot(ep.u - _heroShotAlertU, ep.v - _heroShotAlertV);
-        if (_adist < 9) { en._heardShot = _heroShotAlertT; en._alertU = _heroShotAlertU; en._alertV = _heroShotAlertV; }
-      }
-      if (canSee) { en._lastSightT = now / 1000; en._lastHeroPos = { u: _heroNowAI.u, v: _heroNowAI.v }; }
-      // Alert bark — plays once when enemy first spots hero (transition patrol→chase)
-      if (canSee && !en._wasChasing && dist < 6) {
-        const alertFreq = en.type === "robot" ? 280 : en.type === "heavy" ? 90 : 160;
-        playSfx(`tone:${alertFreq}:120:sawtooth`, 0.22);
-        en._wasChasing = true;
-        en._alertT = 1.6; // show "!" for 1.6s after detection
-        _alertBroadcastT = now / 1000; // broadcast to all enemies via shared timestamp
-      } else if (!canSee) {
-        en._wasChasing = false;
-      }
-      // Receive broadcast alert — show "!" bubble without O(E²) inner loop
-      if (!en._wasChasing && (now / 1000 - _alertBroadcastT) < 1.5) en._alertT = 1.0;
-
-      // Low-HP behavior: grunts/fast/etc slow; boss/heavy ENRAGE (faster, brighter)
-      const _hpFrac = en.hp / en.maxHp;
-      const _isEnrageable = (en.type === "boss" || en.type === "heavy");
-      const _enSpeedMul = _hpFrac < 0.25 ? (_isEnrageable ? 1.35 : 0.55) : 1;
-      // First time crossing enrage threshold — announce it
-      if (_isEnrageable && !en._enraged && _hpFrac < 0.25 && en.hp > 0) {
-        en._enraged = true;
-        _spawnParticles(ep.u, 1.0, ep.v, 40, "red", 9, 1.2);
-        playSfx("tone:60:350:sawtooth", 0.75);
-        showToast(en.type === "boss" ? "★ BOSS ENRAGED!" : "HEAVY ENRAGED!", "danger", 2500);
-      }
-      if (en._meshChildren && en._meshChildren.length) {
-        const _pulse = _hpFrac < 0.25 ? (0.5 + 0.5 * Math.sin(now / (_isEnrageable ? 70 : 120))) : 0;
-        for (const ch of en._meshChildren) {
-          if (ch.material) {
-            if (!ch._origColor) ch._origColor = ch.material.color.clone();
-            ch.material.color.setRGB(
-              Math.min(1, ch._origColor.r + _pulse * (_isEnrageable ? 0.9 : 0.6)),
-              ch._origColor.g * (1 - _pulse * (_isEnrageable ? 0.7 : 0.4)),
-              ch._origColor.b * (1 - _pulse * (_isEnrageable ? 0.7 : 0.4))
-            );
-          }
-        }
-      }
-
-      // Panic flee — overrides BT for 3s when morale breaks (3+ kills nearby in 4s)
-      if (en._panicT > 0) {
-        en._panicT -= dt;
-        const _hFlee = world.players.get("hero");
-        if (_hFlee) {
-          const _fAng = Math.atan2(ep.u - _hFlee.u, ep.v - _hFlee.v);
-          const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-          GTAPhysics.resolveAABBMove(_em, Math.sin(_fAng)*en.moveSpeed*1.3*_enSpeedMul*dt,
-            Math.cos(_fAng)*en.moveSpeed*1.3*_enSpeedMul*dt, buildingBlockers);
-          world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v);
-          en.heading = _fAng;
-        }
-        if (en.mesh && en.mesh.children) {
-          const _yFlash = 0.5 + 0.5 * Math.sin(now / 70);
-          for (const ch of (en._meshChildren || [])) {
-            if (ch.material) {
-              if (!ch._origColor) ch._origColor = ch.material.color.clone();
-              ch.material.color.setRGB(
-                Math.min(1, ch._origColor.r + _yFlash * 0.7),
-                Math.min(1, ch._origColor.g + _yFlash * 0.6),
-                ch._origColor.b * (1 - _yFlash * 0.4)
-              );
-            }
-          }
-        }
-        continue;
-      }
-
-      // Heard-gunshot alert — converge toward hero's last shot position
-      if (en._heardShot > 0 && !canSee) {
-        en._heardShot -= dt;
-        const _adx = (en._alertU || 0) - ep.u, _adz = (en._alertV || 0) - ep.v;
-        if (Math.hypot(_adx, _adz) > 1.2) {
-          const _aAng = Math.atan2(_adx, _adz);
-          en.heading = _aAng;
-          const _aem = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-          GTAPhysics.resolveAABBMove(_aem, Math.sin(_aAng)*en.moveSpeed*0.7*_enSpeedMul*dt, Math.cos(_aAng)*en.moveSpeed*0.7*_enSpeedMul*dt, buildingBlockers);
-          world.setPlayer(en.id, ep.x, 0, 0, _aem.u, _aem.v);
-          continue;
-        } else { en._heardShot = 0; }
-      }
-
-      // Grenade stagger — stumble erratically for 1.5s after near-miss blast
-      if (en._staggerT > 0) {
-        en._staggerT -= dt;
-        en._staggerAngle = ((en._staggerAngle || 0) + dt * (Math.PI * 4));
-        en.heading = en._staggerAngle;
-        const _sem = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-        GTAPhysics.resolveAABBMove(_sem, Math.sin(en._staggerAngle) * en.moveSpeed * 0.35 * dt, Math.cos(en._staggerAngle) * en.moveSpeed * 0.35 * dt, buildingBlockers);
-        world.setPlayer(en.id, ep.x, 0, 0, _sem.u, _sem.v);
-        em.group.rotation.z = Math.sin(now / 70) * 0.35;
-        continue;
-      }
-      em.group.rotation.z = 0;
-
-      if (en._bt && typeof BehaviorTree !== "undefined") {
-        BehaviorTree.run(en._bt, {
-          enemy: en, hero: _heroNowAI, dt, now: now / 1000,
-          distToHero: dist, canSeeHero: canSee,
-          onChase: (ctx, pos) => {
-            const target = pos || { u: ctx.hero.u, v: ctx.hero.v };
-            // A* navigation: recompute path every 0.6s or when path exhausted
-            if (typeof AStar !== "undefined") {
-              const now6 = now / 1000;
-              if (!en._pathT || now6 - en._pathT > 0.6 || !en._path || en._path.length === 0) {
-                en._path = AStar.findPath(ep.u, ep.v, target.u, target.v);
-                en._pathT = now6;
-              }
-              // Consume waypoints within 0.8 units
-              while (en._path && en._path.length > 1) {
-                const wp = en._path[0];
-                if (Math.hypot(wp.u - ep.u, wp.v - ep.v) < 0.8) en._path.shift();
-                else break;
-              }
-              const wp = (en._path && en._path.length > 0) ? en._path[0] : target;
-              const ddx = wp.u - ep.u, ddz = wp.v - ep.v;
-              const m = Math.hypot(ddx, ddz) || 1;
-              en.heading = Math.atan2(ddx, ddz);
-              { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*_enSpeedMul*dt, (ddz/m)*en.moveSpeed*_enSpeedMul*dt, buildingBlockers);
-                world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
-            } else {
-              const ddx = target.u - ep.u, ddz = target.v - ep.v;
-              const m = Math.hypot(ddx, ddz) || 1;
-              en.heading = Math.atan2(ddx, ddz);
-              { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-                GTAPhysics.resolveAABBMove(_em, (ddx/m)*en.moveSpeed*_enSpeedMul*dt, (ddz/m)*en.moveSpeed*_enSpeedMul*dt, buildingBlockers);
-                world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
-            }
-            _robotPlasmaTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_robot_plasma_tick.js
-            _empTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroDead: _heroDead, godMode: typeof Engine !== "undefined" && Engine.debug.godMode }); // → enemy_robot_emp_tick.js
-            _heavyGrenadeTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_heavy_grenade_tick.js
-            _bossRockTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_boss_rock_tick.js
-            _poisonerSpitTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_poisoner_spit_tick.js
-            _incendiaryTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_incendiary_tick.js
-            _bossSlamTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, dodgeT: _dodgeT, heroDead: _heroDead, godMode: typeof Engine !== "undefined" && Engine.debug.godMode, heroHp, heroArmor }); // → enemy_boss_slam_tick.js
-            _poisonerRangedSpitTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_poisoner_ranged_spit_tick.js
-            _fastChargeTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, dx, dz }); // → enemy_fast_charge_tick.js
-            _sniperTick.tick(dt, en, { canSee, dist, ep, nowMs: now, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_sniper_tick.js
-          },
-          onPatrol: (ctx) => {
-            en._patrolAngle = (en._patrolAngle || 0) + dt * 0.35;
-            const r = 4 + ((en._patrolR = en._patrolR || (4 + Math.random() * 4)));
-            const pu = en.u + Math.cos(en._patrolAngle) * r;
-            const pv = en.v + Math.sin(en._patrolAngle) * r;
-            const ddx = pu - ep.u, ddz = pv - ep.v;
-            const m = Math.hypot(ddx, ddz) || 1;
-            const wanderSpd = (en.wanderSpeed || 1.0);
-            { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-              GTAPhysics.resolveAABBMove(_em, (ddx/m)*wanderSpd*_enSpeedMul*dt, (ddz/m)*wanderSpd*_enSpeedMul*dt, buildingBlockers);
-              world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
-          },
-          onAttack: (ctx) => { // → enemy_strafe_melee_tick.js
-            _strafeMeleeTick.tick(dt, en, { nowSec: ctx.now, nowMs: performance.now(), ep, heroU: _heroNowAI.u, heroV: _heroNowAI.v, heroHp, heroArmor, godMode: typeof Engine !== "undefined" && Engine.debug.godMode });
-          },
-        });
-      } else {
-        // Fallback if BT not loaded
-        en.heading = Math.atan2(dx, dz);
-        if (dist <= (en.sightRange || 12) && dist > (en.attackRange || 1.8)) {
-          const m = dist || 1;
-          { const _em = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-            GTAPhysics.resolveAABBMove(_em, (dx/m)*en.moveSpeed*_enSpeedMul*dt, (dz/m)*en.moveSpeed*_enSpeedMul*dt, buildingBlockers);
-            world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
-        }
-      }
-
-      // Hard clamp to arena — safety net in case AABB misses
-      { const _epc = world.players.get(en.id); const _AR = 27.5;
-        if (Math.abs(_epc.u) > _AR || Math.abs(_epc.v) > _AR)
-          world.setPlayer(en.id, _epc.x, 0, 0, Math.max(-_AR, Math.min(_AR, _epc.u)), Math.max(-_AR, Math.min(_AR, _epc.v))); }
-      // Enemy mesh update (walk bob, flinch, spawn anim, hp bar, hit flash, bleed, death) — extracted → src/systems/enemy_mesh_tick.js (iter 657)
+      _enemyAiScaffold.tick(dt, en, { heroU: _heroNowAI.u, heroV: _heroNowAI.v, nowMs: now, em, crouching, smokeZones, heroShotAlertT: _heroShotAlertT, heroShotAlertU: _heroShotAlertU, heroShotAlertV: _heroShotAlertV }); // → enemy_ai_scaffold_tick.js
       if (_enemyMeshTick.tickEntry(en, em, dt, now, ENEMY_RESPAWN_DELAY)) continue;
     }
   }

@@ -120,6 +120,7 @@ export { mountEnemyFastChargeTick }          from "./systems/enemy_fast_charge_t
 export { mountEnemySniperTick }              from "./systems/enemy_sniper_tick.js";
 export { mountEnemyStrafeMeleeTick }         from "./systems/enemy_strafe_melee_tick.js";
 export { mountEnemyRobotPlasmaTick }         from "./systems/enemy_robot_plasma_tick.js";
+export { mountEnemyAiScaffoldTick }          from "./systems/enemy_ai_scaffold_tick.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────
 export { mountShootSystem }    from "./combat/shoot_system.js";
