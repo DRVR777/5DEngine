@@ -81,7 +81,7 @@ import {
   // Systems
   mountConfigEditor, mountSceneHierarchy, mountDuelMode, mountDifficultySelect,
   mountNpcDialog, DEFAULT_NPC_DIALOGS,
-  mountQuestPanel, mountShopPanel, mountSettingsPanel,
+  mountQuestPanel, mountStarterQuests, mountShopPanel, mountSettingsPanel,
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
@@ -5586,24 +5586,12 @@ document.addEventListener("keydown", (e) => {
 window._saveGame = _saveGame;
 window._loadGame = _loadGame;
 
-// ---- Starter quests (fire after first frame) ----
-setTimeout(() => {
-  _quest.addQuest("intro", "Explorer", [
-    "Collect your first coin",
-    "Collect 3 coins",
-    "Collect all coins",
-  ]);
-  _quest.addQuest("combat", "Fighter", [
-    "Defeat your first enemy",
-    "Defeat 3 enemies",
-  ]);
-  _quest.addQuest("world", "World Builder", [
-    "Enter build mode (B)",
-    "Place a spawn point (N in build mode)",
-  ]);
-  showToast("Press J to view objectives", "info", 4000);
-  setTimeout(_loadGame, 200);  // load after quests are set up
-}, 1500);
+// ═══ EXTRACTED → src/systems/starter_quests.js (iter 581)
+mountStarterQuests({
+  addQuest: (...a) => _quest.addQuest(...a),
+  showToast,
+  loadGame: () => _loadGame(),
+});
 
 // J key closes quest panel too if focus is in-game
 document.addEventListener("keydown", (e) => {
