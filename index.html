@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -578,25 +578,21 @@ let _nearNpc = null;
 
 // Weapon registry — look up active weapon from CFG.weapons by id
 let currentWeaponId = "pistol";
-function getWeapon() {
-  const weps = CFG.weapons || [];
-  return weps.find(w => w.id === currentWeaponId) || {
-    id: "pistol", ammoItem: "pistol_9mm", fireRate: 5, damage: 20,
-    range: 30, speed: 80, magCap: 12, bulletRadius: 0.04, reloadDuration: 1200,
-    pellets: 1, spread: 0, automatic: false,
-  };
-}
+// ═══ EXTRACTED → src/systems/weapon_ammo.js (iter 588)
+const _wAmmo = mountWeaponAmmo({
+  getWeapons:        () => (typeof CFG !== "undefined" ? CFG.weapons : []),
+  getActiveWeaponId: () => currentWeaponId,
+});
+const getWeapon  = _wAmmo.getWeapon;
+const getAmmo    = _wAmmo.getAmmo;
+const setAmmo    = _wAmmo.setAmmo;
+const weaponAmmo = _wAmmo.weaponAmmo;
 // Weapon selector bar — momentarily shown when switching
 const _weaponSelector = mountWeaponSelector({
   getCFG: () => (typeof CFG !== "undefined" ? CFG : {}),
   getActiveWeaponId: () => currentWeaponId,
 });
 const _showWeaponSelector = () => _weaponSelector.show();
-
-// Per-weapon magazine ammo tracker; undefined = full mag on first read
-const weaponAmmo = new Map();
-function getAmmo()  { const w = getWeapon(); return weaponAmmo.has(w.id) ? weaponAmmo.get(w.id) : w.magCap; }
-function setAmmo(n) { weaponAmmo.set(currentWeaponId, n); }
 
 // Shooting state
 const bullets3D = [];
