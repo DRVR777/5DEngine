@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2609,6 +2609,7 @@ const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmo
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
 const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
+const _deviceBusTick     = mountDeviceBusTick({ actions: { getDeviceBus: () => typeof deviceBus !== "undefined" ? deviceBus : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0 }, hasAudioMixer: () => typeof audioMixer !== "undefined" && !!audioMixer, playSfx: (str, vol) => playSfx(str, vol), pollMon1Bridge: () => { if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint(); } } });
 const _screenMeshTick    = mountScreenMeshTick({ actions: { getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleScreen: () => window._buildConsoleScreen || null, getBuildConsoleMesh: () => window._buildConsoleMesh || null, intersectMesh: (mesh) => { const _r = new THREE.Raycaster(); _r.setFromCamera({ x: 0, y: 0 }, camera); return _r.intersectObject(mesh, false); }, setHoverRegion: id => { window._bcHoverRegion = id; } } });
 const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
@@ -4100,38 +4101,8 @@ function tick() {
   // Builder UI refresh (inspector + show/hide)
   if (typeof _refreshBuilderUI === "function") _refreshBuilderUI();
 
-  // PC periodically broadcasts a video frame to mon1 — gives the physical
-  // monitor mesh something to mirror (proof the device-graph pipes data).
-  if (deviceBus && (Math.floor(now / 500) !== Math.floor(lastT / 500))) {
-    const hp = world.players.get("hero");
-    deviceBus.send("pc1", "video_out", { kind: "video", payload: { frame:
-      "DWRLD OS v0.1\n" +
-      "uptime: " + (now / 1000).toFixed(0) + "s\n" +
-      "score:  " + score + " / " + pickups.length + "\n" +
-      "pos:    " + hp.u.toFixed(1) + ", " + hp.v.toFixed(1) + "\n" +
-      "spk:    " + (deviceBus.peek("spk1","audio_in").length) + " queued\n" +
-      "radioB heard: " + (deviceBus.peek("radioB","rf").length) + " msgs"
-    } });
-  }
-  // Drain spk1's audio_in inbox each tick → play each packet through the
-  // WebAudio mixer. This is what makes the speaker actually emit sound.
-  if (deviceBus && audioMixer) {
-    const audioPkts = deviceBus.drain("spk1", "audio_in");
-    for (const p of audioPkts) {
-      if (p && p.payload && p.payload.src) {
-        // Attenuate by distance from hero to speaker for spatial feel
-        const sp = deviceBus.getDevice("spk1");
-        let vol = p.payload.volume != null ? p.payload.volume : 0.4;
-        if (sp && sp.position) {
-          const hp2 = world.players.get("hero");
-          const d = Math.hypot(sp.position.u - hp2.u, sp.position.v - hp2.v);
-          vol *= Math.max(0, 1 - d / 30);
-        }
-        playSfx(p.payload.src, vol);
-      }
-    }
-  }
-  if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint();
+  // Device bus: PC video broadcast + speaker drain + mon1 poll — extracted → src/systems/device_bus_tick.js (iter 651)
+  _deviceBusTick.tick(dt, { nowMs: now, lastMs: lastT, score, pickupCount: pickups.length });
 
   // In-world screens + build console cursor + mouse overlay — extracted → src/systems/screen_mesh_tick.js (iter 650)
   _screenMeshTick.tick(dt, { buildMode, pointerLocked, mouseMode, spineZone, jumbotronScreen, skyScreen, worldScreens, activeMouseScreen, mouseModeCursor });
