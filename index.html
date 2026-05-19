@@ -95,7 +95,7 @@ import {
   mountRenderer,
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
   mountVehicleMeshes, mountFlashlight, mountBulletGeo, mountCamVectors, mountScene,
-  mountPostProcessing,
+  mountPostProcessing, mountLoaders,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -140,23 +140,8 @@ import {
 const showToast = Notifications.showToast;
 const _addKillFeedEntry = Notifications.addKillFeedEntry;
 // Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
-// We use .then chains (no top-level await) so the inline module also loads
-// cleanly in vm-based test sandboxes that don't support TLA.
-// .glb → GLTFLoader, .obj → OBJLoader (+ MTLLoader), .fbx → FBXLoader.
-// Quaternius packs are OBJ/FBX; Kenney is GLB; both work via the manifest.
-const Loaders = {};
-import("three/addons/loaders/GLTFLoader.js")
-  .then((m) => { Loaders.GLTFLoader = m.GLTFLoader; })
-  .catch((e) => { console.warn("GLTFLoader unavailable:", e.message); });
-import("three/addons/loaders/OBJLoader.js")
-  .then((m) => { Loaders.OBJLoader = m.OBJLoader; })
-  .catch((e) => { console.warn("OBJLoader unavailable:", e.message); });
-import("three/addons/loaders/MTLLoader.js")
-  .then((m) => { Loaders.MTLLoader = m.MTLLoader; })
-  .catch((e) => { console.warn("MTLLoader unavailable:", e.message); });
-import("three/addons/loaders/FBXLoader.js")
-  .then((m) => { Loaders.FBXLoader = m.FBXLoader; })
-  .catch((e) => { console.warn("FBXLoader unavailable:", e.message); });
+// ═══ EXTRACTED → src/render/loaders.js (iter 572)
+const { Loaders } = mountLoaders();
 
 // Post-processing — ═══ EXTRACTED → src/render/post_processing.js (iter 571)
 // mountPostProcessing call is placed after mountRenderer (line ~824) so renderer+camera are live.
