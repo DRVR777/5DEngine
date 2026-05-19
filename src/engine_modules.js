@@ -67,6 +67,7 @@ export { mountHeroMoveTick }       from "./systems/hero_move_tick.js";
 export { mountFreecamTick }        from "./systems/freecam_tick.js";
 export { mountScopeFovTick }       from "./systems/scope_fov_tick.js";
 export { mountNpcMoveTick }        from "./systems/npc_move_tick.js";
+export { mountEnemyBulletTick }    from "./systems/enemy_bullet_tick.js";
 export { mountEnemyRegenTick }     from "./systems/enemy_regen_tick.js";
 export { mountEnemySepTick }       from "./systems/enemy_sep_tick.js";
 export { mountPlatformSystem }     from "./systems/platform_system.js";
