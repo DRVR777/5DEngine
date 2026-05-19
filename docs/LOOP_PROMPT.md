@@ -114,29 +114,64 @@ actual current location of distinctive comments like
 "Robot EMP burst" or "Boss rock throw".
 
 ═══════════════════════════════════════════════════════════════════════
-TEST DISCIPLINE
+TEST DISCIPLINE — MANDATORY, NO EXCEPTIONS
 ═══════════════════════════════════════════════════════════════════════
 
-For each big-block sub-extraction:
+EVERY tick that touches code MUST add new tests. No extraction ships
+without at least a smoke test + one behavioral test. This is not
+optional even for "obvious" moves — if the code moved, prove it works.
+
+For each big-block sub-extraction, write ALL THREE:
 
   1. SMOKE TEST -- import the new module, call its tick function
      with minimal real-shaped fake deps. Must not throw.
 
-  2. BEHAVIORAL TEST -- for any sub-block that has an observable
-     side effect (spawn bullet, deal damage, apply status effect),
-     write a test asserting the effect happens. Example:
-
-       it("robot EMP within 4m disables hero sprint for 2.5s", () => {
-         const enemy = makeEnemy({ type: "robot", _empT: 0 });
-         const hero = { u: 0, v: 0, sprintBlocked: false };
-         const sys = mountEnemyRobotEmpTick({ ... });
-         sys.tick(0.016, enemy, { hero, nowSec: 0 });
-         expect(hero.sprintBlocked).toBe(true);
-         expect(enemy._empT).toBeCloseTo(8.0);
+       it("does not throw with minimal deps", () => {
+         const sys = mountEnemyRobotEmpTick({ actions: makeActions() });
+         expect(() => sys.tick(0.016, makeEnemy(), makeCtx())).not.toThrow();
        });
 
-  3. NO toContain TESTS as the primary validation. Allowed only as
-     supplementary documentation.
+  2. BEHAVIORAL TEST -- for any sub-block with an observable side
+     effect (spawn bullet, deal damage, set cooldown, mutate state),
+     assert that the effect happens under the right conditions AND
+     does NOT happen under the wrong conditions. Both directions.
+
+       it("EMP within 4m sets cooldown + fires sprint block", () => {
+         const sprintBlock = vi.fn();
+         const sys = mountEnemyRobotEmpTick({ actions: makeActions({ sprintBlock }) });
+         sys.tick(0.016, makeEnemy({ _empT: 0 }), { heroU: 0, heroV: 0, nowSec: 10 });
+         expect(sprintBlock).toHaveBeenCalled();
+       });
+
+       it("EMP beyond 4m does not fire", () => {
+         const sprintBlock = vi.fn();
+         const sys = mountEnemyRobotEmpTick({ actions: makeActions({ sprintBlock }) });
+         sys.tick(0.016, makeEnemy({ _empT: 0 }), { heroU: 10, heroV: 10, nowSec: 10 });
+         expect(sprintBlock).not.toHaveBeenCalled();
+       });
+
+  3. MAGIC NUMBER TEST -- for every numeric literal in the extracted
+     code (ranges, cooldowns, damage multipliers, thresholds), write
+     at least one test that directly exercises that boundary. Examples:
+
+       it("EMP range threshold is exactly 4m", () => { ... });
+       it("EMP cooldown is set to 8.0s", () => { ... });
+       it("boss rock damage is 18", () => { ... });
+
+     Magic numbers that are NOT tested are a silent regression risk.
+     If a future refactor changes 4.0 to 4.5, only the test catches it.
+
+  4. NO toContain TESTS as primary validation. Allowed only as
+     supplementary string-match documentation.
+
+MINIMUM TEST COUNT per extraction:
+  - Small sub-block (<25 lines): at least 4 tests
+  - Medium sub-block (25-50 lines): at least 6 tests
+  - Large sub-block (>50 lines): at least 10 tests
+
+If you cannot write behavioral tests because the sub-block has too
+many entangled side effects, that is a signal to split it smaller,
+not to skip tests.
 
 ═══════════════════════════════════════════════════════════════════════
 PER-TICK WORKFLOW
@@ -177,8 +212,10 @@ HARD RULES
 3. The wrapper loop of any big block stays in index.html until ALL
    of its sub-blocks are extracted.
 
-4. Every commit includes AT LEAST one behavioral test. toContain
-   tests do not satisfy this rule.
+4. Every commit includes the mandatory tests from TEST DISCIPLINE:
+   smoke + behavioral (both directions) + magic number boundary tests.
+   Minimum counts: 4 tests for small blocks, 6 for medium, 10 for large.
+   toContain tests do not count toward these minimums.
 
 5. If `npm test` fails after your changes, revert. Do not push
    broken tests.
@@ -189,8 +226,21 @@ HARD RULES
 
 7. Do not refactor existing extracted modules.
 
-8. Do not change numbers, do not rename existing variables.
-   Move code, do not edit it.
+8. PRESERVE ALL MAGIC NUMBERS EXACTLY. This is absolute.
+   When moving code into a new module, every numeric literal moves
+   with it unchanged: 4.0 stays 4.0, 8.0 stays 8.0, 0.55 stays 0.55.
+   Do not round, do not "clean up", do not extract into a named const
+   (that is abstraction, not your job). The only acceptable change to
+   a number is adding a test that pins it.
+
+   HOW TO VERIFY: after writing the new module, diff the numbers in
+   your new file against the original index.html lines. If any number
+   differs by even one digit, that is a bug. Fix it before committing.
+
+   WHY: these numbers are the game's tuning. They were chosen by play-
+   testing, not derivation. Changing 4.0 to 4 (integer) changes
+   nothing in JS but sets a precedent that leads to 3.5 to "simplify".
+   The numbers are sacred. The tests are their record.
 
 9. The game must remain playable after every tick.
 
