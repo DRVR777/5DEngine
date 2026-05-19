@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -992,6 +992,7 @@ const { grenadeCrates, armorPickups } = mountStaticSupply({ THREE, scene });
 // _speedBoostT / _speedTrailT remain here — mutated by lifecycle + tick
 let _speedBoostT = 0;
 let _speedTrailT = 0;
+const _speedBoostTick = mountSpeedBoostTick({ get: { speedBoostT: () => _speedBoostT, speedTrailT: () => _speedTrailT }, set: { speedBoostT: v => { _speedBoostT = v; }, speedTrailT: v => { _speedTrailT = v; } }, actions: { spawnTrail: () => { const _h = world.players.get("hero"); if (_h) _spawnParticles(_h.u - Math.sin(camYaw)*0.3, 0.15, _h.v - Math.cos(camYaw)*0.3, 2, "yellow", 3, 0.22); } } });
 const { speedOrbs: _speedOrbs, spawnSpeedOrb: _spawnSpeedOrb } = mountSpeedOrbSpawner({ THREE, scene });
 
 // ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
@@ -2802,19 +2803,7 @@ function tick() {
   const canSprint = _staminaTick.tick(dt, { wantsSprint, isSprinting, inputMoving: (inputF !== 0 || inputR !== 0) });
   // iter 431: isMoving declared below (line ~6274) but used here — TDZ crash. Hoist it.
   const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
-  if (_speedBoostT > 0) {
-    _speedBoostT -= dt;
-    // Yellow particle trail while boosting and moving
-    if (isMoving && !inCar && !buildMode && !_heroDead) {
-      _speedTrailT -= dt;
-      if (_speedTrailT <= 0) {
-        _speedTrailT = 0.08;
-        const _sth = world.players.get("hero");
-        if (_sth) _spawnParticles(_sth.u - Math.sin(camYaw) * 0.3, 0.15, _sth.v - Math.cos(camYaw) * 0.3, 2, "yellow", 3, 0.22);
-      }
-    }
-  }
-  const _speedBoostMul = _speedBoostT > 0 ? 1.5 : 1.0;
+  const _speedBoostMul = _speedBoostTick.tick(dt, { isMoving, inCar, buildMode, heroDead: _heroDead });
   const _baseSpeed = canSprint ? (SPRINT + _heroLvlSpeedBonus + _perkSpeedBonus) : (WALK + _heroLvlSpeedBonus * 0.5) * crouchSpeedMul;
   const speed = _baseSpeed * _speedBoostMul;
 
