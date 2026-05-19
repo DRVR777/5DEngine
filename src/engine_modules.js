@@ -49,6 +49,8 @@ export { mountEnvironment }       from "./render/environment.js";
 export { mountHeroMesh }          from "./render/hero_mesh.js";
 export { mountLighting }          from "./render/lighting.js";
 export { mountNpcMeshFactory }    from "./render/npc_mesh.js";
+export { mountPickupMeshes }      from "./render/pickup_mesh.js";
+export { mountComputerMesh }      from "./render/computer_mesh.js";
 
 // ── Static supplies ───────────────────────────────────────────────────────────
 export { mountStaticSupply }      from "./systems/static_supply.js";

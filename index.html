@@ -94,6 +94,7 @@ import {
   // Render
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
+  mountPickupMeshes, mountComputerMesh,
   mountStaticSupply, mountSpeedOrbSpawner,
   Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
   // Social
@@ -1248,17 +1249,8 @@ const { speedOrbs: _speedOrbs, spawnSpeedOrb: _spawnSpeedOrb } = mountSpeedOrbSp
 // ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
 // firePatches, poisonPuddles, _spawnFirePatch, _spawnPoisonPuddle — mounted below
 
-// Pickup meshes
-const pickupMeshes = new Map();
-const coinGeo = new THREE.SphereGeometry(0.3, 12, 12);
-const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x554400, metalness: 0.6, roughness: 0.3 });
-for (const pk of pickups) {
-  const m = new THREE.Mesh(coinGeo, coinMat);
-  m.position.set(pk.u, 1.0, pk.v);
-  m.castShadow = true;
-  pickupMeshes.set(pk.id, m);
-  scene.add(m);
-}
+// ═══ EXTRACTED → src/render/pickup_mesh.js (iter 554)
+const { pickupMeshes } = mountPickupMeshes({ THREE, scene, pickups });
 
 // ═══ EXTRACTED → src/render/npc_mesh.js (iter 552)
 const { npcMeshes } = mountNpcMeshFactory({ THREE, scene, npcDefs: NPC_DEFS });
@@ -1298,20 +1290,8 @@ for (const e of enemies) enemyMeshes.set(e.id, _makeEnemyMesh(e));
 // Backwards-compat: keep enemyGroup/enemyHpFg pointing to first enemy's mesh
 const { group: enemyGroup, hpFg: enemyHpFg } = enemyMeshes.get(enemies[0].id) || {};
 
-// Computer mesh — gray box with a glowing screen front
-const compGroup = new THREE.Group();
-const deskBox = new THREE.Mesh(
-  new THREE.BoxGeometry(1.6, 1.2, 0.6),
-  new THREE.MeshStandardMaterial({ color: 0x333333 })
-);
-deskBox.position.y = 0.6; deskBox.castShadow = true; compGroup.add(deskBox);
-const screenFront = new THREE.Mesh(
-  new THREE.PlaneGeometry(1.0, 0.7),
-  new THREE.MeshBasicMaterial({ color: 0x44ccff })
-);
-screenFront.position.set(0, 1.0, 0.31); compGroup.add(screenFront);
-compGroup.position.set(computerEntity.u, 0, computerEntity.v);
-scene.add(compGroup);
+// ═══ EXTRACTED → src/render/computer_mesh.js (iter 554)
+const { compGroup } = mountComputerMesh({ THREE, scene, computerEntity });
 
 // ---- device graph (devices.js + wires.js) ----------------------------
 // Build a small in-world hardware setup adjacent to the computer pickup:
