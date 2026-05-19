@@ -106,4 +106,31 @@ the mount wiring with a local layer-name resolver matching the debug HUD names.
 **Next:**
 Extract the bullet enemy damage/kill path into the bullet physics module set.
 
+---
+
+## iter 679 -- 2026-05-19
+
+**Did:**
+Extracted the bullet-caused enemy death/reward branch into
+`src/systems/bullet_enemy_kill_tick.js`. The collision and raw damage
+calculation remain in `index.html`; the kill side effects now live behind
+`_bulletEnemyKillTick.tick(en, ep, { nowMs, headshot })`.
+
+Pinned the important behavior with unit tests: death state, respawn time,
+headshot bullet-time, kill marker timing, level-up threshold, apex stamina,
+elite rewards, low-HP lifesteal, robot drops/effects, boss bonus/effects, and
+last-wave-kill bullet-time.
+
+**Line count:**
+`index.html` total 4060 -> 3950 (-110), code 3275 -> 3176 (-99).
+
+**Tests:**
+`npm test` passed (218 files, 3574 tests).
+`npm run browser-check` passed (`BROWSER OK`).
+`npm run test:campaign` passed (3/3 no-render waves cleared).
+
+**Next:**
+Extract the remaining bullet movement/substep shell or the surviving enemy-hit
+feedback path, whichever gives the safer >=20-line slice.
+
 **Next:** Tick 3 — wire core.js into index.html as additive import. Register prefabs from data/.

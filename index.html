@@ -179,7 +179,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
@@ -2776,6 +2776,7 @@ const _grenadeWarnTick   = mountGrenadeWarnTick({ actions: { getWarnEl: () => _d
 const _enemyFootstepTick = mountEnemyFootstepTick({ get: { enFsT: () => _enFsT }, set: { enFsT: v => { _enFsT = v; } }, actions: { getHeroPos: () => world.players.get("hero") || null, getEnemyPos: id => world.players.get(id) || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _enemyBulletTick   = mountEnemyBulletTick({ get: { heroPos: () => world.players.get("hero") || null, heroHp: () => heroHp, heroArmor: () => heroArmor, dodgeT: () => _dodgeT, godMode: () => typeof Engine !== "undefined" && Engine.debug.godMode, armorAbsorb: () => ARMOR_ABSORB, nowSec: () => _frameNowMs / 1000, nowMs: () => _frameNowMs }, set: { heroHp: v => { heroHp = v; }, heroArmor: v => { heroArmor = v; }, lastDamageT: v => { heroLastDamageT = v; }, dmgDirAngle: v => { _dmgDirAngle = v; }, dmgDirUntil: v => { _dmgDirUntil = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), applyPoison: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison"); }, showDeathScreen: () => _heroShowDeathScreen(), playSfx: (str, vol) => playSfx(str, vol) } });
 const _bulletWorldHitTick = mountBulletWorldHitTick({ getMp: () => _mp, barrels, crates, buildingBlockers, actions: { spawnParticles: _spawnParticles, spawnDamageNumber: _spawnDamageNumber, playSfx, explodeBarrel: (u, v) => _explodeBarrel(u, v), breakCrate: cr => _breakCrate(cr), spawnWallScorch: (u, y, v, nU, nV) => _spawnWallScorch(u, y, v, nU, nV) } });
+const _bulletEnemyKillTick = mountBulletEnemyKillTick({ enemies, coinByType: _COIN_BY_TYPE, weaponDropMap: _WEAPON_DROP_MAP, levelThresholds: _LEVEL_THRESHOLDS, get: { bulletTimeLeft: () => _bulletTimeLeft, enemyKills: () => enemyKills, heroLevel: () => _heroLevel, heroApexMode: () => _heroApexMode, stamina: () => _stamina, staminaMax: () => STAMINA_MAX, heroExtraStaminaMax: () => _heroExtraStaminaMax, heroArmor: () => heroArmor, heroMaxArmor: () => HERO_MAX_ARMOR, score: () => score, lastKillT: () => _lastKillT, streakWindow: () => _STREAK_WINDOW, streakCount: () => _streakCount, comboCount: () => _comboCount, heroHp: () => heroHp, heroMaxHp: () => HERO_MAX_HP, heroDead: () => _heroDead, vignetteAmt: () => _vignetteAmt }, set: { bulletTimeLeft: v => { _bulletTimeLeft = v; }, killMarkerUntil: v => { _killMarkerUntil = v; }, killMarkerHs: v => { _killMarkerHs = v; }, liveBoss: v => { _liveBoss = v; }, enemyKills: v => { enemyKills = v; }, heroLevel: v => { _heroLevel = v; }, stamina: v => { _stamina = v; }, heroArmor: v => { heroArmor = v; }, score: v => { score = v; }, lastKillT: v => { _lastKillT = v; }, streakCount: v => { _streakCount = v; }, comboCount: v => { _comboCount = v; }, comboLastT: v => { _comboLastT = v; }, heroHp: v => { heroHp = v; }, vignetteAmt: v => { _vignetteAmt = v; } }, actions: { playSfx, spawnDecal: _spawnDecal, spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle, applyLevelUpBuff: _applyLevelUpBuff, showToast, addKillFeedEntry: _addKillFeedEntry, spawnDamageNumber: _spawnDamageNumber, trackKillAndPanic: _trackKillAndPanic, emitEnemyKilled: (id, kills) => { if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id, kills }); }, completeQuestStep: (q, i) => _quest.completeQuestStep(q, i), getWaveState: () => typeof WaveManager !== "undefined" ? WaveManager.getState() : null, spawnAmmoPickup: _spawnAmmoPickup, spawnHealthPickup: _spawnHealthPickup, spawnCoinDrop: _spawnCoinDrop, spawnWeaponPickup: _spawnWeaponPickup, spawnParticles: _spawnParticles, emitParticle: (name, payload) => { if (typeof ParticleSystem !== "undefined") ParticleSystem.emit(name, payload); }, applyScreenShake: _applyScreenShake, spawnArmorShard: _spawnArmorShard } });
 const _firePatchTick     = mountFirePatchTick({ get: { heroHp: () => heroHp, heroFireT: () => _heroFireT }, set: { heroHp: v => { heroHp = v; }, heroFireT: v => { _heroFireT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), applyBurning: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning"); }, applyScreenShake: amt => _applyScreenShake(amt), getEnemyPos: id => world.players.get(id) || null, spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), onEnemyKill: (en, u, v) => { enemyKills++; _comboCount++; _comboLastT = _frameNowMs / 1000; _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${en.type}`, "#ff6600"); _trackKillAndPanic(u, v); _spawnDecal(u, v, "blood"); _spawnCoinDrop(u, v, (_COIN_BY_TYPE[en.type] || 1) * Math.min(8, _comboCount)); _spawnAmmoPickup(u, v, en.dropQty || 12, en.dropAmmo); if (en._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); } if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel); }, explodeBarrel: (u, v) => _explodeBarrel(u, v) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
@@ -3025,119 +3026,8 @@ function tick() {
             }
           }
           if (en.hp <= 0) {
-            en.hp = 0;
-            en.dead = true;
-            en.respawnT = now / 1000;
-            en._wasChasing = false;
-            // Headshot kill — brief bullet-time reward
-            if (headshot) _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.22);
-            // Kill confirmation marker — gold cross for headshot, red for normal
-            _killMarkerUntil = now + 300; _killMarkerHs = headshot;
-            // Type-specific kill confirmation sound
-            if (en.type === "boss") {
-              _liveBoss = null;
-              playSfx("tone:260:200:sine", 0.6); playSfx("tone:330:180:sine", 0.5); playSfx("tone:440:220:sine", 0.45);
-            } else if (en.type === "heavy") {
-              playSfx("tone:55:400:sawtooth", 0.5); playSfx("tone:80:200:sawtooth", 0.3);
-            } else if (en.type === "robot") {
-              playSfx("tone:180:120:square", 0.3); playSfx("tone:360:80:square", 0.2);
-            } else if (en.type === "sniper") {
-              playSfx("tone:500:80:sine", 0.25); playSfx("tone:250:120:sine", 0.2);
-            } else {
-              playSfx("tone:90:180:sawtooth", 0.22);
-            }
-            _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
-            if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
-        if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
-            enemyKills++;
-            // Level-up check (every 10 kills, max level 5)
-            if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel);
-            // Apex mode (level 5) — each kill restores 5 stamina
-            if (_heroApexMode) _stamina = Math.min(STAMINA_MAX + _heroExtraStaminaMax, _stamina + 5);
-            // Elite kill reward — bonus coins + armor shard
-            if (en._elite) {
-              score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20);
-              showToast("★ ELITE DOWN! +15 coins +20 armor!", "success", 2500);
-              _addKillFeedEntry("★★ ELITE ELIMINATED", "#ffd700");
-              playSfx("tone:1600:100:sine", 0.55); playSfx("tone:2000:80:sine", 0.45);
-            }
-            // Kill streak tracking
-            const nowSec = now / 1000;
-            if (nowSec - _lastKillT < _STREAK_WINDOW) {
-              _streakCount++;
-            } else {
-              _streakCount = 1;
-            }
-            _lastKillT = nowSec;
-            // Combo multiplier tracking
-            _comboCount++; _comboLastT = nowSec;
-            const streakMsgs = { 3: "TRIPLE KILL! +3 bonus coins", 5: "RAMPAGE! +5 bonus coins", 10: "UNSTOPPABLE! +10 bonus coins" };
-            if (streakMsgs[_streakCount]) {
-              const bonusCoins = _streakCount === 3 ? 3 : _streakCount === 5 ? 5 : 10;
-              score += bonusCoins;
-              showToast(streakMsgs[_streakCount], "success", 2200);
-              playSfx("tone:1400:120:sine", 0.6);
-            } else {
-              showToast(`Enemy down — ${enemyKills} kill${enemyKills>1?"s":""}`, "danger", 1800);
-            }
-            _addKillFeedEntry(`★ KILL #${enemyKills} — ${en.type || "enemy"}`, "#ff4466");
-            // Lifesteal on low HP — killing when below 40% HP restores 8 HP
-            if (heroHp < HERO_MAX_HP * 0.4 && !_heroDead) {
-              heroHp = Math.min(HERO_MAX_HP, heroHp + 8);
-              _spawnDamageNumber(ep.u, 2.2, ep.v, "+8 HP", "#00ff88");
-            }
-            _trackKillAndPanic(ep.u, ep.v);
-            if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id: en.id, kills: enemyKills });
-            _quest.completeQuestStep("combat", 0);
-            if (enemyKills >= 3) _quest.completeQuestStep("combat", 1);
-            // Last kill of the wave — cinematic bullet-time
-            if (typeof WaveManager !== "undefined") {
-              const _wph = WaveManager.getState().phase;
-              if (_wph === "waiting" || _wph === "spawning") {
-                const _wAlive = enemies.filter(e => !e.dead && e.id.startsWith("en_spawned_")).length;
-                if (_wAlive === 0) {
-                  _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.55);
-                  playSfx("tone:1200:60:sine", 0.5); playSfx("tone:1600:50:sine", 0.4);
-                }
-              }
-            }
-            _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
-            if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
-            const coinVal = _COIN_BY_TYPE[en.type] || 1;
-            const _bCoinMul = Math.min(8, _comboCount);
-            if (_bCoinMul > 1) _spawnDamageNumber(ep.u, 2.4, ep.v, `x${_bCoinMul}`, "#ffd166");
-            _spawnCoinDrop(ep.u, ep.v, coinVal * _bCoinMul);
-            if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
-            // Boss/heavy/robot death — big explosion + screen flash
-            if (en.type === "boss" || en.type === "heavy" || en.type === "robot") {
-              const blastColor = en.type === "robot" ? "cyan" : en.type === "boss" ? "red" : "orange";
-              const pCount = en.type === "boss" ? 150 : 50;
-              _spawnParticles(ep.u, 0.5, ep.v, pCount, blastColor, 14, 1.2);
-              _spawnParticles(ep.u, 1.5, ep.v, pCount / 2, "white", 10, 0.8);
-              if (en.type === "boss") {
-                _spawnParticles(ep.u, 2.5, ep.v, 80, "orange", 18, 2.0);
-                _applyScreenShake(1.0);
-                score += 50; // big boss bonus
-                showToast("★ BOSS DEFEATED! +50 coins!", "success", 4000);
-                _addKillFeedEntry("★★ BOSS DEFEATED ★★", "#ffd166");
-                _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.6);
-              } else if (en.type === "robot") {
-                _applyScreenShake(0.6);
-                _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.4);
-              } else if (en.type === "heavy") {
-                _applyScreenShake(0.4);
-                _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.25);
-              }
-              _vignetteAmt = Math.min(1, _vignetteAmt + (en.type === "boss" ? 0.9 : 0.4));
-              playSfx(`tone:${en.type==="robot"?300:en.type==="boss"?50:200}:${en.type==="boss"?800:180}:sawtooth`, 0.6);
-              showToast(`${en.type === "robot" ? "ROBOT" : "HEAVY"} ELIMINATED!`, "danger", 2000);
-              // Boss/heavy armor shard drop
-              if (en.type === "boss" || en.type === "heavy") _spawnArmorShard(ep.u, ep.v, en.type === "boss" ? 40 : 22);
-            } else {
-              _spawnParticles(ep.u, 1.2, ep.v, 18, "orange", 7, 0.5);
-              if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("sparks", { x: ep.u, y: 1.2, z: ep.v });
-              playSfx("tone:880:80:sine", 0.4);
-            }
+            // Pseudocode: if bullet damage killed the enemy, delegate rewards/effects.
+            _bulletEnemyKillTick.tick(en, ep, { nowMs: now, headshot });
           }
           // Sniper penetration — first hit pierces; second consumes bullet
           const _canPierce = b.weaponId === "sniper" && !b._pierced;
