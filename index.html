@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -658,21 +658,13 @@ let _vignetteAmt = 0; // spring [0..1]: driven by hit impulses + low-HP pulse
 let _heroFireT = 0;   // seconds hero is on fire (3 dmg/s, orange screen tint + particles)
 let _heroFireDmgT = 0;
 let _heroEmpT = 0;    // seconds sprinting is disabled (robot EMP burst debuff)
-let _camShakeAmt = 0; // decays to 0; applied to camera position as random offset
-function _applyScreenShake(intensity) { _camShakeAmt = Math.min(1, _camShakeAmt + intensity); }
-function flashDamage() {
-  _waveChallengeNoDmg = false; // hero took hit — "no damage" challenge failed
-  _vignetteAmt = 1.0; // instant spike, springs out in tick()
-  playSfx("tone:90:35:sawtooth", 0.18); // low pain grunt
-  _hitPunchPitch = Math.min(0.12, _hitPunchPitch + 0.05 + Math.random() * 0.04); // upward camera kick
-  // Near-death reflex — one-time 0.45s bullet-time when HP hits single digits
-  if (heroHp > 0 && heroHp <= 10 && !_nearDeathFired) {
-    _nearDeathFired = true;
-    _bulletTimeLeft = Math.max(_bulletTimeLeft, 0.45);
-    playSfx("tone:60:200:sine", 0.45); playSfx("tone:80:180:sine", 0.3);
-    showToast("CRITICAL!", "danger", 900);
-  }
-}
+let _camShakeAmt = 0;
+// ═══ EXTRACTED → src/systems/damage_feedback.js (iter 589)
+const { flashDamage, applyScreenShake: _applyScreenShake } = mountDamageFeedback({
+  get: { heroHp: () => heroHp, nearDeathFired: () => _nearDeathFired, bulletTimeLeft: () => _bulletTimeLeft, hitPunchPitch: () => _hitPunchPitch, camShakeAmt: () => _camShakeAmt },
+  set: { waveChallengeNoDmg: v => { _waveChallengeNoDmg = v; }, vignetteAmt: v => { _vignetteAmt = v; }, nearDeathFired: v => { _nearDeathFired = v; }, bulletTimeLeft: v => { _bulletTimeLeft = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camShakeAmt: v => { _camShakeAmt = v; } },
+  actions: { playSfx, showToast },
+});
 
 // Click-to-shoot handler is registered later, after `renderer` is created
 // (it accesses renderer.domElement, scene, camYaw, pointerLocked, invDiv —
