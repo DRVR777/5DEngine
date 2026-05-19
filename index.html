@@ -86,7 +86,7 @@ import {
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountHeroInventory, mountGameReset, mountDevConsoleGame, mountMediaPickups,
-  mountTriggerZoneInit,
+  mountTriggerZoneInit, mountNavAndAchievements,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
   mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress,
@@ -733,15 +733,8 @@ window._removeTerrain = function() {
 // ═══ EXTRACTED → src/systems/trigger_zone_init.js (iter 576)
 mountTriggerZoneInit({ THREE, scene, showToast });
 
-// Init AStar pathfinder with building data
-if (typeof AStar !== "undefined") {
-  AStar.build(WD, { halfSize: 60, cellSize: 1 });
-}
-
-// Init Achievements and wire to EventBus
-if (typeof Achievements !== "undefined" && typeof EventBus !== "undefined") {
-  Achievements.wireEventBus(EventBus);
-}
+// ═══ EXTRACTED → src/systems/nav_achievements_init.js (iter 577)
+mountNavAndAchievements({ WD });
 
 // ═══ EXTRACTED → src/core/engine_registry.js (iter 575)
 mountEngineRegistry();
