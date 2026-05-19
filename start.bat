@@ -1,5 +1,15 @@
 @echo off
 title 5DEngine Launcher
+
+REM ── Self-elevate to Administrator (needed for firewall rule) ─────────────────
+net session >nul 2>&1
+if errorlevel 1 (
+    echo  Requesting administrator access to open firewall port 8080...
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
+
+cd /d "%~dp0"
 echo.
 echo  ====================================================
 echo   5DEngine — Multiplayer Server + Game
@@ -19,35 +29,44 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Install/update packages if node_modules is missing or outdated
+REM Install packages if missing
 if not exist "node_modules\express" (
     echo  Installing packages...
     call npm install --omit=dev --silent
     if errorlevel 1 (
-        echo  ERROR: npm install failed. Check your internet connection.
+        echo  ERROR: npm install failed.
         pause
         exit /b 1
     )
 )
 
-echo  Starting 5DEngine server on http://localhost:8080 ...
+REM ── Firewall rule — allows LAN computers to reach port 8080 ──────────────────
+netsh advfirewall firewall delete rule name="5DEngine-8080" >nul 2>&1
+netsh advfirewall firewall add rule name="5DEngine-8080" dir=in action=allow protocol=TCP localport=8080 >nul 2>&1
+echo  Firewall: port 8080 opened for LAN access.
+
+REM ── Get LAN IP ────────────────────────────────────────────────────────────────
+set LAN_IP=
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4" ^| findstr /v "127.0"') do (
+    if not defined LAN_IP set LAN_IP=%%a
+)
+set LAN_IP=%LAN_IP: =%
+
 echo.
-
+echo  Starting 5DEngine server...
 start "5DEngine Server" cmd /k "node game_server.js 8080"
-
-REM Wait for server to be ready
 timeout /t 2 /nobreak >nul
 
 echo  Opening browser...
 start "" "http://localhost:8080"
 
 echo.
-echo  ── Multiplayer ──────────────────────────────────────
-echo  This machine:  http://localhost:8080
+echo  ── Friends on the same WiFi open one of these ───────
+if defined LAN_IP (
+echo    http://%LAN_IP%:8080
+)
+for /f %%h in ('hostname') do echo    http://%%h.local:8080
 echo.
-echo  Friends on the same WiFi — tell them to open this
-echo  URL in their browser (shown in the server window):
-echo    http://YOUR-PC-NAME.local:8080
+echo  Firewall rule added. Close the server window to stop.
 echo.
-echo  Close the server window to stop.
-echo.
+pause
