@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2397,6 +2397,7 @@ const _crosshairTick = mountCrosshairTick();
 const _combatHudTick = mountCombatHudTick();
 const _clockHudTick  = mountClockHudTick({ actions: { getDayNightHour: () => (typeof DayNight !== "undefined") ? DayNight.getHour() : null } });
 const _vignetteTick  = mountVignetteTick({ get: { vignetteAmt: () => _vignetteAmt }, set: { vignetteAmt: v => { _vignetteAmt = v; } } });
+const _statBarsTick  = mountStatBarsTick({ get: { hpGhost: () => _hpGhost }, set: { hpGhost: v => { _hpGhost = v; } } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
@@ -5076,44 +5077,8 @@ function tick() {
     }
   }
 
-  // Holographic health bar update
-  _hpGhost += (heroHp - _hpGhost) * Math.min(1, dt * 2.2);
-  const _effMaxHp = HERO_MAX_HP + _perkMaxHpBonus;
-  const hbGhostEl = _dom.hbGhost;
-  if (hbGhostEl) hbGhostEl.style.width = (Math.max(0, _hpGhost / _effMaxHp) * 100).toFixed(1) + "%";
-  const hbFill = _dom.hbFill;
-  const hbVal  = _dom.hbVal;
-  if (hbFill || hbVal) {
-    const hpFrac = Math.max(0, heroHp / _effMaxHp);
-    if (hbFill) {
-      hbFill.style.width = (hpFrac * 100).toFixed(1) + "%";
-      hbFill.style.background = hpFrac > 0.5
-        ? "linear-gradient(90deg,#00ffaa,#00ccff)"
-        : (hpFrac > 0.25 ? "linear-gradient(90deg,#ffd166,#ff8800)" : "linear-gradient(90deg,#ff4466,#cc0033)");
-    }
-    if (hbVal) hbVal.textContent = Math.ceil(heroHp);
-  }
-  // Armor bar
-  const armorBarEl = _dom.armorBar;
-  const arFillEl   = _dom.arFill;
-  const arValEl    = _dom.arVal;
-  if (armorBarEl) {
-    armorBarEl.style.display = heroArmor > 0 ? "flex" : "none";
-    if (arFillEl) arFillEl.style.width = `${(heroArmor / HERO_MAX_ARMOR * 100).toFixed(1)}%`;
-    if (arValEl)  arValEl.textContent  = Math.ceil(heroArmor);
-  }
-
-  // Stamina bar
-  const stFillEl = _dom.stFill;
-  if (stFillEl) {
-    const stPct = (_stamina / (STAMINA_MAX + _heroExtraStaminaMax) * 100).toFixed(1);
-    stFillEl.style.width = stPct + "%";
-    stFillEl.style.background = _stamina < STAMINA_LOCKOUT
-      ? "linear-gradient(90deg,#ff4444,#ff8844)"
-      : _heroApexMode
-        ? "linear-gradient(90deg,#ffcc00,#ffe066)"
-        : "linear-gradient(90deg,#44aaff,#00ccff)";
-  }
+  // HP ghost, HP fill, armor, stamina bars — extracted → src/systems/stat_bars_tick.js (iter 605)
+  _statBarsTick.tick(dt, { heroHp, heroMaxHp: HERO_MAX_HP, heroArmor, heroMaxArmor: HERO_MAX_ARMOR, stamina: _stamina, staminaMax: STAMINA_MAX, staminaExtraMax: _heroExtraStaminaMax, staminaLockout: STAMINA_LOCKOUT, apexMode: _heroApexMode, perkMaxHpBonus: _perkMaxHpBonus }, { hbGhost: _dom.hbGhost, hbFill: _dom.hbFill, hbVal: _dom.hbVal, armorBar: _dom.armorBar, arFill: _dom.arFill, arVal: _dom.arVal, stFill: _dom.stFill });
 
   // Boss HP bar — shows when a live boss enemy exists
   { const bossBarEl = _dom.bossHpBar;
