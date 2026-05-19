@@ -43,6 +43,7 @@ export { mountShootSystem }    from "./combat/shoot_system.js";
 export { createWeaponVisuals } from "./combat/weapon_visuals.js";
 
 // ── Render ───────────────────────────────────────────────────────────────────
+export { mountRenderer }          from "./render/renderer.js";
 export { mountDecalSystem }       from "./render/decals.js";
 export { mountEnemyMeshFactory }  from "./render/enemy_mesh.js";
 export { mountVehicleMeshFactory } from "./render/vehicle_mesh.js";

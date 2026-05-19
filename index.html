@@ -92,6 +92,7 @@ import {
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
+  mountRenderer,
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
   mountVehicleMeshes, mountFlashlight, mountBulletGeo,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
@@ -820,20 +821,8 @@ if (typeof Engine !== "undefined") {
 }
 if (typeof DevConsole !== "undefined") DevConsole.init();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(devicePixelRatio);
-renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-document.body.appendChild(renderer.domElement);
-
-const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 500);
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-  if (composer) composer.setSize(innerWidth, innerHeight);
-});
+// ═══ EXTRACTED → src/render/renderer.js (iter 567)
+const { renderer, camera } = mountRenderer({ THREE, getComposer: () => composer });
 
 // ── VFX MODULE INIT ──────────────────────────────────────────────────────────
 // Must happen AFTER both scene and camera exist.
