@@ -73,6 +73,7 @@ export { mountGrenadeWarnTick }    from "./systems/grenade_warn_tick.js";
 export { mountGrenadePhysicsTick } from "./systems/grenade_physics_tick.js";
 export { mountGrenadeArcTick }     from "./systems/grenade_arc_tick.js";
 export { mountWaveHudTick }        from "./systems/wave_hud_tick.js";
+export { mountScreenMeshTick }     from "./systems/screen_mesh_tick.js";
 export { mountEnemyRegenTick }     from "./systems/enemy_regen_tick.js";
 export { mountEnemySepTick }       from "./systems/enemy_sep_tick.js";
 export { mountPlatformSystem }     from "./systems/platform_system.js";
