@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2401,6 +2401,8 @@ const _statBarsTick  = mountStatBarsTick({ get: { hpGhost: () => _hpGhost }, set
 const _bossBarTick   = mountBossBarTick();
 const _comboHudTick    = mountComboHudTick();
 const _vehicleDashTick = mountVehicleDashTick();
+let _combatAmbT = 0;
+const _combatAmbientTick = mountCombatAmbientTick({ get: { ambT: () => _combatAmbT }, set: { ambT: v => { _combatAmbT = v; } }, actions: { isAmbientReady: () => Sfx.isAmbientReady(), setAmbient: (k, f, t, v, fade) => _setAmbient(k, f, t, v, fade) } });
 const _weaponHudTick   = mountWeaponHudTick({ get: { lowAmmoWarnedAt: () => _lowAmmoWarnedAt, lastMagBarAmmo: () => _lastMagBarAmmo, lastMagBarReloading: () => _lastMagBarReloading }, set: { lowAmmoWarnedAt: v => { _lowAmmoWarnedAt = v; }, lastMagBarAmmo: v => { _lastMagBarAmmo = v; }, lastMagBarReloading: v => { _lastMagBarReloading = v; } }, actions: { getWeapon: () => getWeapon(), getReserve: ammoItem => Inv.countItem(heroInv, ammoItem), playSfx: (str, vol) => playSfx(str, vol) } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
@@ -5096,33 +5098,8 @@ function tick() {
   // Vehicle dashboard — extracted → src/systems/vehicle_dash_tick.js (iter 608)
   _vehicleDashTick.tick(inCar && activeVehicleId, vehicleStates.get(activeVehicleId) || null, !!((_activeVehicleDef) && _activeVehicleDef.type === "drone"), { vehicleDash: _dom.vehicleDash, vdSpeed: _dom.vdSpeed, vdGear: _dom.vdGear });
 
-  // Combat-reactive ambient soundscape — updates every second
-  if (!tick._ambT || now / 1000 - tick._ambT > 1.0) {
-    tick._ambT = now / 1000;
-    if (Sfx.isAmbientReady()) {
-      // Wind drone — always present, quiet high-freq noise simulation
-      _setAmbient("wind", 220, "sawtooth", 0.008, 2.5);
-      // Single-pass ambient scan — count chasing + any-alive in one loop
-      let aliveChasing = 0, anyAlive = false;
-      for (let _ae = 0; _ae < enemies.length; _ae++) {
-        const _ae_ = enemies[_ae];
-        if (_ae_.dead) continue;
-        if (_ae_.id.startsWith("en_spawned_")) anyAlive = true;
-        if (_ae_._wasChasing) aliveChasing++;
-      }
-      const bossAlive = !!(_liveBoss && !_liveBoss.dead);
-      // Calm pad — minor chord (root + minor 3rd) when no enemies are chasing between waves
-      const calmVol = (!anyAlive || aliveChasing === 0) && !bossAlive && !_heroDead ? 0.024 : 0;
-      _setAmbient("calm",  110,   "sine", calmVol,          3.2);
-      _setAmbient("calm2", 130.8, "sine", calmVol * 0.65,   3.2); // minor 3rd (110 × 1.189)
-      // Combat tension — fades in with enemy count; second detuned osc creates beating
-      const tensionVol = Math.min(0.055, aliveChasing * 0.010);
-      _setAmbient("tension",  bossAlive ? 38 : 55, "sine",     tensionVol,         1.8);
-      _setAmbient("tension2", bossAlive ? 42 : 58, "triangle", tensionVol * 0.55,  1.8);
-      // Boss rumble — deep low freq pulse when boss is alive
-      _setAmbient("bossRumble", 28, "square", bossAlive ? 0.018 : 0, 2.0);
-    }
-  }
+  // Combat-reactive ambient soundscape — extracted → src/systems/combat_ambient_tick.js (iter 610)
+  _combatAmbientTick.tick(now / 1000, enemies, !!(_liveBoss && !_liveBoss.dead), _heroDead);
 
   if (typeof _mp !== "undefined" && _mp.enabled) _mp.tick(dt);
   if (composer) composer.render(); else renderer.render(scene, camera);
