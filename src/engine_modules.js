@@ -55,6 +55,7 @@ export { mountComboHudTick }   from "./systems/combo_hud_tick.js";
 export { mountVehicleDashTick } from "./systems/vehicle_dash_tick.js";
 export { mountWeaponHudTick }  from "./systems/weapon_hud_tick.js";
 export { mountCombatAmbientTick } from "./systems/combat_ambient_tick.js";
+export { mountSkyDayNightTick }  from "./render/sky_day_night_tick.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";

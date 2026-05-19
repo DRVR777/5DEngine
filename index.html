@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2403,6 +2403,7 @@ const _comboHudTick    = mountComboHudTick();
 const _vehicleDashTick = mountVehicleDashTick();
 let _combatAmbT = 0;
 const _combatAmbientTick = mountCombatAmbientTick({ get: { ambT: () => _combatAmbT }, set: { ambT: v => { _combatAmbT = v; } }, actions: { isAmbientReady: () => Sfx.isAmbientReady(), setAmbient: (k, f, t, v, fade) => _setAmbient(k, f, t, v, fade) } });
+const _skyDayNightTick   = mountSkyDayNightTick({ actions: { setTopColor: (r,g,b) => skyUniforms.topColor.value.setRGB(r,g,b), setBottomColor: (r,g,b) => skyUniforms.bottomColor.value.setRGB(r,g,b), setFogColor: (r,g,b) => scene.fog.color.setRGB(r,g,b), setSunPos: (x,y,z) => sun.position.set(x,y,z), setSunIntensity: v => { sun.intensity = v; } } });
 const _weaponHudTick   = mountWeaponHudTick({ get: { lowAmmoWarnedAt: () => _lowAmmoWarnedAt, lastMagBarAmmo: () => _lastMagBarAmmo, lastMagBarReloading: () => _lastMagBarReloading }, set: { lowAmmoWarnedAt: v => { _lowAmmoWarnedAt = v; }, lastMagBarAmmo: v => { _lastMagBarAmmo = v; }, lastMagBarReloading: v => { _lastMagBarReloading = v; } }, actions: { getWeapon: () => getWeapon(), getReserve: ammoItem => Inv.countItem(heroInv, ammoItem), playSfx: (str, vol) => playSfx(str, vol) } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
@@ -4918,21 +4919,7 @@ function tick() {
 
   // day-night cycle (60s full day for demo speed) — drives sky shader + sun
   const dn = Bridge.dayNightPhase(now / 1000, 60);
-  // Top-of-sky color: blue at noon, dark at night, warm orange at sunrise/sunset
-  const sunsetMix = Math.max(0, 1 - Math.abs(dn.sun.y - 0.0) * 5) * (dn.sun.y < 0.3 ? 1 : 0);
-  skyUniforms.topColor.value.setRGB(
-    0.05 + 0.48 * dn.dayMix + 0.4 * sunsetMix,
-    0.07 + 0.73 * dn.dayMix + 0.18 * sunsetMix,
-    0.18 + 0.74 * dn.dayMix
-  );
-  skyUniforms.bottomColor.value.setRGB(
-    0.10 + 0.85 * dn.dayMix + 0.5 * sunsetMix,
-    0.15 + 0.70 * dn.dayMix + 0.25 * sunsetMix,
-    0.30 + 0.50 * dn.dayMix
-  );
-  scene.fog.color.setRGB(dn.sky.r, dn.sky.g, dn.sky.b);
-  sun.position.set(dn.sun.x * 30, Math.max(2, dn.sun.y * 30), dn.sun.z * 30);
-  sun.intensity = 0.3 + 1.0 * dn.dayMix;
+  _skyDayNightTick.tick(dn); // extracted → src/render/sky_day_night_tick.js (iter 611)
 
   // Clock HUD — extracted → src/systems/clock_hud_tick.js (iter 603)
   _clockHudTick.tick(now, dn.dayMix, _dom.clockHud);
