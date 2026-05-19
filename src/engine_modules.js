@@ -47,6 +47,7 @@ export { mountEnemyMeshFactory }  from "./render/enemy_mesh.js";
 export { mountVehicleMeshFactory } from "./render/vehicle_mesh.js";
 export { mountEnvironment }       from "./render/environment.js";
 export { mountHeroMesh }          from "./render/hero_mesh.js";
+export { mountLighting }          from "./render/lighting.js";
 export { mountNpcMeshFactory }    from "./render/npc_mesh.js";
 
 // ── Static supplies ───────────────────────────────────────────────────────────

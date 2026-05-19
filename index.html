@@ -92,8 +92,9 @@ import {
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
-  mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory, mountEnvironment, mountHeroMesh,
-  mountNpcMeshFactory, mountStaticSupply, mountSpeedOrbSpawner,
+  mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
+  mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
+  mountStaticSupply, mountSpeedOrbSpawner,
   Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
   // Social
   createLanSession,
@@ -909,35 +910,8 @@ const _triggerMuzzleFlash = Vfx.triggerMuzzleFlash.bind(Vfx);  // briefly bright
 const _spawnShockwave     = Vfx.spawnShockwave.bind(Vfx);      // expanding boss-slam ring on ground
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Lighting: soft hemi + a key sun
-const _ambLight = new THREE.AmbientLight(0xffffff, 0.9);
-scene.add(_ambLight);
-window._ambLight = _ambLight;
-const sun = new THREE.DirectionalLight(0xffffff, 1.1);
-sun.position.set(20, 30, 10);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
-sun.shadow.camera.top  =  40; sun.shadow.camera.bottom = -40;
-scene.add(sun);
-window._sunLight = sun;
-window._renderer = renderer;
-window._scene    = scene;
-
-// Init DayNight cycle (1 game-min per real-second → full day = 24 real minutes)
-if (typeof DayNight !== "undefined") {
-  DayNight.init({ scene, sunLight: sun, ambLight: _ambLight, renderer, speed: 1, startHour: 8 });
-  Engine.register("dayNight", DayNight);
-  // Add console commands for time of day
-  Engine.addCommand("hour", "Get/set hour  hour [0-24]", (args) => {
-    if (args[0] !== undefined) DayNight.setHour(parseFloat(args[0]));
-    return `hour = ${DayNight.getHour().toFixed(2)}`;
-  });
-  Engine.addCommand("dayspeed", "Get/set day cycle speed  dayspeed [n]", (args) => {
-    if (args[0] !== undefined) DayNight.speed = parseFloat(args[0]);
-    return `dayspeed = ${DayNight.speed}`;
-  });
-}
+// ═══ EXTRACTED → src/render/lighting.js (iter 553)
+const { ambLight: _ambLight, sun } = mountLighting({ THREE, scene, Engine, renderer });
 
 // Wave manager init
 if (typeof WaveManager !== "undefined") {
