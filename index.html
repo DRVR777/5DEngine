@@ -1190,7 +1190,7 @@ if (deviceBus) {
 }
 
 // ═══ EXTRACTED → src/systems/media_pickups.js (iter 574)
-const { heroMedia, worldMedia, spawnMedia: _spawnMedia } = mountMediaPickups({ THREE, scene });
+const { heroMedia, worldMedia, spawnMedia: _spawnMedia, tick: _mediaPickupsTick } = mountMediaPickups({ THREE, scene, actions: { playSfx: (str, vol) => playSfx(str, vol) } });
 _spawnMedia({ id: "cd_mix", kind: "cd", label: "MIX_2026",
               files: { "/track1.wav": "(440Hz sine)", "/track2.wav": "(beep loop)",
                        "/readme.txt": "Burned by jumbotron HYPE crew" } },
@@ -4198,23 +4198,7 @@ function tick() {
           ? `<br>press <b>E</b> to enter ${(_nearVehDef||{type:"vehicle"}).type}`
           : ""));
 
-  // Storage media pickups (CDs / USBs) — auto-pickup at 1.5m
-  if (worldMedia.length > 0) {
-    const hp = world.players.get("hero");
-    for (const m of worldMedia) {
-      if (m.picked) continue;
-      const d = Math.hypot(m.mesh.position.x - hp.u, m.mesh.position.z - hp.v);
-      if (d < 1.5) {
-        m.picked = true;
-        scene.remove(m.mesh);
-        heroMedia.push({ id: m.id, kind: m.kind, label: m.label, files: m.files });
-        playSfx("blip", 0.4);
-      } else {
-        m.mesh.rotation.y += dt * 1.5;
-        m.mesh.position.y = (m.kind === "cd" ? 1.0 : 1.0) + Math.sin(now / 350 + (m.id.length || 1)) * 0.12;
-      }
-    }
-  }
+  _mediaPickupsTick(dt, { heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
   _ammoPickupTick.tick(dt, { pickups: ammoPickups, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
