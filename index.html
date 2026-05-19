@@ -178,7 +178,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -2524,6 +2524,7 @@ const _enemySepTick      = mountEnemySepTick({ actions: { getPos: id => world.pl
 const _empTick           = mountEnemyRobotEmpTick({ THREE, scene, shockwaves: _shockwaves, actions: { playSfx, setHeroEmpT: v => { _heroEmpT=v; }, showToast, flashDamage: o => { damageFlashEl.style.opacity=String(o); } } });
 const _heavyGrenadeTick  = mountEnemyHeavyGrenadeTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _bossRockTick      = mountEnemyBossRockTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat, grenades: grenades3D, GRAVITY, actions: { playSfx, screenShake: _applyScreenShake } });
+const _poisonerSpitTick  = mountEnemyPoisonerSpitTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -3398,29 +3399,7 @@ function tick() {
             _empTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroDead: _heroDead, godMode: typeof Engine !== "undefined" && Engine.debug.godMode }); // → enemy_robot_emp_tick.js
             _heavyGrenadeTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_heavy_grenade_tick.js
             _bossRockTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_boss_rock_tick.js
-            // Poisoner acid spit — lobs a toxic glob every 4s at 3-10m range, creates poison puddle
-            if (en.type === "poisoner" && canSee && dist > 3 && dist < 10) {
-              if (!en._acidT || now / 1000 - en._acidT > 4.0) {
-                en._acidT = now / 1000;
-                const tof = 1.1;
-                const aspeed = dist / tof;
-                const throwAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
-                const aMesh = new THREE.Mesh(
-                  new THREE.SphereGeometry(0.14, 6, 5),
-                  new THREE.MeshStandardMaterial({ color: 0x44dd44, emissive: 0x22bb00, emissiveIntensity: 1.2, roughness: 0.4 })
-                );
-                aMesh.position.set(ep.u, ep.y + 1.2, ep.v); scene.add(aMesh);
-                const _aWarnMat = new THREE.MeshBasicMaterial({ color: 0x44cc44, transparent: true, opacity: 0.55, depthWrite: false });
-                const _aWarnRing = new THREE.Mesh(_warnRingGeo, _aWarnMat);
-                _aWarnRing.position.set(ep.u, 0.05, ep.v); scene.add(_aWarnRing);
-                grenades3D.push({ mesh: aMesh, fuse: tof + 0.25, u: ep.u, y: ep.y + 1.2, v: ep.v,
-                  velU: Math.sin(throwAng) * aspeed,
-                  velY: Math.abs(GRAVITY) * tof / 2,
-                  velV: Math.cos(throwAng) * aspeed,
-                  _warnRing: _aWarnRing, _isAcidSpit: true });
-                playSfx("tone:600:50:sine", 0.22);
-              }
-            }
+            _poisonerSpitTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_poisoner_spit_tick.js
             // Incendiary fire bomb throw — lobs a flaming ball every 5s at 4-12m range
             if (en.type === "incendiary" && canSee && dist > 4 && dist < 12) {
               if (!en._fireT || now / 1000 - en._fireT > 5.0) {
