@@ -179,7 +179,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
@@ -2743,7 +2743,8 @@ window._loadingDismissed = false;
 const _platformSys = mountPlatformSystem();
 const _vehicleRenderTick = mountVehicleRenderTick();
 const _heroRegenTick     = mountHeroRegenTick({ get: { heroHp: () => heroHp, maxHp: () => HERO_MAX_HP, perkMaxHpBonus: () => _perkMaxHpBonus, lastDamageT: () => heroLastDamageT, regenDelay: () => HERO_REGEN_DELAY, regenRate: () => HERO_REGEN_RATE, perkRegenBonus: () => _perkRegenBonus }, set: { heroHp: v => { heroHp = v; }, nearDeathFired: v => { _nearDeathFired = v; } } });
-const _layerTransTick    = mountLayerTransitionTick({ get: { layerId: () => world.layerId }, actions: { boundaryAt: (u, v, blds) => world.boundaryAt(u, v, blds), bldgName: id => bldgName(id), logTransition: (from, to) => world.logTransition("hero", from, to, "phase_shift"), showToast: (msg, type, dur) => showToast(msg, type, dur), playSfx: (str, vol) => playSfx(str, vol) } });
+const _layerBldgName = id => ({ 2:"shop", 3:"tower", 4:"house", 5:"garage", 6:"diner", 7:"bank", 8:"park", 9:"studio" })[id] || `L${id}`;
+const _layerTransTick    = mountLayerTransitionTick({ get: { layerId: () => world.layerId }, actions: { boundaryAt: (u, v, blds) => world.boundaryAt(u, v, blds), bldgName: id => _layerBldgName(id), logTransition: (from, to) => world.logTransition("hero", from, to, "phase_shift"), showToast: (msg, type, dur) => showToast(msg, type, dur), playSfx: (str, vol) => playSfx(str, vol) } });
 const _ammoPickupTick    = mountAmmoPickupTick({ actions: { removeMesh: mesh => scene.remove(mesh), addAmmo: (item, qty) => Inv.addItem(heroInv, item || getWeapon().ammoItem || "pistol_9mm", qty), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _healthPickupTick  = mountHealthPickupTick({ get: { heroHp: () => heroHp, maxHp: () => HERO_MAX_HP }, set: { heroHp: v => { heroHp = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
 const _armorShardTick    = mountArmorShardTick({ get: { heroArmor: () => heroArmor, maxArmor: () => HERO_MAX_ARMOR }, set: { heroArmor: v => { heroArmor = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
@@ -2774,6 +2775,7 @@ const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles:
 const _grenadeWarnTick   = mountGrenadeWarnTick({ actions: { getWarnEl: () => _dom.grenadeWarn || null } });
 const _enemyFootstepTick = mountEnemyFootstepTick({ get: { enFsT: () => _enFsT }, set: { enFsT: v => { _enFsT = v; } }, actions: { getHeroPos: () => world.players.get("hero") || null, getEnemyPos: id => world.players.get(id) || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _enemyBulletTick   = mountEnemyBulletTick({ get: { heroPos: () => world.players.get("hero") || null, heroHp: () => heroHp, heroArmor: () => heroArmor, dodgeT: () => _dodgeT, godMode: () => typeof Engine !== "undefined" && Engine.debug.godMode, armorAbsorb: () => ARMOR_ABSORB, nowSec: () => _frameNowMs / 1000, nowMs: () => _frameNowMs }, set: { heroHp: v => { heroHp = v; }, heroArmor: v => { heroArmor = v; }, lastDamageT: v => { heroLastDamageT = v; }, dmgDirAngle: v => { _dmgDirAngle = v; }, dmgDirUntil: v => { _dmgDirUntil = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), applyPoison: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison"); }, showDeathScreen: () => _heroShowDeathScreen(), playSfx: (str, vol) => playSfx(str, vol) } });
+const _bulletWorldHitTick = mountBulletWorldHitTick({ getMp: () => _mp, barrels, crates, buildingBlockers, actions: { spawnParticles: _spawnParticles, spawnDamageNumber: _spawnDamageNumber, playSfx, explodeBarrel: (u, v) => _explodeBarrel(u, v), breakCrate: cr => _breakCrate(cr), spawnWallScorch: (u, y, v, nU, nV) => _spawnWallScorch(u, y, v, nU, nV) } });
 const _firePatchTick     = mountFirePatchTick({ get: { heroHp: () => heroHp, heroFireT: () => _heroFireT }, set: { heroHp: v => { heroHp = v; }, heroFireT: v => { _heroFireT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), applyBurning: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning"); }, applyScreenShake: amt => _applyScreenShake(amt), getEnemyPos: id => world.players.get(id) || null, spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), onEnemyKill: (en, u, v) => { enemyKills++; _comboCount++; _comboLastT = _frameNowMs / 1000; _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${en.type}`, "#ff6600"); _trackKillAndPanic(u, v); _spawnDecal(u, v, "blood"); _spawnCoinDrop(u, v, (_COIN_BY_TYPE[en.type] || 1) * Math.min(8, _comboCount)); _spawnAmmoPickup(u, v, en.dropQty || 12, en.dropAmmo); if (en._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); } if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel); }, explodeBarrel: (u, v) => _explodeBarrel(u, v) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
@@ -3150,80 +3152,10 @@ function tick() {
         }
       }
       if (hitEnemy) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
-      // Hit a peer player?
-      let hitPeer = false;
-      if (_mp && _mp.enabled) {
-        for (const [pid, peer] of _mp.peers) {
-          const lp = peer.lastPos;
-          if (!lp) continue;
-          const pdu = lp.u - b.posU, pdv = lp.v - b.posV;
-          const pdy = (lp.y + 0.9) - b.posY;  // offset to mid-torso
-          if (pdu*pdu + pdv*pdv < 0.36 && pdy*pdy < 0.81) {  // ~0.6m radius sphere
-            const headshot = b.posY > 1.6;
-            const dmg      = headshot ? b.damage * 2 : b.damage;
-            _mp.hitPeer(pid, dmg, headshot);
-            _spawnParticles(b.posU, b.posY, b.posV, 12, headshot ? "yellow" : "red", 6, 0.3);
-            _spawnDamageNumber(b.posU, b.posY + 0.5, b.posV,
-              `${headshot ? "HEADSHOT " : ""}-${dmg}`, headshot ? "#ffd700" : "#ff4444");
-            playSfx(headshot ? "tone:1800:40:sine" : "tone:900:30:square", 0.4);
-            hitPeer = true; break;
-          }
-        }
-      }
-      if (hitPeer) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
-      // Hit a barrel?
-      let hitBarrel = false;
-      for (const bar of barrels) {
-        if (bar.exploded) continue;
-        const bdu = bar.u - b.posU, bdv = bar.v - b.posV;
-        if (bdu*bdu + bdv*bdv < 0.18 && b.posY < 0.95) {
-          bar.hp -= b.damage;
-          _spawnParticles(b.posU, b.posY, b.posV, 5, "white", 7, 0.10);
-          _spawnParticles(b.posU, b.posY, b.posV, 3, "yellow", 5, 0.14);
-          playSfx("tone:1650:28:square", 0.20);
-          _spawnDamageNumber(b.posU, b.posY + 0.5, b.posV, `-${b.damage}`, "#ff6600");
-          if (bar.hp <= 0) { bar.exploded = true; bar.mesh.visible = false; _explodeBarrel(bar.u, bar.v); }
-          hitBarrel = true; break;
-        }
-      }
-      if (hitBarrel) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
-      // Hit a crate?
-      let hitCrate = false;
-      for (const cr of crates) {
-        if (cr.broken) continue;
-        const cdu = cr.u - b.posU, cdv = cr.v - b.posV;
-        if (cdu*cdu + cdv*cdv < 0.25 && b.posY < 0.95) {
-          cr.hp -= b.damage;
-          _spawnParticles(b.posU, b.posY, b.posV, 3, "orange", 3, 0.12);
-          _spawnDamageNumber(b.posU, b.posY + 0.5, b.posV, `-${b.damage}`, "#cc8833");
-          if (cr.hp <= 0) _breakCrate(cr);
-          hitCrate = true; break;
-        }
-      }
-      if (hitCrate) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
-      // Hit a building?
-      let _hitBlocker = null;
-      for (const bl of buildingBlockers) {
-        if (Math.abs(b.posU - bl.u) < bl.hitbox.w / 2 &&
-            Math.abs(b.posV - bl.v) < bl.hitbox.d / 2 &&
-            b.posY >= 0 && b.posY <= bl.hitbox.h) {
-          _hitBlocker = bl; break;
-        }
-      }
-      if (_hitBlocker) {
-        _spawnParticles(b.posU, b.posY, b.posV, 4, "yellow", 4, 0.18);
-        playSfx("tone:180:28:square", 0.09); // concrete/wall impact thud
-        // Scorch mark on wall face — use _hitBlocker ref carried from loop above
-        const _fU = b.posU - _hitBlocker.u, _fV = b.posV - _hitBlocker.v;
-        const _pnU = _hitBlocker.hitbox.w / 2 - Math.abs(_fU);
-        const _pnV = _hitBlocker.hitbox.d / 2 - Math.abs(_fV);
-        const _nU = _pnU < _pnV ? (_fU > 0 ? 1 : -1) : 0;
-        const _nV = _pnU < _pnV ? 0 : (_fV > 0 ? 1 : -1);
-        _spawnWallScorch(b.posU, b.posY, b.posV, _nU, _nV);
-      }
-      // BUG FIX iter 418: hitSolid was never declared — _hitBlocker is the correct
-      // variable (set to null or the building object a few lines above at line ~6732).
-      if (_hitBlocker || b.traveled >= b.range) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
+      // Pseudocode: after enemy hits, delegate non-enemy bullet impacts to a module.
+      // if peer/barrel/crate/building/range hit -> remove bullet and continue.
+      const _worldHit = _bulletWorldHitTick.tick(b);
+      if (_worldHit.remove) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
       b.mesh.position.set(b.posU, b.posY, b.posV);
     }
   }

@@ -79,4 +79,31 @@ Created vitest.config.js scoping test runner to tests/unit/ only (excludes empty
 **Tests:** 28/28 passed
 **Commit:** iter 435
 
+---
+
+## iter 678 -- 2026-05-19
+
+**Did:**
+Extracted the non-enemy tail of the bullet physics loop into
+`src/systems/bullet_world_hit_tick.js`: peer hits, barrel hits, crate hits,
+building blocker impacts, wall scorch normals, and range expiry.
+
+Kept the enemy damage/kill path in `index.html` for the next bullet-physics
+sub-extraction. Added pseudocode comments at the remaining call site.
+
+While running the no-render campaign check, Playwright found a browser-only
+runtime error: `_layerTransTick` referenced a missing `bldgName` global. Fixed
+the mount wiring with a local layer-name resolver matching the debug HUD names.
+
+**Line count:**
+`index.html` total 4128 -> 4060 (-68), code 3338 -> 3275 (-63).
+
+**Tests:**
+`npm test` passed (217 files, 3563 tests).
+`npm run browser-check` passed (`BROWSER OK`).
+`npm run test:campaign` passed (3/3 no-render waves cleared).
+
+**Next:**
+Extract the bullet enemy damage/kill path into the bullet physics module set.
+
 **Next:** Tick 3 — wire core.js into index.html as additive import. Register prefabs from data/.
