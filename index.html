@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2600,6 +2600,7 @@ window._loadingDismissed = false;
 const _platformSys = mountPlatformSystem();
 const _vehicleRenderTick = mountVehicleRenderTick();
 const _heroRegenTick     = mountHeroRegenTick({ get: { heroHp: () => heroHp, maxHp: () => HERO_MAX_HP, perkMaxHpBonus: () => _perkMaxHpBonus, lastDamageT: () => heroLastDamageT, regenDelay: () => HERO_REGEN_DELAY, regenRate: () => HERO_REGEN_RATE, perkRegenBonus: () => _perkRegenBonus }, set: { heroHp: v => { heroHp = v; }, nearDeathFired: v => { _nearDeathFired = v; } } });
+const _layerTransTick    = mountLayerTransitionTick({ get: { layerId: () => world.layerId }, actions: { boundaryAt: (u, v, blds) => world.boundaryAt(u, v, blds), bldgName: id => bldgName(id), logTransition: (from, to) => world.logTransition("hero", from, to, "phase_shift"), showToast: (msg, type, dur) => showToast(msg, type, dur), playSfx: (str, vol) => playSfx(str, vol) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
 let _lastHudEnemyHpStr = "";
@@ -4124,16 +4125,7 @@ function tick() {
 
   _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching, onGround });
 
-  // layer transition check + ambient zone change
-  const insideNow = world.boundaryAt(hero.u, hero.v, buildings.map(b => b.b));
-  const targetLayer = insideNow ? insideNow.targetLayerId : 1;
-  if (targetLayer !== world.layerId) {
-    world.logTransition("hero", world.layerId, targetLayer, "phase_shift");
-    if (insideNow) showToast(`Entered ${bldgName(insideNow.targetLayerId)}`, "info", 1800);
-    else showToast("Outside", "info", 1200);
-    // Ambient tone on zone change (brief hum to cue the transition)
-    playSfx(`tone:${insideNow ? 320 : 180}:200:sine`, 0.12);
-  }
+  _layerTransTick.tick(dt, { heroU: hero.u, heroV: hero.v, buildings: buildings.map(b => b.b) });
 
   // Ambient soundscape disabled — oscillator hum removed per user request
 

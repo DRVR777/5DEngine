@@ -72,6 +72,7 @@ export { mountEnemySepTick }       from "./systems/enemy_sep_tick.js";
 export { mountPlatformSystem }     from "./systems/platform_system.js";
 export { mountVehicleRenderTick }  from "./systems/vehicle_render_tick.js";
 export { mountHeroRegenTick }      from "./systems/hero_regen_tick.js";
+export { mountLayerTransitionTick } from "./systems/layer_transition_tick.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";
