@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2411,6 +2411,7 @@ let _footstepT = 0;    // seconds until next footstep tick
 const _footstepSnd = mountFootstepSound({ get: { footstepT: () => _footstepT }, set: { footstepT: v => { _footstepT = v; } }, actions: { playSfx } });
 let _gunBobPhase = 0;  // oscillation phase for FP weapon bob
 let _strafeRollAmt = 0; // spring [−1..1]: FP camera roll when strafing
+const _motionSprings = mountMotionSprings({ get: { moveSpread: () => _moveSpread, gunBobPhase: () => _gunBobPhase, strafeRollAmt: () => _strafeRollAmt }, set: { moveSpread: v => { _moveSpread = v; }, gunBobPhase: v => { _gunBobPhase = v; }, strafeRollAmt: v => { _strafeRollAmt = v; } } });
 let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
 let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
 let _breathHoldT = 0;    // seconds Shift held while scoped (>1.5s causes trembling)
@@ -2828,15 +2829,7 @@ function tick() {
 
   // Footstep sounds — synthetic tap when hero walks/runs on ground (not in vehicle, not dead)
   _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching });
-  _moveSpread += (moveSpreadTarget - _moveSpread) * Math.min(1, dt * 5);
-  // Gun bob phase — advances while moving, decays to 0 at rest
-  if (isMoving && !inCar && !buildMode && !_heroDead) {
-    _gunBobPhase += (canSprint ? 11 : 7) * dt;
-  } else {
-    _gunBobPhase *= Math.exp(-dt * 8);
-  }
-  // Strafe roll spring — tilts FP camera slightly when strafing
-  _strafeRollAmt += (inputR * (aiming ? 0.3 : 1.0) - _strafeRollAmt) * Math.min(1, dt * 8);
+  _motionSprings.tick(dt, { moveSpreadTarget, isMoving, inCar, buildMode, heroDead: _heroDead, canSprint, inputR, aiming });
   // Sprint trail — orange dust particles at hero feet when running at full sprint
   if (isSprinting && isMoving && !_heroDead && pointerLocked && Math.random() < 0.45) {
     const _spTp = world.players.get("hero");
