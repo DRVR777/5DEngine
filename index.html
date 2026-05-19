@@ -179,7 +179,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountScreenInteraction, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountScreenInteraction, mountSaveWiring, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
@@ -3125,63 +3125,9 @@ const _checkHighScore = HighScore.check;
 
 // EXTRACT-PLAN iter 532: save_system.js → src/systems/save_system.js
 // Covers: localStorage save/load, _loadGameState, _saveGameState
-// ---- Persistent game state (localStorage) ----
-// ═══ EXTRACTED → src/systems/save_load.js (GameProgress export) ══════════════
-// _saveGame, _loadGame, _applyGameData — wired via GameProgress.init() below
-// ═════════════════════════════════════════════════════════════════════════════
-GameProgress.init(
-  () => {
-    const heroNow = world.getPlayer ? world.getPlayer("hero") : { u: 0, v: 0, y: 0 };
-    return {
-      score, enemyKills, heroHp,
-      heroMaxHp: HERO_MAX_HP,
-      heroU: heroNow.u, heroV: heroNow.v, heroY: heroNow.y || 0,
-      weaponId: currentWeaponId,
-      inventory: (typeof _inventory !== "undefined") ? [..._inventory] : [],
-      spawnPoints: _spawnPoints.filter(sp => sp.label !== "origin").map(sp => ({ u: sp.u, v: sp.v })),
-      questProgress: _quest.getQuests().map(q => ({ id: q.id, steps: q.steps.map(s => s.done) })),
-    };
-  },
-  (data, source) => {
-    if (data.score) score = data.score;
-    if (data.enemy_kills != null) enemyKills = data.enemy_kills;
-    else if (data.enemyKills) enemyKills = data.enemyKills;
-    if (data.hero_hp != null) heroHp = Math.min(data.hero_hp, HERO_MAX_HP);
-    else if (data.heroHp) heroHp = Math.min(data.heroHp, HERO_MAX_HP);
-    const spawnPts = data.spawn_points || data.spawnPoints;
-    if (Array.isArray(spawnPts)) { for (const sp of spawnPts) _addSpawnPoint(sp.u, sp.v); }
-    const qp = data.quest_progress || data.questProgress;
-    if (Array.isArray(qp)) {
-      for (const entry of qp) {
-        const q = _quest.getQuests().find(q => q.id === (entry.id || entry.quest_id));
-        if (!q) continue;
-        const steps = entry.steps || entry.steps_done;
-        if (Array.isArray(steps)) {
-          for (let i = 0; i < steps.length && i < q.steps.length; i++) { if (steps[i]) q.steps[i].done = true; }
-        }
-      }
-      _quest.renderQuests();
-    }
-    const age = data.saved_at
-      ? Math.round((Date.now() - new Date(data.saved_at).getTime()) / 60000)
-      : (data.timestamp ? Math.round((Date.now() - data.timestamp) / 60000) : 0);
-    showToast(`Save loaded from ${source} (${age}m ago) — score:${score} kills:${enemyKills}`, "info", 4000);
-  },
-  { getQuests: () => _quest.getQuests() }
-);
-const _saveGame = () => GameProgress.save();
-const _loadGame = () => GameProgress.load();
-
-// Auto-save every 30 seconds
-setInterval(_saveGame, 30000);
-// Manual save with Ctrl+S
-document.addEventListener("keydown", (e) => {
-  if (e.code === "KeyS" && e.ctrlKey && !computerOpen) {
-    e.preventDefault();
-    _saveGame();
-    showToast("Game saved", "success", 1500);
-  }
-});
+// ═══ EXTRACTED → src/systems/save_wiring.js (iter 683) ════════════════════════
+// Pseudocode: GameProgress.init(collect, apply) + auto-save 30s + Ctrl+S keydown.
+const { save: _saveGame, load: _loadGame } = mountSaveWiring({ GameProgress, get: { score: () => score, enemyKills: () => enemyKills, heroHp: () => heroHp, heroMaxHp: () => HERO_MAX_HP, currentWeaponId: () => currentWeaponId, computerOpen: () => computerOpen, heroPos: () => world.getPlayer ? (world.getPlayer("hero") || { u: 0, v: 0, y: 0 }) : { u: 0, v: 0, y: 0 }, inventory: () => (typeof _inventory !== "undefined") ? _inventory : [], spawnPoints: () => _spawnPoints, quests: () => _quest.getQuests() }, set: { score: v => { score = v; }, enemyKills: v => { enemyKills = v; }, heroHp: v => { heroHp = v; } }, actions: { addSpawnPoint: _addSpawnPoint, renderQuests: () => _quest.renderQuests(), showToast }, registerKeydown: fn => document.addEventListener("keydown", fn) });
 window._saveGame = _saveGame;
 window._loadGame = _loadGame;
 

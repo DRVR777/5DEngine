@@ -73,6 +73,7 @@ export { mountBulletEnemyKillTick } from "./systems/bullet_enemy_kill_tick.js";
 export { mountBulletEnemyHitFeedbackTick } from "./systems/bullet_enemy_hit_feedback_tick.js";
 export { mountBulletPhysicsTick }  from "./systems/bullet_physics_tick.js";
 export { mountScreenInteraction }  from "./systems/screen_interaction.js";
+export { mountSaveWiring }         from "./systems/save_wiring.js";
 export { mountEnemyFootstepTick }  from "./systems/enemy_footstep_tick.js";
 export { mountGrenadeWarnTick }    from "./systems/grenade_warn_tick.js";
 export { mountGrenadePhysicsTick } from "./systems/grenade_physics_tick.js";
