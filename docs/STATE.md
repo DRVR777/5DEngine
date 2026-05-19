@@ -1,8 +1,8 @@
 STATE.md - loop progress tracker (updated each iter)
 
-Last completed iter: 679
-index.html total lines: 3950  (was 4060 after iter 678, -110 this iter)
-index.html code lines:  3176
+Last completed iter: 680
+index.html total lines: 3898  (was 3950 after iter 679, -52 this iter)
+index.html code lines:  3129
 
 Current target: bullet physics loop sub-extractions (Phase 1, Technique A)
 Next sub-block: remaining bullet movement/substep shell
@@ -23,7 +23,7 @@ Enemy AI sub-extraction status:
 
 10-step extraction/autonomy plan:
   1. Bullet world-hit tail (peers, barrels, crates, buildings) done (iter 678)
-  2. Bullet enemy damage/kill path done (iter 679; death/reward branch)
+  2. Bullet enemy damage/kill path done (iter 679 death/reward, iter 680 hit feedback)
   3. Remaining bullet movement/substep shell
   4. Save wiring cleanup
   5. Screen interaction cleanup

@@ -133,4 +133,27 @@ last-wave-kill bullet-time.
 Extract the remaining bullet movement/substep shell or the surviving enemy-hit
 feedback path, whichever gives the safer >=20-line slice.
 
+---
+
+## iter 680 -- 2026-05-19
+
+**Did:**
+Extracted the bullet enemy hit-feedback path into
+`src/systems/bullet_enemy_hit_feedback_tick.js`. Raw collision and damage
+calculation still live in `index.html`; hit marker timing, knockback, stagger,
+damage numbers, particles, hurt sounds, and incendiary survivor fire trails
+now live in the module.
+
+**Line count:**
+`index.html` total 3950 -> 3898 (-52), code 3176 -> 3129 (-47).
+
+**Tests:**
+`npm test` passed (219 files, 3586 tests).
+`npm run browser-check` passed (`BROWSER OK`).
+`npm run test:campaign` passed (3/3 no-render waves cleared).
+
+**Next:**
+Collapse the remaining bullet movement/substep shell into a bullet physics
+coordinator.
+
 **Next:** Tick 3 — wire core.js into index.html as additive import. Register prefabs from data/.
