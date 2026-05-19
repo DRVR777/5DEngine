@@ -96,6 +96,7 @@ import { mountHeroLifecycle } from "./src/systems/hero_lifecycle.js";
 import { mountGameReset } from "./src/systems/game_reset.js";
 import { mountDevConsoleGame } from "./src/systems/dev_console_game.js";
 import { mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE } from "./src/systems/kill_tracking.js";
+import { mountShootSystem } from "./src/combat/shoot_system.js";
 import { mountLevelSystem } from "./src/systems/level_system.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
@@ -3354,177 +3355,9 @@ let _mouseHeld = false;
 document.addEventListener("mousedown", (e) => { if (e.button === 0) _mouseHeld = true; });
 document.addEventListener("mouseup",   (e) => { if (e.button === 0) _mouseHeld = false; });
 
-// ---- Aim direction module ----
-// Always derive horizontal bullet direction from camera's world direction projected
-// to XZ. This is decoupled from camPitch, recoil, and camera position — the only
-// input is where the camera is currently pointing horizontally. Spread is added as
-// a radial offset in the XZ plane after this is computed.
-function _getAimAngle() {
-  const d = new THREE.Vector3();
-  camera.getWorldDirection(d);
-  const h = Math.sqrt(d.x * d.x + d.z * d.z);
-  return h > 0.001 ? Math.atan2(d.x, d.z) : camYaw;
-}
-
-// EXTRACT-PLAN iter 526: shoot_system.js → src/combat/shoot_system.js
-// Export mountShootSystem({ THREE, scene, camera, renderer, world, enemies, bullets3D,
-//   get, set, actions })
-// Covers: _tryShoot (~135 lines) + _tryDroneShoot (~80 lines)
-// Big dep list: camYaw, camPitch, weaponAmmo, currentWeaponId, CFG.weapons,
-//   heroArmor, buildMode, computerOpen, _heroDead, pointerLocked, reloading, etc.
-function _tryShoot() {
-  if (_shop.isOpen) return;
-  if (_reloading) {
-    // Reload cancel — fire with remaining mag ammo (interrupts reload)
-    if (pistolAmmo > 0) {
-      _reloading = false;
-      reloadMsg = "";
-      reloadMsgUntil = 0;
-    } else {
-      return;
-    }
-  }
-  const wep = getWeapon();
-  if (pistolCooldown > 0) return;
-  if (pistolAmmo <= 0) {
-    // Auto-reload when mag is empty and reserve ammo exists
-    const _arInv = Inv.countItem(heroInv, wep.ammoItem || "pistol_9mm");
-    if (_arInv > 0) { _reloading = true; _reloadStart = performance.now(); playSfx("tone:200:120:square", 0.5); playSfx("click", 0.5); reloadMsg = "reloading…"; reloadMsgUntil = performance.now() + RELOAD_DUR(); }
-    else {
-      // Completely dry — auto-switch to nearest weapon with any ammo
-      const _weps = CFG.weapons || [];
-      const _curIdx = _weps.findIndex(w => w.id === currentWeaponId);
-      for (let _si = 1; _si < _weps.length; _si++) {
-        const _ni = ((_curIdx + _si) % _weps.length);
-        const _nw = _weps[_ni];
-        const _nMag = weaponAmmo.has(_nw.id) ? weaponAmmo.get(_nw.id) : _nw.magCap;
-        const _nRes = Inv.countItem(heroInv, _nw.ammoItem || "pistol_9mm");
-        if (_nMag > 0 || _nRes > 0) {
-          weaponAmmo.set(currentWeaponId, 0);
-          currentWeaponId = _nw.id;
-          pistolAmmo = _nMag;
-          if (_reloading) { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }
-          _switchGunMesh(currentWeaponId);
-          playSfx("click", 0.5);
-          showToast(`Auto-switch → ${_nw.name || _nw.id}`, "warn", 1200);
-          _showWeaponSelector();
-          break;
-        }
-      }
-    }
-    return;
-  }
-  pistolCooldown = 1 / wep.fireRate;
-  pistolAmmo--;
-  setAmmo(pistolAmmo);
-  // Per-weapon fire sound
-  const _wSfx = {
-    pistol:  () => { playSfx("tone:1400:45:square", 0.22); },
-    rifle:   () => { playSfx("tone:280:55:sawtooth", 0.35); playSfx("tone:900:35:square", 0.18); },
-    shotgun: () => { playSfx("tone:120:90:sawtooth", 0.55); playSfx("tone:200:60:sawtooth", 0.35); playSfx("tone:80:70:square", 0.4); },
-    smg:     () => { playSfx("tone:1100:35:square", 0.18); },
-    sniper:  () => { playSfx("tone:180:120:sawtooth", 0.7); playSfx("tone:2400:30:sine", 0.3); },
-  };
-  (_wSfx[currentWeaponId] || _wSfx.pistol)();
-  const hp = world.players.get("hero");
-  if (typeof ParticleSystem !== "undefined") ParticleSystem.emit("muzzle", { x: hp.u, y: hp.y + 1.6, z: hp.v });
-  // iter 422: correct shoulder-cam aiming using two distinct rays.
-  //
-  // AIM RAY: starts at camera.position along camera.forward.
-  //   The reticle is screen-center. In 3D that projects to exactly this ray — it doesn't
-  //   start at the hero eye, the gun, or anywhere else. Raycast it to find the actual
-  //   3D point the reticle is over (wall at 5m, enemy at 20m, sky at max range).
-  //
-  // BULLET RAY: starts at gunPos, travels toward aimPoint.
-  //   In 1st-person camera ≈ gunPos so the two rays are nearly identical.
-  //   In 3rd-person the camera is 5m back and 2m to the side — the bullet "bends"
-  //   from the gun toward the aim point, which is what makes shoulder-cam feel correct.
-  //   "Aim direction" and "bullet direction" are different vectors in 3rd-person.
-  const _aimDir   = new THREE.Vector3();
-  camera.getWorldDirection(_aimDir);
-  const _gunPos   = new THREE.Vector3(hp.u, hp.y + 1.5, hp.v);
-  const _wepRange = wep.range || 80;
-
-  // Raycast from the camera against solid Mesh objects only.
-  // scene.children includes Sprites (damage numbers), Lights, Points — raycasting Sprites
-  // without raycaster.camera set crashes with "Cannot read properties of null". We solve
-  // this by traversing the scene collecting ONLY isMesh objects, excluding:
-  //   • heroGroup descendants (body, arms, back-gun) — camera passes through them in 3rd-person
-  //   • camera descendants (_fpGunGroup) — FP gun is right in front of camera, would be hit first
-  //   • in-flight bullets — don't block your own shots
-  const _bulletSet = new Set(bullets3D.map(b => b.mesh));
-  const _aimTargets = [];
-  scene.traverse(obj => {
-    if (!obj.isMesh) return;
-    let _p = obj.parent;
-    while (_p) {
-      if (_p === heroGroup || _p === camera) return; // skip hero body + FP gun
-      _p = _p.parent;
-    }
-    if (!_bulletSet.has(obj)) _aimTargets.push(obj);
-  });
-  const _aimRay  = new THREE.Raycaster(camera.position.clone(), _aimDir, 0.1, _wepRange);
-  _aimRay.camera = camera;  // required by THREE.Sprite.raycast; safe to set for all types
-  const _aimHits = _aimRay.intersectObjects(_aimTargets, false); // flat list, already traversed
-
-  // aimPoint: first solid surface the reticle is over, or max-range fallback
-  const _aimPt = _aimHits.length > 0
-    ? _aimHits[0].point.clone()
-    : camera.position.clone().addScaledVector(_aimDir, _wepRange);
-
-  // Bullet direction: gun barrel → aim point
-  const _baseDir   = _aimPt.clone().sub(_gunPos).normalize();
-  const baseAngle  = Math.atan2(_baseDir.x, _baseDir.z);
-  const _basePitch = Math.asin(Math.max(-1, Math.min(1, _baseDir.y)));
-  const pellets = wep.pellets || 1;
-  const spread  = (wep.spread || 0) + _moveSpread * 0.12;
-  for (let p = 0; p < pellets; p++) {
-    const ang = baseAngle + (Math.random() - 0.5) * spread * 2;
-    const hcos = Math.cos(_basePitch);
-    const dirU = Math.sin(ang) * hcos;
-    const dirY = Math.sin(_basePitch);
-    const dirV = Math.cos(ang) * hcos;
-    const mesh = new THREE.Mesh(bulletGeo, bulletMat);
-    // Orient bullet tracer to face travel direction
-    const _bDir = new THREE.Vector3(dirU, dirY, dirV).normalize();
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), _bDir);
-    const bulletY = hp.y + 1.5;
-    mesh.position.set(hp.u, bulletY, hp.v);
-    scene.add(mesh);
-    bullets3D.push({ mesh, posU: hp.u, posV: hp.v, posY: bulletY, dirU, dirY, dirV, speed: wep.speed, traveled: 0, range: wep.range, damage: wep.damage, falloff: wep.falloff || 0, weaponId: currentWeaponId });
-    _shotsFired++; _lastHeroShotT = performance.now() / 1000;
-  }
-  // Gunshot alert — enemies within 9m without LOS start converging on shot position for 3s
-  _heroShotAlertU = hp.u; _heroShotAlertV = hp.v; _heroShotAlertT = 3.0;
-  const mfx = hp.u + Math.sin(baseAngle) * 0.5, mfy = hp.y + 1.5, mfz = hp.v + Math.cos(baseAngle) * 0.5;
-  _spawnParticles(mfx, mfy, mfz, wep.pellets > 1 ? 6 : 3, "yellow", 5, 0.08);
-  _triggerMuzzleFlash(mfx, mfy, mfz);
-  _ejectCasing(hp.u, hp.y + 1.4, hp.v, camYaw);
-  _recoilPitch += wep.pellets > 1 ? 0.035 : 0.015;
-  _gunKickZ = wep.pellets > 1 ? -0.14 : -0.08;
-}
-
-// Drone weapon — fires 2-bullet burst from drone position, 0.2s cooldown, no ammo cost
+// ═══ EXTRACTED → src/combat/shoot_system.js ═══
+// _getAimAngle, _tryShoot, _tryDroneShoot — mounted after RELOAD_DUR below
 let _droneCooldown = 0;
-const _droneBulletMat = new THREE.MeshBasicMaterial({ color: 0x00eeff });
-function _tryDroneShoot() {
-  if (_droneCooldown > 0) return;
-  _droneCooldown = 0.22;
-  const dp = world.players.get(activeVehicleId);
-  if (!dp) return;
-  const baseAngle = _getAimAngle();
-  const hcos = Math.cos(camPitch);
-  for (let i = 0; i < 2; i++) {
-    const ang = baseAngle + (i === 0 ? -0.04 : 0.04);
-    const dirU = Math.sin(ang) * hcos, dirY = Math.sin(camPitch), dirV = Math.cos(ang) * hcos;
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.22, 5), _droneBulletMat);
-    m.position.set(dp.u, dp.y + 0.1, dp.v); scene.add(m);
-    bullets3D.push({ mesh: m, posU: dp.u, posV: dp.v, posY: dp.y + 0.1, dirU, dirY, dirV, speed: 38, traveled: 0, range: 55, damage: 20 });
-  }
-  _spawnParticles(dp.u, dp.y + 0.1, dp.v, 4, "cyan", 6, 0.1);
-  playSfx("tone:900:40:square", 0.18);
-}
-
 let lastT = performance.now();
 let _bulletTimeLeft = 0;  // seconds remaining of bullet-time slow (sniper incoming / headshot kill / wave clear)
 let _nearDeathFired = false; // near-death bullet-time has fired this life (resets above 15 HP)
@@ -3576,6 +3409,61 @@ let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back t
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _perkReloadMul);
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
+
+// ── Shoot system — iter 538 ──────────────────────────────────────────────────
+const _shootSys = mountShootSystem({
+  THREE, scene, camera, world, bullets3D, heroGroup, Inv,
+  get: {
+    shopOpen:        () => _shop.isOpen,
+    reloading:       () => _reloading,
+    pistolAmmo:      () => pistolAmmo,
+    pistolCooldown:  () => pistolCooldown,
+    weapon:          () => getWeapon(),
+    weapons:         () => CFG.weapons,
+    heroInv:         () => heroInv,
+    currentWeaponId: () => currentWeaponId,
+    weaponAmmoEntry: (id) => weaponAmmo.has(id) ? weaponAmmo.get(id) : null,
+    moveSpread:      () => _moveSpread,
+    reloadDur:       () => RELOAD_DUR(),
+    droneCooldown:   () => _droneCooldown,
+    activeVehicleId: () => activeVehicleId,
+    camYaw:          () => camYaw,
+    camPitch:        () => camPitch,
+    bulletGeo:       () => bulletGeo,
+    bulletMat:       () => bulletMat,
+    shotsFired:      () => _shotsFired,
+  },
+  set: {
+    reloading:       (v) => { _reloading = v; },
+    reloadStart:     (v) => { _reloadStart = v; },
+    reloadMsg:       (v) => { reloadMsg = v; },
+    reloadMsgUntil:  (v) => { reloadMsgUntil = v; },
+    pistolAmmo:      (v) => { pistolAmmo = v; },
+    pistolCooldown:  (v) => { pistolCooldown = v; },
+    currentWeaponId: (v) => { currentWeaponId = v; },
+    weaponAmmoEntry: (id, v) => { weaponAmmo.set(id, v); },
+    shotsFired:      (v) => { _shotsFired = v; },
+    lastHeroShotT:   (v) => { _lastHeroShotT = v; },
+    heroShotAlertU:  (v) => { _heroShotAlertU = v; },
+    heroShotAlertV:  (v) => { _heroShotAlertV = v; },
+    heroShotAlertT:  (v) => { _heroShotAlertT = v; },
+    addRecoilPitch:  (v) => { _recoilPitch += v; },
+    gunKickZ:        (v) => { _gunKickZ = v; },
+    droneCooldown:   (v) => { _droneCooldown = v; },
+  },
+  actions: {
+    playSfx,
+    showToast,
+    spawnParticles:     _spawnParticles,
+    triggerMuzzleFlash: _triggerMuzzleFlash,
+    ejectCasing:        _ejectCasing,
+    showWeaponSelector: _showWeaponSelector,
+    switchGunMesh:      _switchGunMesh,
+  },
+});
+const _tryShoot      = _shootSys.tryShoot;
+const _tryDroneShoot = _shootSys.tryDroneShoot;
+const _getAimAngle   = _shootSys.getAimAngle;
 
 window._loadingDismissed = false;
 // Platform cache — rebuilt only when vehicles move; saves O(V) array build every tick
