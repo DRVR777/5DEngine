@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2409,6 +2409,7 @@ const _walkAnimTick      = mountWalkAnimTick({ get: { gunKickZ: () => _gunKickZ,
 const _heroFaceTick      = mountHeroFaceTick({ get: { rotY: () => heroGroup.rotation.y }, set: { rotY: v => { heroGroup.rotation.y = v; } } });
 const _camShakeTick      = mountCamShakeTick({ get: { camShakeAmt: () => _camShakeAmt }, set: { camShakeAmt: v => { _camShakeAmt = v; } }, actions: { offsetCamera: (dx, dy) => { camera.position.x += dx; camera.position.y += dy; } } });
 const _heroKbTick        = mountHeroKnockbackTick({ get: { kbT: () => _heroKbT, kbU: () => _heroKbU, kbV: () => _heroKbV }, set: { kbT: v => { _heroKbT = v; }, kbU: v => { _heroKbU = v; }, kbV: v => { _heroKbV = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), resolveMove: (mover,du,dv) => GTAPhysics.resolveAABBMove(mover,du,dv,buildingBlockers) } });
+const _dodgeTick         = mountDodgeTick({ get: { dodgeCooldown: () => _dodgeCooldown, dodgeT: () => _dodgeT, dodgeVelU: () => _dodgeVelU, dodgeVelV: () => _dodgeVelV, dodgeBashDone: () => _dodgeBashDone }, set: { dodgeCooldown: v => { _dodgeCooldown = v; }, dodgeT: v => { _dodgeT = v; }, dodgeBashDone: v => { _dodgeBashDone = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), spawnTrail: (u,y,v) => { if (Math.random() < 0.7) _spawnParticles(u, y + 0.6, v, 2, "cyan", 2.5, 0.18); }, tryBash: heroPos => { const bd = Math.round(25 * _heroLvlDmgMul); for (const en of enemies) { if (en.dead) continue; const ep = world.players.get(en.id); if (Math.hypot(ep.u - heroPos.u, ep.v - heroPos.v) < 0.9) { en.hp = Math.max(0, en.hp - bd); en._hpBarShowT = now / 1000; const a = Math.atan2(ep.u - heroPos.u, ep.v - heroPos.v); en._kbU = Math.sin(a) * 5; en._kbV = Math.cos(a) * 5; en._kbT = 0.18; _spawnDamageNumber(ep.u, 1.4, ep.v, `BASH! ${bd}`, "#00ffff"); _spawnParticles(ep.u, 1.0, ep.v, 8, "cyan", 5, 0.2); playSfx("tone:180:60:sawtooth", 0.28); return true; } } return false; } } });
 const _weaponHudTick   = mountWeaponHudTick({ get: { lowAmmoWarnedAt: () => _lowAmmoWarnedAt, lastMagBarAmmo: () => _lastMagBarAmmo, lastMagBarReloading: () => _lastMagBarReloading }, set: { lowAmmoWarnedAt: v => { _lowAmmoWarnedAt = v; }, lastMagBarAmmo: v => { _lastMagBarAmmo = v; }, lastMagBarReloading: v => { _lastMagBarReloading = v; } }, actions: { getWeapon: () => getWeapon(), getReserve: ammoItem => Inv.countItem(heroInv, ammoItem), playSfx: (str, vol) => playSfx(str, vol) } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
@@ -4424,36 +4425,7 @@ function tick() {
   _fpGunGroup.visible = _fpGunActive;
   // Melee cooldown + swing spring
   if (_meleeCooldown > 0) _meleeCooldown -= dt;
-  // Dodge cooldown + impulse application
-  if (_dodgeCooldown > 0) _dodgeCooldown -= dt;
-  if (_dodgeT > 0) {
-    _dodgeT -= dt;
-    const hp = world.players.get("hero");
-    const du = _dodgeVelU * dt, dv = _dodgeVelV * dt;
-    world.setPlayer("hero", hp.x, hp.y, hp.z, hp.u + du, hp.v + dv);
-    // Dodge trail — cyan afterimage particles
-    if (Math.random() < 0.7) _spawnParticles(hp.u, hp.y + 0.6, hp.v, 2, "cyan", 2.5, 0.18);
-    // Shoulder bash — deal 25 dmg to any enemy within 0.9m during dodge (once per roll)
-    if (!_dodgeBashDone) {
-      for (const en of enemies) {
-        if (en.dead) continue;
-        const ep = world.players.get(en.id);
-        if (Math.hypot(ep.u - hp.u, ep.v - hp.v) < 0.9) {
-          _dodgeBashDone = true;
-          const _bashDmg = Math.round(25 * _heroLvlDmgMul);
-          en.hp = Math.max(0, en.hp - _bashDmg); en._hpBarShowT = now / 1000;
-          const _bAng = Math.atan2(ep.u - hp.u, ep.v - hp.v);
-          en._kbU = Math.sin(_bAng) * 5; en._kbV = Math.cos(_bAng) * 5; en._kbT = 0.18;
-          _spawnDamageNumber(ep.u, 1.4, ep.v, `BASH! ${_bashDmg}`, "#00ffff");
-          _spawnParticles(ep.u, 1.0, ep.v, 8, "cyan", 5, 0.2);
-          playSfx("tone:180:60:sawtooth", 0.28);
-          break;
-        }
-      }
-    }
-  } else {
-    _dodgeBashDone = false;
-  }
+  _dodgeTick.tick(dt);
   _heroKbTick.tick(dt);
   _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
   // FP gun position/rotation — extracted → src/systems/fp_gun_pos_tick.js (iter 612)
