@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -649,8 +649,6 @@ const _settings = mountSettingsPanel({
 
 // Grenade system data — functions mounted via mountGadgetSystem below
 const grenades3D = [];
-const _ARC_DOT_COUNT = 16;
-let _arcDots = null;
 let grenadeCount = 3;
 let smokeGrenadeCount = 2;
 let flashbangCount = 2;
@@ -2611,6 +2609,7 @@ const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmo
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
 const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
+const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
 const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeWarnTick   = mountGrenadeWarnTick({ actions: { getWarnEl: () => _dom.grenadeWarn || null } });
@@ -2921,80 +2920,7 @@ function tick() {
   // Wave manager
   if (typeof WaveManager !== "undefined") {
     WaveManager.tick(dt);
-    const ws = WaveManager.getState();
-    const waveHud = _dom.waveHud;
-    if (waveHud) {
-      const show = ws.started && ws.phase !== "idle";
-      waveHud.style.display = show ? "block" : "none";
-      if (show) {
-        const _loopNum = ws.totalWave > ws.totalWaves ? Math.floor((ws.totalWave - 1) / ws.totalWaves) + 1 : 1;
-        const wl = _dom.waveLabel;
-        if (wl) wl.textContent = _loopNum > 1 ? `LOOP ${_loopNum} · WAVE ${ws.wave}/${ws.totalWaves}` : `WAVE ${ws.wave}/${ws.totalWaves}`;
-        const det = _dom.waveDetail;
-        if (!det) { /* no-op */ }
-        else if (ws.phase === "countdown") {
-          const _prevEn = (ws.enemies || []).map(g => `${g.count}× ${g.type.toUpperCase()}`).join(" · ");
-          det.innerHTML = `starting in ${ws.countdown}…<br><span style="font-size:9px;color:#ff8888;letter-spacing:0.06em">${_prevEn}</span>`;
-          if (ws.countdown > 0 && ws.countdown !== _waveBeepLast) {
-            _waveBeepLast = ws.countdown;
-            const _beepFreq = ws.countdown === 1 ? 1100 : 440 + (5 - ws.countdown) * 40;
-            playSfx(`tone:${_beepFreq}:55:sine`, ws.countdown === 1 ? 0.35 : 0.18);
-          }
-        }
-        else if (ws.phase === "spawning" || ws.phase === "waiting") det.textContent = `${ws.aliveCount} alive`;
-        else if (ws.phase === "pausing") det.textContent = `clear! next in ${ws.pauseLeft}s`;
-        else if (ws.phase === "done") det.textContent = `all waves done`;
-        else det.textContent = "";
-        // Kill level progress — live update in wave HUD
-        const _lvHud = _dom.heroLevelHud;
-        if (_lvHud) {
-          if (_heroLevel >= 5) {
-            _lvHud.textContent = "LVL MAX";
-          } else {
-            const _nextThresh = _LEVEL_THRESHOLDS[_heroLevel];
-            _lvHud.textContent = `LVL ${_heroLevel} (${enemyKills}/${_nextThresh})`;
-          }
-        }
-      }
-    }
-    // Wave challenge live HUD update — speed timer + headshot counter
-    if (_waveChallenge && (ws.phase === "spawning" || ws.phase === "waiting")) {
-      const _chHud = _dom.waveChallengeHud;
-      if (_chHud) {
-        const _bonus = _waveChallenge.bonus * ws.wave;
-        if (_waveChallenge.type === "speed") {
-          const _chLeft = Math.max(0, (_waveChallenge.limit || 60) - (now / 1000 - _waveChallengeStart));
-          const _urgent = _chLeft < 10;
-          _chHud.style.color = _urgent ? "#ff4444" : "#ffd166";
-          _chHud.textContent = `CHALLENGE: ${_waveChallenge.label} (+${_bonus}) — ${_chLeft.toFixed(1)}s`;
-        } else if (_waveChallenge.type === "hs") {
-          _chHud.style.color = _waveChallengeHits >= 3 ? "#00ff88" : "#ffd166";
-          _chHud.textContent = `CHALLENGE: ${_waveChallenge.label} (+${_bonus}) — ${_waveChallengeHits}/3`;
-        }
-      }
-    }
-    // Wave announcement banner — show for 2.5s when wave number increments
-    if (ws.started && ws.wave !== _lastWaveNum && ws.phase === "spawning") {
-      _lastWaveNum = ws.wave;
-      _waveBeepLast = 0;
-      _waveBannerUntil = performance.now() + 2500;
-      const wbl = _dom.waveBannerLabel;
-      const wbs = _dom.waveBannerSub;
-      const banner = _dom.waveBanner;
-      if (wbl) wbl.textContent = `WAVE ${ws.wave}`;
-      if (wbs) wbs.textContent = ws.wave >= ws.totalWaves ? "FINAL WAVE" : "GET READY";
-      if (banner) { banner.style.display = "block"; banner.style.transform = "scaleY(1)"; }
-      playSfx(`tone:${220 + ws.wave * 20}:120:square`, 0.25);
-    }
-    const nowMs = performance.now();
-    const bannerEl = _dom.waveBanner;
-    if (bannerEl && _waveBannerUntil > 0) {
-      if (nowMs > _waveBannerUntil) {
-        bannerEl.style.transform = "scaleY(0)";
-        setTimeout(() => { bannerEl.style.display = "none"; }, 200);
-        _waveBannerUntil = 0;
-      }
-    }
+    _waveHudTick.tick(dt, { ws: WaveManager.getState(), nowMs: performance.now() });
   }
 
 // EXTRACT-PLAN see iter 528 note above — bullet physics loop starts here
