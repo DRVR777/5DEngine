@@ -109,6 +109,7 @@ export { mountCrateSystem }     from "./systems/crate_system.js";
 export { mountHazardZones }     from "./systems/hazard_zones.js";
 export { mountDropSpawner, WEAPON_DROP_MAP } from "./systems/drop_spawner.js";
 export { GameProgress }         from "./systems/save_load.js";
+export { mountEnemyRobotEmpTick } from "./systems/enemy_robot_emp_tick.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────
 export { mountShootSystem }    from "./combat/shoot_system.js";

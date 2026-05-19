@@ -178,7 +178,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -2521,6 +2521,7 @@ const _heroKbTick        = mountHeroKnockbackTick({ get: { kbT: () => _heroKbT, 
 const _dodgeTick         = mountDodgeTick({ get: { dodgeCooldown: () => _dodgeCooldown, dodgeT: () => _dodgeT, dodgeVelU: () => _dodgeVelU, dodgeVelV: () => _dodgeVelV, dodgeBashDone: () => _dodgeBashDone }, set: { dodgeCooldown: v => { _dodgeCooldown = v; }, dodgeT: v => { _dodgeT = v; }, dodgeBashDone: v => { _dodgeBashDone = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), spawnTrail: (u,y,v) => { if (Math.random() < 0.7) _spawnParticles(u, y + 0.6, v, 2, "cyan", 2.5, 0.18); }, tryBash: heroPos => { const bd = Math.round(25 * _heroLvlDmgMul); for (const en of enemies) { if (en.dead) continue; const ep = world.players.get(en.id); if (Math.hypot(ep.u - heroPos.u, ep.v - heroPos.v) < 0.9) { en.hp = Math.max(0, en.hp - bd); en._hpBarShowT = now / 1000; const a = Math.atan2(ep.u - heroPos.u, ep.v - heroPos.v); en._kbU = Math.sin(a) * 5; en._kbV = Math.cos(a) * 5; en._kbT = 0.18; _spawnDamageNumber(ep.u, 1.4, ep.v, `BASH! ${bd}`, "#00ffff"); _spawnParticles(ep.u, 1.0, ep.v, 8, "cyan", 5, 0.2); playSfx("tone:180:60:sawtooth", 0.28); return true; } } return false; } } });
 const _enemyRegenTick    = mountEnemyRegenTick({ actions: { getPos: id => world.players.get(id), spawnDamageNumber: (u,y,v,t,c) => _spawnDamageNumber(u,y,v,t,c) } });
 const _enemySepTick      = mountEnemySepTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v) } });
+const _empTick           = mountEnemyRobotEmpTick({ THREE, scene, shockwaves: _shockwaves, actions: { playSfx, setHeroEmpT: v => { _heroEmpT=v; }, showToast, flashDamage: o => { damageFlashEl.style.opacity=String(o); } } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -3392,26 +3393,7 @@ function tick() {
                 playSfx("tone:600:40:sine", 0.3);
               }
             }
-            // Robot EMP burst — blue ring pulse every 8s, disables hero sprint 2.5s within 4m
-            if (en.type === "robot" && canSee && dist < 12) {
-              if (!en._empT || now / 1000 - en._empT > 8.0) {
-                en._empT = now / 1000;
-                // Spawn an expanding blue shockwave ring (reuse shockwave system)
-                const _empRingGeo = new THREE.TorusGeometry(1, 0.06, 6, 36);
-                const _empRingMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.9, depthWrite: false });
-                const _empMesh = new THREE.Mesh(_empRingGeo, _empRingMat);
-                _empMesh.rotation.x = Math.PI / 2;
-                _empMesh.position.set(ep.u, 0.12, ep.v);
-                scene.add(_empMesh);
-                _shockwaves.push({ mesh: _empMesh, maxR: 8, t: 0, dur: 0.7 });
-                playSfx("tone:180:200:square", 0.55); playSfx("tone:320:150:square", 0.35);
-                if (dist < 4 && !_heroDead && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
-                  _heroEmpT = 2.5;
-                  showToast("EMP! Sprint disabled 2.5s", "danger", 2500);
-                  damageFlashEl.style.opacity = "0.35";
-                }
-              }
-            }
+            _empTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroDead: _heroDead, godMode: typeof Engine !== "undefined" && Engine.debug.godMode }); // → enemy_robot_emp_tick.js
             // Heavy grenade throw — lobs a grenade every 4s when 3.5–12m away with LOS
             if (en.type === "heavy" && canSee && dist > 3.5 && dist < 12) {
               if (!en._grenadeT || now / 1000 - en._grenadeT > (en._enraged ? 2.5 : 4.0)) {

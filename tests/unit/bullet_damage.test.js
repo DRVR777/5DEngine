@@ -134,10 +134,12 @@ describe("computeBulletDamage — multipliers", () => {
 
   it("falloff reduces damage, clamped to 0.15", () => {
     // traveled=50, range=50, falloff=1 → raw = 1 - 1*1 = 0 → clamped to 0.15
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // suppress crit
     const { dmg } = computeBulletDamage({
       bullet: bullet({ dirV: 0, falloff: 1, traveled: 50, range: 50 }),
       enemy: enemy(), dmgMul: {}, lvlDmgMul: 1, perkDmgMul: 1
     });
+    vi.restoreAllMocks();
     expect(dmg).toBe(Math.round(100 * 0.15));
   });
 
