@@ -86,6 +86,7 @@ import {
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountAmmoReloadTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2617,6 +2618,7 @@ const _screenMeshTick    = mountScreenMeshTick({ actions: { getScreenMesh: () =>
 const _debugHudTick      = mountDebugHudTick({ actions: { getVehDist: id => Bridge.uvDist(world, "hero", id), setHudHtml: html => { hud.innerHTML = html; }, clearEnemyHpDirty: () => { _hudEnemyHpDirty = false; } } });
 const _enemyMeshTick     = mountEnemyMeshTick({ actions: { getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), spawnClearPos: (r1, r2) => _spawnClearPos(r1, r2), setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), markHudDirty: () => { _hudEnemyHpDirty = true; } } });
 const _vehiclePhysicsTick = mountVehiclePhysicsTick({ actions: { key: k => !!keys[k], getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), carPhysicsStep: (vId, vSt, throttle, steerIn, dt, opts) => Bridge.carPhysicsStep(world, vId, vSt, throttle, steerIn, dt, opts), updateCarState: next => Object.assign(carState, next), markPlatformDirty: () => _platformSys.markDirty() } });
+const _ammoReloadTick    = mountAmmoReloadTick({ set: { reloading: v => { _reloading = v; }, pistolAmmo: v => { pistolAmmo = v; }, pistolCooldown: v => { pistolCooldown = v; }, getPistolAmmo: () => pistolAmmo }, actions: { getReloadDur: () => RELOAD_DUR(), getMagCap: () => PISTOL_MAG_CAP(), getWeapon: () => getWeapon(), countInvAmmo: item => Inv.countItem(heroInv, item), removeInvAmmo: (item, n) => Inv.removeItem(heroInv, item, n), setAmmo: v => setAmmo(v), getReloadCircle: () => _dom.reloadCircle || null, getAmmoHud: () => _dom.ammoHud || null } });
 const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
 const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
@@ -2688,14 +2690,8 @@ function tick() {
   // FPS counter — extracted → src/systems/fps_tick.js (iter 599)
   _fpsTick.tick(now, _dom.fpsCounter);
 
-  // Ammo HUD — shows current weapon mag / reserve
-  const ammoEl = _dom.ammoHud;
-  if (ammoEl) {
-    const _wep = getWeapon();
-    const reserve = Inv.countItem(heroInv, _wep.ammoItem || "pistol_9mm");
-    ammoEl.textContent = pistolAmmo + " / " + reserve;
-    ammoEl.style.color = pistolAmmo === 0 ? "#ff5d5d" : "#ffd166";
-  }
+  // Ammo HUD + reload circle + completion — extracted → src/systems/ammo_reload_tick.js (iter 659)
+  _ammoReloadTick.tick(dt, { nowMs: now, reloading: _reloading, reloadStart: _reloadStart, pistolAmmo });
 
   if (_droneCooldown > 0) _droneCooldown -= dt;
   // Auto-fire for automatic weapons (rifle etc.) — held LMB
@@ -2705,29 +2701,6 @@ function tick() {
     else { const _aw = getWeapon(); if (_aw.automatic) _tryShoot(); }
   }
   if (_droneCooldown > 0) _droneCooldown -= dt;
-
-  // Reload circle: show while _reloading, hide when done
-  const reloadCircleEl = _dom.reloadCircle;
-  if (reloadCircleEl) {
-    if (_reloading && now < _reloadStart + RELOAD_DUR()) {
-      reloadCircleEl.style.display = "block";
-    } else {
-      if (_reloading && now >= _reloadStart + RELOAD_DUR()) {
-        _reloading = false;
-        const rwep = getWeapon();
-        const need = PISTOL_MAG_CAP() - pistolAmmo;
-        const invAmmo = Inv.countItem(heroInv, rwep.ammoItem || "pistol_9mm");
-        const take = Math.min(need, invAmmo);
-        if (take > 0) {
-          Inv.removeItem(heroInv, rwep.ammoItem || "pistol_9mm", take);
-          pistolAmmo += take;
-          setAmmo(pistolAmmo);
-          pistolCooldown = 0;
-        }
-      }
-      reloadCircleEl.style.display = "none";
-    }
-  }
 
   const isSprinting = !!(keys["ShiftLeft"] || keys["ShiftRight"]);
   const { isSniperScope } = _scopeFovTick.tick(dt, { aiming, computerOpen, computerEntering, isSprinting, heroDead: _heroDead, buildMode, inCar, currentWeaponId });
