@@ -86,7 +86,7 @@ import {
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
   mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
-  mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick,
+  mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2610,6 +2610,7 @@ const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmo
 const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
 const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
 const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
+const _optionalSystemsTick = mountOptionalSystemsTick({ actions: { getTriggerZones: () => typeof TriggerZones !== "undefined" ? TriggerZones : null, getSoundZones: () => typeof SoundZones !== "undefined" ? SoundZones : null, getCutscene: () => typeof Cutscene !== "undefined" ? Cutscene : null, getAchievements: () => typeof Achievements !== "undefined" ? Achievements : null, getDayNight: () => typeof DayNight !== "undefined" ? DayNight : null, getStatusEffects: () => typeof StatusEffects !== "undefined" ? StatusEffects : null, getWaveManager: () => typeof WaveManager !== "undefined" ? WaveManager : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0, y: 0 }, getEnemyPos: id => world.players.get(id) || null, getCamera: () => camera, waveHudTick: (dt, ws, nowMs) => _waveHudTick.tick(dt, { ws, nowMs }) } });
 const _camDistTick       = mountCamDistTick({ get: { camDist: () => camDist, snapZoomTarget: () => snapZoomTarget, computerEntering: () => computerEntering, computerEntryT: () => computerEntryT, camDistBeforeEntry: () => camDistBeforeEntry, computerEntryDur: () => COMPUTER_ENTRY_DUR }, set: { camDist: v => { camDist = v; }, snapZoomTarget: v => { snapZoomTarget = v; }, computerEntryT: v => { computerEntryT = v; } }, actions: { lerpZoom: (dist, target, dt, speed) => window.CameraSpine ? window.CameraSpine.lerpZoom(dist, target, dt, speed) : null, finishComputerEntry: () => finishComputerEntry() } });
 const _cameraZoneTick    = mountCameraZoneTick({ get: { camDist: () => camDist, aimAmt: () => aimAmt, camDistMax: () => CAM_DIST_MAX }, actions: { evaluateSpine: (zoom, max) => (window.CameraSpine && window.CameraSpine.evaluate) ? window.CameraSpine.evaluate(zoom, { camDistMax: max }) : null, isActiveDrone: (inCar) => !!(inCar ? _activeVehicleDef : null) && (_activeVehicleDef.type === "drone"), setHeroGroupVisible: v => { heroGroup.visible = v; }, setShadowBlobVisible: v => { _shadowBlob.visible = v; }, setFpGunGroupVisible: v => { _fpGunGroup.visible = v; } } });
 const _cameraPosTick     = mountCameraPosTick({ vectors: { camTarget: _camTarget, camOff: _camOff, camLook: _camLook, camAimTarget: _camAimTarget, camBuildLook: _camBuildLook }, actions: { getCamera: () => camera } });
@@ -2790,35 +2791,9 @@ function tick() {
   // Flashlight camera tracking — extracted → src/render/flashlight.js (iter 662)
   _flashlightTick(_flashlightOn);
   // Trigger zones — check hero + all enemies
-  if (typeof TriggerZones !== "undefined") {
-    const hz = world.players.get("hero");
-    const ents = [{ id: "hero", u: hz.u, v: hz.v, y: hz.y || 0 }];
-    for (const en of enemies) if (!en.dead) {
-      const ep = world.players.get(en.id);
-      if (ep) ents.push({ id: en.id, u: ep.u, v: ep.v, y: 0 });
-    }
-    TriggerZones.tick(ents, dt);
-  }
-  // Ambient sound zones — fade in/out as hero moves
-  if (typeof SoundZones !== "undefined") {
-    const hz2 = world.players.get("hero");
-    SoundZones.tick(hz2.u, hz2.v);
-  }
-  // Cutscene camera path — overrides camera when active
-  if (typeof Cutscene !== "undefined") {
-    Cutscene.tick(dt, camera);
-  }
-  // Achievement time tracker
-  if (typeof Achievements !== "undefined") Achievements.tick(dt);
-  // Day/night cycle
-  if (typeof DayNight !== "undefined") DayNight.tick(dt);
-  // Status effects (buffs/debuffs)
-  if (typeof StatusEffects !== "undefined") StatusEffects.tick(dt);
-  // Wave manager
-  if (typeof WaveManager !== "undefined") {
-    WaveManager.tick(dt);
-    _waveHudTick.tick(dt, { ws: WaveManager.getState(), nowMs: performance.now() });
-  }
+  // Optional global systems (TriggerZones, SoundZones, Cutscene, Achievements, DayNight, StatusEffects, WaveManager)
+  // extracted → src/systems/optional_systems_tick.js (iter 663)
+  _optionalSystemsTick.tick(dt, { enemies, performanceNow: performance.now() });
 
 // EXTRACT-PLAN see iter 528 note above — bullet physics loop starts here
   // Tick bullets (substep dt to avoid tunneling past enemy)

@@ -87,6 +87,7 @@ export { mountVehiclePhysicsTick } from "./systems/vehicle_physics_tick.js";
 export { mountAmmoReloadTick }     from "./systems/ammo_reload_tick.js";
 export { mountCrouchSpeedTick }   from "./systems/crouch_speed_tick.js";
 export { mountCamDistTick }       from "./systems/cam_dist_tick.js";
+export { mountOptionalSystemsTick } from "./systems/optional_systems_tick.js";
 export { mountPlatformSystem }     from "./systems/platform_system.js";
 export { mountVehicleRenderTick }  from "./systems/vehicle_render_tick.js";
 export { mountHeroRegenTick }      from "./systems/hero_regen_tick.js";
