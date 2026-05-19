@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2608,6 +2608,7 @@ const _speedOrbTick      = mountSpeedOrbTick({ set: { speedBoostT: v => { _speed
 const _poisonPuddleTick  = mountPoisonPuddleTick({ actions: { removeMesh: mesh => scene.remove(mesh), applyPoison: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison"); } } });
 const _smokeZoneTick     = mountSmokeZoneTick({ actions: { spawnSmoke: (u, y, v) => _spawnParticles(u, y, v, 1, "white", 0.6, 0.9) } });
 const _grenadeCrateTick  = mountGrenadeCrateTick({ get: { grenadeCount: () => grenadeCount }, set: { grenadeCount: v => { grenadeCount = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
+const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmor, maxArmor: () => HERO_MAX_ARMOR }, set: { heroArmor: v => { heroArmor = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
 let _lastHudEnemyHpStr = "";
@@ -4383,24 +4384,7 @@ function tick() {
 
   _grenadeCrateTick.tick(dt, { crates: grenadeCrates, heroU: heroNow.u, heroV: heroNow.v, nowSec: now / 1000, nowMs: now });
 
-  // Armor vest pickups — walk over to gain 25 armor, respawn 60s
-  for (const av of armorPickups) {
-    if (!av.active) {
-      av.mesh.visible = false;
-      if (now / 1000 - av.respawnT > 60) { av.active = true; av.mesh.visible = true; }
-      continue;
-    }
-    av.mesh.rotation.y += dt * 1.2;
-    av.mesh.position.y = 0.3 + Math.sin(now / 500 + av.u) * 0.08;
-    const d = Math.hypot(heroNow.u - av.u, heroNow.v - av.v);
-    if (d < 1.3 && heroArmor < HERO_MAX_ARMOR) {
-      av.active = false; av.respawnT = now / 1000;
-      const gained = Math.min(25, HERO_MAX_ARMOR - heroArmor);
-      heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 25);
-      playSfx("tone:880:120:sine", 0.55);
-      showToast(`+${gained} armor`, "success", 1500);
-    }
-  }
+  _armorVestTick.tick(dt, { pickups: armorPickups, heroU: heroNow.u, heroV: heroNow.v, nowSec: now / 1000, nowMs: now });
 
   // Coin drops from enemies
   for (let _ci = coinDrops.length - 1; _ci >= 0; _ci--) {
