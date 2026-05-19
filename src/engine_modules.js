@@ -68,7 +68,8 @@ export { mountShopPanel } from "./economy/shop_panel.js";
 export { Core } from "./core/core.js";
 
 // ── World ─────────────────────────────────────────────────────────────────────
-export { default as Rain } from "./world/rain.js";
+export { default as Rain }     from "./world/rain.js";
+export { mountWorldLayout }    from "./world/world_layout.js";
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 export { default as Sfx } from "./audio/sfx.js";
