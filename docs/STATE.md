@@ -1,11 +1,11 @@
 STATE.md — loop progress tracker (updated each iter)
 
-Last completed iter: 673
-index.html total lines: 4038  (was 4055, -17 this iter — block was 19 lines, wiring cost 2)
-index.html code lines:  3227
+Last completed iter: 674
+index.html total lines: 3984  (was 4038, -54 this iter)
+index.html code lines:  3178
 
 Current target: enemy AI loop sub-extractions (Phase 1, Technique A)
-Next sub-block: Iter I — Sniper aim+fire
+Next sub-block: Iter J — Strafe + melee
 
 Enemy AI sub-extraction status:
   A: Robot EMP burst          ✓ done (iter 666)
@@ -16,7 +16,7 @@ Enemy AI sub-extraction status:
   F: Boss ground slam         ✓ done (iter 671)
   G: Poisoner ranged spit     ✓ done (iter 672)
   H: Fast enemy charge        ✓ done (iter 673)
-  I: Sniper aim+fire          □ next
-  J: Strafe + melee           □
+  I: Sniper aim+fire          ✓ done (iter 674)
+  J: Strafe + melee           □ next
   K: Robot plasma             □
   L: AI scaffold (~150 lines) □
