@@ -412,3 +412,384 @@ install Playwright, get one test green, then write the soak test.
 The freeze will be there in 3 minutes when you are ready to catch it.
 
 Begin.
+
+
+═══════════════════════════════════════════════════════════════════════
+ADDENDUM: REAL-WORLD RESILIENCE
+═══════════════════════════════════════════════════════════════════════
+
+The previous sections assumed "page loads, game plays, test catches
+bug." That is not the world the test runs in. The game has menus,
+dialogs, perk popups between waves, accidental keypresses, network
+blips, lost WebGL contexts, and a thousand small ways the test can
+get stuck without the bug actually being absent. This addendum is
+the survival manual. Read it before writing a single line of test code.
+
+═══════════════════════════════════════════════════════════════════════
+EXTEND THE TEST BRIDGE FURTHER (additions to Phase 1)
+═══════════════════════════════════════════════════════════════════════
+
+The window._5DTest bridge needs these additional methods before any
+soak test can be reliable. Add them in the same _5DTest block:
+
+  dismissAllDialogs() returns: { dismissed: ["firstLaunch", "perk"], remaining: [] }
+    Closes every blocking overlay it can find:
+      - First-launch tutorial
+      - Difficulty select
+      - Game-mode select
+      - Perk picker
+      - Death screen (re-spawn via _resetSys if needed)
+      - NPC dialog, Shop, Settings panel, Inventory
+      - Build mode (toggle off if on)
+      - Computer screen (call closeComputer())
+      - Pause menu
+    Returns the list of dialogs found and dismissed. Idempotent --
+    safe to call every poll.
+
+  startWaveMode() returns: boolean
+    Selects "wave" game mode and starts from a clean state. Calls
+    whatever wave-mode-init does internally, bypassing the main menu.
+    Returns false if it cannot (e.g. menu not present).
+
+  pickFirstPerk() returns: { picked: "rapid_fire" } | { picked: null, reason: "..." }
+    When the perk picker is open, picks the first available perk
+    programmatically. Test soak runs do not care which perk; any
+    pick is fine -- just unblock the game.
+
+  isBlocked() returns: { blocked: true, by: "perk_picker" } | { blocked: false }
+    Single source of truth for "is the game waiting on the human
+    to do something?" Checks every modal/overlay/menu state.
+    The soak loop polls this every tick and calls dismissAllDialogs()
+    if blocked.
+
+  ensureGodModeAndInfiniteAmmo() returns: boolean
+    Sets Engine.debug.godMode = true. Also sets a flag the weapon
+    code respects to never decrement ammo, never trigger reload.
+    The soak test wants to run for 3 minutes without interruption --
+    death and reload are interruptions.
+
+  healthState() returns: { hp, maxHp, godMode, infiniteAmmoOn, ammo }
+    Verifies god mode actually stuck. The soak test calls this
+    every poll and re-applies if it's somehow off.
+
+  hardReset() returns: boolean
+    Reloads the game to a clean state WITHOUT a browser reload.
+    Calls _resetSys.resetGame() + clears all dialogs + restarts
+    wave 1. Used when the test detects unrecoverable state and
+    wants to retry without losing the test harness process.
+
+  getLastError() returns: { message, stack, t } | null
+    Returns the most recent error caught by the game's own error
+    handler. The game must install window.onerror +
+    unhandledrejection handlers that buffer errors internally.
+    The soak test polls this every second.
+
+  installCrashHandler() returns: boolean
+    Idempotent. Installs window.onerror + unhandledrejection
+    handlers that push errors into an internal buffer. Call this
+    FIRST, before anything else can throw.
+
+  perfSnapshot() returns:
+    { now, frameTimeMs, framesSinceLastReport, memUsedMB, memTotalMB,
+      lastTickMs }
+    More detailed than state().perf -- includes heap memory when
+    performance.memory is available (Chrome only, gated). The soak
+    test uses memUsedMB growth as a secondary leak signal.
+
+═══════════════════════════════════════════════════════════════════════
+THE RESILIENT SOAK TEST -- ARCHITECTURE
+═══════════════════════════════════════════════════════════════════════
+
+The soak test from the previous section was happy-path. Replace it
+with this three-phase design:
+
+  PHASE A: Setup (with retries)
+    For attempt = 1 to 5:
+      - page.goto with 30s timeout
+      - waitForFunction window._5DTest with 15s timeout
+      - installCrashHandler()
+      - dismissAllDialogs() loop until isBlocked() = false (max 20x)
+      - startWaveMode()
+      - ensureGodModeAndInfiniteAmmo()
+      - if all succeeded, break
+      - on failure: log reason, page.reload(), retry
+    If 5 attempts fail: fail with "could not start the game" (not a
+    generic timeout).
+
+  PHASE B: The soak loop
+    Every 250ms for DURATION_MS:
+      a. safeEval(state). If throws -> recovery path.
+      b. safeEval(isBlocked). If blocked -> dismissAllDialogs()
+         + pickFirstPerk() + log the unblock.
+      c. Verify god mode still on. If not -> re-apply + log.
+      d. Sample state for diagnostics.
+      e. If hero alive + enemies exist -> lockOnNearestEnemy() +
+         shoot(). If lockOn returns null for 10 consecutive polls ->
+         killEnemy(nearest) to break the stall.
+      f. If wave.phase unchanged for 60s AND aliveCount === 0 ->
+         call WaveManager.forceNextWave() (add to bridge if absent).
+      g. If page.isClosed() -> recovery path.
+      h. If hero position (u,v) unchanged for 30s with enemies alive
+         -> hero is stuck, hardReset(), log, restart loop phase.
+
+  PHASE C: Tiered recovery
+    Tier 1 -- Soft: dismissAllDialogs(), re-apply god mode, wait 1s,
+              retry the failed operation.
+    Tier 2 -- Hard reset: hardReset(), wait for state() to return
+              clean values, continue from current elapsed time.
+    Tier 3 -- Page reload: page.reload(), re-run Phase A. Diagnostic
+              records this as a reload event.
+    Tier 4 -- Bail: write diagnostic dump, fail the test.
+              5 reloads = unrecoverable = a real finding.
+
+═══════════════════════════════════════════════════════════════════════
+THE DEFENSIVE CODING RULES
+═══════════════════════════════════════════════════════════════════════
+
+Every page.evaluate() wraps in try-catch. Never let an eval error
+crash the test -- treat it as recoverable:
+
+  async function safeEval(page, fn, fallback = null) {
+    try {
+      return await page.evaluate(fn);
+    } catch (e) {
+      diagnostic.evalErrors.push({ t: Date.now(), error: e.message });
+      return fallback;
+    }
+  }
+
+Every state() read tolerates missing fields:
+
+  const s = await safeEval(page, () => window._5DTest?.state?.());
+  const aliveCount = s?.wave?.aliveCount ?? 0;
+  const heroDead = s?.hero?.dead ?? true;
+
+Every wait has a timeout AND fallback action. Never use bare
+waitForFunction without a timeout argument.
+
+WebGL context loss handler -- install in page after navigation:
+
+  await page.evaluate(() => {
+    const canvas = document.querySelector("canvas");
+    if (canvas) {
+      canvas.addEventListener("webglcontextlost", e => {
+        e.preventDefault(); window._5DTest._contextLost = true;
+      });
+      canvas.addEventListener("webglcontextrestored", () => {
+        window._5DTest._contextLost = false;
+      });
+    }
+  });
+
+Check _contextLost every poll. If set, force a reload.
+
+Tab-backgrounded false-freeze prevention. rAF throttles to 1fps
+when the tab is hidden:
+
+  await page.evaluate(() => {
+    document.addEventListener("visibilitychange", () => {
+      window._5DTest._lastVisibilityChange = Date.now();
+    });
+  });
+
+If a frame-time spike occurs within 2 seconds of a visibility change,
+skip it -- it is not a freeze.
+
+Pointer lock stub. Playwright cannot grant pointer lock the way a
+user click does. Stub it so the game thinks it has lock:
+
+  await page.evaluate(() => {
+    document.body.requestPointerLock = () => Promise.resolve();
+    Object.defineProperty(document, 'pointerLockElement', {
+      get: () => document.body, configurable: true,
+    });
+  });
+
+Do NOT use page.keyboard for the soak loop. All input goes through
+_5DTest bridge methods. This prevents accidentally pressing Tab, B,
+Esc, or any key that opens a menu or changes game mode.
+The only exception: Escape to exit an accidental fullscreen.
+
+═══════════════════════════════════════════════════════════════════════
+STARTUP CEREMONY -- HANDLE EVERY MENU IN ORDER
+═══════════════════════════════════════════════════════════════════════
+
+The startup sequence the test must navigate:
+
+  1. Navigate to /?_5dtest=1
+  2. Loading screen appears, fades after first tick
+  3. waitForFunction: window._5DTest exists
+  4. installCrashHandler() -- FIRST, before anything else throws
+  5. First-launch tutorial may appear -- dismiss
+  6. Difficulty select may appear -- pick "normal"
+  7. Game-mode select may appear -- pick wave mode
+  8. Wave 1 countdown starts (or call WaveManager.skipCountdown)
+  9. ensureGodModeAndInfiniteAmmo()
+  10. Verify state.wave.phase advances from "idle" -> "spawning"
+      within 10 seconds. If not: hardReset(), retry from step 5.
+
+Code this as an explicit state machine with per-step check + action
++ verify. If verify fails, retry up to 3 times before falling back.
+
+═══════════════════════════════════════════════════════════════════════
+PERK PICKER -- THE MOST COMMON BLOCKER
+═══════════════════════════════════════════════════════════════════════
+
+Between every wave, the perk picker appears and pauses the game.
+The soak loop must handle it every poll:
+
+  if (state.wave.phase === "pausing" || isBlocked.blocked) {
+    const result = await safeEval(page, () => window._5DTest.pickFirstPerk());
+    diagnostic.perksPicked.push({ t: now, perk: result?.picked });
+  }
+
+If pickFirstPerk consistently returns null when the game is paused,
+the perk picker is broken -- log this loudly. That failure mode
+is itself a finding worth reporting.
+
+═══════════════════════════════════════════════════════════════════════
+RELOAD STRATEGY -- PRESERVE HEAP PRESSURE
+═══════════════════════════════════════════════════════════════════════
+
+Track soak state across reloads in the test harness (not the page):
+
+  const soakState = {
+    startMs: Date.now(), reloadCount: 0,
+    totalActiveSeconds: 0, errorsThisRun: 0, diagnostics: [],
+  };
+
+A reload consumes elapsed time -- it is not a fresh start. After
+reload, continue toward DURATION_MS budget.
+
+Hard reset (in-page, no browser reload) is PREFERRED because it
+keeps the heap state. A leak that has been building survives the
+reset, which is what you want -- keep applying pressure to whatever
+is leaking.
+
+Browser reload is the last resort. Use only when:
+  - hardReset() fails
+  - WebGL context lost and not restored within 5 seconds
+  - state() throws for 10 consecutive polls
+  - page.isClosed() === true
+
+Hard limit: 5 browser reloads per run. After 5: fail with
+"unrecoverable after 5 reloads" -- that IS the finding.
+
+═══════════════════════════════════════════════════════════════════════
+WHAT COUNTS AS A REAL FREEZE VS BENIGN SPIKE
+═══════════════════════════════════════════════════════════════════════
+
+Real freezes the test should catch:
+  - frameTimeMs > 1000 sustained for 3+ consecutive polls
+  - state() returns null for 3+ consecutive polls
+  - hero position unchanged for 30+ seconds with enemies alive
+  - aliveCount > 0 unchanged for 60+ seconds in same wave phase
+  - WebGL context lost, not restored within 5 seconds
+
+Benign spikes to ignore:
+  - First 3 seconds (shader compile spike)
+  - GC pauses (100-500ms is GC, not a freeze; require > 1000ms)
+  - Spikes within 2 seconds of a visibility change
+  - Spikes during hardReset() or wave-clear animation
+
+  function isRealFreeze(recentSamples, contextLost, mssinceReset) {
+    const allSpike = recentSamples.every(s => s.frameTimeMs > 1000);
+    return allSpike && !contextLost && mssinceReset > 5000;
+  }
+
+═══════════════════════════════════════════════════════════════════════
+THE DETECTION COVERAGE MATRIX
+═══════════════════════════════════════════════════════════════════════
+
+Every diagnostic dump must include a coverage matrix showing which
+defensive paths actually fired during the run. This is how you verify
+the test isn't silently passing because it never hit the edge cases:
+
+  ## Detection coverage:
+    [ok] First-launch dialog dismissed
+    [ok] Difficulty select dismissed
+    [ok] Mode select navigated
+    [ok] Perk picker dismissed (2 times)
+    [  ] WebGL context loss (did not occur)
+    [  ] Hero stuck detection (did not trigger)
+    [ok] Hard reset (1 time at 0:22)
+    [  ] Page reload (did not occur)
+    [ok] God mode re-applied (3 times)  <- something is resetting it
+    [  ] Visibility change skip (did not occur)
+
+"God mode re-applied 3 times" is itself a finding -- something in
+the game is overriding god mode mid-run. The soak test surfaces it.
+
+═══════════════════════════════════════════════════════════════════════
+EDGE CASES THE TEST MUST HANDLE
+═══════════════════════════════════════════════════════════════════════
+
+  - No enemies spawn within 30s -> hardReset (WaveManager bug)
+  - Enemy positions return NaN -> filter from lockOn candidates
+  - Hero teleports >50 units in one tick -> log as anomaly
+  - Two perk dialogs at once -> pickFirstPerk picks both in sequence
+  - page.on('framenavigated') fires -> treat as unexpected navigation,
+    trigger reload path
+  - window.alert() fires -> Playwright dismisses it, log it
+  - localStorage full -> clear it on test start
+  - Accidental fullscreen -> send Escape (one of the few justified
+    keyboard uses in the soak loop)
+
+═══════════════════════════════════════════════════════════════════════
+SAMPLE DIAGNOSTIC DUMP (.md format, richer version)
+═══════════════════════════════════════════════════════════════════════
+
+  # Soak run 2026-05-19 14:32:00
+  ## Result: FAILED (freeze at 1m 47s)
+  ## Duration: planned 3m, ran 1m 49s
+  ## Reloads: 0  |  Hard resets: 1 (at 0:22)
+  ## Total active seconds: 107 / 180
+  ## Errors caught: 3
+    - 0:12  console error: "TypeError: Cannot read property 'u' of undefined"
+    - 0:43  unhandled rejection: "Failed to fetch shader"
+    - 1:47  onerror: "Maximum call stack size exceeded"  <- likely cause
+  ## Freeze detection: TRIGGERED at 1m 47s
+    - frameTimeMs sequence: [16, 17, 16, 850, 4521, 8932, ...]
+    - State at freeze:
+        wave 4, phase "spawning", aliveCount 8
+        particles 12847  <- grew from 50, suspect
+        bullets 0, enemyBullets 2
+    - Last console messages before freeze:
+        [warn] "Particle pool near capacity"   <- ignored warning
+        [warn] "Particle pool at capacity, dropping"
+        [error] "Maximum call stack size exceeded"
+  ## Dialogs dismissed: firstLaunch, difficultySelect, modeSelect,
+    perk x2 (rapid_fire, extra_grenades)
+  ## Suspect leaks:
+    - particles: 50 -> 12847 (256x, monotonic)
+  ## Recommended: check src/render/vfx.js particle pool return path
+  ## Video: tests/playwright/videos/soak-failed.webm
+  ## Trace: tests/playwright/traces/soak-failed.zip
+
+═══════════════════════════════════════════════════════════════════════
+THE THESIS (ADDENDUM)
+═══════════════════════════════════════════════════════════════════════
+
+A test that says "page.click; press W; expect no errors" will fail
+in 30 different ways before catching the freeze. A test that handles
+every dialog, every modal, every recovery path, and every edge case
+above will catch the freeze AND tell you exactly what was on screen,
+what the heap looked like, what warnings preceded it, and what the
+recovery system tried.
+
+That is about 400-600 lines of Playwright code when done. That is
+normal for a real soak test. Do not try to make it shorter by
+skipping the recovery code -- the recovery code is what separates
+a useful soak test from one that fails on the first network blip
+and tells you nothing.
+
+Build it carefully:
+  1. Bridge extensions (Phase 1 in the main prompt, plus the
+     additions in this addendum)
+  2. Minimal 30-second soak -- just Phase A + Phase B with no
+     recovery paths yet. Get it green.
+  3. Add one recovery path at a time, verifying each fires when
+     its trigger is induced.
+  4. Crank duration to 3 minutes and let it find the real bug.
+
+Begin.
