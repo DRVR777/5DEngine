@@ -94,7 +94,7 @@ import {
   // Render
   mountRenderer,
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
-  mountVehicleMeshes, mountFlashlight, mountBulletGeo,
+  mountVehicleMeshes, mountFlashlight, mountBulletGeo, mountCamVectors,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -2723,12 +2723,8 @@ let _lastHudEnemyHpStr = "";
 // Mag bar dirty-flag — skip innerHTML rebuild when ammo unchanged
 let _lastMagBarAmmo = -1;
 let _lastMagBarReloading = false;
-// Pre-allocated camera Vector3s — reused every tick via .set() to avoid GC pressure
-const _camTarget    = new THREE.Vector3();
-const _camOff       = new THREE.Vector3();
-const _camLook      = new THREE.Vector3();
-const _camAimTarget = new THREE.Vector3();
-const _camBuildLook = new THREE.Vector3();
+// ═══ EXTRACTED → src/render/cam_vectors.js (iter 568)
+const { _camTarget, _camOff, _camLook, _camAimTarget, _camBuildLook } = mountCamVectors({ THREE });
 // ── Fixed-timestep physics accumulator ──────────────────────────────────────
 // Physics runs at exactly 60 Hz regardless of display frame rate.
 // _physicsAcc accumulates wall-clock time; each FIXED_DT slice is one physics
