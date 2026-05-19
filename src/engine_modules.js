@@ -45,6 +45,7 @@ export { createWeaponVisuals } from "./combat/weapon_visuals.js";
 // ── Render ───────────────────────────────────────────────────────────────────
 export { mountRenderer }          from "./render/renderer.js";
 export { mountCamVectors }        from "./render/cam_vectors.js";
+export { mountScene }             from "./render/scene_setup.js";
 export { mountDecalSystem }       from "./render/decals.js";
 export { mountEnemyMeshFactory }  from "./render/enemy_mesh.js";
 export { mountVehicleMeshFactory } from "./render/vehicle_mesh.js";

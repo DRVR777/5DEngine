@@ -94,7 +94,7 @@ import {
   // Render
   mountRenderer,
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
-  mountVehicleMeshes, mountFlashlight, mountBulletGeo, mountCamVectors,
+  mountVehicleMeshes, mountFlashlight, mountBulletGeo, mountCamVectors, mountScene,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -744,10 +744,8 @@ function flashDamage() {
 const pickups = (WD.pickups || []).map(p => Object.assign({ collected: false }, p));
 let score = 0;
 
-// ---- three.js scene ----
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 40, 140);
+// ── Three.js scene — ═══ EXTRACTED → src/render/scene_setup.js (iter 570)
+const { scene } = mountScene({ THREE });
 window._setFogNear = v => { if (scene.fog) scene.fog.near = v; };
 window._setFogFar  = v => { if (scene.fog) scene.fog.far  = v; };
 _buildArenaBoundary(scene); // deferred here — scene now exists
