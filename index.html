@@ -178,7 +178,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -2525,6 +2525,7 @@ const _empTick           = mountEnemyRobotEmpTick({ THREE, scene, shockwaves: _s
 const _heavyGrenadeTick  = mountEnemyHeavyGrenadeTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _bossRockTick      = mountEnemyBossRockTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat, grenades: grenades3D, GRAVITY, actions: { playSfx, screenShake: _applyScreenShake } });
 const _poisonerSpitTick  = mountEnemyPoisonerSpitTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
+const _incendiaryTick    = mountEnemyIncendiaryTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -3400,29 +3401,7 @@ function tick() {
             _heavyGrenadeTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_heavy_grenade_tick.js
             _bossRockTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_boss_rock_tick.js
             _poisonerSpitTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_poisoner_spit_tick.js
-            // Incendiary fire bomb throw — lobs a flaming ball every 5s at 4-12m range
-            if (en.type === "incendiary" && canSee && dist > 4 && dist < 12) {
-              if (!en._fireT || now / 1000 - en._fireT > 5.0) {
-                en._fireT = now / 1000;
-                const tof = 1.4;
-                const fspeed = dist / tof;
-                const throwAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
-                const fMesh = new THREE.Mesh(
-                  new THREE.SphereGeometry(0.18, 6, 5),
-                  new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff3300, emissiveIntensity: 1.5, roughness: 0.5 })
-                );
-                fMesh.position.set(ep.u, ep.y + 1.2, ep.v); scene.add(fMesh);
-                const _fWarnMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.65, depthWrite: false });
-                const _fWarnRing = new THREE.Mesh(_warnRingGeo, _fWarnMat);
-                _fWarnRing.position.set(ep.u, 0.05, ep.v); scene.add(_fWarnRing);
-                grenades3D.push({ mesh: fMesh, fuse: tof + 0.3, u: ep.u, y: ep.y + 1.2, v: ep.v,
-                  velU: Math.sin(throwAng) * fspeed,
-                  velY: Math.abs(GRAVITY) * tof / 2,
-                  velV: Math.cos(throwAng) * fspeed,
-                  _warnRing: _fWarnRing, _isFireball: true });
-                playSfx("tone:400:60:sawtooth", 0.3);
-              }
-            }
+            _incendiaryTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_incendiary_tick.js
             // Boss ground slam — AoE shockwave every 5s when within 4m
             if (en.type === "boss" && canSee && dist < 4) {
               if (!en._slamT || now / 1000 - en._slamT > (en._enraged ? 2.8 : 5.0)) {

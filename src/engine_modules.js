@@ -113,6 +113,7 @@ export { mountEnemyRobotEmpTick }    from "./systems/enemy_robot_emp_tick.js";
 export { mountEnemyHeavyGrenadeTick } from "./systems/enemy_heavy_grenade_tick.js";
 export { mountEnemyBossRockTick }        from "./systems/enemy_boss_rock_tick.js";
 export { mountEnemyPoisonerSpitTick }    from "./systems/enemy_poisoner_spit_tick.js";
+export { mountEnemyIncendiaryTick }      from "./systems/enemy_incendiary_tick.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────
 export { mountShootSystem }    from "./combat/shoot_system.js";
