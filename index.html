@@ -14,6 +14,49 @@
   <div id="loadHint">browser · three.js · wave combat</div>
 </div>
 <div id="hud">loading…</div>
+<!--
+  ── Legacy global scripts (window.GTAXxx namespace) ─────────────────────────
+  These pre-date the ES module refactor and expose their APIs on window.
+  They load synchronously so the module below can reference them immediately.
+  Migration plan: convert one-by-one to ES modules, import via engine_modules.js.
+
+  load_guard.js       — throws if critical scripts fail to load (CDN / order errors)
+  local_db_bridge.js  — IndexedDB wrapper for save slots (window.LocalDB)
+  engine.js           — WorldState, LayerBoundary, Engine namespace root (window.GTAEngine)
+  dev_console.js      — in-game dev console overlay (window.DevConsole)
+  event_bus.js        — cross-system pub/sub (window.EventBus)
+  day_night.js        — 24h day/night cycle state (window.DayNight)
+  particle_system.js  — high-level particle emitter API (window.ParticleSystem)
+  trigger_zones.js    — enter/exit zone events for quests/traps (window.TriggerZones)
+  sound_zones.js      — positional ambient audio regions (window.SoundZones)
+  cutscene.js         — scripted camera + event sequences (window.Cutscene)
+  behavior_tree.js    — enemy BT nodes: patrol/chase/attack (window.BehaviorTree)
+  terrain.js          — height-map terrain + collision geometry (window.Terrain)
+  a_star.js           — pathfinding grid for AI navigation (window.AStar)
+  achievements.js     — unlock tracking + notification (window.Achievements)
+  status_effects.js   — burn/poison/blind/stagger appliers (window.StatusEffects)
+  wave_manager.js     — enemy wave spawning + phase FSM (window.WaveManager)
+  crafting.js         — recipe + bench system (window.Crafting)
+  game_config.js      — tunable constants: damage, speeds, economy (window.GameConfig)
+  world_data.js       — map layout JSON: buildings, NPCs, vehicles (window.WorldData)
+  engine_browser.js   — browser-specific engine hooks (window.GTABridge shim)
+  engine_bridge.js    — physics↔render coordinate transform (window.GTABridge)
+  physics.js          — AABB collision + gravity (window.GTAPhysics)
+  entity.js           — base entity factory + facet system (window.GTAEntity)
+  registry.js         — subsystem registry (window.GTARegistry)
+  inventory.js        — slot-based inventory CRUD (window.GTAInventory)
+  guns.js             — weapon definitions + fire-rate logic (window.GTAGuns)
+  health.js           — HP + armor + damage application (window.GTAHealth)
+  devices.js          — in-world interactable device objects (window.Devices)
+  wires.js            — wire/port connectivity graph (window.Wires)
+  camera_spine.js     — 4-zone camera mode FSM: INSIDE/FP/TP/BIRD (window.CameraSpine)
+  scripting.js        — Lua-like builder scripting sandbox (window.BuilderScripting)
+  screen_mesh.js      — in-world canvas-textured screen surfaces (window.ScreenMesh)
+  gltf_loader.js      — GLTF/OBJ/FBX async loader with cache (window.GLTFLoader)
+  audio.js            — Web Audio context + SFX scheduler (window.GTAAudio)
+  audio_webaudio.js   — extended sfx helpers: tones, blips (window.Sfx extended)
+  builder.js          — world editor: pick/drag/snap/undo (window.WorldBuilder)
+-->
 <script src="./src/core/load_guard.js"></script>
 <script src="./src/bridges/local_db_bridge.js"></script>
 <script src="./src/core/engine.js"></script>
@@ -71,6 +114,51 @@
 } }
 </script>
 <script type="module">
+/*
+  ════════════════════════════════════════════════════════════════════════════
+  5DEngine — main module entry point
+  ════════════════════════════════════════════════════════════════════════════
+
+  ARCHITECTURE OVERVIEW
+  ─────────────────────
+  This file is the game's single entry point. All state lives here as `let`
+  variables; systems receive it through closure-based dependency injection:
+
+    mountXxx({ get: { foo: () => foo }, set: { foo: v => { foo = v; } }, actions })
+
+  "get/set" pairs expose individual state fields without passing mutable refs.
+  "actions" provides callbacks to engine functions the module needs to call.
+
+  All extracted modules live in src/ and are re-exported from engine_modules.js.
+  index.html imports only from that one barrel file.
+
+  TICK FUNCTION ORDER (tick(), called via requestAnimationFrame)
+  ──────────────────────────────────────────────────────────────
+  1. Time: dt capped at 50ms; bullet-time scalar applied; Engine.time.tick
+  2. HUD pre-tick: FPS counter, ammo/reload display, auto-fire
+  3. Input: scope FOV, crosshair, sniper sway
+  4. Camera: snap-zoom, computer entry dolly
+  5. Computer-open early-exit: render + rAF, no gameplay
+  6. Movement: freecam, hero WASD, vehicle physics, jump/gravity
+  7. Footsteps, stamina, speed boost, motion springs
+  8. Bullet physics: travel, enemy hit detection, kill processing
+  9. Enemy AI loop: knockback, BT, vision, ranged attacks, movement
+  10. NPC movement, enemy separation, enemy regen
+  11. Pickups, hazards, grenade physics
+  12. Optional systems: TriggerZones, SoundZones, Cutscene, Achievements,
+      DayNight, StatusEffects, WaveManager
+  13. Render: camera position, scene render, post-processing
+  14. HUD post-tick: health bars, wave HUD, kill feed, overlay tints
+  15. requestAnimationFrame(tick) — schedule next frame
+
+  STATE VARIABLE CONVENTIONS
+  ──────────────────────────
+  _xxx     — private to this module (not exposed on window)
+  _xxxTick — an extracted tick system (mountXxxTick return value)
+  _dom.xxx — cached DOM element references (see mountHudElements)
+  window.Engine.xxx — shared cross-module state (see engine.js)
+  window.GTAXxx     — legacy global from pre-module scripts
+*/
 import * as THREE from "three";
 import {
   // UI
@@ -154,7 +242,9 @@ let composer = null;
 // inject all HUD/panel HTML before any getElementById runs
 mountHudTemplate();
 
-// ---- engine state ----
+// ════════════════════════════════════════════════════════════════════════════
+// ENGINE BOOTSTRAP — null guards, aliases, world setup
+// ════════════════════════════════════════════════════════════════════════════
 // Null guards: if any engine script failed to load (CDN down, script order wrong,
 // blocked by CORS) we throw with a clear message rather than a cryptic TypeError
 // somewhere deep in game logic. Each guard names what's missing and why it matters.
@@ -214,6 +304,11 @@ let _activeVehicleDef = null;
 // carState always mirrors the active vehicle's state (backwards-compat reads)
 const carState = { speed: 0, heading: 0, gear: 0, gearName: "N" };
 
+// ════════════════════════════════════════════════════════════════════════════
+// ENEMY STATE — enemy list, boss tracking, kill/streak counters
+// Each enemy object: { id, type, hp, maxHp, dead, heading, u, v, ... }
+// Enemies are mutated in place during AI + bullet physics loops.
+// ════════════════════════════════════════════════════════════════════════════
 // ═══ EXTRACTED → src/config/enemy_types.js (iter 557)
 // _ENEMY_TYPES and _DMG_MUL imported at top from engine_modules.js
 
@@ -260,6 +355,10 @@ const _comboAnnouncer = mountComboAnnouncer({
   set: { comboCount: v => { _comboCount = v; }, comboAnnouncedMul: v => { _comboAnnouncedMul = v; } },
   actions: { showToast, playSfx },
 });
+// ════════════════════════════════════════════════════════════════════════════
+// PERK SYSTEM STATE — multipliers applied on top of base stats each wave.
+// All are reset on new game via _perkSys.clearTimerAndReset().
+// ════════════════════════════════════════════════════════════════════════════
 // Between-wave perk system
 let _perkDmgMul    = 1.0;   // stacks multiplicatively with kill-level damage
 let _perkReloadMul = 1.0;   // < 1 = faster reload
@@ -2199,6 +2298,15 @@ mountKeyupHandler({
   },
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// CAMERA STATE
+// camYaw/camPitch — mouse-driven orientation (radians)
+// camDist         — 0–0.5 = first-person, >0.5 = third-person (max ~12)
+// aiming/aimAmt   — RMB zoom; aimAmt is a smoothed [0..1] lerp factor
+// computerEntering/computerEntryT — cinematic dolly into desk screen
+// snapZoomTarget  — Q/Z/V keybind zoom snap; lerped each tick until reached
+// mouseMode       — M toggles: cursor drives an in-world screen, not the camera
+// ════════════════════════════════════════════════════════════════════════════
 let camYaw = 0;
 let camPitch = -0.25;
 let camDist = 7;          // 0..0.5 = first-person, > 0.5 = third-person
@@ -2644,6 +2752,10 @@ const { _camTarget, _camOff, _camLook, _camAimTarget, _camBuildLook } = mountCam
 let _physicsAcc  = 0;        // leftover time from last frame
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ════════════════════════════════════════════════════════════════════════════
+// GAME LOOP — tick() is the single rAF callback driving all gameplay.
+// Subsystems extracted so far call into it via their _xxxTick.tick(dt, ...).
+// See the TICK FUNCTION ORDER comment at the top of this file.
 // EXTRACT-PLAN: tick() (~2900 lines) — extract in subsections:
 //   iter 527: enemy_ai_tick.js → src/entities/enemy_ai_tick.js (lines ~4756-5569)
 //     the main AI loop: BT, knockback, alerts, ranged attacks, movement
