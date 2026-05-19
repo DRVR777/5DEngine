@@ -13,20 +13,24 @@ REM Check Node is available
 where node >nul 2>&1
 if errorlevel 1 (
     echo  ERROR: Node.js not found.
-    echo  Download from https://nodejs.org
+    echo  Run SETUP.BAT first, or download from https://nodejs.org
+    echo.
     pause
     exit /b 1
 )
 
-REM Check socket.io is installed
-if not exist "node_modules\socket.io" (
-    echo  Installing socket.io...
-    npm install socket.io --silent
+REM Install/update packages if node_modules is missing or outdated
+if not exist "node_modules\express" (
+    echo  Installing packages...
+    call npm install --omit=dev --silent
+    if errorlevel 1 (
+        echo  ERROR: npm install failed. Check your internet connection.
+        pause
+        exit /b 1
+    )
 )
 
 echo  Starting 5DEngine server on http://localhost:8080 ...
-echo  Open multiple tabs at that URL to test multiplayer.
-echo  LAN players: use the LAN IP shown below.
 echo.
 
 start "5DEngine Server" cmd /k "node game_server.js 8080"
@@ -38,6 +42,12 @@ echo  Opening browser...
 start "" "http://localhost:8080"
 
 echo.
-echo  To add a second player: open http://localhost:8080 in another tab or window.
+echo  ── Multiplayer ──────────────────────────────────────
+echo  This machine:  http://localhost:8080
+echo.
+echo  Friends on the same WiFi — tell them to open this
+echo  URL in their browser (shown in the server window):
+echo    http://YOUR-PC-NAME.local:8080
+echo.
 echo  Close the server window to stop.
 echo.
