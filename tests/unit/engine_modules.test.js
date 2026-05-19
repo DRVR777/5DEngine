@@ -16,6 +16,7 @@ describe("engine_modules", () => {
     expect(src).toContain("mountHeroLifecycle");
     expect(src).toContain("mountGameReset");
     expect(src).toContain("mountKillTracking");
+    expect(src).toContain("mountEnvironment");
   });
 
   it("re-exports all create* ECS systems", () => {
