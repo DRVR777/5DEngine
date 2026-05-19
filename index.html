@@ -93,7 +93,7 @@ import {
   mountShootSystem, createWeaponVisuals,
   // Render
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
-  mountVehicleMeshes,
+  mountVehicleMeshes, mountFlashlight,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -1092,12 +1092,8 @@ const { spawnDecal: _spawnDecal, spawnWallScorch: _spawnWallScorch } =
 // function _triggerMuzzleFlash(x, y, z) { _muzzleLight.position.set(x, y, z); ... }
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Player flashlight — SpotLight that tracks camera, toggled with F key
-// (NOT part of Vfx module — stays here because it's player-controlled, not combat VFX)
-const _flashLight = new THREE.SpotLight(0xfff8e0, 0, 22, 0.22, 0.55, 1.6);
-const _flashTarget = new THREE.Object3D();
-scene.add(_flashLight); scene.add(_flashTarget);
-_flashLight.target = _flashTarget;
+// ═══ EXTRACTED → src/render/flashlight.js (iter 559)
+const { flashLight: _flashLight, flashTarget: _flashTarget } = mountFlashlight({ THREE, scene });
 let _flashlightOn = false;
 
 // ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
