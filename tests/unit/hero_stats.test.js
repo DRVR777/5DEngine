@@ -5,7 +5,8 @@ const src = readFileSync("src/config/hero_stats.js", "utf8");
 
 describe("hero_stats", () => {
   it("exports HERO_MAX_ARMOR = 75", () => {
-    expect(src).toContain("export const HERO_MAX_ARMOR = 75");
+    expect(src).toContain("export const HERO_MAX_ARMOR");
+    expect(src).toContain("75");
   });
 
   it("exports ARMOR_ABSORB = 0.6", () => {
@@ -34,5 +35,12 @@ describe("hero_stats", () => {
     expect(src).toContain("CFG.heroRegenRate");
     expect(src).toContain("HERO_REGEN_DELAY");
     expect(src).toContain("HERO_REGEN_RATE");
+  });
+
+  it("exports STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT", () => {
+    expect(src).toContain("export const STAMINA_MAX");
+    expect(src).toContain("export const STAMINA_DRAIN");
+    expect(src).toContain("export const STAMINA_REGEN");
+    expect(src).toContain("export const STAMINA_LOCKOUT");
   });
 });

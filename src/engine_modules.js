@@ -72,7 +72,8 @@ export { Core } from "./core/core.js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 export { ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS } from "./config/enemy_types.js";
-export { makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN } from "./config/hero_stats.js";
+export { makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
+         STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT } from "./config/hero_stats.js";
 
 // ── World ─────────────────────────────────────────────────────────────────────
 export { default as Rain }     from "./world/rain.js";

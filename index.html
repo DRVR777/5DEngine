@@ -105,6 +105,7 @@ import {
   // Config
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
+  STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT,
   // World
   Rain, mountWorldLayout,
   // Audio
@@ -2595,11 +2596,8 @@ let _heroShotAlertU = 0, _heroShotAlertV = 0, _heroShotAlertT = 0; // last shot 
 let _crouchAmt = 0;    // spring [0..1]: 0=stand, 1=fully crouched
 let _slideT = 0, _slideDU = 0, _slideDV = 0, _ctrlWasDown = false; // sprint slide state
 let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
-const STAMINA_MAX    = 100;
+// ═══ EXTRACTED → src/config/hero_stats.js (iter 562) — STAMINA_MAX/DRAIN/REGEN/LOCKOUT imported at top
 let _heroExtraStaminaMax = 0; // bonus from kill level 3
-const STAMINA_DRAIN  = 22;  // per second while sprinting
-const STAMINA_REGEN  = 14;  // per second when not sprinting
-const STAMINA_LOCKOUT = 15; // minimum stamina required to re-enter sprint
 let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _perkReloadMul);
