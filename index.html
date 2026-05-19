@@ -179,7 +179,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountScreenInteraction, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
@@ -1836,47 +1836,12 @@ Sfx.init(audioMixer);
 const playSfx = Sfx.playSfx;
 const _setAmbient = Sfx.setAmbient;
 
-// ---- in-world screen interaction (E + raycast → hit-test) ----------
-// Raycast from the camera through the screen center (crosshair) and
-// invoke the region.onClick under the UV. Returns true if a screen
-// was hit and a region was clicked (so the caller can preventDefault).
-function tryClickWorldScreen() {
-  if (!window.ScreenMesh) return false;
-  if (!worldScreens || worldScreens.size === 0) return false;
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const meshes = Array.from(worldScreens.values()).map(s => s.mesh);
-  const screenMap = new Map();
-  for (const [id, s] of worldScreens) screenMap.set(id, s.screen);
-  const hit = window.ScreenMesh.pickScreen(raycaster, meshes, screenMap);
-  if (!hit || !hit.screen) return false;
-  // Range limit — must be within 50m
-  if (hit.distance > 50) return false;
-  // If we're hitting a BIG screen (jumbotron / sky / any >5m wide), enter
-  // mouse-mode on it instead of treating E as a click. User sees a cursor
-  // they can move with the mouse; LMB invokes the region's onClick.
-  if (hit.screen.widthM >= 5 && !mouseMode) {
-    enterScreenMouseMode(hit.screen, hit.uv);
-    return true;
-  }
-  const region = window.ScreenMesh.hitTest(hit.screen, hit.uv);
-  if (!region) return false;
-  if (typeof region.onClick === "function") region.onClick(hit.screen);
-  return true;
-}
-
-function enterScreenMouseMode(screen, uv) {
-  activeMouseScreen = screen;
-  mouseMode = true;
-  // Seed cursor at the raycast UV (in canvas pixel coords)
-  mouseModeCursor.x = (uv ? uv.x : 0.5) * screen.resolutionW;
-  mouseModeCursor.y = (uv ? (1 - uv.y) : 0.5) * screen.resolutionH;
-  if (document.pointerLockElement) document.exitPointerLock();
-}
-function exitScreenMouseMode() {
-  activeMouseScreen = null;
-  mouseMode = false;
-}
+// ═══ EXTRACTED → src/systems/screen_interaction.js (iter 682) ═══════════════════
+// Pseudocode: E-key raycast → worldScreens, big screen → mouse-mode, normal → click.
+const _screenInteraction = mountScreenInteraction({ THREE, getScreenMesh: () => window.ScreenMesh || null, get: { worldScreens: () => worldScreens, camera: () => camera, mouseMode: () => mouseMode }, set: { activeMouseScreen: v => { activeMouseScreen = v; }, mouseMode: v => { mouseMode = v; }, mouseModeCursorX: v => { mouseModeCursor.x = v; }, mouseModeCursorY: v => { mouseModeCursor.y = v; } }, exitPointerLock: () => { if (document.pointerLockElement) document.exitPointerLock(); } });
+const tryClickWorldScreen  = () => _screenInteraction.tryClickWorldScreen();
+const enterScreenMouseMode = (screen, uv) => _screenInteraction.enterScreenMouseMode(screen, uv);
+const exitScreenMouseMode  = () => _screenInteraction.exitScreenMouseMode();
 
 // ---- in-world screens (screen_mesh.js) -------------------------------
 // Two giant screens per user spec: a 50ft jumbotron and a 1000ft sky screen.
