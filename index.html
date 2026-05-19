@@ -1088,8 +1088,14 @@ const { vehicleMeshes, carGroup, carBody } = mountVehicleMeshes({ THREE, scene, 
 
 // Ammo/weapon/health/shard/coin drops
 // ═══ EXTRACTED → src/systems/drop_spawner.js (iter 544) ══════════════════════
-// spawnAmmoPickup, spawnWeaponPickup, spawnHealthPickup, spawnArmorShard, spawnCoinDrop
-// ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops — mounted below
+const {
+  spawnAmmoPickup:   _spawnAmmoPickup,
+  spawnWeaponPickup: _spawnWeaponPickup,
+  spawnHealthPickup: _spawnHealthPickup,
+  spawnArmorShard:   _spawnArmorShard,
+  spawnCoinDrop:     _spawnCoinDrop,
+  ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops,
+} = mountDropSpawner({ THREE, scene, CFG, get: { weapon: () => getWeapon() } });
 
 // ═══ EXTRACTED → src/systems/static_supply.js (iter 550)
 const { grenadeCrates, armorPickups } = mountStaticSupply({ THREE, scene });
@@ -2709,15 +2715,6 @@ const { makeCrate: _makeCrate, breakCrate: _breakCrate, crates } = mountCrateSys
   },
 });
 
-// ── Drop spawner — iter 544 ───────────────────────────────────────────────────
-const {
-  spawnAmmoPickup:   _spawnAmmoPickup,
-  spawnWeaponPickup: _spawnWeaponPickup,
-  spawnHealthPickup: _spawnHealthPickup,
-  spawnArmorShard:   _spawnArmorShard,
-  spawnCoinDrop:     _spawnCoinDrop,
-  ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops,
-} = mountDropSpawner({ THREE, scene, CFG, get: { weapon: () => getWeapon() } });
 
 window._loadingDismissed = false;
 const _platformSys = mountPlatformSystem();
