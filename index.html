@@ -1490,10 +1490,52 @@ for (const vDef of VEHICLE_DEFS) {
 const carGroup = vehicleMeshes.get(VEHICLE_DEFS[0].id) || new THREE.Group();
 const carBody   = carGroup._bodyMesh || carGroup;
 
-// Ammo pickups dropped by killed enemies
+// Ammo/weapon/health/shard/coin drops
 // ═══ EXTRACTED → src/systems/drop_spawner.js (iter 544) ══════════════════════
 // spawnAmmoPickup, spawnWeaponPickup, spawnHealthPickup, spawnArmorShard, spawnCoinDrop
 // ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops — mounted below
+
+// Grenade crates — static supply caches that restock grenades
+const grenadeCrates = [];
+(function() {
+  const cratePositions = [[10, -10], [-10, 10], [0, 18], [-14, -4]];
+  const geo = new THREE.BoxGeometry(0.5, 0.4, 0.5);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x336633, metalness: 0.3, roughness: 0.6 });
+  const lineMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00aa22, emissiveIntensity: 0.6 });
+  for (const [cu, cv] of cratePositions) {
+    const mesh = new THREE.Mesh(geo, mat.clone());
+    mesh.position.set(cu, 0.2, cv); mesh.castShadow = true; scene.add(mesh);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.08, 0.12), lineMat.clone());
+    stripe.position.set(0, 0, 0); mesh.add(stripe);
+    grenadeCrates.push({ mesh, u: cu, v: cv, respawnT: -Infinity, active: true });
+  }
+})();
+
+// Armor vest pickups — 3 placed around the map, restore 25 armor, respawn 60s
+const armorPickups = [];
+(function() {
+  const positions = [[18, 5], [-16, 14], [4, -20]];
+  const geo  = new THREE.BoxGeometry(0.4, 0.55, 0.25);
+  const mat  = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xcc9900, emissiveIntensity: 0.5, metalness: 0.5, roughness: 0.4 });
+  for (const [au, av] of positions) {
+    const mesh = new THREE.Mesh(geo, mat.clone());
+    mesh.position.set(au, 0.3, av); mesh.castShadow = true; scene.add(mesh);
+    armorPickups.push({ mesh, u: au, v: av, respawnT: -Infinity, active: true });
+  }
+})();
+
+// Speed boost orbs — spawned at wave start after wave 2; 4s of 1.5x movement speed
+const _speedOrbs = [];
+let _speedBoostT = 0;
+let _speedTrailT = 0;
+const _speedOrbGeo = new THREE.DodecahedronGeometry(0.22, 0);
+const _speedOrbMat = new THREE.MeshStandardMaterial({ color: 0xffdd00, emissive: 0xffa500, emissiveIntensity: 0.9, metalness: 0.2 });
+function _spawnSpeedOrb(u, v) {
+  const mesh = new THREE.Mesh(_speedOrbGeo, _speedOrbMat.clone());
+  mesh.position.set(u, 0.7, v);
+  scene.add(mesh);
+  _speedOrbs.push({ mesh, u, v, collected: false, _birthT: performance.now() / 1000 });
+}
 
 // ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
 // firePatches, poisonPuddles, _spawnFirePatch, _spawnPoisonPuddle — mounted below
