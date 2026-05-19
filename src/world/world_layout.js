@@ -1,7 +1,7 @@
 // World layout — converts WorldData building defs to LayerBoundary objects + AABB blockers.
 // Arena boundary walls are deferred until scene exists.
 // mountWorldLayout({ THREE, wdBuildings }) → { buildings, buildingBlockers, buildArenaBoundary }
-export function mountWorldLayout({ THREE, wdBuildings }) {
+export function mountWorldLayout({ THREE, wdBuildings, LayerBoundary }) {
   function _buildFromSchema(def, layerIdx) {
     return {
       id: def.id, color: def.color,

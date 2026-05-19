@@ -281,7 +281,7 @@ const WD = window.WorldData || {};
 
 // ═══ EXTRACTED → src/world/world_layout.js (iter 556)
 const { buildings, buildingBlockers, buildArenaBoundary: _buildArenaBoundary } =
-  mountWorldLayout({ THREE, wdBuildings: WD.buildings || [] });
+  mountWorldLayout({ THREE, LayerBoundary, wdBuildings: WD.buildings || [] });
 
 // NPCs — from WorldData schema
 const NPC_DEFS = WD.npcs || [];
