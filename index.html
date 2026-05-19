@@ -95,7 +95,7 @@ import {
   mountRenderer,
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
   mountVehicleMeshes, mountFlashlight, mountBulletGeo, mountCamVectors, mountScene,
-  mountPostProcessing, mountLoaders,
+  mountPostProcessing, mountLoaders, mountVfxInit,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -792,14 +792,9 @@ mountPostProcessing({ THREE, renderer, scene, camera, onReady: c => { composer =
 // extracted into src/render/vfx.js (see extraction marker at ~line 3140).
 // "warnRingGeo / warnRingMat" are live named exports — after init() they hold
 // the actual TorusGeometry / MeshBasicMaterial for enemy grenade indicators.
-Vfx.init(THREE, scene, camera);
-const _warnRingGeo        = _vfxWarnGeo;                       // enemy grenade danger ring geometry (flat torus)
-const _warnRingMat        = _vfxWarnMat;                       // red transparent ring material
-const _spawnParticles     = Vfx.spawnParticles.bind(Vfx);      // burst of colored sphere particles
-const _ejectCasing        = Vfx.ejectCasing.bind(Vfx);         // brass cylinder shell casing physics
-const _spawnDamageNumber  = Vfx.spawnDamageNumber.bind(Vfx);   // floating "+42" world-space DOM label
-const _triggerMuzzleFlash = Vfx.triggerMuzzleFlash.bind(Vfx);  // briefly brightens PointLight at gun tip
-const _spawnShockwave     = Vfx.spawnShockwave.bind(Vfx);      // expanding boss-slam ring on ground
+// ═══ EXTRACTED → src/render/vfx_init.js (iter 573)
+const { _warnRingGeo, _warnRingMat, _spawnParticles, _ejectCasing, _spawnDamageNumber, _triggerMuzzleFlash, _spawnShockwave } =
+  mountVfxInit({ THREE, scene, camera, Vfx, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat });
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ═══ EXTRACTED → src/render/lighting.js (iter 553)

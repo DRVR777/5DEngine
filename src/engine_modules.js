@@ -48,6 +48,7 @@ export { mountCamVectors }        from "./render/cam_vectors.js";
 export { mountScene }             from "./render/scene_setup.js";
 export { mountPostProcessing }    from "./render/post_processing.js";
 export { mountLoaders }           from "./render/loaders.js";
+export { mountVfxInit }           from "./render/vfx_init.js";
 export { mountDecalSystem }       from "./render/decals.js";
 export { mountEnemyMeshFactory }  from "./render/enemy_mesh.js";
 export { mountVehicleMeshFactory } from "./render/vehicle_mesh.js";
