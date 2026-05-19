@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2399,6 +2399,7 @@ const _clockHudTick  = mountClockHudTick({ actions: { getDayNightHour: () => (ty
 const _vignetteTick  = mountVignetteTick({ get: { vignetteAmt: () => _vignetteAmt }, set: { vignetteAmt: v => { _vignetteAmt = v; } } });
 const _statBarsTick  = mountStatBarsTick({ get: { hpGhost: () => _hpGhost }, set: { hpGhost: v => { _hpGhost = v; } } });
 const _bossBarTick   = mountBossBarTick();
+const _comboHudTick  = mountComboHudTick();
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
@@ -5084,34 +5085,8 @@ function tick() {
   // Boss HP bar — extracted → src/systems/boss_bar_tick.js (iter 606)
   _bossBarTick.tick(now, (_liveBoss && !_liveBoss.dead) ? _liveBoss : null, { bossBar: _dom.bossHpBar, bossHpFill: _dom.bossHpFill, bossHpVal: _dom.bossHpVal, bossName: _dom.bossName });
 
-  // Kill combo multiplier HUD
-  {
-    const _cNow = now / 1000;
-    _comboAnnouncer.tick(_cNow); // decay + milestone audio (extracted iter 592)
-    const comboHudEl = _dom.comboHud;
-    const comboMulEl = _dom.comboMulText;
-    const comboFillEl = _dom.comboFill;
-    if (comboHudEl) {
-      if (_comboCount >= 2) {
-        comboHudEl.style.display = "block";
-        const mul = Math.min(8, _comboCount);
-        if (comboMulEl) {
-          comboMulEl.textContent = `x${mul}`;
-          const hue = mul >= 6 ? "#ff4466" : mul >= 4 ? "#ff8800" : "#ffd166";
-          comboMulEl.style.color = hue;
-          comboMulEl.style.textShadow = `0 0 14px ${hue}cc`;
-          const pulse = 1 + 0.08 * Math.sin(_cNow * 12);
-          comboMulEl.style.transform = `scale(${pulse.toFixed(3)})`;
-        }
-        if (comboFillEl) {
-          const frac = Math.max(0, 1 - (_cNow - _comboLastT) / _COMBO_DECAY);
-          comboFillEl.style.width = (frac * 100).toFixed(1) + "%";
-        }
-      } else {
-        comboHudEl.style.display = "none";
-      }
-    }
-  }
+  // Kill combo multiplier HUD — extracted → src/systems/combo_hud_tick.js (iter 607)
+  { const _cNow = now / 1000; _comboAnnouncer.tick(_cNow); _comboHudTick.tick(_cNow, _comboCount, _comboLastT, _COMBO_DECAY, { comboHud: _dom.comboHud, comboMulText: _dom.comboMulText, comboFill: _dom.comboFill }); }
 
   // Holographic weapon panel update
   const wpNameEl = _dom.wpName;
