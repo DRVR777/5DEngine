@@ -93,6 +93,7 @@ import {
   mountShootSystem, createWeaponVisuals,
   // Render
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
+  mountVehicleMeshes,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -1139,15 +1140,8 @@ renderer.domElement.addEventListener("drop", (e) => {
 // ── Vehicle mesh factory — iter 547 ──────────────────────────────────────────
 const { makeVehicleMesh: _makeVehicleMesh } = mountVehicleMeshFactory({ THREE });
 
-const vehicleMeshes = new Map();
-for (const vDef of VEHICLE_DEFS) {
-  const grp = _makeVehicleMesh(vDef);
-  vehicleMeshes.set(vDef.id, grp);
-  scene.add(grp);
-}
-// Keep carGroup/carBody pointing to the first vehicle for AssetLoader compat
-const carGroup = vehicleMeshes.get(VEHICLE_DEFS[0].id) || new THREE.Group();
-const carBody   = carGroup._bodyMesh || carGroup;
+// ═══ EXTRACTED → src/render/vehicle_meshes.js (iter 558)
+const { vehicleMeshes, carGroup, carBody } = mountVehicleMeshes({ THREE, scene, vehicleDefs: VEHICLE_DEFS, makeVehicleMesh: _makeVehicleMesh });
 
 // Ammo/weapon/health/shard/coin drops
 // ═══ EXTRACTED → src/systems/drop_spawner.js (iter 544) ══════════════════════
