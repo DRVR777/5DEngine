@@ -21,6 +21,7 @@ export { mountDifficultySelect } from "./systems/difficulty_select.js";
 export { mountNpcDialog, DEFAULT_NPC_DIALOGS } from "./systems/npc_dialog.js";
 export { mountQuestPanel }      from "./systems/quest_panel.js";
 export { mountStarterQuests }   from "./systems/starter_quests.js";
+export { mountFirstLaunch }     from "./systems/first_launch.js";
 export { mountSettingsPanel }   from "./systems/settings_panel.js";
 export { buildComputerApps, addDynamicIcons } from "./systems/computer_apps.js";
 export { mountMouseInput }      from "./systems/mouse_input.js";

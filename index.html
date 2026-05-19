@@ -81,7 +81,7 @@ import {
   // Systems
   mountConfigEditor, mountSceneHierarchy, mountDuelMode, mountDifficultySelect,
   mountNpcDialog, DEFAULT_NPC_DIALOGS,
-  mountQuestPanel, mountStarterQuests, mountShopPanel, mountSettingsPanel,
+  mountQuestPanel, mountStarterQuests, mountFirstLaunch, mountShopPanel, mountSettingsPanel,
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
@@ -5493,29 +5493,12 @@ function tick() {
 }
 requestAnimationFrame(tick);
 
-// F1 — Show Game Mode Select on very first launch.
-// Waits 500 ms so the scene renders one frame first (avoids black-screen flash).
-// Opens the overlay directly (no cinematic) and navigates straight to Game Modes.
-// _firstLaunch is cleared when the player picks a mode; never fires again.
-setTimeout(function _firstLaunchGameModes() {
-  if (!_firstLaunch) return;
-  // BUG FIX iter 418: finishComputerEntry() does NOT call exitPointerLock() —
-  // that lives in beginComputerEntry(). Without this explicit call the pointer
-  // stays locked and the game-mode select overlay is visible but unclickable
-  // (user would have to press Escape first, which was the reported bug).
-  if (document.pointerLockElement) document.exitPointerLock();
-  // Mark overlay as open (sets computerOpen = true, shows the overlay element).
-  finishComputerEntry();
-  // Navigate straight to the Game Modes app (skip the home-screen grid)
-  const homeEl  = document.getElementById("appHome");
-  const titleEl = document.getElementById("appTitle");
-  const bodyEl  = document.getElementById("appBody");
-  const winEl   = document.getElementById("appWindow");
-  if (homeEl)  homeEl.style.display  = "none";
-  if (titleEl) titleEl.textContent   = APPS.gamemodes.title;
-  if (bodyEl)  bodyEl.innerHTML      = APPS.gamemodes.body();
-  if (winEl)   winEl.classList.add("open");
-}, 500);
+// ═══ EXTRACTED → src/systems/first_launch.js (iter 586)
+mountFirstLaunch({
+  getFirstLaunch:      () => _firstLaunch,
+  finishComputerEntry: () => finishComputerEntry(),
+  getApps:             () => APPS,
+});
 
 // ---- High score (separate from save) ----
 // ═══ EXTRACTED → src/progression/high_score.js ════════════════════════════════
