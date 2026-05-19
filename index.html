@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2395,6 +2395,7 @@ let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
 const _fpsTick = mountFpsTick({ get: { fpsFrames: () => _fpsFrames, fpsWindowT: () => _fpsWindowT, fpsDisplay: () => _fpsDisplay }, set: { fpsFrames: v => { _fpsFrames = v; }, fpsWindowT: v => { _fpsWindowT = v; }, fpsDisplay: v => { _fpsDisplay = v; } }, actions: { onNewFps: fps => { if (typeof Engine !== "undefined") { Engine.debug.fpsHistory.push(fps); if (Engine.debug.fpsHistory.length > 60) Engine.debug.fpsHistory.shift(); } } } });
 const _crosshairTick = mountCrosshairTick();
 const _combatHudTick = mountCombatHudTick();
+const _clockHudTick  = mountClockHudTick({ actions: { getDayNightHour: () => (typeof DayNight !== "undefined") ? DayNight.getHour() : null } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
 const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
@@ -4925,27 +4926,8 @@ function tick() {
   sun.position.set(dn.sun.x * 30, Math.max(2, dn.sun.y * 30), dn.sun.z * 30);
   sun.intensity = 0.3 + 1.0 * dn.dayMix;
 
-  // Update day/night clock HUD (prefer DayNight module if loaded)
-  const clockEl = _dom.clockHud;
-  if (clockEl) {
-    let gameH, gameM, dayMix;
-    if (typeof DayNight !== "undefined") {
-      const h = DayNight.getHour();
-      gameH = Math.floor(h);
-      gameM = Math.floor((h - gameH) * 60);
-      dayMix = Math.max(0, Math.min(1, (h >= 6 && h < 19) ? 1 - Math.abs(h - 12.5) / 6.5 : 0));
-    } else {
-      const dayFrac = ((now / 1000) % 60) / 60;
-      gameH = Math.floor(dayFrac * 24); gameM = Math.floor((dayFrac * 24 - gameH) * 60);
-      dayMix = dn.dayMix;
-    }
-    const isPM = gameH >= 12;
-    const h12 = ((gameH % 12) || 12).toString().padStart(2, "0");
-    const mStr = gameM.toString().padStart(2, "0");
-    const icon = dayMix > 0.7 ? "☀" : (dayMix > 0.3 ? "🌤" : "🌙");
-    clockEl.textContent = `${icon} ${h12}:${mStr} ${isPM ? "PM" : "AM"}`;
-    clockEl.style.color = dayMix > 0.5 ? "#ffd166" : "#6699cc";
-  }
+  // Clock HUD — extracted → src/systems/clock_hud_tick.js (iter 603)
+  _clockHudTick.tick(now, dn.dayMix, _dom.clockHud);
 
   // append objective + score to HUD
   // hp bar (rendered as block string — quick + readable)
