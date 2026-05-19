@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountGameReset, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -411,18 +411,8 @@ const _heroShowDeathScreen = _lifecycle.heroShowDeathScreen;
 const _heroRespawn         = _lifecycle.heroRespawn;
 const _tickDeath           = _lifecycle.tickDeath;
 
-// Victory overlay — play again button
-(function() {
-  const btn = document.getElementById("victoryPlayAgain");
-  if (!btn) return;
-  // victoryPlayAgain button delegates to resetGameState() so other callers
-  // (game mode select screen, dev console "restart" command) can reuse it.
-  btn.addEventListener("click", () => {
-    const vEl = document.getElementById("victoryOverlay");
-    if (vEl) vEl.style.display = "none";
-    resetGameState();
-  });
-})();
+// ═══ EXTRACTED → src/systems/victory_overlay.js (iter 580)
+mountVictoryPlayAgain({ resetGameState: () => resetGameState() });
 
 // resetGameState is mounted below (after all array deps are declared, ~line 1988)
 // Forward-declared so victory IIFE closure can capture the binding safely.
