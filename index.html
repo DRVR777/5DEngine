@@ -103,7 +103,7 @@ import {
   // Social
   createLanSession,
   // Core
-  Core,
+  Core, mountEngineRegistry,
   // Config
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
@@ -762,22 +762,8 @@ if (typeof Achievements !== "undefined" && typeof EventBus !== "undefined") {
   Achievements.wireEventBus(EventBus);
 }
 
-// Init Engine namespace + DevConsole
-if (typeof Engine !== "undefined") {
-  // Register core subsystems
-  if (typeof EventBus      !== "undefined") { Engine.register("events", EventBus); Engine.events = EventBus; }
-  if (typeof AStar         !== "undefined") Engine.register("astar",        AStar);
-  if (typeof Achievements  !== "undefined") Engine.register("achievements", Achievements);
-  if (typeof StatusEffects !== "undefined") Engine.register("statusEffects",StatusEffects);
-  if (typeof Crafting      !== "undefined") Engine.register("crafting",     Crafting);
-  if (typeof ParticleSystem!== "undefined") Engine.register("particles",    ParticleSystem);
-  if (typeof TriggerZones  !== "undefined") Engine.register("triggerZones", TriggerZones);
-  if (typeof SoundZones    !== "undefined") Engine.register("soundZones",   SoundZones);
-  if (typeof Cutscene      !== "undefined") Engine.register("cutscene",     Cutscene);
-  if (typeof Terrain       !== "undefined") Engine.register("terrain",      Terrain);
-  if (typeof WaveManager   !== "undefined") Engine.register("waves",        WaveManager);
-}
-if (typeof DevConsole !== "undefined") DevConsole.init();
+// ═══ EXTRACTED → src/core/engine_registry.js (iter 575)
+mountEngineRegistry();
 
 // ═══ EXTRACTED → src/render/renderer.js (iter 567)
 const { renderer, camera } = mountRenderer({ THREE, getComposer: () => composer });
