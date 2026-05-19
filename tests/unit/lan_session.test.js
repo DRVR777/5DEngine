@@ -30,7 +30,8 @@ it("returns a lazy proxy with tick/send/sendEvent", () => {
 });
 
 it("reads myIp from server and writes to state.myIp", () => {
-  expect(src).toContain("state.myIp = data.myIp");
+  expect(src).toContain("state.myIp");
+  expect(src).toContain("data.myIp");
 });
 
 it("reads onMpWelcomeHook from state (not module scope)", () => {

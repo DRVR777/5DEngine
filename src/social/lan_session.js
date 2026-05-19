@@ -159,11 +159,33 @@ export function createLanSession({ THREE, scene, state, getShowToast, getEnemies
 
     _sock.on("mp_welcome", (data) => {
       _myId = data.your_id;
-      if (data.myIp) state.myIp = data.myIp;
+      if (data.myIp)    state.myIp    = data.myIp;
+      if (data.serverIp) state.serverIp = data.serverIp;
       for (const peer of (data.peers || [])) _addPeer(peer.id, peer.name, peer.pos);
       const n = (data.peers || []).length + 1;
       _toast(`Multiplayer online — ${n} player(s)`, "success", 3000);
-      console.log(`[MP] My ID: ${_myId}  My IP: ${state.myIp}  peers: ${(data.peers || []).length}`);
+
+      // Show persistent LAN share banner so the host knows their URL
+      if (typeof document !== "undefined" && data.serverIp) {
+        const shareUrl = `http://${data.serverIp}:${window.location.port || 8080}`;
+        let banner = document.getElementById("mpLanBanner");
+        if (!banner) {
+          banner = document.createElement("div");
+          banner.id = "mpLanBanner";
+          banner.style.cssText = [
+            "position:fixed;bottom:54px;left:50%;transform:translateX(-50%)",
+            "background:rgba(4,14,30,0.92);border:1px solid #44cc6677;border-radius:6px",
+            "padding:6px 16px;color:#44cc66;font-family:monospace;font-size:12px",
+            "text-align:center;z-index:8888;pointer-events:none",
+          ].join(";");
+          document.body.appendChild(banner);
+        }
+        banner.innerHTML =
+          `📡 LAN link: <b style="color:#88ddff">${shareUrl}</b> ` +
+          `<span style="color:#888">— share with friends on your network</span>`;
+      }
+
+      console.log(`[MP] My ID: ${_myId}  My IP: ${state.myIp}  serverIp: ${state.serverIp}  peers: ${(data.peers || []).length}`);
       if (state.onMpWelcomeHook) setTimeout(state.onMpWelcomeHook, 400);
     });
 

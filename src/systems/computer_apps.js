@@ -184,9 +184,16 @@ ${wireLines}</pre>`;
     servers: {
       title: "🖥️ Servers",
       body: () => `
-        <div style="color:#88a;font-size:12px;margin-bottom:10px">
-          Find 5DEngine servers on your local network (port 5050).
-          Requires HTTP — open via <b style="color:#44ccff">start.bat</b>, not file://.
+        <div style="background:#0a1e10;border:1px solid #44cc6644;border-radius:6px;padding:10px 14px;margin-bottom:12px">
+          <div style="color:#44cc66;font-weight:bold;font-size:12px;margin-bottom:4px">
+            📡 Share this link with friends on your LAN:
+          </div>
+          <div id="serverShareUrl" style="color:#88ddff;font-family:monospace;font-size:13px;word-break:break-all">
+            ⏳ loading…
+          </div>
+          <div style="color:#666;font-size:11px;margin-top:4px">
+            They open this URL in their browser — no install needed.
+          </div>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
           <button id="serverScanBtn"

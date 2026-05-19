@@ -45,6 +45,25 @@ app.use(express.static(__dirname, {
 // Healthcheck
 app.get("/__health", (_req, res) => res.json({ ok: true, players: players.size }));
 
+// Who am I? — returns this server's LAN IP + port so clients can show the share URL
+app.get("/api/me", (_req, res) => res.json({
+  lanIp: SERVER_IP,
+  port:  PORT,
+  playerCount: players.size,
+  shareUrl: `http://${SERVER_IP}:${PORT}`,
+}));
+
+// LAN scan — returns this server as a discovered server entry
+// (actual subnet sweep requires the server to do the scanning — one entry is always this server)
+app.get("/scan", (_req, res) => res.json({
+  localIp: SERVER_IP,
+  servers: [{
+    ip:          SERVER_IP,
+    port:        PORT,
+    playerCount: players.size,
+  }],
+}));
+
 // ── Player state ────────────────────────────────────────────────────────────
 // players: socket.id → { id, name, pos: {u,v,y}, ip }
 const players = new Map();

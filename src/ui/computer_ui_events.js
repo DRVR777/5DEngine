@@ -27,44 +27,63 @@ export function mountComputerUI({
   }
 
   function wireServersApp() {
+    // Auto-load share URL from /api/me
+    const shareEl = document.getElementById("serverShareUrl");
+    if (shareEl) {
+      fetch("/api/me")
+        .then(r => r.json())
+        .then(data => {
+          if (!shareEl) return;
+          const url = data.shareUrl || `http://${data.lanIp}:${data.port}`;
+          shareEl.innerHTML = `<a href="${url}" target="_blank"
+            style="color:#88ddff;text-decoration:underline">${url}</a>
+            <span style="color:#44cc66;margin-left:8px">✓ ${data.playerCount} player(s) connected</span>`;
+        })
+        .catch(() => {
+          if (shareEl) shareEl.textContent = window.location.href.split("?")[0];
+        });
+    }
+
     const scanBtn = document.getElementById("serverScanBtn");
     if (!scanBtn) return;
     scanBtn.addEventListener("click", () => {
       const statusEl = document.getElementById("serverScanStatus");
       const listEl   = document.getElementById("serverList");
       if (statusEl) statusEl.textContent = "Scanning…";
-      if (listEl)   listEl.innerHTML = `<div style="color:#888;font-size:12px">⏳ Probing 254 hosts on /24 subnet…</div>`;
+      if (listEl)   listEl.innerHTML = `<div style="color:#888;font-size:12px">⏳ Scanning LAN…</div>`;
 
       fetch("/scan")
         .then(r => r.json())
         .then(data => {
-          if (statusEl) statusEl.textContent = `Your IP: ${data.localIp || "unknown"}`;
+          if (statusEl) statusEl.textContent = `LAN IP: ${data.localIp || "unknown"}`;
           if (!listEl) return;
           const servers = data.servers || [];
+          const currentOrigin = window.location.origin;
           if (servers.length === 0) {
             listEl.innerHTML = `<div style="color:#888;font-size:12px">
-              No 5DEngine servers found on LAN — make sure the other player has started start.bat.
+              No 5DEngine servers found — make sure the host has started start.bat.
             </div>`;
             return;
           }
-          listEl.innerHTML = servers.map(s => `
+          listEl.innerHTML = servers.map(s => {
+            const url = `http://${s.ip}:${s.port}`;
+            const isCurrent = currentOrigin === url;
+            return `
             <div style="display:flex;align-items:center;gap:10px;padding:10px;margin:4px 0;
-                        background:#0a1e2a;border:1px solid #4488cc33;border-radius:6px">
+                        background:#0a1e2a;border:1px solid ${isCurrent ? "#44cc66" : "#4488cc33"};border-radius:6px">
               <div style="flex:1">
-                <div style="color:#eee;font-size:12px">${s.ip}:${s.port}</div>
-                <div style="color:#888;font-size:11px">${s.playerCount || 0} players</div>
+                <div style="color:#eee;font-size:12px">${url}
+                  ${isCurrent ? '<span style="color:#44cc66;font-size:10px"> ← you are here</span>' : ""}
+                </div>
+                <div style="color:#888;font-size:11px">${s.playerCount || 0} player(s)</div>
               </div>
-              <button data-action="friend-request" data-ip="${s.ip}" data-port="${s.port}"
-                style="background:#4488cc55;border:1px solid #4488cc;color:#88ddff;padding:4px 10px;
-                       border-radius:4px;cursor:pointer;font-size:11px">
-                👥 Friend
-              </button>
-              <button data-action="join-server" data-ip="${s.ip}" data-port="${s.port}"
+              ${!isCurrent ? `<button data-action="join-server" data-url="${url}"
                 style="background:#4488cc;border:0;color:#fff;padding:4px 12px;
                        border-radius:4px;cursor:pointer;font-size:11px">
                 → Join
-              </button>
-            </div>`).join("");
+              </button>` : ""}
+            </div>`;
+          }).join("");
         })
         .catch(() => {
           if (statusEl) statusEl.textContent = "Scan failed";
@@ -172,15 +191,15 @@ export function mountComputerUI({
       return;
     }
 
-    // Join a discovered server
-    if (e.target.dataset && e.target.dataset.action === "join-server") {
-      const ip   = e.target.dataset.ip;
-      const port = e.target.dataset.port || "5050";
-      if (ip) {
+    // Join a discovered server — navigate to its URL so Socket.IO auto-connects on load
+    const joinBtn = e.target.closest("[data-action='join-server']");
+    if (joinBtn) {
+      const url = joinBtn.dataset.url;
+      if (url) {
         closeComputer();
         playSfx("blip", 0.6);
-        showToast(`Joining ${ip}:${port} …`, "info", 2000);
-        setTimeout(() => { window.location.href = `http://${ip}:${port}/`; }, 400);
+        showToast(`Joining ${url} …`, "info", 2000);
+        setTimeout(() => { window.location.href = url; }, 400);
       }
       return;
     }
