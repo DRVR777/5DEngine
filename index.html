@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountGameReset, mountDevConsoleGame,
+  mountHeroLifecycle, mountHeroInventory, mountGameReset, mountDevConsoleGame, mountMediaPickups,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
   mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress,
@@ -1279,27 +1279,8 @@ if (deviceBus) {
   _rebuildDeviceWires();
 }
 
-// ---- storage media pickups (CD / USB you can carry) -----------------
-// Two extra media live as world pickups. Walk within 1.5m → auto-pickup
-// into heroMedia. From the Devices app you can [Insert] them into pc1.
-const heroMedia = [];   // [{ id, kind, label, files }, ...]
-const worldMedia = [];  // [{ id, kind, mesh, picked }]
-function _spawnMedia(spec, pos) {
-  const isCD = spec.kind === "cd";
-  const geom = isCD
-    ? new THREE.CylinderGeometry(0.18, 0.18, 0.02, 24)
-    : new THREE.BoxGeometry(0.08, 0.04, 0.2);
-  const color = isCD ? 0xddddff : 0xffffff;
-  const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.6, roughness: 0.3 });
-  const mesh = new THREE.Mesh(geom, mat);
-  mesh.position.set(pos.u, pos.y || 1.0, pos.v);
-  mesh.castShadow = true;
-  scene.add(mesh);
-  worldMedia.push({
-    id: spec.id, kind: spec.kind, label: spec.label, files: spec.files,
-    mesh, picked: false,
-  });
-}
+// ═══ EXTRACTED → src/systems/media_pickups.js (iter 574)
+const { heroMedia, worldMedia, spawnMedia: _spawnMedia } = mountMediaPickups({ THREE, scene });
 _spawnMedia({ id: "cd_mix", kind: "cd", label: "MIX_2026",
               files: { "/track1.wav": "(440Hz sine)", "/track2.wav": "(beep loop)",
                        "/readme.txt": "Burned by jumbotron HYPE crew" } },
