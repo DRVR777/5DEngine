@@ -46,6 +46,7 @@ export { mountDecalSystem }       from "./render/decals.js";
 export { mountEnemyMeshFactory }  from "./render/enemy_mesh.js";
 export { mountVehicleMeshFactory } from "./render/vehicle_mesh.js";
 export { mountEnvironment }       from "./render/environment.js";
+export { mountHeroMesh }          from "./render/hero_mesh.js";
 export { default as Vfx, warnRingGeo, warnRingMat } from "./render/vfx.js";
 
 // ── Social ───────────────────────────────────────────────────────────────────
