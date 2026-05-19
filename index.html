@@ -4125,7 +4125,7 @@ function tick() {
 
   _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching, onGround });
 
-  _layerTransTick.tick(dt, { heroU: hero.u, heroV: hero.v, buildings: buildings.map(b => b.b) });
+  const { insideNow } = _layerTransTick.tick(dt, { heroU: hero.u, heroV: hero.v, buildings: buildings.map(b => b.b) });
 
   // Ambient soundscape disabled — oscillator hum removed per user request
 

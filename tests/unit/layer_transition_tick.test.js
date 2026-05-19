@@ -19,6 +19,21 @@ function makeActions({ currentLayerId = 1, boundaryResult = null, bldgNames = {}
 
 const BASE = { heroU: 5, heroV: 5, buildings: [] };
 
+describe("layer_transition_tick — return value", () => {
+  it("returns { insideNow: null } when outside", () => {
+    const { get, actions } = makeActions({ currentLayerId: 1, boundaryResult: null });
+    const result = mountLayerTransitionTick({ get, actions }).tick(0.016, BASE);
+    expect(result.insideNow).toBeNull();
+  });
+
+  it("returns { insideNow: boundary } when inside building", () => {
+    const inside = { targetLayerId: 2 };
+    const { get, actions } = makeActions({ currentLayerId: 2, boundaryResult: inside });
+    const result = mountLayerTransitionTick({ get, actions }).tick(0.016, BASE);
+    expect(result.insideNow).toBe(inside);
+  });
+});
+
 describe("layer_transition_tick — no-op when layer unchanged", () => {
   it("outside → outside (same layer 1) → no transition", () => {
     const { get, actions, log } = makeActions({ currentLayerId: 1, boundaryResult: null });

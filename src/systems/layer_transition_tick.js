@@ -8,6 +8,7 @@ export function mountLayerTransitionTick({ get, actions }) {
       else actions.showToast("Outside", "info", 1200);
       actions.playSfx(`tone:${insideNow ? 320 : 180}:200:sine`, 0.12);
     }
+    return { insideNow };
   }
   return { tick };
 }
