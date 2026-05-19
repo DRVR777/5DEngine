@@ -179,7 +179,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
@@ -2778,6 +2778,7 @@ const _enemyBulletTick   = mountEnemyBulletTick({ get: { heroPos: () => world.pl
 const _bulletWorldHitTick = mountBulletWorldHitTick({ getMp: () => _mp, barrels, crates, buildingBlockers, actions: { spawnParticles: _spawnParticles, spawnDamageNumber: _spawnDamageNumber, playSfx, explodeBarrel: (u, v) => _explodeBarrel(u, v), breakCrate: cr => _breakCrate(cr), spawnWallScorch: (u, y, v, nU, nV) => _spawnWallScorch(u, y, v, nU, nV) } });
 const _bulletEnemyKillTick = mountBulletEnemyKillTick({ enemies, coinByType: _COIN_BY_TYPE, weaponDropMap: _WEAPON_DROP_MAP, levelThresholds: _LEVEL_THRESHOLDS, get: { bulletTimeLeft: () => _bulletTimeLeft, enemyKills: () => enemyKills, heroLevel: () => _heroLevel, heroApexMode: () => _heroApexMode, stamina: () => _stamina, staminaMax: () => STAMINA_MAX, heroExtraStaminaMax: () => _heroExtraStaminaMax, heroArmor: () => heroArmor, heroMaxArmor: () => HERO_MAX_ARMOR, score: () => score, lastKillT: () => _lastKillT, streakWindow: () => _STREAK_WINDOW, streakCount: () => _streakCount, comboCount: () => _comboCount, heroHp: () => heroHp, heroMaxHp: () => HERO_MAX_HP, heroDead: () => _heroDead, vignetteAmt: () => _vignetteAmt }, set: { bulletTimeLeft: v => { _bulletTimeLeft = v; }, killMarkerUntil: v => { _killMarkerUntil = v; }, killMarkerHs: v => { _killMarkerHs = v; }, liveBoss: v => { _liveBoss = v; }, enemyKills: v => { enemyKills = v; }, heroLevel: v => { _heroLevel = v; }, stamina: v => { _stamina = v; }, heroArmor: v => { heroArmor = v; }, score: v => { score = v; }, lastKillT: v => { _lastKillT = v; }, streakCount: v => { _streakCount = v; }, comboCount: v => { _comboCount = v; }, comboLastT: v => { _comboLastT = v; }, heroHp: v => { heroHp = v; }, vignetteAmt: v => { _vignetteAmt = v; } }, actions: { playSfx, spawnDecal: _spawnDecal, spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle, applyLevelUpBuff: _applyLevelUpBuff, showToast, addKillFeedEntry: _addKillFeedEntry, spawnDamageNumber: _spawnDamageNumber, trackKillAndPanic: _trackKillAndPanic, emitEnemyKilled: (id, kills) => { if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id, kills }); }, completeQuestStep: (q, i) => _quest.completeQuestStep(q, i), getWaveState: () => typeof WaveManager !== "undefined" ? WaveManager.getState() : null, spawnAmmoPickup: _spawnAmmoPickup, spawnHealthPickup: _spawnHealthPickup, spawnCoinDrop: _spawnCoinDrop, spawnWeaponPickup: _spawnWeaponPickup, spawnParticles: _spawnParticles, emitParticle: (name, payload) => { if (typeof ParticleSystem !== "undefined") ParticleSystem.emit(name, payload); }, applyScreenShake: _applyScreenShake, spawnArmorShard: _spawnArmorShard } });
 const _bulletEnemyHitFeedbackTick = mountBulletEnemyHitFeedbackTick({ computeHurtSfx, set: { hudEnemyHpDirty: v => { _hudEnemyHpDirty = v; }, shotsHitDelta: v => { _shotsHit += v; }, damageDealtDelta: v => { _damageDealt += v; }, hitMarkerUntil: v => { hitMarkerUntil = v; }, waveChallengeHitsDelta: v => { _waveChallengeHits += v; } }, actions: { spawnDamageNumber: _spawnDamageNumber, playSfx, showToast, spawnParticles: _spawnParticles, emitParticle: (name, payload) => { if (typeof ParticleSystem !== "undefined") ParticleSystem.emit(name, payload); }, spawnFirePatch: _spawnFirePatch } });
+const _bulletPhysicsTick = mountBulletPhysicsTick({ bullets3D, enemies, getPlayerPos: id => world.players.get(id) || null, computeBulletDamage, hitFeedbackTick: _bulletEnemyHitFeedbackTick, killTick: _bulletEnemyKillTick, worldHitTick: _bulletWorldHitTick, get: { pistolCooldown: () => pistolCooldown, dmgMul: () => _DMG_MUL, lvlDmgMul: () => _heroLvlDmgMul, perkDmgMul: () => _perkDmgMul }, set: { pistolCooldown: v => { pistolCooldown = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), spawnDamageNumber: _spawnDamageNumber, playSfx } });
 const _firePatchTick     = mountFirePatchTick({ get: { heroHp: () => heroHp, heroFireT: () => _heroFireT }, set: { heroHp: v => { heroHp = v; }, heroFireT: v => { _heroFireT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), applyBurning: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning"); }, applyScreenShake: amt => _applyScreenShake(amt), getEnemyPos: id => world.players.get(id) || null, spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), onEnemyKill: (en, u, v) => { enemyKills++; _comboCount++; _comboLastT = _frameNowMs / 1000; _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${en.type}`, "#ff6600"); _trackKillAndPanic(u, v); _spawnDecal(u, v, "blood"); _spawnCoinDrop(u, v, (_COIN_BY_TYPE[en.type] || 1) * Math.min(8, _comboCount)); _spawnAmmoPickup(u, v, en.dropQty || 12, en.dropAmmo); if (en._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); } if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel); }, explodeBarrel: (u, v) => _explodeBarrel(u, v) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
@@ -2950,53 +2951,9 @@ function tick() {
   // extracted → src/systems/optional_systems_tick.js (iter 663)
   _optionalSystemsTick.tick(dt, { enemies, performanceNow: performance.now() });
 
-// EXTRACT-PLAN see iter 528 note above — bullet physics loop starts here
-  // Tick bullets (substep dt to avoid tunneling past enemy)
-  pistolCooldown = Math.max(0, pistolCooldown - dt);
-  const substeps = 5;
-  const subDt = dt / substeps;
-  for (let s = 0; s < substeps && bullets3D.length > 0; s++) {
-    for (let i = bullets3D.length - 1; i >= 0; i--) {
-      const b = bullets3D[i];
-      b.posU += b.dirU * b.speed * subDt;
-      b.posV += b.dirV * b.speed * subDt;
-      if (b.dirY) b.posY += b.dirY * b.speed * subDt;
-      b.traveled += b.speed * subDt;
-      // Hit any enemy?
-      let hitEnemy = false;
-      for (const en of enemies) {
-        if (en.dead) continue;
-        const ep = world.players.get(en.id);
-        if (!ep) continue;
-        if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
-          const { dmg, headshot, backstab, frontalBlock: _frontalBlock, isCrit } = computeBulletDamage({ bullet: b, enemy: en, dmgMul: _DMG_MUL, lvlDmgMul: _heroLvlDmgMul, perkDmgMul: _perkDmgMul });
-          en.hp = Math.max(0, en.hp - dmg);
-          // Pseudocode: after raw damage, delegate hit feedback and survivor effects.
-          _bulletEnemyHitFeedbackTick.tick(en, ep, b, { nowMs: now, dmg, headshot, backstab, frontalBlock: _frontalBlock, isCrit });
-          if (en.hp <= 0) {
-            // Pseudocode: if bullet damage killed the enemy, delegate rewards/effects.
-            _bulletEnemyKillTick.tick(en, ep, { nowMs: now, headshot });
-          }
-          // Sniper penetration — first hit pierces; second consumes bullet
-          const _canPierce = b.weaponId === "sniper" && !b._pierced;
-          if (_canPierce) {
-            b._pierced = true;
-            _spawnDamageNumber(ep.u, b.posY + 1.4, ep.v, "PIERCE!", "#00eeff");
-            playSfx("tone:2200:30:sine", 0.18);
-            // bullet continues — no break
-          } else {
-            hitEnemy = true; break;
-          }
-        }
-      }
-      if (hitEnemy) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
-      // Pseudocode: after enemy hits, delegate non-enemy bullet impacts to a module.
-      // if peer/barrel/crate/building/range hit -> remove bullet and continue.
-      const _worldHit = _bulletWorldHitTick.tick(b);
-      if (_worldHit.remove) { scene.remove(b.mesh); bullets3D.splice(i, 1); continue; }
-      b.mesh.position.set(b.posU, b.posY, b.posV);
-    }
-  }
+// ═══ EXTRACTED → src/systems/bullet_physics_tick.js (iter 681) ══════════════════════
+  // Pseudocode: substep loop (5×), enemy hit, pierce, world hit → all in bullet_physics_tick.js
+  _bulletPhysicsTick.tick(dt, { nowMs: now });
 
   _enemyBulletTick.tick(dt, { bullets: enemyBullets, heroDead: _heroDead });
   _heroShotAlertT = Math.max(0, _heroShotAlertT - dt);
