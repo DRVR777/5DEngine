@@ -62,6 +62,7 @@ export { mountHeroFaceTick }     from "./systems/hero_face_tick.js";
 export { mountCamShakeTick }       from "./systems/cam_shake_tick.js";
 export { mountHeroKnockbackTick }  from "./systems/hero_knockback_tick.js";
 export { mountDodgeTick }          from "./systems/dodge_tick.js";
+export { mountJumpGravityTick }    from "./systems/jump_gravity_tick.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";
