@@ -3,8 +3,8 @@ const INTERVAL_WALK    = 0.38;
 const INTERVAL_CROUCH  = 0.55;
 
 export function mountFootstepSound({ get, set, actions }) {
-  function tick(dt, { isMoving, heroDead, pointerLocked, canSprint, crouching }) {
-    if (isMoving && !heroDead && pointerLocked) {
+  function tick(dt, { isMoving, heroDead, pointerLocked, canSprint, crouching, onGround = true }) {
+    if (isMoving && !heroDead && pointerLocked && onGround) {
       const next = get.footstepT() - dt;
       set.footstepT(next);
       if (next <= 0) {

@@ -2453,7 +2453,6 @@ let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
 // ═══ EXTRACTED → src/config/hero_stats.js (iter 562) — STAMINA_MAX/DRAIN/REGEN/LOCKOUT imported at top
 let _heroExtraStaminaMax = 0; // bonus from kill level 3
 const _staminaTick = mountStaminaTick({ STAMINA_DRAIN, STAMINA_REGEN, STAMINA_MAX, STAMINA_LOCKOUT, get: { stamina: () => _stamina, heroEmpT: () => _heroEmpT, heroExtraStaminaMax: () => _heroExtraStaminaMax }, set: { stamina: v => { _stamina = v; }, heroEmpT: v => { _heroEmpT = v; } } });
-let _lastFootstepT = -999;   // temporary pitch kick from firing; springs back to 0
 // These resolve per-weapon dynamically at call sites
 const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _perkReloadMul);
 const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
@@ -2806,8 +2805,6 @@ function tick() {
   // isMoving hoisted above to fix TDZ with speed-boost trail
   const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? (crouching ? 0.18 : 0.45) : (crouching ? 0 : 0)));
 
-  // Footstep sounds — synthetic tap when hero walks/runs on ground (not in vehicle, not dead)
-  _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching });
   _motionSprings.tick(dt, { moveSpreadTarget, isMoving, inCar, buildMode, heroDead: _heroDead, canSprint, inputR, aiming });
   // Sprint trail — orange dust particles at hero feet when running at full sprint
   if (isSprinting && isMoving && !_heroDead && pointerLocked && Math.random() < 0.45) {
@@ -4290,16 +4287,7 @@ function tick() {
   const hero = world.players.get("hero");
   const { onGround } = _jumpGravityTick.tick(dt, { spaceDown: !!keys["Space"], buildMode });
 
-  // Footstep SFX — triggered by bob cycle peak (every half-period) while grounded
-  if (!inCar && !buildMode && !_heroDead && onGround && (inputF !== 0 || inputR !== 0)) {
-    const stepInterval = isSprinting ? 0.26 : 0.40;
-    const nowSec = now / 1000;
-    if (nowSec - _lastFootstepT > stepInterval) {
-      _lastFootstepT = nowSec;
-      const freq = 120 + Math.random() * 60;
-      playSfx(`tone:${Math.round(freq)}:22:triangle`, 0.06);
-    }
-  }
+  _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching, onGround });
 
   // layer transition check + ambient zone change
   const insideNow = world.boundaryAt(hero.u, hero.v, buildings.map(b => b.b));

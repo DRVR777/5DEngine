@@ -92,3 +92,29 @@ describe("footstep_sound sfx frequency", () => {
     }
   });
 });
+
+describe("footstep_sound onGround guard", () => {
+  it("no sfx when onGround=false (airborne)", () => {
+    const { sfxLog, tick } = makeFootstep({ footstepT: 0.05 });
+    tick(0.1, { ...ACTIVE, onGround: false });
+    expect(sfxLog).toHaveLength(0);
+  });
+
+  it("resets footstepT to 0 when airborne", () => {
+    const { s, tick } = makeFootstep({ footstepT: 0.2 });
+    tick(0.1, { ...ACTIVE, onGround: false });
+    expect(s.footstepT).toBe(0);
+  });
+
+  it("fires sfx when onGround=true (default)", () => {
+    const { sfxLog, tick } = makeFootstep({ footstepT: 0.05 });
+    tick(0.1, { ...ACTIVE, onGround: true });
+    expect(sfxLog).toHaveLength(1);
+  });
+
+  it("fires sfx when onGround omitted (default=true)", () => {
+    const { sfxLog, tick } = makeFootstep({ footstepT: 0.05 });
+    tick(0.1, ACTIVE);
+    expect(sfxLog).toHaveLength(1);
+  });
+});
