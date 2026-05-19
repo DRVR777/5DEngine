@@ -98,6 +98,7 @@ import { mountDevConsoleGame } from "./src/systems/dev_console_game.js";
 import { mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE } from "./src/systems/kill_tracking.js";
 import { mountShootSystem } from "./src/combat/shoot_system.js";
 import { mountDecalSystem } from "./src/render/decals.js";
+import { mountBarrelSystem } from "./src/systems/barrel_system.js";
 import { mountLevelSystem } from "./src/systems/level_system.js";
 import { Core } from "./src/core/core.js";
 import { combatSystem } from "./src/systems/ecs_combat.js";
@@ -1323,80 +1324,8 @@ scene.add(heroGroup);
 const walkState = { t: 0 };
 
 // ---- Lightweight particle system -------------------------------------------
-// Explosive barrels — scatter 8 red barrels; explode on bullet hit (HP≤0)
-function _makeBarrel(u, v) {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.28, 0.28, 0.85, 10),
-    new THREE.MeshStandardMaterial({ color: 0xcc2200, metalness: 0.6, roughness: 0.5 })
-  );
-  body.position.y = 0.425; body.castShadow = true; g.add(body);
-  const stripe = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.285, 0.285, 0.12, 10),
-    new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x552200, emissiveIntensity: 0.6 })
-  );
-  stripe.position.y = 0.52; g.add(stripe);
-  g.position.set(u, 0, v);
-  scene.add(g);
-  return { u, v, hp: 40, maxHp: 40, mesh: g, exploded: false };
-}
-const barrels = [
-  {u:10,v:10},{u:-10,v:10},{u:10,v:-10},{u:-10,v:-10},
-  {u:18,v:0},{u:-18,v:0},{u:0,v:18},{u:0,v:-18}
-].map(p => _makeBarrel(p.u, p.v));
-
-function _explodeBarrel(u, v) {
-  _spawnParticles(u, 0.5, v, 80, "orange", 18, 2.2);
-  _spawnParticles(u, 0.8, v, 40, "red",    12, 2.8);
-  _spawnParticles(u, 1.2, v, 30, "yellow", 10, 1.4);
-  _triggerMuzzleFlash(u, 1.0, v);
-  playSfx("tone:80:400:sawtooth", 0.9);
-  playSfx("tone:160:200:sawtooth", 0.6);
-  const RADIUS = 5, MAX_DMG = 60;
-  const nowMs = performance.now();
-  for (const en of enemies) {
-    if (en.dead) continue;
-    const ep = world.players.get(en.id);
-    if (!ep) continue;
-    const d = Math.hypot(ep.u - u, ep.v - v);
-    if (d < RADIUS) {
-      en.hp = Math.max(0, en.hp - Math.round(MAX_DMG * (1 - d / RADIUS))); en._hpBarShowT = nowMs / 1000;
-      if (en.hp <= 0 && !en.dead) {
-        en.dead = true; en.respawnT = nowMs / 1000; enemyKills++;
-        _comboCount++; _comboLastT = nowMs / 1000;
-        _spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");
-        if (en.type === "incendiary") _spawnFirePatch(ep.u, ep.v);
-        if (en.type === "poisoner") _spawnPoisonPuddle(ep.u, ep.v);
-        _addKillFeedEntry(`★ BARREL KILL #${enemyKills} — ${en.type}`, "#ff6600");
-        _trackKillAndPanic(ep.u, ep.v);
-        { const _brlCoinMul = Math.min(8, _comboCount); _spawnCoinDrop(ep.u, ep.v, (_COIN_BY_TYPE[en.type]||1) * _brlCoinMul); }
-        _spawnAmmoPickup(ep.u, ep.v, en.dropQty || 12, en.dropAmmo);
-        if ((en.dropHealth || 0) > 0) _spawnHealthPickup(ep.u, ep.v, en.dropHealth);
-        if (_WEAPON_DROP_MAP[en.type]) _spawnWeaponPickup(ep.u + 0.5, ep.v + 0.5, _WEAPON_DROP_MAP[en.type]);
-      }
-    }
-  }
-  const h = world.players.get("hero");
-  const hd = Math.hypot(h.u - u, h.v - v);
-  _applyScreenShake(Math.max(0, 0.8 * (1 - hd / (RADIUS * 1.5))));
-  if (hd < RADIUS && !_heroDead && _dodgeT <= 0 && !(typeof Engine !== "undefined" && Engine.debug.godMode)) {
-    const sd = Math.round(MAX_DMG * (1 - hd / RADIUS));
-    if (sd > 0) { heroHp = Math.max(0, heroHp - sd); heroLastDamageT = nowMs / 1000; flashDamage(); if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen(); }
-    if (hd > 0.1) {
-      const _hkbStr = 14 * (1 - hd / RADIUS);
-      _heroKbU = ((h.u - u) / hd) * _hkbStr;
-      _heroKbV = ((h.v - v) / hd) * _hkbStr;
-      _heroKbT = 0.28;
-    }
-  }
-  // Chain-explode adjacent barrels
-  for (const bar of barrels) {
-    if (!bar.exploded && Math.hypot(bar.u - u, bar.v - v) < RADIUS * 0.8) {
-      bar.exploded = true; bar.mesh.visible = false;
-      setTimeout(() => _explodeBarrel(bar.u, bar.v), 80);
-    }
-  }
-}
+// ═══ EXTRACTED → src/systems/barrel_system.js (iter 540) ════════════════════
+// _makeBarrel, _explodeBarrel, barrels — mounted below after all deps declared
 
 // Loot crates — shootable/meleeable wooden boxes that drop random loot when destroyed
 const _crateGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
@@ -3418,6 +3347,48 @@ const _shootSys = mountShootSystem({
 const _tryShoot      = _shootSys.tryShoot;
 const _tryDroneShoot = _shootSys.tryDroneShoot;
 const _getAimAngle   = _shootSys.getAimAngle;
+
+// ── Barrel system — iter 540 ─────────────────────────────────────────────────
+const { makeBarrel: _makeBarrel, explodeBarrel: _explodeBarrel, barrels } = mountBarrelSystem({
+  THREE, scene, enemies, world,
+  coinByType:    _COIN_BY_TYPE,
+  weaponDropMap: _WEAPON_DROP_MAP,
+  get: {
+    heroDead:   () => _heroDead,
+    heroHp:     () => heroHp,
+    dodgeT:     () => _dodgeT,
+    enemyKills: () => enemyKills,
+    comboCount: () => _comboCount,
+    comboLastT: () => _comboLastT,
+  },
+  set: {
+    heroHp:           (v) => { heroHp = v; },
+    heroLastDamageT:  (v) => { heroLastDamageT = v; },
+    enemyKills:       (v) => { enemyKills = v; },
+    comboCount:       (v) => { _comboCount = v; },
+    comboLastT:       (v) => { _comboLastT = v; },
+    heroKbU:          (v) => { _heroKbU = v; },
+    heroKbV:          (v) => { _heroKbV = v; },
+    heroKbT:          (v) => { _heroKbT = v; },
+  },
+  actions: {
+    playSfx,
+    spawnParticles:      _spawnParticles,
+    triggerMuzzleFlash:  _triggerMuzzleFlash,
+    spawnDecal:          _spawnDecal,
+    spawnFirePatch:      _spawnFirePatch,
+    spawnPoisonPuddle:   _spawnPoisonPuddle,
+    addKillFeedEntry:    _addKillFeedEntry,
+    trackKillAndPanic:   _trackKillAndPanic,
+    spawnCoinDrop:       _spawnCoinDrop,
+    spawnAmmoPickup:     _spawnAmmoPickup,
+    spawnHealthPickup:   _spawnHealthPickup,
+    spawnWeaponPickup:   _spawnWeaponPickup,
+    applyScreenShake:    _applyScreenShake,
+    flashDamage,
+    heroShowDeathScreen: _heroShowDeathScreen,
+  },
+});
 
 window._loadingDismissed = false;
 // Platform cache — rebuilt only when vehicles move; saves O(V) array build every tick
