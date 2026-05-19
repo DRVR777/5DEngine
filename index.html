@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2602,6 +2602,7 @@ const _vehicleRenderTick = mountVehicleRenderTick();
 const _heroRegenTick     = mountHeroRegenTick({ get: { heroHp: () => heroHp, maxHp: () => HERO_MAX_HP, perkMaxHpBonus: () => _perkMaxHpBonus, lastDamageT: () => heroLastDamageT, regenDelay: () => HERO_REGEN_DELAY, regenRate: () => HERO_REGEN_RATE, perkRegenBonus: () => _perkRegenBonus }, set: { heroHp: v => { heroHp = v; }, nearDeathFired: v => { _nearDeathFired = v; } } });
 const _layerTransTick    = mountLayerTransitionTick({ get: { layerId: () => world.layerId }, actions: { boundaryAt: (u, v, blds) => world.boundaryAt(u, v, blds), bldgName: id => bldgName(id), logTransition: (from, to) => world.logTransition("hero", from, to, "phase_shift"), showToast: (msg, type, dur) => showToast(msg, type, dur), playSfx: (str, vol) => playSfx(str, vol) } });
 const _ammoPickupTick    = mountAmmoPickupTick({ actions: { removeMesh: mesh => scene.remove(mesh), addAmmo: (item, qty) => Inv.addItem(heroInv, item || getWeapon().ammoItem || "pistol_9mm", qty), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
+const _healthPickupTick  = mountHealthPickupTick({ get: { heroHp: () => heroHp, maxHp: () => HERO_MAX_HP }, set: { heroHp: v => { heroHp = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
 // HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
 let _hudEnemyHpDirty = true;
 let _lastHudEnemyHpStr = "";
@@ -4264,30 +4265,7 @@ function tick() {
 
   _ammoPickupTick.tick(dt, { pickups: ammoPickups, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
-  // Health pickups — walk over to collect (heavy enemy drops)
-  for (let _hi = healthPickups.length - 1; _hi >= 0; _hi--) {
-    const hp2 = healthPickups[_hi];
-    const d = Math.hypot(heroNow.u - hp2.u, heroNow.v - hp2.v);
-    if (d < 1.2) {
-      healthPickups.splice(_hi, 1);
-      scene.remove(hp2.mesh);
-      const gained = Math.min(hp2.amount, HERO_MAX_HP - heroHp);
-      heroHp = Math.min(HERO_MAX_HP, heroHp + hp2.amount);
-      playSfx("tone:660:120:sine", 0.6);
-      _spawnDamageNumber(hp2.u, 1.5, hp2.v, `+${Math.round(gained)} HP`, "#00ff88");
-      if (gained > 0) showToast(`+${Math.round(gained)} HP`, "success", 1800);
-    } else {
-      hp2.mesh.rotation.x += dt * 1.5;
-      hp2.mesh.rotation.y += dt * 2.2;
-      hp2.mesh.position.y = 0.6 + Math.sin(now / 320 + hp2.u) * 0.1;
-      if (d < 3.0) {
-        const _mag = 8 * (1 - d / 3.0);
-        hp2.u += ((heroNow.u - hp2.u) / d) * _mag * dt;
-        hp2.v += ((heroNow.v - hp2.v) / d) * _mag * dt;
-        hp2.mesh.position.x = hp2.u; hp2.mesh.position.z = hp2.v;
-      }
-    }
-  }
+  _healthPickupTick.tick(dt, { pickups: healthPickups, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
   // Speed boost orbs — bob and spin, collect within 1.2m for 4s of 1.5x speed
   for (let _soi = _speedOrbs.length - 1; _soi >= 0; _soi--) {
