@@ -105,7 +105,7 @@ import {
   // Config
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
-  STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT,
+  STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT, HERO_HITBOX,
   // World
   Rain, mountWorldLayout,
   // Audio
@@ -204,7 +204,7 @@ const Reg    = window.GTARegistry.createRegistry();
 const Inv    = window.GTAInventory;
 const Guns   = window.GTAGuns;    // optional — may not be loaded
 const Health = window.GTAHealth;  // optional — may not be loaded
-const HERO_HITBOX = { w: 0.8, d: 0.8, h: 1.8 };
+// ═══ HERO_HITBOX extracted → src/config/hero_stats.js (iter 564) — imported at top
 const CFG = window.GameConfig || {};
 
 // ═══ EXTRACTED → src/systems/hero_inventory.js (iter 563)

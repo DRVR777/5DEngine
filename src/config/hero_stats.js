@@ -1,4 +1,5 @@
 // Hero balance constants — hardcoded game design values + CFG-derived stat caps.
+export const HERO_HITBOX     = { w: 0.8, d: 0.8, h: 1.8 };
 export const HERO_MAX_ARMOR  = 75;
 export const ARMOR_ABSORB    = 0.6;   // fraction of hit taken from armor instead of HP
 export const DODGE_DURATION  = 0.25;  // seconds of boost + iframes

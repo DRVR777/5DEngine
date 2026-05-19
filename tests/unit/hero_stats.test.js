@@ -43,4 +43,10 @@ describe("hero_stats", () => {
     expect(src).toContain("export const STAMINA_REGEN");
     expect(src).toContain("export const STAMINA_LOCKOUT");
   });
+
+  it("exports HERO_HITBOX with w/d/h dimensions", () => {
+    expect(src).toContain("export const HERO_HITBOX");
+    expect(src).toContain("0.8");
+    expect(src).toContain("1.8");
+  });
 });
