@@ -14,6 +14,8 @@
     "test:playwright:smoke": "playwright test tests/playwright/boot.spec.js tests/playwright/gameplay.spec.js tests/playwright/regression.spec.js",
     "test:playwright:headed": "playwright test --headed",
     "test:waves": "playwright test tests/playwright/wave_runner.spec.js",
+    "test:paths": "playwright test tests/playwright/state_space_explorer.spec.js",
+    "test:campaign": "playwright test tests/playwright/text_wave_campaign.spec.js",
     "test:soak": "playwright test tests/playwright/soak.spec.js",
     "test:soak:headed": "playwright test tests/playwright/soak.spec.js --headed",
     "test:visual": "node tests/visual/runner.js",
