@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountGameReset, mountDevConsoleGame,
+  mountHeroLifecycle, mountHeroInventory, mountGameReset, mountDevConsoleGame,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
   mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress,
@@ -207,18 +207,8 @@ const Health = window.GTAHealth;  // optional — may not be loaded
 const HERO_HITBOX = { w: 0.8, d: 0.8, h: 1.8 };
 const CFG = window.GameConfig || {};
 
-// Hero inventory — give starting weapons + ammo from CFG.weapons
-const heroInv = Inv.makeInventory(24);
-for (const w of (CFG.weapons || [])) {
-  Inv.addItem(heroInv, "gun_" + w.id, 1);
-  const startAmmo = w.magCap * 4;  // 4 mags worth of starting ammo
-  Inv.addItem(heroInv, w.ammoItem || "pistol_9mm", startAmmo);
-}
-Inv.addItem(heroInv, "medkit", 2);
-const heroHealth = Health.makeHealth(
-  CFG.heroMaxHp || 100,
-  { regenRate: CFG.heroRegenRate || 5, regenDelay: CFG.heroRegenDelay || 5 }
-);
+// ═══ EXTRACTED → src/systems/hero_inventory.js (iter 563)
+const { heroInv, heroHealth } = mountHeroInventory({ Inv, Health, CFG });
 
 const world = new WorldState(1);
 world.setPlayer("hero", 0, 0, 0, 0, 0);

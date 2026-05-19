@@ -27,6 +27,7 @@ export { mountGadgetSystem }    from "./systems/gadget_system.js";
 export { mountSpawnSystem }     from "./systems/spawn_system.js";
 export { mountPerkSystem }      from "./systems/perk_system.js";
 export { mountHeroLifecycle }   from "./systems/hero_lifecycle.js";
+export { mountHeroInventory }   from "./systems/hero_inventory.js";
 export { mountGameReset }       from "./systems/game_reset.js";
 export { mountDevConsoleGame }  from "./systems/dev_console_game.js";
 export { mountKillTracking, COIN_BY_TYPE } from "./systems/kill_tracking.js";
