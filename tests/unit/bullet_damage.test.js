@@ -119,16 +119,20 @@ describe("computeBulletDamage — multipliers", () => {
   });
 
   it("lvlDmgMul applied", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // suppress crit
     const { dmg } = computeBulletDamage({
       bullet: bullet({ dirV: 0 }), enemy: enemy(), dmgMul: {}, lvlDmgMul: 1.5, perkDmgMul: 1
     });
+    vi.restoreAllMocks();
     expect(dmg).toBe(Math.round(100 * 1.5));
   });
 
   it("perkDmgMul applied", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // suppress crit
     const { dmg } = computeBulletDamage({
       bullet: bullet({ dirV: 0 }), enemy: enemy(), dmgMul: {}, lvlDmgMul: 1, perkDmgMul: 2
     });
+    vi.restoreAllMocks();
     expect(dmg).toBe(Math.round(100 * 2));
   });
 
@@ -144,9 +148,11 @@ describe("computeBulletDamage — multipliers", () => {
   });
 
   it("no falloff (falloff=0) → falloffMul=1", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // suppress crit
     const { dmg } = computeBulletDamage({
       bullet: bullet({ dirV: 0, falloff: 0 }), enemy: enemy(), dmgMul: {}, lvlDmgMul: 1, perkDmgMul: 1
     });
+    vi.restoreAllMocks();
     expect(dmg).toBe(100);
   });
 

@@ -178,7 +178,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -2522,6 +2522,7 @@ const _dodgeTick         = mountDodgeTick({ get: { dodgeCooldown: () => _dodgeCo
 const _enemyRegenTick    = mountEnemyRegenTick({ actions: { getPos: id => world.players.get(id), spawnDamageNumber: (u,y,v,t,c) => _spawnDamageNumber(u,y,v,t,c) } });
 const _enemySepTick      = mountEnemySepTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v) } });
 const _empTick           = mountEnemyRobotEmpTick({ THREE, scene, shockwaves: _shockwaves, actions: { playSfx, setHeroEmpT: v => { _heroEmpT=v; }, showToast, flashDamage: o => { damageFlashEl.style.opacity=String(o); } } });
+const _heavyGrenadeTick  = mountEnemyHeavyGrenadeTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -3394,28 +3395,7 @@ function tick() {
               }
             }
             _empTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroDead: _heroDead, godMode: typeof Engine !== "undefined" && Engine.debug.godMode }); // → enemy_robot_emp_tick.js
-            // Heavy grenade throw — lobs a grenade every 4s when 3.5–12m away with LOS
-            if (en.type === "heavy" && canSee && dist > 3.5 && dist < 12) {
-              if (!en._grenadeT || now / 1000 - en._grenadeT > (en._enraged ? 2.5 : 4.0)) {
-                en._grenadeT = now / 1000;
-                const tof = 1.5;
-                const hspeed = dist / tof;
-                const throwAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
-                const gMesh = new THREE.Mesh(
-                  new THREE.SphereGeometry(0.15, 6, 5),
-                  new THREE.MeshStandardMaterial({ color: 0x222200, roughness: 0.8, metalness: 0.5 })
-                );
-                gMesh.position.set(ep.u, ep.y + 1.2, ep.v);
-                scene.add(gMesh);
-                const _gWarnRing = new THREE.Mesh(_warnRingGeo, _warnRingMat.clone());
-                _gWarnRing.position.set(ep.u, 0.05, ep.v); scene.add(_gWarnRing);
-                grenades3D.push({ mesh: gMesh, fuse: tof + 0.3, u: ep.u, y: ep.y + 1.2, v: ep.v,
-                  velU: Math.sin(throwAng) * hspeed,
-                  velY: Math.abs(GRAVITY) * tof / 2,
-                  velV: Math.cos(throwAng) * hspeed, _warnRing: _gWarnRing });
-                playSfx("tone:150:80:triangle", 0.22);
-              }
-            }
+            _heavyGrenadeTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_heavy_grenade_tick.js
             // Boss rock throw — hurls a slow boulder every 6s at 5-15m range
             if (en.type === "boss" && canSee && dist >= 5 && dist < 15) {
               if (!en._rockT || now / 1000 - en._rockT > (en._enraged ? 3.5 : 6.0)) {
