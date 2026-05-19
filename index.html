@@ -109,6 +109,7 @@ import {
   STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT, HERO_HITBOX,
   makeMovementStats, CAM_DIST_MIN, CAM_DIST_MAX,
   LEVEL_THRESHOLDS as _LEVEL_THRESHOLDS, STREAK_WINDOW as _STREAK_WINDOW, COMBO_DECAY as _COMBO_DECAY,
+  FIXED_DT,
   // World
   Rain, mountWorldLayout,
   // Audio
@@ -2726,13 +2727,7 @@ let _lastMagBarReloading = false;
 // ═══ EXTRACTED → src/render/cam_vectors.js (iter 568)
 const { _camTarget, _camOff, _camLook, _camAimTarget, _camBuildLook } = mountCamVectors({ THREE });
 // ── Fixed-timestep physics accumulator ──────────────────────────────────────
-// Physics runs at exactly 60 Hz regardless of display frame rate.
-// _physicsAcc accumulates wall-clock time; each FIXED_DT slice is one physics
-// step. Render code continues to use variable rawDt for smooth interpolation.
-// The alpha value (0–1) is the interpolation factor for visual smoothing:
-//   renderPos = prevPhysicsPos + alpha * (currPhysicsPos - prevPhysicsPos)
-// (Alpha interpolation not yet applied — foundation wired for future use.)
-const FIXED_DT   = 1 / 60;  // 60 Hz physics tick
+// ═══ FIXED_DT extracted → src/config/physics_stats.js (iter 569) — imported at top
 let _physicsAcc  = 0;        // leftover time from last frame
 // ─────────────────────────────────────────────────────────────────────────────
 

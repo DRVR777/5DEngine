@@ -80,6 +80,7 @@ export { makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEE
          STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT,
          HERO_HITBOX } from "./config/hero_stats.js";
 export { makeMovementStats, CAM_DIST_MIN, CAM_DIST_MAX } from "./config/movement_stats.js";
+export { FIXED_DT } from "./config/physics_stats.js";
 
 // ── World ─────────────────────────────────────────────────────────────────────
 export { default as Rain }     from "./world/rain.js";
