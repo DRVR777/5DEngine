@@ -18,5 +18,5 @@ export function mountComputerMesh({ THREE, scene, computerEntity }) {
   compGroup.position.set(computerEntity.u, 0, computerEntity.v);
   scene.add(compGroup);
 
-  return { compGroup };
+  return { compGroup, screenFront };
 }

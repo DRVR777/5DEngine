@@ -267,8 +267,8 @@ export function mountKeydownHandler({
           actions.spawnDamageNumber(ep.u, 1.2, ep.v, `-${mDmg}`, "#ff8800");
           actions.spawnParticles(ep.u, 1.2, ep.v, 4, "orange", 4, 0.2);
           actions.playSfx("tone:200:60:sawtooth", 0.3);
-          if (en.hp === 0 && !en.dead) {
-            en.dead = true; en.respawnT = performance.now() / 1000; en._wasChasing = false;
+          if (en.hp <= 0 && !en.dead) {
+            en.hp = 0; en.dead = true; en.respawnT = performance.now() / 1000; en._wasChasing = false;
             enemyKills++; comboCount++;
             set.comboLastT(performance.now() / 1000);
             actions.spawnDecal(ep.u, ep.v, en.type === "robot" ? "oil" : "blood");

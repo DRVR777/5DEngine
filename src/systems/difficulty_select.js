@@ -1,4 +1,4 @@
-export function mountDifficultySelect({ set, showToast }) {
+export function mountDifficultySelect({ set, showToast, actions = {} }) {
   const _dScr = document.getElementById("difficultyScreen");
   if (!_dScr) { if (typeof WaveManager !== "undefined") WaveManager.start(); return; }
   const _diffColors = { EASY: "#88ff66", NORMAL: "#66aaff", HARD: "#ffaa44", NIGHTMARE: "#ff4444" };
@@ -17,8 +17,7 @@ export function mountDifficultySelect({ set, showToast }) {
       }
       _dScr.style.display = "none";
       showToast(`Difficulty: ${_label}`, "info", 2500);
-      const _cv = document.querySelector("canvas");
-      if (_cv) _cv.requestPointerLock();
+      if (actions.requestGameplayPointer) actions.requestGameplayPointer();
       if (typeof WaveManager !== "undefined") WaveManager.start();
     });
     btn.addEventListener("mouseenter", () => { btn.style.background = btn.style.background.replace("0.1", "0.22").replace("0.12", "0.22"); });

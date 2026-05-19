@@ -1,5 +1,7 @@
 node_modules/
 tests/visual/screenshots/
+test-results/
+tests/browser-artifacts/
 __pycache__/
 *.pyc
 .env

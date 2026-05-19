@@ -8,8 +8,8 @@ describe("computer_mesh", () => {
     expect(src).toContain("export function mountComputerMesh");
   });
 
-  it("returns compGroup", () => {
-    expect(src).toContain("return { compGroup }");
+  it("returns compGroup and screenFront", () => {
+    expect(src).toContain("return { compGroup, screenFront }");
   });
 
   it("desk box is BoxGeometry 1.6x1.2x0.6 dark gray at y=0.6", () => {

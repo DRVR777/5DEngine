@@ -79,6 +79,11 @@ describe("showPerkPicker", () => {
     expect(src).toContain("secs <= 0");
     expect(src).toContain("applyPerk(pool[Math.floor(Math.random()");
   });
+
+  it("releases pointer lock through modal action hook", () => {
+    expect(src).toContain("actions.releasePointer");
+    expect(src).not.toContain("document.exitPointerLock()");
+  });
 });
 
 describe("applyPerk", () => {
@@ -94,6 +99,11 @@ describe("applyPerk", () => {
   it("calls actions.showToast and actions.addKillFeedEntry", () => {
     expect(src).toContain("actions.showToast(");
     expect(src).toContain("actions.addKillFeedEntry(");
+  });
+
+  it("requests gameplay pointer through action hook after selection", () => {
+    expect(src).toContain("actions.requestGameplayPointer");
+    expect(src).not.toContain("requestPointerLock()");
   });
 });
 

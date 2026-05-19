@@ -8,9 +8,10 @@ describe("difficulty_select", () => {
     expect(src).toContain("export function mountDifficultySelect");
   });
 
-  it("accepts set and showToast", () => {
+  it("accepts set, showToast, and pointer actions", () => {
     expect(src).toContain("set");
     expect(src).toContain("showToast");
+    expect(src).toContain("actions = {}");
   });
 
   it("looks for difficultyScreen element", () => {
@@ -43,5 +44,10 @@ describe("difficulty_select", () => {
     expect(src).toContain("set.diffHpMul");
     expect(src).toContain("set.diffDmgMul");
     expect(src).toContain("set.diffLabel");
+  });
+
+  it("requests gameplay pointer through action hook after difficulty selection", () => {
+    expect(src).toContain("actions.requestGameplayPointer");
+    expect(src).not.toContain("requestPointerLock()");
   });
 });

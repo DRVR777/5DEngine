@@ -10,5 +10,6 @@ export function mountVfxInit({ THREE, scene, camera, Vfx, warnRingGeo, warnRingM
     _spawnDamageNumber:  Vfx.spawnDamageNumber.bind(Vfx),
     _triggerMuzzleFlash: Vfx.triggerMuzzleFlash.bind(Vfx),
     _spawnShockwave:     Vfx.spawnShockwave.bind(Vfx),
+    _shockwaves:         Vfx.getShockwaves(),
   };
 }

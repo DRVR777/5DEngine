@@ -58,8 +58,7 @@ export function mountPerkSystem({
     actions.showToast(`★ PERK: ${perk.label} — ${perk.desc}`, "success", 3000);
     actions.addKillFeedEntry(`★ PERK (W${waveNum}): ${perk.label}`, "#ffd166");
     actions.playSfx("tone:880:80:sine", 0.5); actions.playSfx("tone:1100:60:sine", 0.4);
-    const canvas = document.getElementById("gameCanvas") || document.querySelector("canvas");
-    if (canvas && canvas.requestPointerLock) setTimeout(() => { try { canvas.requestPointerLock(); } catch(_e) {} }, 250);
+    if (actions.requestGameplayPointer) setTimeout(() => actions.requestGameplayPointer(), 250);
   }
 
   function showPerkPicker(waveNum) {
@@ -83,7 +82,7 @@ export function mountPerkSystem({
       });
     }
     overlay.style.display = "flex";
-    document.exitPointerLock && document.exitPointerLock();
+    if (actions.releasePointer) actions.releasePointer();
     let secs = 10;
     if (_perkTimerInt) clearInterval(_perkTimerInt);
     _perkTimerInt = setInterval(() => {

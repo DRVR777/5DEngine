@@ -157,7 +157,7 @@
     if (_phase === "waiting") {
       // Count alive tracked enemies by checking global enemies array
       if (typeof window !== "undefined" && Array.isArray(window._enemies)) {
-        _aliveTrack = window._enemies.filter(e => !e.dead && e.id.startsWith("en_spawned_")).length;
+        _aliveTrack = window._enemies.filter(e => !e.dead && (e.hp ?? 1) > 0 && e.id.startsWith("en_spawned_")).length;
       } else {
         // Decrement by elapsed time as approximate fallback (1 enemy per 5s)
         _aliveTrack = Math.max(0, _aliveTrack - dt * 0.2);

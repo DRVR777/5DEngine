@@ -115,6 +115,17 @@ export function triggerMuzzleFlash(x, y, z) {
 }
 
 export function getMuzzleLight() { return _muzzleLight; }
+export function getShockwaves() { return _shockwaves; }
+
+export function getCounts() {
+  return {
+    particles: _particles.length,
+    particlePool: _pPool.length,
+    casings: _casings.length,
+    damageNumbers: _dmgNums.length,
+    shockwaves: _shockwaves.length,
+  };
+}
 
 export function tick(dt) {
   // Particles
@@ -172,5 +183,5 @@ export function tick(dt) {
   }
 }
 
-export const Vfx = { init, tick, spawnParticles, ejectCasing, spawnDamageNumber, spawnShockwave, triggerMuzzleFlash, getMuzzleLight };
+export const Vfx = { init, tick, spawnParticles, ejectCasing, spawnDamageNumber, spawnShockwave, triggerMuzzleFlash, getMuzzleLight, getShockwaves, getCounts };
 export default Vfx;
