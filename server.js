@@ -5,9 +5,10 @@
 
 "use strict";
 
-const express = require("express");
-const cors    = require("cors");
-const { Pool } = require("pg");
+const express    = require("express");
+const cors       = require("cors");
+const { Pool }   = require("pg");
+const { execSync } = require("child_process");
 
 const PORT = process.env.PORT || 3001;
 
@@ -252,6 +253,44 @@ app.get("/api/world-objects", async (req, res) => {
     if (object_type) { params.push(object_type); text += ` AND object_type=$${params.length}`; }
     const { rows } = await q(text, params);
     res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ---- Git working-version management ----
+// GET  /api/git/status       — current HEAD sha + working tag sha
+// POST /api/git/verify       — tag current HEAD as 'working'
+// POST /api/git/pull-working — stash, fetch, checkout working tag, reload needed
+
+function gitExec(cmd, opts = {}) {
+  return execSync(cmd, { cwd: __dirname, timeout: 20000, ...opts }).toString().trim();
+}
+
+app.get("/api/git/status", (_req, res) => {
+  try {
+    const sha = gitExec("git rev-parse HEAD");
+    const shortSha = sha.slice(0, 7);
+    let workingSha = null;
+    try { workingSha = gitExec("git rev-parse working").slice(0, 7); } catch {}
+    res.json({ sha: shortSha, workingSha, isWorking: shortSha === workingSha });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/git/verify", (_req, res) => {
+  try {
+    gitExec("git tag -f working HEAD");
+    const sha = gitExec("git rev-parse HEAD").slice(0, 7);
+    res.json({ ok: true, sha });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/git/pull-working", (_req, res) => {
+  try {
+    // Stash any local changes so checkout doesn't fail
+    try { gitExec("git stash"); } catch {}
+    gitExec("git fetch origin", { timeout: 30000 });
+    gitExec("git checkout working");
+    const sha = gitExec("git rev-parse HEAD").slice(0, 7);
+    res.json({ ok: true, sha });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
