@@ -95,6 +95,7 @@ import {
   mountRenderer,
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
   mountVehicleMeshes, mountFlashlight, mountBulletGeo, mountCamVectors, mountScene,
+  mountPostProcessing,
   mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
   mountPickupMeshes, mountComputerMesh, mountSkybox,
   mountStaticSupply, mountSpeedOrbSpawner,
@@ -157,36 +158,9 @@ import("three/addons/loaders/FBXLoader.js")
   .then((m) => { Loaders.FBXLoader = m.FBXLoader; })
   .catch((e) => { console.warn("FBXLoader unavailable:", e.message); });
 
-// Post-processing — loaded lazily; bloom optional if CDN unreachable
+// Post-processing — ═══ EXTRACTED → src/render/post_processing.js (iter 571)
+// mountPostProcessing call is placed after mountRenderer (line ~824) so renderer+camera are live.
 let composer = null;
-Promise.all([
-  import("three/addons/postprocessing/EffectComposer.js"),
-  import("three/addons/postprocessing/RenderPass.js"),
-  import("three/addons/postprocessing/UnrealBloomPass.js"),
-]).then(([compMod, renderMod, bloomMod]) => {
-  const { EffectComposer } = compMod;
-  const { RenderPass }     = renderMod;
-  const { UnrealBloomPass } = bloomMod;
-  composer = new EffectComposer(renderer);
-  // Match RT color space to renderer output so Three.js reuses the same
-  // shader variants instead of recompiling for a different output encoding.
-  // Mismatched color spaces cause refreshUniformsCommon to crash when the
-  // new variant's uniform map is empty (uniforms.opacity === undefined).
-  composer.renderTarget1.texture.colorSpace = THREE.SRGBColorSpace;
-  composer.renderTarget2.texture.colorSpace = THREE.SRGBColorSpace;
-  composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(
-    new THREE.Vector2(innerWidth, innerHeight),
-    0.55,   // strength
-    0.40,   // radius
-    0.82    // threshold — only bright surfaces bloom
-  );
-  composer.addPass(bloom);
-  window._bloomPass = bloom;
-  console.log("[5DEngine] bloom post-processing active");
-}).catch((e) => {
-  console.warn("Bloom post-processing unavailable:", e.message);
-});
 
 // inject all HUD/panel HTML before any getElementById runs
 mountHudTemplate();
@@ -822,6 +796,8 @@ if (typeof DevConsole !== "undefined") DevConsole.init();
 
 // ═══ EXTRACTED → src/render/renderer.js (iter 567)
 const { renderer, camera } = mountRenderer({ THREE, getComposer: () => composer });
+// ═══ EXTRACTED → src/render/post_processing.js (iter 571)
+mountPostProcessing({ THREE, renderer, scene, camera, onReady: c => { composer = c; } });
 
 // ── VFX MODULE INIT ──────────────────────────────────────────────────────────
 // Must happen AFTER both scene and camera exist.
