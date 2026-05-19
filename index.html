@@ -6697,7 +6697,11 @@ const _mp = createLanSession({
   getShowToast:  () => typeof showToast === "function" ? showToast : null,
   getEnemies:    () => enemies,
   getCamera:     () => camera,
-  getGameState:  () => ({ camYaw, currentWeaponId, heroHp, isSprinting, crouching, inCar }),
+  getGameState:  () => ({
+    camYaw, currentWeaponId, heroHp, inCar,
+    isSprinting: !!(keys && (keys["ShiftLeft"] || keys["ShiftRight"])),
+    crouching:   !!(keys && (keys["ControlLeft"] || keys["ControlRight"])),
+  }),
 });
 
 // Mount duel mode — needs _mp ready
