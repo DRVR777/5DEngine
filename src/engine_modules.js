@@ -58,6 +58,7 @@ export { mountCombatAmbientTick } from "./systems/combat_ambient_tick.js";
 export { mountSkyDayNightTick }  from "./render/sky_day_night_tick.js";
 export { mountFpGunPosTick }     from "./systems/fp_gun_pos_tick.js";
 export { mountWalkAnimTick }     from "./systems/walk_anim_tick.js";
+export { mountHeroFaceTick }     from "./systems/hero_face_tick.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";
