@@ -116,6 +116,7 @@ export { mountEnemyPoisonerSpitTick }    from "./systems/enemy_poisoner_spit_tic
 export { mountEnemyIncendiaryTick }      from "./systems/enemy_incendiary_tick.js";
 export { mountEnemyBossSlamTick }        from "./systems/enemy_boss_slam_tick.js";
 export { mountEnemyPoisonerRangedSpitTick } from "./systems/enemy_poisoner_ranged_spit_tick.js";
+export { mountEnemyFastChargeTick }          from "./systems/enemy_fast_charge_tick.js";
 
 // ── Combat ───────────────────────────────────────────────────────────────────
 export { mountShootSystem }    from "./combat/shoot_system.js";

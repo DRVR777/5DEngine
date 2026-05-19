@@ -178,7 +178,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick, mountEnemyFastChargeTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -2528,6 +2528,7 @@ const _poisonerSpitTick  = mountEnemyPoisonerSpitTick({ THREE, scene, warnRingGe
 const _incendiaryTick    = mountEnemyIncendiaryTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
 const _bossSlamTick      = mountEnemyBossSlamTick({ ARMOR_ABSORB, getHeroPos: () => world.players.get("hero"), getEnemyPos: id => world.players.get(id), enemies, actions: { playSfx, screenShake: _applyScreenShake, spawnParticles: _spawnParticles, spawnShockwave: _spawnShockwave, flashDamage, setHeroHp: v => { heroHp = v; }, setHeroArmor: v => { heroArmor = v; }, setHeroLastDamageT: v => { heroLastDamageT = v; }, onHeroDeath: () => { if (!_heroDead) _heroShowDeathScreen(); } } });
 const _poisonerRangedSpitTick = mountEnemyPoisonerRangedSpitTick({ THREE, scene, enemyBullets, actions: { playSfx } });
+const _fastChargeTick          = mountEnemyFastChargeTick({ getEnemyPos: id => world.players.get(id), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), actions: { playSfx, spawnParticles: _spawnParticles } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -3406,25 +3407,7 @@ function tick() {
             _incendiaryTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_incendiary_tick.js
             _bossSlamTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, dodgeT: _dodgeT, heroDead: _heroDead, godMode: typeof Engine !== "undefined" && Engine.debug.godMode, heroHp, heroArmor }); // → enemy_boss_slam_tick.js
             _poisonerRangedSpitTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, heroU: _heroNowAI.u, heroV: _heroNowAI.v }); // → enemy_poisoner_ranged_spit_tick.js
-            // Fast enemy charge dash — burst toward hero at 2.2x extra speed for 0.4s, every 3.5-5.5s
-            if (en.type === "fast" && canSee && dist > 2.0 && dist < 8) {
-              if (!en._chargeCD || (now / 1000 - en._chargeCD) > (en._chargeInterval || 4.0)) {
-                en._chargeCD = now / 1000;
-                en._chargeInterval = 3.5 + Math.random() * 2.0;
-                en._chargeDur = 0.38;
-                en._chargeDirU = dx / (dist || 1);
-                en._chargeDirV = dz / (dist || 1);
-                playSfx("tone:760:40:square", 0.18);
-                _spawnParticles(ep.u, ep.y + 0.5, ep.v, 6, "orange", 6, 0.14);
-              }
-            }
-            if (en.type === "fast" && en._chargeDur > 0) {
-              en._chargeDur -= dt;
-              const _cEp = world.players.get(en.id);
-              const _cem2 = { u: _cEp.u, v: _cEp.v, hitbox: { w: 0.7, d: 0.7 } };
-              GTAPhysics.resolveAABBMove(_cem2, en._chargeDirU * en.moveSpeed * 2.2 * dt, en._chargeDirV * en.moveSpeed * 2.2 * dt, buildingBlockers);
-              world.setPlayer(en.id, _cEp.x, 0, 0, _cem2.u, _cem2.v);
-            }
+            _fastChargeTick.tick(dt, en, { canSee, dist, ep, nowSec: now / 1000, dx, dz }); // → enemy_fast_charge_tick.js
             // Sniper — stays at 10-18m, 4s fire cycle: 1.2s lock-on + shot
             if (en.type === "sniper" && canSee) {
               const nowS = now / 1000;
