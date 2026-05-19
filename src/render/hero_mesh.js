@@ -1,5 +1,5 @@
 // Hero articulated mesh — torso + head + 2 arms + 2-segment legs + shadow blob.
-// mountHeroMesh({ THREE, scene }) → { heroGroup, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob }
+// mountHeroMesh({ THREE, scene }) → { heroGroup, torso, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob }
 export function mountHeroMesh({ THREE, scene }) {
   const heroGroup = new THREE.Group();
   window._setHeroScale = v => { heroGroup.scale.setScalar(v); };
@@ -59,5 +59,5 @@ export function mountHeroMesh({ THREE, scene }) {
   scene.add(heroGroup);
   const walkState = { t: 0 };
 
-  return { heroGroup, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob };
+  return { heroGroup, torso, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob };
 }

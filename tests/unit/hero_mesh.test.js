@@ -8,8 +8,8 @@ describe("hero_mesh", () => {
     expect(src).toContain("export function mountHeroMesh");
   });
 
-  it("returns heroGroup, limb parts, walkState, shadowBlob", () => {
-    expect(src).toContain("return { heroGroup, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob }");
+  it("returns heroGroup, torso, limb parts, walkState, shadowBlob", () => {
+    expect(src).toContain("return { heroGroup, torso, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob }");
   });
 
   it("heroGroup is added to scene", () => {

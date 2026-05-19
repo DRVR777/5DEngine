@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -893,7 +893,7 @@ const { skyboxPresets: _skyboxPresets } = mountSkybox({ THREE, scene, ambLight: 
 const { skyUniforms, ground, sky, grid } = mountEnvironment({ THREE, scene, buildings });
 
 // ═══ EXTRACTED → src/render/hero_mesh.js (iter 549)
-const { heroGroup, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob: _shadowBlob } = mountHeroMesh({ THREE, scene });
+const { heroGroup, torso, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob: _shadowBlob } = mountHeroMesh({ THREE, scene });
 
 // ---- Weapon mesh registry ----
 const { gunMount: _gunMount, fpGunGroup: _fpGunGroup, switchGunMesh: _switchGunMesh, registerGunMesh: _wvRegisterGunMesh } = createWeaponVisuals({
@@ -2405,6 +2405,7 @@ let _combatAmbT = 0;
 const _combatAmbientTick = mountCombatAmbientTick({ get: { ambT: () => _combatAmbT }, set: { ambT: v => { _combatAmbT = v; } }, actions: { isAmbientReady: () => Sfx.isAmbientReady(), setAmbient: (k, f, t, v, fade) => _setAmbient(k, f, t, v, fade) } });
 const _skyDayNightTick   = mountSkyDayNightTick({ actions: { setTopColor: (r,g,b) => skyUniforms.topColor.value.setRGB(r,g,b), setBottomColor: (r,g,b) => skyUniforms.bottomColor.value.setRGB(r,g,b), setFogColor: (r,g,b) => scene.fog.color.setRGB(r,g,b), setSunPos: (x,y,z) => sun.position.set(x,y,z), setSunIntensity: v => { sun.intensity = v; } } });
 const _fpGunPosTick      = mountFpGunPosTick({ get: { weaponSwitchT: () => _weaponSwitchT }, set: { weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { setPosition: (x,y,z) => _fpGunGroup.position.set(x,y,z), setRotation: (x,y,z) => _fpGunGroup.rotation.set(x,y,z) } });
+const _walkAnimTick      = mountWalkAnimTick({ get: { gunKickZ: () => _gunKickZ, gunReloadX: () => _gunReloadX }, set: { gunKickZ: v => { _gunKickZ = v; }, gunReloadX: v => { _gunReloadX = v; } }, actions: { walkCycle: (dt, gs) => Bridge.walkCyclePhase(walkState, dt, gs), setThighs: m => { thighL.rotation.x = +m; thighR.rotation.x = -m; }, setShins: m => { shinL.rotation.x = Math.max(0, m) * 0.75; shinR.rotation.x = Math.max(0, -m) * 0.75; }, setArms: (lx, rx) => { armL.rotation.x = lx; armR.rotation.x = rx; }, setGunMount: (px,py,pz,rx,ry,rz) => { _gunMount.position.set(px,py,pz); _gunMount.rotation.set(rx,ry,rz); }, setTorsoY: y => { torso.position.y = y; } } });
 const _weaponHudTick   = mountWeaponHudTick({ get: { lowAmmoWarnedAt: () => _lowAmmoWarnedAt, lastMagBarAmmo: () => _lastMagBarAmmo, lastMagBarReloading: () => _lastMagBarReloading }, set: { lowAmmoWarnedAt: v => { _lowAmmoWarnedAt = v; }, lastMagBarAmmo: v => { _lastMagBarAmmo = v; }, lastMagBarReloading: v => { _lastMagBarReloading = v; } }, actions: { getWeapon: () => getWeapon(), getReserve: ammoItem => Inv.countItem(heroInv, ammoItem), playSfx: (str, vol) => playSfx(str, vol) } });
 let _reloading = false, _reloadStart = 0;
 let _recoilPitch = 0;
@@ -4392,31 +4393,7 @@ function tick() {
   _shadowBlob.position.set(heroPos.x, 0.01, heroPos.z);
   _shadowBlob.material.opacity = Math.max(0, 0.28 - heroPos.y * 0.06);
 
-  // Walk cycle — drive limb swing by ground speed. Amplified vs. the bridge's
-  // default so the legs visibly pump while walking (rotation around hip pivot).
-  const groundSpeed = inCar ? 0 : Math.hypot(inputF, inputR) * speed;
-  const wc = Bridge.walkCyclePhase(walkState, dt, groundSpeed);
-  const SWING = 1.3;
-  const KNEE  = 0.75;     // shin bend when thigh swings forward
-  thighL.rotation.x =  wc.swing * SWING;
-  thighR.rotation.x = -wc.swing * SWING;
-  shinL.rotation.x  = Math.max(0,  wc.swing * SWING) * KNEE;
-  shinR.rotation.x  = Math.max(0, -wc.swing * SWING) * KNEE;
-  // Arms: swing oppositely to legs while walking, but when AIMING they raise
-  // straight forward into a two-handed shooting pose (with aimAmt easing).
-  const aimRaise = -Math.PI / 2 * aimAmt;       // rotate forward
-  const walkArmL = -wc.swing * SWING * 0.7;
-  const walkArmR =  wc.swing * SWING * 0.7;
-  armL.rotation.x = walkArmL * (1 - aimAmt) + aimRaise;
-  armR.rotation.x = walkArmR * (1 - aimAmt) + aimRaise;
-  // Gun sway: bob left/right slightly while walking, kick back on shoot
-  _gunKickZ += (0 - _gunKickZ) * Math.min(1, dt * 18); // spring back to 0
-  const reloadTiltTarget = _reloading ? 0.75 : 0;
-  _gunReloadX += (reloadTiltTarget - _gunReloadX) * Math.min(1, dt * 10);
-  const gunSwayX = Math.sin(wc.t * 2.2 + Math.PI) * wc.speed * 0.018;
-  _gunMount.position.set(0, -0.7 + wc.bob * 0.3, 0.2 + _gunKickZ);
-  _gunMount.rotation.set(_gunReloadX, 0, gunSwayX);
-  torso.position.y = 1.25 + wc.bob;
+  _walkAnimTick.tick(dt, { groundSpeed: inCar ? 0 : Math.hypot(inputF, inputR) * speed, aimAmt, reloading: _reloading });
   // Hero always faces camYaw — body rotates with mouse so shooting is accurate
   {
     const targetY = aiming
