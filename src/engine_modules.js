@@ -113,6 +113,7 @@ export { GameProgress }         from "./systems/save_load.js";
 // ── Combat ───────────────────────────────────────────────────────────────────
 export { mountShootSystem }    from "./combat/shoot_system.js";
 export { createWeaponVisuals } from "./combat/weapon_visuals.js";
+export { computeBulletDamage } from "./combat/bullet_damage.js";
 
 // ── Render ───────────────────────────────────────────────────────────────────
 export { mountRenderer }          from "./render/renderer.js";

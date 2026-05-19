@@ -138,6 +138,7 @@ import {
   createCoinDropSystem, createSpeedOrbSystem, createArmorShardSystem,
   createHealthPickupSystem, createAmmoPickupSystem, createWeaponPickupSystem,
   createGrenadeCrateSystem, createArmorVestSystem,
+  computeBulletDamage,
 } from "./src/engine_modules.js";
 const showToast = Notifications.showToast;
 const _addKillFeedEntry = Notifications.addKillFeedEntry;
@@ -2814,14 +2815,7 @@ function tick() {
         const ep = world.players.get(en.id);
         if (!ep) continue;
         if (Math.hypot(ep.u - b.posU, ep.v - b.posV) < 0.6) {
-          const headshot = b.posY > 1.35;
-          const _bsDot = b.dirU * Math.sin(en.heading) + b.dirV * Math.cos(en.heading);
-          const backstab = !headshot && _bsDot > 0.55;
-          const _frontalBlock = !headshot && !backstab && _bsDot < -0.55 && (en.type === "boss" || en.type === "heavy");
-          const _wResist = (_DMG_MUL[en.type] || {})[b.weaponId || "pistol"] || 1.0;
-          const isCrit = !headshot && !backstab && !_frontalBlock && Math.random() < 0.10;
-          const _falloffMul = b.falloff ? Math.max(0.15, 1 - (b.traveled / (b.range || 1)) * b.falloff) : 1;
-          const dmg = Math.round(b.damage * (headshot ? 1.85 : backstab ? 1.5 : _frontalBlock ? 0.5 : isCrit ? 2.5 : 1) * _wResist * _heroLvlDmgMul * _perkDmgMul * _falloffMul);
+          const { dmg, headshot, backstab, frontalBlock: _frontalBlock, isCrit } = computeBulletDamage({ bullet: b, enemy: en, dmgMul: _DMG_MUL, lvlDmgMul: _heroLvlDmgMul, perkDmgMul: _perkDmgMul });
           en.hp = Math.max(0, en.hp - dmg);
           en._hpBarShowT = now / 1000;
           _hudEnemyHpDirty = true;
