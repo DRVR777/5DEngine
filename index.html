@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2614,6 +2614,7 @@ const _cameraPosTick     = mountCameraPosTick({ vectors: { camTarget: _camTarget
 const _proximityTick     = mountProximityTick({ get: { dialogOpen: () => _npcDialog.isOpen, computerOpen: () => computerOpen }, set: { nearComputer: v => { nearComputer = v; }, nearNpc: n => { _nearNpc = n; } }, actions: { getComputerPos: () => computerEntity, getScreenFront: () => screenFront || null, getNpcDefs: () => NPC_DEFS, getNpcPos: id => world.players.get(id) || null } });
 const _deviceBusTick     = mountDeviceBusTick({ actions: { getDeviceBus: () => typeof deviceBus !== "undefined" ? deviceBus : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0 }, hasAudioMixer: () => typeof audioMixer !== "undefined" && !!audioMixer, playSfx: (str, vol) => playSfx(str, vol), pollMon1Bridge: () => { if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint(); } } });
 const _screenMeshTick    = mountScreenMeshTick({ actions: { getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleScreen: () => window._buildConsoleScreen || null, getBuildConsoleMesh: () => window._buildConsoleMesh || null, intersectMesh: (mesh) => { const _r = new THREE.Raycaster(); _r.setFromCamera({ x: 0, y: 0 }, camera); return _r.intersectObject(mesh, false); }, setHoverRegion: id => { window._bcHoverRegion = id; } } });
+const _debugHudTick      = mountDebugHudTick({ actions: { getVehDist: id => Bridge.uvDist(world, "hero", id), setHudHtml: html => { hud.innerHTML = html; }, clearEnemyHpDirty: () => { _hudEnemyHpDirty = false; } } });
 const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
 const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
@@ -3908,23 +3909,7 @@ function tick() {
   _cameraPosTick.tick(dt, { buildMode, firstPerson, heroPos, freeCamPos, freeCamYaw, freeCamPitch, camYaw, camPitch, dist, crouchAmt: _crouchAmt, gunBobPhase: _gunBobPhase, aiming, canSprint, camSide, strafeRollAmt: _strafeRollAmt });
   _camShakeTick.tick(dt);
 
-  // Find nearest vehicle for proximity prompt
-  let _nearVehDist = Infinity, _nearVehDef = null;
-  for (const v of VEHICLE_DEFS) {
-    const d = Bridge.uvDist(world, "hero", v.id);
-    if (d < _nearVehDist) { _nearVehDist = d; _nearVehDef = v; }
-  }
-  const bldgName = (id) => ({2:"shop",3:"tower",4:"house",5:"garage",6:"diner",7:"bank",8:"park",9:"studio"}[id] || `L${id}`);
-  hud.innerHTML =
-    `pos <b>(${heroPos.x.toFixed(1)}, ${heroPos.y.toFixed(1)}, ${heroPos.z.toFixed(1)})</b>` +
-    `<br>engine.uv <b>(${hero.u.toFixed(2)}, ${hero.v.toFixed(2)})</b>` +
-    `<br>layer <b>${world.layerId}</b>` +
-    (insideNow ? `<br>inside <b>${bldgName(insideNow.targetLayerId)}</b>` : "") +
-    (inCar && activeVehicleId
-      ? `<br><b>IN ${(_activeVehicleDef||{type:"vehicle"}).type.toUpperCase()}</b> speed=${carState.speed.toFixed(1)} m/s`
-      : (_nearVehDist < (CFG.vehicleInteractDist || 3.0)
-          ? `<br>press <b>E</b> to enter ${(_nearVehDef||{type:"vehicle"}).type}`
-          : ""));
+  // Debug HUD part 1 (vehicle proximity, position) — merged into debug_hud_tick.js (iter 656)
 
   _mediaPickupsTick(dt, { heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
 
@@ -3964,29 +3949,8 @@ function tick() {
   // Clock HUD — extracted → src/systems/clock_hud_tick.js (iter 603)
   _clockHudTick.tick(now, dn.dayMix, _dom.clockHud);
 
-  // append objective + score to HUD
-  // hp bar (rendered as block string — quick + readable)
-  // iter 431: use full max HP including perk bonus so hpFrac stays in [0,1]
-  const _hpMax  = (HERO_MAX_HP + (_perkMaxHpBonus || 0)) || 1;
-  const hpFrac  = Math.max(0, Math.min(1, heroHp / _hpMax));
-  const hpBarLen = 16;
-  const hpFilled = Math.round(hpBarLen * hpFrac);
-  const hpBar = "▰".repeat(hpFilled) + "▱".repeat(hpBarLen - hpFilled);
-  const hpColor = hpFrac > 0.5 ? "#5dff5d" : (hpFrac > 0.25 ? "#ffd166" : "#ff5d5d");
-
-  hud.innerHTML += `<br>coins <b style="color:#ffd166">${score}</b> <span style="color:#666;font-size:9px">[Tab=shop]</span>` +
-    (score === pickups.length && pickups.length > 0 ? `<br><span style="color:#0f0">★ ALL COLLECTED</span>` : "") +
-    `<br>hp <b style="color:${hpColor}">${heroHp.toFixed(0)}/${HERO_MAX_HP}</b> ` +
-    `<span style="color:${hpColor};font-family:monospace">${hpBar}</span>` +
-    `<br>kills <b style="color:#ff6666">${enemyKills}</b>` +
-    `<br>enemies: ${(() => { if (_hudEnemyHpDirty) { const alive = enemies.filter(e=>!e.dead); _lastHudEnemyHpStr = alive.length ? alive.map(e=>`<b style="color:#ff${(e.color||0xff0044).toString(16).slice(2)}">${e.hp}/${e.maxHp}</b>`).join(" | ") : `<span style="color:#888">all dead — respawn in ${Math.max(0,ENEMY_RESPAWN_DELAY-(now/1000-Math.max(...enemies.map(e=>e.respawnT)))).toFixed(0)}s</span>`; _hudEnemyHpDirty = false; } return _lastHudEnemyHpStr; })()}` +
-    (_nearNpc ? `<br><b style="color:#00ffaa">[E] talk to ${_nearNpc.id.replace("npc_","").toUpperCase()}</b>` : "") +
-    (nearComputer ? `<br><b style="color:#44ccff">[E] use computer</b>` : "") +
-    (computerOpen ? `<br><span style="color:#44ccff">★ computer open</span>` : "") +
-    (spine ? `<br>cam <b style="color:#88ddff">${spine.zone}</b> <span style="color:#888">(${(spine.localT*100).toFixed(0)}%)</span>` : "") +
-    (mouseMode ? `<br><b style="color:#ffff00">🖱 MOUSE MODE</b> <span style="color:#888">— ESC or M to exit</span>` : "") +
-    (buildMode ? `<br><b style="color:#00ccff">BUILD MODE</b> <span style="color:#556677">WASD fly · R=lock mouse · P=char · K=config · N=spawn point · Tab=library</span>` : "") +
-    (reloadMsgUntil > performance.now() ? `<br><b style="color:#ffd166">↻ ${reloadMsg}</b>` : "");
+  // Debug HUD (position + vehicle + HP + kills + mode flags) — extracted → src/systems/debug_hud_tick.js (iter 656)
+  _debugHudTick.tick(dt, { heroPos, heroU: hero.u, heroV: hero.v, worldLayerId: world.layerId, insideNow, inCar, activeVehicleId, activeVehicleType: (_activeVehicleDef || { type: "vehicle" }).type, carSpeed: carState.speed, vehicleInteractDist: (CFG.vehicleInteractDist || 3.0), vehicleDefs: VEHICLE_DEFS, score, pickupsLen: pickups.length, heroHp, heroMaxHp: HERO_MAX_HP, perkMaxHpBonus: _perkMaxHpBonus || 0, enemyKills, enemies, nowSec: now / 1000, enemyRespawnDelay: ENEMY_RESPAWN_DELAY, enemyHpDirty: _hudEnemyHpDirty, nearNpc: _nearNpc, nearComputer, computerOpen, spine, mouseMode, buildMode, reloadMsgUntil, performanceNow: performance.now(), reloadMsg });
 
   // Hit marker, kill marker, damage direction — extracted → src/systems/combat_hud_tick.js (iter 601)
   _combatHudTick.tick({ crosshair: _dom.crosshair, killMarker: _dom.killMarker, dmgDirIndicator: _dom.dmgDirIndicator }, { now, hitMarkerUntil, killMarkerUntil: _killMarkerUntil, killMarkerHs: _killMarkerHs, moveSpread: _moveSpread, dmgDirAngle: _dmgDirAngle, dmgDirUntil: _dmgDirUntil, camYaw, dmgDirG: _dmgDirG });

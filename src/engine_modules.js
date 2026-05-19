@@ -81,6 +81,7 @@ export { mountCameraZoneTick }     from "./systems/camera_zone_tick.js";
 export { mountEnemyRegenTick }     from "./systems/enemy_regen_tick.js";
 export { mountEnemySepTick }       from "./systems/enemy_sep_tick.js";
 export { hasLOS }                  from "./systems/los_check.js";
+export { mountDebugHudTick }       from "./systems/debug_hud_tick.js";
 export { mountPlatformSystem }     from "./systems/platform_system.js";
 export { mountVehicleRenderTick }  from "./systems/vehicle_render_tick.js";
 export { mountHeroRegenTick }      from "./systems/hero_regen_tick.js";
