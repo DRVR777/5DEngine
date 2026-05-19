@@ -352,6 +352,24 @@ export function mountComputerUI({
     if (id === "radio")   wireRadioApp();
     if (id === "friends") wireFriendsApp();
     if (id === "servers") wireServersApp();
-    // duel app actions are handled by the delegated click handler above
+    if (id === "duel")    wireDuelApp();
   });
+
+  // ── Duel app live refresh ────────────────────────────────────────────────
+  let _duelRefreshTimer = null;
+  function wireDuelApp() {
+    if (_duelRefreshTimer) clearInterval(_duelRefreshTimer);
+    _duelRefreshTimer = setInterval(() => {
+      const titleEl = document.getElementById("appTitle");
+      const winEl   = document.getElementById("appWindow");
+      if (!winEl || !winEl.classList.contains("open") ||
+          !titleEl || titleEl.textContent !== "⚔️ 1v1 Duel") {
+        clearInterval(_duelRefreshTimer);
+        _duelRefreshTimer = null;
+        return;
+      }
+      const bodyEl = document.getElementById("appBody");
+      if (bodyEl) bodyEl.innerHTML = getAPPS().duel.body();
+    }, 1500);
+  }
 }
