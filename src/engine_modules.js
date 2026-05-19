@@ -51,6 +51,7 @@ export { mountLighting }          from "./render/lighting.js";
 export { mountNpcMeshFactory }    from "./render/npc_mesh.js";
 export { mountPickupMeshes }      from "./render/pickup_mesh.js";
 export { mountComputerMesh }      from "./render/computer_mesh.js";
+export { mountSkybox }            from "./render/skybox.js";
 
 // ── Static supplies ───────────────────────────────────────────────────────────
 export { mountStaticSupply }      from "./systems/static_supply.js";
