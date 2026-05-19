@@ -73,6 +73,7 @@ export { Core } from "./core/core.js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 export { ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS } from "./config/enemy_types.js";
+export { LEVEL_THRESHOLDS, STREAK_WINDOW, COMBO_DECAY } from "./config/combat_stats.js";
 export { makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
          STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT,
          HERO_HITBOX } from "./config/hero_stats.js";

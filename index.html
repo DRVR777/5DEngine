@@ -107,6 +107,7 @@ import {
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
   STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT, HERO_HITBOX,
   makeMovementStats, CAM_DIST_MIN, CAM_DIST_MAX,
+  LEVEL_THRESHOLDS as _LEVEL_THRESHOLDS, STREAK_WINDOW as _STREAK_WINDOW, COMBO_DECAY as _COMBO_DECAY,
   // World
   Rain, mountWorldLayout,
   // Audio
@@ -277,16 +278,15 @@ let _heroLevel = 0;           // 0–5
 let _heroLvlDmgMul = 1.0;     // multiplied into bullet damage
 let _heroLvlSpeedBonus = 0;   // added to sprint speed
 let _heroApexMode = false;    // L5: each kill restores 5 stamina
-const _LEVEL_THRESHOLDS = [10, 20, 30, 40, 50];
+// ═══ _LEVEL_THRESHOLDS extracted → src/config/combat_stats.js (iter 566) — imported at top
 // Elite enemy system
 let _eliteSpawnedThisWave = false; // prevents multiple elites per wave
 let _lastHeroShotT = -999;
 let _streakCount = 0;
 let _lastKillT = 0;
-const _STREAK_WINDOW = 5; // seconds between kills to maintain streak
+// ═══ _STREAK_WINDOW, _COMBO_DECAY extracted → src/config/combat_stats.js (iter 566)
 let _comboCount = 0;      // kills in current combo (resets if gap > _COMBO_DECAY)
 let _comboLastT = 0;      // timestamp of most recent combo kill
-const _COMBO_DECAY = 3.5; // seconds without a kill to break the combo
 let _comboAnnouncedMul = 0; // last combo milestone (2/4/6/8) with audio+toast played
 // Between-wave perk system
 let _perkDmgMul    = 1.0;   // stacks multiplicatively with kill-level damage
