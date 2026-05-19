@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2615,6 +2615,7 @@ const _proximityTick     = mountProximityTick({ get: { dialogOpen: () => _npcDia
 const _deviceBusTick     = mountDeviceBusTick({ actions: { getDeviceBus: () => typeof deviceBus !== "undefined" ? deviceBus : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0 }, hasAudioMixer: () => typeof audioMixer !== "undefined" && !!audioMixer, playSfx: (str, vol) => playSfx(str, vol), pollMon1Bridge: () => { if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint(); } } });
 const _screenMeshTick    = mountScreenMeshTick({ actions: { getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleScreen: () => window._buildConsoleScreen || null, getBuildConsoleMesh: () => window._buildConsoleMesh || null, intersectMesh: (mesh) => { const _r = new THREE.Raycaster(); _r.setFromCamera({ x: 0, y: 0 }, camera); return _r.intersectObject(mesh, false); }, setHoverRegion: id => { window._bcHoverRegion = id; } } });
 const _debugHudTick      = mountDebugHudTick({ actions: { getVehDist: id => Bridge.uvDist(world, "hero", id), setHudHtml: html => { hud.innerHTML = html; }, clearEnemyHpDirty: () => { _hudEnemyHpDirty = false; } } });
+const _enemyMeshTick     = mountEnemyMeshTick({ actions: { getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), spawnClearPos: (r1, r2) => _spawnClearPos(r1, r2), setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), markHudDirty: () => { _hudEnemyHpDirty = true; } } });
 const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
 const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
 const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
@@ -3745,119 +3746,8 @@ function tick() {
       { const _epc = world.players.get(en.id); const _AR = 27.5;
         if (Math.abs(_epc.u) > _AR || Math.abs(_epc.v) > _AR)
           world.setPlayer(en.id, _epc.x, 0, 0, Math.max(-_AR, Math.min(_AR, _epc.u)), Math.max(-_AR, Math.min(_AR, _epc.v))); }
-      const ep2 = world.players.get(en.id);
-      // Walk bob — vertical bounce when chasing; frequency/amplitude scale with moveSpeed
-      const _enMoving = en._wasChasing || (en._heardShot > 0);
-      if (_enMoving) {
-        if (!en._walkBobPhase) en._walkBobPhase = Math.random() * Math.PI * 2;
-        en._walkBobPhase += (en.moveSpeed || 2.5) * 3.5 * dt;
-        const _enBobAmp = en.type === "boss" ? 0.06 : en.type === "heavy" ? 0.05 : en.type === "fast" ? 0.04 : 0.035;
-        em.group.position.set(ep2.u, Math.abs(Math.sin(en._walkBobPhase)) * _enBobAmp, ep2.v);
-      } else {
-        em.group.position.set(ep2.u, 0, ep2.v);
-      }
-      em.group.rotation.y = en.heading;
-      // Flinch spring — pitch backward on hit, spring back to 0
-      if (en._flinchX == null) en._flinchX = 0;
-      en._flinchX += (0 - en._flinchX) * Math.min(1, dt * 14);
-      em.group.rotation.x = en._flinchX;
-      // Spawn-in scale animation: scale up from 0.05 to 1 over 0.4s
-      if (en._spawnT && (now / 1000 - en._spawnT) < 0.4) {
-        const _sf = Math.min(1, (now / 1000 - en._spawnT) / 0.4);
-        em.group.scale.setScalar(0.05 + _sf * 0.95);
-        // Brief flash on first appear
-        if (_sf < 0.25) {
-          const _fl = 1 - _sf / 0.25;
-          for (const ch of (en._meshChildren || [])) { if (ch.material.emissive) ch.material.emissiveIntensity = _fl * 2.5; }
-        }
-      } else {
-        em.group.scale.setScalar(1);
-        if (en._spawnT) {
-          for (const ch of (en._meshChildren || [])) { if (ch.material.emissive) ch.material.emissiveIntensity = 0; }
-          en._spawnT = null;  // clear once animation completes
-        }
-      }
-      em.group.visible = true;
-      const hpFrac = en.hp / en.maxHp;
-      em.hpFg.scale.x = Math.max(0.001, hpFrac);
-      em.hpFg.position.x = -(1 - hpFrac) / 2;
-      // Color shift: green → orange → red based on HP fraction
-      const _hpCol = hpFrac > 0.6 ? 0x00cc44 : hpFrac > 0.3 ? 0xff8800 : 0xff2222;
-      em.hpFg.material.color.setHex(_hpCol);
-      // Show HP bar only while recently hit (2.5s window) or at < full HP
-      const _barVisible = hpFrac < 1.0 && (!en._hpBarShowT || (now / 1000 - en._hpBarShowT) < 2.5);
-      if (em.hpPivot) { em.hpPivot.visible = _barVisible; em.hpPivot.rotation.y = camYaw - en.heading; }
-      // Detection "!" sprite — show briefly when enemy spots hero
-      { const _ab = em._alertBubble;
-        if (_ab) {
-          if (en._alertT > 0) { en._alertT -= dt; _ab.visible = true; const _ps = 0.45 + 0.15 * Math.sin(now / 90); _ab.scale.set(_ps, _ps, 1); }
-          else _ab.visible = false;
-        }
-      }
-      // Spin the type indicator gem
-      const gem = em._typeGem;
-      if (gem) gem.rotation.y += dt * 2.5;
-      // Hit flash — white emissive burst 0.08s on bullet impact
-      if (en._hitFlashT > 0) {
-        en._hitFlashT -= dt;
-        en._hitFlashWas = true;
-        for (const ch of (en._meshChildren || [])) {
-          if (!ch.material || !ch.material.emissive) continue;
-          if (ch._origEmissive === undefined) {
-            ch._origEmissive = ch.material.emissive.getHex();
-            ch._origEmissiveInt = ch.material.emissiveIntensity || 0;
-          }
-          ch.material.emissive.setHex(0xffffff);
-          ch.material.emissiveIntensity = 2.0;
-        }
-      } else if (en._hitFlashWas) {
-        en._hitFlashWas = false;
-        for (const ch of (en._meshChildren || [])) {
-          if (ch._origEmissive !== undefined) {
-            ch.material.emissive.setHex(ch._origEmissive);
-            ch.material.emissiveIntensity = ch._origEmissiveInt;
-          }
-        }
-      }
-      // Blood/oil trail on low-HP enemies — drip particle every 0.12s below 30% HP
-      if (en.hp / en.maxHp < 0.30) {
-        if (!en._bleedT || now / 1000 - en._bleedT > 0.12) {
-          en._bleedT = now / 1000;
-          const ep3 = world.players.get(en.id);
-          const _isBot = en.type === "robot";
-          _spawnParticles(ep3.u + (Math.random() - 0.5) * 0.3, 0.05, ep3.v + (Math.random() - 0.5) * 0.3,
-            1, _isBot ? "cyan" : "red", 0.5, 0.6);
-        }
-      }
-    } else {
-      // Hide sniper laser on death
-      if (en._laserLine) en._laserLine.visible = false;
-      // Death collapse animation: fall backward + sink over 0.6s, then go invisible
-      const _dElapsed = now / 1000 - en.respawnT;
-      const _COLLAPSE = 0.6;
-      if (_dElapsed < _COLLAPSE) {
-        const f = _dElapsed / _COLLAPSE;           // 0→1 over 0.6s
-        const ep2d = world.players.get(en.id);
-        if (!ep2d) { em.group.visible = false; continue; }
-        em.group.position.set(ep2d.u, -f * 0.5, ep2d.v);
-        em.group.rotation.y = en.heading;
-        em.group.rotation.x = f * Math.PI * 0.5;  // topple 90° backward
-        em.group.scale.setScalar(1 - f * 0.5);    // shrink slightly
-        em.group.visible = true;
-        if (em.hpPivot) em.hpPivot.visible = false;
-        const _ab2 = em._alertBubble;
-        if (_ab2) _ab2.visible = false;
-      } else {
-        em.group.visible = false;
-        em.group.rotation.x = 0;
-        em.group.scale.setScalar(1);
-      }
-      if (_dElapsed > ENEMY_RESPAWN_DELAY && !en.id.startsWith("en_spawned_")) {
-        en.dead = false; en.hp = en.maxHp; en._fireDmgT = 0; _hudEnemyHpDirty = true;
-        const _rsp = _spawnClearPos(12, 20);
-        en.u = _rsp.u; en.v = _rsp.v;
-        world.setPlayer(en.id, 0, 0, 0, en.u, en.v);
-      }
+      // Enemy mesh update (walk bob, flinch, spawn anim, hp bar, hit flash, bleed, death) — extracted → src/systems/enemy_mesh_tick.js (iter 657)
+      if (_enemyMeshTick.tickEntry(en, em, dt, now, ENEMY_RESPAWN_DELAY)) continue;
     }
   }
 
