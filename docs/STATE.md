@@ -1,34 +1,23 @@
 STATE.md - loop progress tracker (updated each iter)
 
-Last completed iter: 680
-index.html total lines: 3898  (was 3950 after iter 679, -52 this iter)
-index.html code lines:  3129
+Last completed iter: 683
+index.html total lines: 3766  (was 3820 after iter 682, -54 this iter)
+index.html code lines:  3017
 
-Current target: bullet physics loop sub-extractions (Phase 1, Technique A)
-Next sub-block: remaining bullet movement/substep shell
+LOOP_PROMPT five named targets — STATUS:
+  1. src/entities/enemy_ai_tick.js     DONE (iters 666-677, all 12 sub-blocks)
+  2. src/systems/bullet_physics.js     DONE (iters 678-681: world-hit, kill, hit-feedback, substep shell)
+  3. src/config/keydown_bindings.js    DONE (already in keydown_handler.js; mount call is wiring-only)
+  4. src/systems/save_wiring.js        DONE (iter 683: collect/apply callbacks, auto-save, Ctrl+S)
+  5. src/systems/screen_interaction.js DONE (iter 682: tryClickWorldScreen, mouse-mode, exit)
 
-Enemy AI sub-extraction status:
-  A: Robot EMP burst          done (iter 666)
-  B: Heavy grenade throw      done (iter 667)
-  C: Boss rock throw          done (iter 668)
-  D: Poisoner acid spit       done (iter 669)
-  E: Incendiary fire bomb     done (iter 670)
-  F: Boss ground slam         done (iter 671)
-  G: Poisoner ranged spit     done (iter 672)
-  H: Fast enemy charge        done (iter 673)
-  I: Sniper aim+fire          done (iter 674)
-  J: Strafe + melee           done (iter 675)
-  K: Robot plasma             done (iter 676)
-  L: AI scaffold (~150 lines) done (iter 677)
+All five named targets complete. Continuing extraction of remaining >20-line inline
+blocks that are not pure mount-call wiring.
 
-10-step extraction/autonomy plan:
-  1. Bullet world-hit tail (peers, barrels, crates, buildings) done (iter 678)
-  2. Bullet enemy damage/kill path done (iter 679 death/reward, iter 680 hit feedback)
-  3. Remaining bullet movement/substep shell
-  4. Save wiring cleanup
-  5. Screen interaction cleanup
-  6. Keydown config/wiring cleanup
-  7. Enemy AI wrapper cleanup
-  8. Mount-call factory prep
-  9. Wiring aggregation
-  10. Dead extraction comments + handoff toward abstraction
+Next scan targets (largest remaining inline blocks in index.html):
+  - Mouse-move handler for screen cursor-mode (~25 lines)
+  - PointerLock / click-to-lock handlers (~20 lines)
+  - WorldBuilder toggle + quest step wiring (~20 lines)
+
+Stop condition check:
+  index.html < 3200 lines? NO (currently 3766). Keep extracting.
