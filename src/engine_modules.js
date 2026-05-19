@@ -119,6 +119,7 @@ export { mountSkybox }            from "./render/skybox.js";
 // ── Static supplies ───────────────────────────────────────────────────────────
 export { mountStaticSupply }      from "./systems/static_supply.js";
 export { mountSpeedOrbSpawner }   from "./systems/speed_orb_spawner.js";
+export { mountSpeedOrbTick }      from "./systems/speed_orb_tick.js";
 export { default as Vfx, warnRingGeo, warnRingMat } from "./render/vfx.js";
 
 // ── Social ───────────────────────────────────────────────────────────────────
