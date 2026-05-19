@@ -37,6 +37,7 @@ export { mountDamageFeedback }  from "./systems/damage_feedback.js";
 export { mountHeartbeat }       from "./systems/heartbeat.js";
 export { mountBurnTick }        from "./systems/burn_tick.js";
 export { mountComboAnnouncer }  from "./systems/combo_announcer.js";
+export { mountFootstepSound }  from "./systems/footstep_sound.js";
 export { mountMediaPickups }    from "./systems/media_pickups.js";
 export { mountTriggerZoneInit }     from "./systems/trigger_zone_init.js";
 export { mountNavAndAchievements }    from "./systems/nav_achievements_init.js";

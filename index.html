@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -2407,6 +2407,7 @@ let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
 let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
 let _hitPunchPitch = 0; // spring: upward camera kick when taking damage
 let _footstepT = 0;    // seconds until next footstep tick
+const _footstepSnd = mountFootstepSound({ get: { footstepT: () => _footstepT }, set: { footstepT: v => { _footstepT = v; } }, actions: { playSfx } });
 let _gunBobPhase = 0;  // oscillation phase for FP weapon bob
 let _strafeRollAmt = 0; // spring [−1..1]: FP camera roll when strafing
 let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
@@ -2856,17 +2857,7 @@ function tick() {
   const moveSpreadTarget = aiming ? 0 : (isSprinting ? 1 : (isMoving ? (crouching ? 0.18 : 0.45) : (crouching ? 0 : 0)));
 
   // Footstep sounds — synthetic tap when hero walks/runs on ground (not in vehicle, not dead)
-  if (isMoving && !_heroDead && pointerLocked) {
-    _footstepT -= dt;
-    if (_footstepT <= 0) {
-      const _fsInterval = canSprint ? 0.26 : (crouching ? 0.55 : 0.38);
-      _footstepT = _fsInterval;
-      const _fsFreq = 80 + Math.random() * 40;
-      playSfx(`tone:${Math.round(_fsFreq)}:30:triangle`, 0.08);
-    }
-  } else {
-    _footstepT = 0;
-  }
+  _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching });
   _moveSpread += (moveSpreadTarget - _moveSpread) * Math.min(1, dt * 5);
   // Gun bob phase — advances while moving, decays to 0 at rest
   if (isMoving && !inCar && !buildMode && !_heroDead) {
