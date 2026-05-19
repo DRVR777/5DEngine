@@ -306,6 +306,41 @@ app.post("/api/git/pull-working", (_req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ---- Runtime error collection (in-game errors → file for Claude loop to read) ----
+// POST /api/errors  body: { type, message, stack?, wave?, timestamp? }
+// GET  /api/errors  → { errors: [...], count: N }
+// DELETE /api/errors → clears the log
+
+const ERROR_LOG_PATH = path.join(__dirname, "tests", "browser-artifacts", "runtime-errors.json");
+
+function readErrorLog() {
+  try { return JSON.parse(fs.readFileSync(ERROR_LOG_PATH, "utf8")); } catch { return []; }
+}
+function writeErrorLog(entries) {
+  try {
+    fs.mkdirSync(path.dirname(ERROR_LOG_PATH), { recursive: true });
+    fs.writeFileSync(ERROR_LOG_PATH, JSON.stringify(entries, null, 2));
+  } catch {}
+}
+
+app.post("/api/errors", (req, res) => {
+  const entry = { ...req.body, receivedAt: new Date().toISOString() };
+  const log = readErrorLog();
+  log.push(entry);
+  writeErrorLog(log);
+  res.json({ ok: true, count: log.length });
+});
+
+app.get("/api/errors", (_req, res) => {
+  const log = readErrorLog();
+  res.json({ errors: log, count: log.length });
+});
+
+app.delete("/api/errors", (_req, res) => {
+  writeErrorLog([]);
+  res.json({ ok: true });
+});
+
 // ---- DB init helper (run once to create tables) ----
 async function initDb() {
   const fs = require("fs");

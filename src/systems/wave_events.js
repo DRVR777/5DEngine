@@ -26,6 +26,7 @@ export function mountWaveEvents({
   } = actions;
 
   function onWaveStart(w) {
+    if (typeof window !== "undefined" && window._5DErrorWave) window._5DErrorWave(w);
     showToast(`Wave ${w} incoming!`, "danger", 3000);
     const wn = ((w - 1) % 10) + 1;
     const skyName = wn <= 3 ? "day" : wn <= 6 ? "sunset" : wn <= 9 ? "night" : "holo";

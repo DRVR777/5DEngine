@@ -3631,6 +3631,34 @@ mountEcsBootstrap({
     }
   }, 500);
 }());
+
+// ── Runtime error reporter ───────────────────────────────────────────────────
+// Catches all uncaught errors and unhandled promise rejections, POSTs them to
+// /api/errors (server.js) so the Claude loop can read and fix them.
+// Fire-and-forget — never blocks the game.
+(function () {
+  const ERROR_API = "http://localhost:3001/api/errors";
+  let _waveHint = 0;
+  // Track current wave so errors can be annotated with which wave they occurred on
+  if (typeof window !== "undefined") {
+    window._5DErrorWave = function (w) { _waveHint = w; };
+  }
+  function reportError(entry) {
+    try {
+      fetch(ERROR_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...entry, wave: _waveHint, timestamp: new Date().toISOString() }),
+      }).catch(() => {});
+    } catch {}
+  }
+  window.addEventListener("error", function (e) {
+    reportError({ type: "uncaught", message: e.message, filename: e.filename, lineno: e.lineno, stack: e.error?.stack });
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    reportError({ type: "unhandledrejection", message: String(e.reason?.message || e.reason || "") });
+  });
+}());
 </script>
 </body>
 </html>

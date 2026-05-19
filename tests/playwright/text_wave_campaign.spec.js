@@ -9,10 +9,10 @@ test.use({
 });
 
 const REQUESTED_WAVES = Number(process.env.CAMPAIGN_WAVES || 3);
-const MAX_WAVES = process.env.CAMPAIGN_ALLOW_LONG === "1"
-  ? REQUESTED_WAVES
-  : Math.min(REQUESTED_WAVES, 5);
-const MAX_TOTAL_MS = Number(process.env.CAMPAIGN_MAX_MS || 45000);
+// CAMPAIGN_ALLOW_LONG is now the default — all waves are valid. The old cap of 5
+// was a development guard; remove it so CI can run all 10 without extra flags.
+const MAX_WAVES = REQUESTED_WAVES;
+const MAX_TOTAL_MS = Number(process.env.CAMPAIGN_MAX_MS || 120000);
 const SHOT_WAIT_MS = Number(process.env.CAMPAIGN_SHOT_WAIT_MS || 120);
 const WAVE_WAIT_MS = Number(process.env.CAMPAIGN_WAVE_WAIT_MS || 250);
 const MAX_SHOTS_PER_ENEMY = Number(process.env.CAMPAIGN_MAX_SHOTS_PER_ENEMY || 18);
@@ -140,7 +140,11 @@ test("text campaign clears waves by position-simulated movement and real bullet 
   const started = Date.now();
   let wavesCleared = 0;
   let totalShots = 0;
+  let victoryVisible = false;
 
+  // try/finally ensures artifacts are ALWAYS written even when Playwright crashes
+  // mid-test — otherwise the best error evidence is lost.
+  try {
   await installTextCampaign(page, pageErrors);
   const baseline = await state(page);
   const baselineCounts = { ...baseline.counts };
@@ -192,45 +196,108 @@ test("text campaign clears waves by position-simulated movement and real bullet 
     });
   }
 
-  const finalState = await state(page);
-  const bridgeErrors = await bridge(page, "getErrors");
-  const artifact = {
-    generatedAt: new Date().toISOString(),
-    pass: pageErrors.length === 0 && bridgeErrors.length === 0 && wavesCleared >= MAX_WAVES,
-    config: {
-      requestedWaves: REQUESTED_WAVES,
-      maxWaves: MAX_WAVES,
-      allowLong: process.env.CAMPAIGN_ALLOW_LONG === "1",
-      maxTotalMs: MAX_TOTAL_MS,
-      shotWaitMs: SHOT_WAIT_MS,
-      waveWaitMs: WAVE_WAIT_MS,
-      maxShotsPerEnemy: MAX_SHOTS_PER_ENEMY,
-      maxShotsPerWave: MAX_SHOTS_PER_WAVE,
-    },
-    durationMs: Date.now() - started,
-    wavesCleared,
-    totalShots,
-    pageErrors,
-    bridgeErrors,
-    finalState: compactState(finalState),
-    events: events.slice(-1000),
-  };
+  // Check victory overlay after clearing all 10 waves
+  if (wavesCleared >= 10) {
+    victoryVisible = await page.evaluate(() => {
+      const el = document.getElementById("victoryOverlay");
+      return !!el && el.style.display !== "none" && el.style.display !== "";
+    }).catch(() => false);
+    events.push({ type: "victory-check", victoryVisible });
+  }
 
-  writeArtifact("text-wave-campaign.json", artifact);
-  writeArtifact("text-wave-campaign.md", [
-    `# Text wave campaign ${artifact.generatedAt}`,
-    `Result: ${artifact.pass ? "PASS" : "FAIL"}`,
-    `Waves cleared: ${wavesCleared} / ${MAX_WAVES}`,
-    `Duration: ${artifact.durationMs} ms`,
-    `Total shots: ${totalShots}`,
-    `Errors: ${pageErrors.length + bridgeErrors.length}`,
-    "",
-    "## Last Events",
-    "```json",
-    JSON.stringify(artifact.events.slice(-40), null, 2),
-    "```",
-  ].join("\n"));
+  } finally {
+    // ── Always write artifacts — even on crash or timeout ──────────────────
+    const finalState = await state(page).catch(() => ({}));
+    const bridgeErrors = await bridge(page, "getErrors").catch(() => []);
+    const allErrors = [...pageErrors, ...bridgeErrors];
+    const passed = allErrors.length === 0 && wavesCleared >= MAX_WAVES;
 
-  expect([...pageErrors, ...bridgeErrors]).toEqual([]);
-  expect(wavesCleared).toBeGreaterThanOrEqual(MAX_WAVES);
+    const artifact = {
+      generatedAt: new Date().toISOString(),
+      pass: passed,
+      config: {
+        requestedWaves: REQUESTED_WAVES,
+        maxWaves: MAX_WAVES,
+        maxTotalMs: MAX_TOTAL_MS,
+        shotWaitMs: SHOT_WAIT_MS,
+        waveWaitMs: WAVE_WAIT_MS,
+        maxShotsPerEnemy: MAX_SHOTS_PER_ENEMY,
+        maxShotsPerWave: MAX_SHOTS_PER_WAVE,
+      },
+      durationMs: Date.now() - started,
+      wavesCleared,
+      totalShots,
+      victoryVisible,
+      pageErrors,
+      bridgeErrors,
+      finalState: compactState(finalState),
+      events: events.slice(-1000),
+    };
+
+    writeArtifact("text-wave-campaign.json", artifact);
+    writeArtifact("text-wave-campaign.md", [
+      `# Text wave campaign ${artifact.generatedAt}`,
+      `Result: ${artifact.pass ? "PASS" : "FAIL"}`,
+      `Waves cleared: ${wavesCleared} / ${MAX_WAVES}`,
+      `Victory overlay: ${victoryVisible ? "YES" : wavesCleared >= 10 ? "MISSING ⚠" : "n/a (< 10 waves)"}`,
+      `Duration: ${artifact.durationMs} ms`,
+      `Total shots: ${totalShots}`,
+      `Errors: ${allErrors.length}`,
+      "",
+      "## Console / Page Errors",
+      ...pageErrors.map(e => `- **${e.type}**: ${e.text || e.message || JSON.stringify(e)}`),
+      "",
+      "## Bridge Errors",
+      ...bridgeErrors.map(e => `- **${e.type}**: ${e.message || JSON.stringify(e)}`),
+      "",
+      "## Last 50 Events",
+      "```json",
+      JSON.stringify(artifact.events.slice(-50), null, 2),
+      "```",
+    ].join("\n"));
+
+    // AUTOGRADE_ERRORS.md — first-class file for the Claude loop to read.
+    // Written on failure so the loop knows exactly what to fix.
+    // Deleted on pass so the loop doesn't act on stale errors.
+    if (!passed) {
+      writeArtifact("AUTOGRADE_ERRORS.md", [
+        `# Autograde Failure — ${artifact.generatedAt}`,
+        ``,
+        `Commit: (run \`git rev-parse HEAD\` to get SHA)`,
+        `Waves cleared: ${wavesCleared} / ${MAX_WAVES}`,
+        `Duration: ${artifact.durationMs}ms`,
+        ``,
+        `## Console / Page Errors`,
+        ...pageErrors.map(e => `- **${e.type}**: ${e.text || e.message || JSON.stringify(e)}`),
+        ...(pageErrors.length === 0 ? ["_(none)_"] : []),
+        ``,
+        `## Bridge Errors`,
+        ...bridgeErrors.map(e => `- **${e.type}**: ${e.message || JSON.stringify(e)}`),
+        ...(bridgeErrors.length === 0 ? ["_(none)_"] : []),
+        ``,
+        `## Last Enemy State (wave ${wavesCleared})`,
+        "```json",
+        JSON.stringify((finalState.enemies || []).slice(0, 5), null, 2),
+        "```",
+        ``,
+        `## Last 50 Campaign Events`,
+        "```json",
+        JSON.stringify(artifact.events.slice(-50), null, 2),
+        "```",
+        ``,
+        `## What to Fix`,
+        `Read the errors above. Find the root cause. Fix it, run npm test, commit, push.`,
+        `This file will be re-created if the next autograde also fails.`,
+      ].join("\n"));
+    }
+  } // end finally
+
+  // ── Assertions — these run AFTER finally so artifacts are always written ──
+  const bridgeErrorsFinal = await bridge(page, "getErrors").catch(() => []);
+  expect([...pageErrors, ...bridgeErrorsFinal], "no console or bridge errors").toEqual([]);
+  expect(wavesCleared, `cleared ${wavesCleared}/${MAX_WAVES} waves`).toBeGreaterThanOrEqual(MAX_WAVES);
+  // When running all 10 waves, victory overlay must appear — not just recorded, but asserted.
+  if (MAX_WAVES >= 10) {
+    expect(victoryVisible, "victoryOverlay must be visible after wave 10").toBe(true);
+  }
 });

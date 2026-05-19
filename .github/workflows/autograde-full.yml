@@ -1,0 +1,65 @@
+name: Autograde (full — 10 waves)
+
+# Manual trigger only — run this after a series of fast-grade passes to confirm
+# all 10 waves work end-to-end including the victory overlay.
+# Does NOT auto-push LAST_GOOD_COMMIT; that is reserved for the fast-grade workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      waves:
+        description: "Number of waves to run"
+        required: false
+        default: "10"
+
+permissions:
+  contents: read
+
+jobs:
+  full-grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Start game server
+        run: node game_server.js 8080 &
+
+      - name: Wait for game server
+        run: npx wait-on http://localhost:8080 --timeout 15000
+
+      - name: Full grade — all waves (victory required)
+        env:
+          CAMPAIGN_WAVES: ${{ github.event.inputs.waves || '10' }}
+          CAMPAIGN_MAX_MS: "300000"
+          CAMPAIGN_SHOT_WAIT_MS: "80"
+          CAMPAIGN_WAVE_WAIT_MS: "150"
+        run: npx playwright test tests/playwright/text_wave_campaign.spec.js
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autograde-full-${{ github.sha }}
+          path: tests/browser-artifacts/
+          retention-days: 30
+          if-no-files-found: warn

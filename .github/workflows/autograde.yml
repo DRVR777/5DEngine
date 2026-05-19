@@ -1,0 +1,79 @@
+name: Autograde (fast — 3 waves)
+
+# Runs on every push to main EXCEPT metadata-only commits (LAST_GOOD_COMMIT updates).
+# A separate workflow (autograde-full.yml) runs 10 waves on manual dispatch.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      # Ignore commits that only update LAST_GOOD_COMMIT — those are CI bot commits
+      # and must not trigger another grade cycle.
+      - 'docs/LAST_GOOD_COMMIT'
+
+permissions:
+  contents: write  # required to push LAST_GOOD_COMMIT back
+
+jobs:
+  fast-grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout (full history for tagging)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Rule 1: npm test (vitest) must be green before anything else.
+      - name: Unit tests — must pass before grading
+        run: npm test
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Start game server (background)
+        run: node game_server.js 8080 &
+
+      - name: Wait for game server
+        run: npx wait-on http://localhost:8080 --timeout 15000
+
+      - name: Fast grade — 3 waves
+        id: campaign
+        env:
+          CAMPAIGN_WAVES: "3"
+          CAMPAIGN_MAX_MS: "90000"
+          CAMPAIGN_SHOT_WAIT_MS: "80"
+          CAMPAIGN_WAVE_WAIT_MS: "150"
+        run: npx playwright test tests/playwright/text_wave_campaign.spec.js
+
+      # Only mark as good when Playwright truly passes AND explicitly push to main
+      - name: Mark commit as LAST_GOOD_COMMIT
+        if: steps.campaign.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "5DEngine Autograde Bot"
+          git config user.email "autograde@5dengine.local"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          node scripts/mark-good.js --ci
+
+      # Always upload artifacts — needed for error analysis even on crash
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autograde-fast-${{ github.sha }}
+          path: tests/browser-artifacts/
+          retention-days: 14
+          if-no-files-found: warn
