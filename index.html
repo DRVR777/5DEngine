@@ -184,7 +184,7 @@ import {
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
-  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick, mountEnemyFastChargeTick, mountEnemySniperTick,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick, mountEnemyFastChargeTick, mountEnemySniperTick, mountEnemyStrafeMeleeTick,
   // Combat
   mountShootSystem, createWeaponVisuals,
   // Render
@@ -2536,6 +2536,7 @@ const _bossSlamTick      = mountEnemyBossSlamTick({ ARMOR_ABSORB, getHeroPos: ()
 const _poisonerRangedSpitTick = mountEnemyPoisonerRangedSpitTick({ THREE, scene, enemyBullets, actions: { playSfx } });
 const _fastChargeTick          = mountEnemyFastChargeTick({ getEnemyPos: id => world.players.get(id), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), actions: { playSfx, spawnParticles: _spawnParticles } });
 const _sniperTick              = mountEnemySniperTick({ THREE, scene, enemyBullets, resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), getEnemyPos: id => world.players.get(id), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), actions: { playSfx, screenShake: _applyScreenShake, alertShot: () => { showToast("SNIPER SHOT INCOMING!", "danger", 800); _bulletTimeLeft = 0.38; } } });
+const _strafeMeleeTick         = mountEnemyStrafeMeleeTick({ ARMOR_ABSORB, getHeroPos: () => world.players.get("hero"), getEnemyPos: id => world.players.get(id), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), applyStatusEffect: effect => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", effect); }, actions: { playSfx, flashDamage, screenShake: _applyScreenShake, setHeroHp: v => { heroHp = v; }, setHeroArmor: v => { heroArmor = v; }, setHeroLastDamageT: v => { heroLastDamageT = v; }, setDmgDir: (ang, until) => { _dmgDirAngle = ang; _dmgDirUntil = until; }, setHeroKb: (u, v, t) => { _heroKbU = u; _heroKbV = v; _heroKbT = t; }, setHeroFireT: v => { _heroFireT = Math.max(_heroFireT, v); }, onHeroDeath: () => { if (!_heroDead) _heroShowDeathScreen(); }, emitHeroDied: id => { if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: id }); } } });
 const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
 const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
 const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
@@ -3429,66 +3430,8 @@ function tick() {
               GTAPhysics.resolveAABBMove(_em, (ddx/m)*wanderSpd*_enSpeedMul*dt, (ddz/m)*wanderSpd*_enSpeedMul*dt, buildingBlockers);
               world.setPlayer(en.id, ep.x, 0, 0, _em.u, _em.v); }
           },
-          onAttack: (ctx) => {
-            // Strafe perpendicular to hero — keeps light enemies mobile while attacking
-            if (en.type !== "sniper" && en.type !== "boss" && en.type !== "robot" && en.type !== "heavy") {
-              if (!en._strafeSwitchT || ctx.now - en._strafeSwitchT > (en._strafeDur || 1.5)) {
-                en._strafeSwitchT = ctx.now;
-                en._strafeDir = Math.random() < 0.5 ? 1 : -1;
-                en._strafeDur  = 1.2 + Math.random() * 1.3;
-              }
-              const _heroAng = Math.atan2(_heroNowAI.u - ep.u, _heroNowAI.v - ep.v);
-              const _perpAng = _heroAng + Math.PI * 0.5 * en._strafeDir;
-              const _sSpd = en.moveSpeed * 0.5;
-              const _sem = { u: ep.u, v: ep.v, hitbox: { w: 0.7, d: 0.7 } };
-              GTAPhysics.resolveAABBMove(_sem, Math.sin(_perpAng) * _sSpd * dt, Math.cos(_perpAng) * _sSpd * dt, buildingBlockers);
-              world.setPlayer(en.id, ep.x, 0, 0, _sem.u, _sem.v);
-            }
-            en.lastAttackT = ctx.now;
-            { const gFreq = en.type === "robot" ? 220 : en.type === "heavy" ? 70 : 120;
-              playSfx(`tone:${gFreq}:90:sawtooth`, 0.18); }
-            if (!(typeof Engine !== "undefined" && Engine.debug.godMode)) {
-              let enDmg = en.damage;
-              if (heroArmor > 0) {
-                const armorHit = Math.min(heroArmor, enDmg * ARMOR_ABSORB);
-                heroArmor = Math.max(0, heroArmor - armorHit);
-                enDmg -= armorHit;
-              }
-              heroHp = Math.max(0, heroHp - enDmg);
-              heroLastDamageT = ctx.now;
-              flashDamage();
-              _applyScreenShake(Math.min(0.35, enDmg / 55));
-              // Record attacker direction for directional damage indicator
-              const _epAtk = world.players.get(en.id);
-              const _hpAtk = world.players.get("hero");
-              if (_epAtk && _hpAtk) {
-                _dmgDirAngle = Math.atan2(_epAtk.u - _hpAtk.u, _epAtk.v - _hpAtk.v);
-                _dmgDirUntil = performance.now() + 1200;
-              }
-              // Type-specific status effects
-              if (typeof StatusEffects !== "undefined") {
-                if (en.type === "poisoner"   && Math.random() < 0.55) StatusEffects.apply("hero", "poison");
-                if (en.type === "incendiary" && Math.random() < 0.45) StatusEffects.apply("hero", "burning");
-              }
-              if (en.type === "incendiary") _heroFireT = Math.max(_heroFireT, 3.0);
-              // Knockback burst from heavy/boss melee — push hero away from attacker
-              if (en.type === "heavy" || en.type === "boss") {
-                const _kbEp = world.players.get(en.id);
-                const _kbHp = world.players.get("hero");
-                if (_kbEp && _kbHp) {
-                  const _kbDx = _kbHp.u - _kbEp.u, _kbDz = _kbHp.v - _kbEp.v;
-                  const _kbDm = Math.hypot(_kbDx, _kbDz) || 1;
-                  const _kbSpd = en.type === "boss" ? 14 : 9;
-                  _heroKbU = (_kbDx / _kbDm) * _kbSpd;
-                  _heroKbV = (_kbDz / _kbDm) * _kbSpd;
-                  _heroKbT = 0.22;
-                }
-              }
-            }
-            if (heroHp <= 0) {
-              if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: en.id });
-              if (!_heroDead) _heroShowDeathScreen();
-            }
+          onAttack: (ctx) => { // → enemy_strafe_melee_tick.js
+            _strafeMeleeTick.tick(dt, en, { nowSec: ctx.now, nowMs: performance.now(), ep, heroU: _heroNowAI.u, heroV: _heroNowAI.v, heroHp, heroArmor, godMode: typeof Engine !== "undefined" && Engine.debug.godMode });
           },
         });
       } else {
