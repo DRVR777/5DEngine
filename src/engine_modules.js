@@ -47,6 +47,9 @@ export { mountEnemyMeshFactory }  from "./render/enemy_mesh.js";
 export { mountVehicleMeshFactory } from "./render/vehicle_mesh.js";
 export { mountEnvironment }       from "./render/environment.js";
 export { mountHeroMesh }          from "./render/hero_mesh.js";
+
+// ── Static supplies ───────────────────────────────────────────────────────────
+export { mountStaticSupply }      from "./systems/static_supply.js";
 export { default as Vfx, warnRingGeo, warnRingMat } from "./render/vfx.js";
 
 // ── Social ───────────────────────────────────────────────────────────────────

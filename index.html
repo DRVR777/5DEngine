@@ -93,6 +93,7 @@ import {
   mountShootSystem, createWeaponVisuals,
   // Render
   mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory, mountEnvironment, mountHeroMesh,
+  mountStaticSupply,
   Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
   // Social
   createLanSession,
@@ -1261,34 +1262,8 @@ const carBody   = carGroup._bodyMesh || carGroup;
 // spawnAmmoPickup, spawnWeaponPickup, spawnHealthPickup, spawnArmorShard, spawnCoinDrop
 // ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops — mounted below
 
-// Grenade crates — static supply caches that restock grenades
-const grenadeCrates = [];
-(function() {
-  const cratePositions = [[10, -10], [-10, 10], [0, 18], [-14, -4]];
-  const geo = new THREE.BoxGeometry(0.5, 0.4, 0.5);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x336633, metalness: 0.3, roughness: 0.6 });
-  const lineMat = new THREE.MeshStandardMaterial({ color: 0x00ff44, emissive: 0x00aa22, emissiveIntensity: 0.6 });
-  for (const [cu, cv] of cratePositions) {
-    const mesh = new THREE.Mesh(geo, mat.clone());
-    mesh.position.set(cu, 0.2, cv); mesh.castShadow = true; scene.add(mesh);
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.08, 0.12), lineMat.clone());
-    stripe.position.set(0, 0, 0); mesh.add(stripe);
-    grenadeCrates.push({ mesh, u: cu, v: cv, respawnT: -Infinity, active: true });
-  }
-})();
-
-// Armor vest pickups — 3 placed around the map, restore 25 armor, respawn 60s
-const armorPickups = [];
-(function() {
-  const positions = [[18, 5], [-16, 14], [4, -20]];
-  const geo  = new THREE.BoxGeometry(0.4, 0.55, 0.25);
-  const mat  = new THREE.MeshStandardMaterial({ color: 0xffd166, emissive: 0xcc9900, emissiveIntensity: 0.5, metalness: 0.5, roughness: 0.4 });
-  for (const [au, av] of positions) {
-    const mesh = new THREE.Mesh(geo, mat.clone());
-    mesh.position.set(au, 0.3, av); mesh.castShadow = true; scene.add(mesh);
-    armorPickups.push({ mesh, u: au, v: av, respawnT: -Infinity, active: true });
-  }
-})();
+// ═══ EXTRACTED → src/systems/static_supply.js (iter 550)
+const { grenadeCrates, armorPickups } = mountStaticSupply({ THREE, scene });
 
 // Speed boost orbs — spawned at wave start after wave 2; 4s of 1.5x movement speed
 const _speedOrbs = [];
