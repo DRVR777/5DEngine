@@ -9,6 +9,8 @@ const express    = require("express");
 const cors       = require("cors");
 const { Pool }   = require("pg");
 const { execSync } = require("child_process");
+const fs   = require("fs");
+const path = require("path");
 
 const PORT = process.env.PORT || 3001;
 
@@ -278,8 +280,18 @@ app.get("/api/git/status", (_req, res) => {
 app.post("/api/git/verify", (_req, res) => {
   try {
     gitExec("git tag -f working HEAD");
-    const sha = gitExec("git rev-parse HEAD").slice(0, 7);
-    res.json({ ok: true, sha });
+    const sha = gitExec("git rev-parse HEAD").trim();
+    const shortSha = sha.slice(0, 7);
+    // Also sync docs/LAST_GOOD_COMMIT so dev-start.js can use it without the server
+    const lgcPath = path.join(__dirname, "docs", "LAST_GOOD_COMMIT");
+    fs.writeFileSync(lgcPath, sha + "\n");
+    try {
+      gitExec("git add docs/LAST_GOOD_COMMIT");
+      gitExec(`git commit -m "chore: mark ${shortSha} as last known-good commit"`);
+      gitExec("git push origin HEAD --quiet");
+      gitExec("git push origin working --force --quiet");
+    } catch { /* push may fail on read-only clones — that's OK */ }
+    res.json({ ok: true, sha: shortSha });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

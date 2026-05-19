@@ -19,7 +19,9 @@
     "test:soak": "playwright test tests/playwright/soak.spec.js",
     "test:soak:headed": "playwright test tests/playwright/soak.spec.js --headed",
     "test:visual": "node tests/visual/runner.js",
-    "test:visual:install": "npx playwright install chromium"
+    "test:visual:install": "npx playwright install chromium",
+    "dev:start": "node scripts/dev-start.js",
+    "mark-good": "node scripts/mark-good.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
