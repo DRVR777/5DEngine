@@ -85,7 +85,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
   mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
@@ -655,8 +655,14 @@ const { bulletGeo, bulletMat } = mountBulletGeo({ THREE });
 const damageFlashEl = document.getElementById("damageFlash");
 let damageFlashUntil = 0;
 let _vignetteAmt = 0; // spring [0..1]: driven by hit impulses + low-HP pulse
-let _heroFireT = 0;   // seconds hero is on fire (3 dmg/s, orange screen tint + particles)
+let _heroFireT = 0;
 let _heroFireDmgT = 0;
+// ═══ EXTRACTED → src/systems/burn_tick.js (iter 591)
+const _burnTick = mountBurnTick({
+  get: { heroFireT: () => _heroFireT, heroFireDmgT: () => _heroFireDmgT, heroHp: () => heroHp, heroDead: () => _heroDead, heroPos: () => world.players.get("hero") },
+  set: { heroFireT: v => { _heroFireT = v; }, heroFireDmgT: v => { _heroFireDmgT = v; }, heroHp: v => { heroHp = v; }, heroLastDamageT: v => { heroLastDamageT = v; } },
+  actions: { spawnParticles: (u,y,v,n,c,s,sz) => _spawnParticles(u,y,v,n,c,s,sz), heroShowDeathScreen: () => _heroShowDeathScreen() },
+});
 let _heroEmpT = 0;    // seconds sprinting is disabled (robot EMP burst debuff)
 let _camShakeAmt = 0;
 // ═══ EXTRACTED → src/systems/damage_feedback.js (iter 589)
@@ -5100,23 +5106,7 @@ function tick() {
   _vignetteAmt += (vigTarget - _vignetteAmt) * Math.min(1, dt * 6);
   damageFlashEl.style.opacity = _vignetteAmt.toFixed(3);
 
-  // Hero on-fire DoT — 3 dmg/s, orange particles, screen tint (from incendiary hit or fire patch)
-  if (_heroFireT > 0 && !_heroDead) {
-    _heroFireT -= dt;
-    _heroFireDmgT -= dt;
-    if (_heroFireDmgT <= 0) {
-      _heroFireDmgT = 0.5;
-      if (!(typeof Engine !== "undefined" && Engine.debug.godMode)) {
-        heroHp = Math.max(0, heroHp - 3);
-        heroLastDamageT = now / 1000;
-      }
-      const _hfp = world.players.get("hero");
-      _spawnParticles(_hfp.u + (Math.random()-0.5)*0.6, _hfp.y + 0.8 + Math.random()*0.8,
-        _hfp.v + (Math.random()-0.5)*0.6, 2, "orange", 2.5, 0.5);
-    }
-    if (_heroFireT <= 0) { _heroFireT = 0; }
-    if (heroHp <= 0 && !_heroDead) _heroShowDeathScreen();
-  }
+  _burnTick.tick(dt, now / 1000); // hero on-fire DoT (extracted iter 591)
 
   // Status effect screen tint — green for poison, orange for burning
   { const stEl = _dom.statusTint;
