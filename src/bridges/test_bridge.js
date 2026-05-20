@@ -281,6 +281,16 @@ export function mountTestBridge({
       set.camPitch(-0.08);
       return { ok: true, id: target.id, hero: { u, v, y: hero.y }, distance: dist };
     }),
+    tickGame: (steps = 1, dt = 0.033) => _safe(() => {
+      if (typeof fns.gameTick !== "function") return { ok: false, error: "gameTick not exposed" };
+      const maxSteps = Math.max(1, Math.min(300, steps | 0));
+      const safeDt = Math.max(0.001, Math.min(0.1, Number(dt) || 0.033));
+      for (let i = 0; i < maxSteps; i++) {
+        set.lastT(performance.now() - safeDt * 1000);
+        fns.gameTick();
+      }
+      return { ok: true, steps: maxSteps, dt: safeDt };
+    }),
     advanceWaveClock: (steps = 1, dt = 0.35) => _safe(() => {
       const maxSteps = Math.max(1, Math.min(60, steps | 0));
       const safeDt = Math.max(0.016, Math.min(1, Number(dt) || 0.35));

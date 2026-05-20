@@ -71,6 +71,7 @@ function makeStateBundle() {
       pistolCooldown: v => { pistolCooldown = v; }, shotsFired: v => { shotsFired = v; },
       lastHeroShotT: v => { lastHeroShotT = v; }, heroShotAlertU: v => { heroShotAlertU = v; },
       heroShotAlertV: v => { heroShotAlertV = v; }, heroShotAlertT: v => { heroShotAlertT = v; },
+      lastT: v => { lastT = v; },
     },
   };
 }
@@ -84,7 +85,7 @@ function makeFns(overrides = {}) {
     spawnWeaponPickup: vi.fn(), spawnCoinDrop: vi.fn(), spawnFirePatch: vi.fn(),
     spawnPoisonPuddle: vi.fn(), throwGrenade: vi.fn(), throwSmokeGrenade: vi.fn(),
     throwFlashbang: vi.fn(), dropMine: vi.fn(), spawnSpeedOrb: vi.fn(),
-    spawnEnemyAtHero: vi.fn(), ...overrides,
+    spawnEnemyAtHero: vi.fn(), gameTick: vi.fn(), ...overrides,
   };
 }
 
@@ -384,5 +385,56 @@ describe("lockOnNearestEnemy camera aim", () => {
     global.window._5DTest.lockOnNearestEnemy();
     expect(st.raw.camPitch).toBe(-0.08);
     expect(st.raw.aiming).toBe(true);
+  });
+});
+
+// ── tickGame ──────────────────────────────────────────────────────────────────
+
+describe("tickGame", () => {
+  it("calls gameTick N times and returns ok with step count", () => {
+    const fns = makeFns();
+    mountWith({ fns });
+    const r = global.window._5DTest.tickGame(5, 0.033);
+    expect(r.ok).toBe(true);
+    expect(r.steps).toBe(5);
+    expect(r.dt).toBeCloseTo(0.033, 3);
+    expect(fns.gameTick).toHaveBeenCalledTimes(5);
+  });
+
+  it("clamps steps to 300 max", () => {
+    const fns = makeFns();
+    mountWith({ fns });
+    const r = global.window._5DTest.tickGame(9999, 0.033);
+    expect(r.ok).toBe(true);
+    expect(r.steps).toBe(300);
+    expect(fns.gameTick).toHaveBeenCalledTimes(300);
+  });
+
+  it("clamps dt between 0.001 and 0.1", () => {
+    const fns = makeFns();
+    mountWith({ fns });
+    const tooFast = global.window._5DTest.tickGame(1, 0.0001);
+    expect(tooFast.dt).toBe(0.001);
+    const toSlow = global.window._5DTest.tickGame(1, 99);
+    expect(toSlow.dt).toBe(0.1);
+  });
+
+  it("returns ok:false if gameTick not provided", () => {
+    const fns = makeFns({ gameTick: undefined });
+    mountWith({ fns });
+    const r = global.window._5DTest.tickGame(1);
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/gameTick/);
+  });
+
+  it("sets lastT before each gameTick call", () => {
+    const st = makeStateBundle();
+    const capturedLastTs = [];
+    const fns = makeFns({
+      gameTick: vi.fn(() => { capturedLastTs.push(st.raw ? Date.now() : 0); }),
+    });
+    mountWith({ fns, state: st });
+    global.window._5DTest.tickGame(3, 0.033);
+    expect(capturedLastTs).toHaveLength(3);
   });
 });

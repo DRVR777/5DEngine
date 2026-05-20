@@ -81,15 +81,37 @@ export function mountPerkSystem({
         cards.appendChild(card);
       });
     }
-    overlay.style.display = "flex";
-    if (actions.releasePointer) actions.releasePointer();
-    let secs = 10;
-    if (_perkTimerInt) clearInterval(_perkTimerInt);
-    _perkTimerInt = setInterval(() => {
-      secs--;
-      if (timerEl) timerEl.textContent = secs;
-      if (secs <= 0) { clearInterval(_perkTimerInt); _perkTimerInt = null; applyPerk(pool[Math.floor(Math.random() * pool.length)], waveNum); }
-    }, 1000);
+    // Release pointer lock BEFORE showing overlay.
+    // exitPointerLock() is async — the browser fires `pointerlockchange` and only
+    // then do click events reach elements outside the canvas. Showing the overlay
+    // first means cards are visible but unclickable until the lock drops.
+    function _startOverlay() {
+      overlay.style.display = "flex";
+      let secs = 10;
+      if (_perkTimerInt) clearInterval(_perkTimerInt);
+      _perkTimerInt = setInterval(() => {
+        secs--;
+        if (timerEl) timerEl.textContent = secs;
+        if (secs <= 0) { clearInterval(_perkTimerInt); _perkTimerInt = null; applyPerk(pool[Math.floor(Math.random() * pool.length)], waveNum); }
+      }, 1000);
+    }
+    if (document.pointerLockElement && actions.releasePointer) {
+      let _shown = false;
+      const _handler = () => {
+        document.removeEventListener("pointerlockchange", _handler);
+        if (!_shown) { _shown = true; _startOverlay(); }
+      };
+      document.addEventListener("pointerlockchange", _handler);
+      actions.releasePointer();
+      // Safety: if pointerlockchange never fires (e.g. lock already releasing), show after 80ms
+      setTimeout(() => {
+        document.removeEventListener("pointerlockchange", _handler);
+        if (!_shown) { _shown = true; _startOverlay(); }
+      }, 80);
+    } else {
+      if (actions.releasePointer) actions.releasePointer();
+      _startOverlay();
+    }
   }
 
   function clearTimerAndReset() {
