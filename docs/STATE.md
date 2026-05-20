@@ -1,12 +1,12 @@
 STATE.md - loop progress tracker
 
-Last completed iter: 698
+Last completed iter: 699
 
 Current index.html:
-  total lines:        2498
-  code lines:         1830
-  blank lines:        204
-  comment-only lines: 464
+  total lines:        2450
+  code lines:         1792
+  blank lines:        199
+  comment-only lines: 459
 
 Original LOOP_PROMPT five named targets:
   1. enemy AI loop       DONE
@@ -28,7 +28,8 @@ Grouped extraction queue:
   6. asset loading bootstrap                DONE (iter 696)
   7. app + multiplayer wiring               DONE (iter 697)
   8. runtime error reporter                 DONE (iter 698)
-  9. grouped mount factories                NEXT
+  9. load-check overlay                     DONE (iter 699)
+  10. grouped mount factories               NEXT
 
 Notes:
   - src/systems/perk_system.js has an unrelated dirty change in the worktree.

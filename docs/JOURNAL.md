@@ -346,3 +346,30 @@ Verification:
 
 Next:
 - Grouped mount factories / wiring compression prep.
+
+## iter 699 - add multi-cycle plan and extract load-check overlay
+
+Wrote `docs/MULTI_CYCLE_EXTRACTION_PLAN.md`, a cycle-by-cycle continuation
+plan for wiring compression through handoff to architecture.
+
+Also moved the working-build load-check/git overlay footer from `index.html`
+into `src/bridges/load_check_overlay.js`.
+
+The extraction preserves:
+- `http://localhost:3001/api/git`
+- `POST /verify`, `POST /pull-working`, and `/status`
+- verify success/failure toast strings and durations: 3000, 2500
+- pull-working toast strings and durations: 5000, 2000, 4000, 3000
+- reload delay: 1800
+- loading-dismiss observer interval: 500
+- load-check show delay: 4000
+
+Verification:
+- `npx vitest run tests/unit/load_check_overlay.test.js tests/unit/runtime_error_reporter.test.js` passed
+- `npm test` passed: 237 files, 3780 tests
+- `npm run browser-check` passed: BROWSER OK
+- `npm run count:index`: 2450 total, 1792 code
+
+Next:
+- Continue grouped mount factories. Start with the safest cluster whose order
+  does not cross state declaration boundaries.

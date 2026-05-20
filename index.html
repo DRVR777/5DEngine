@@ -197,7 +197,7 @@ import {
   mountStaticSupply, mountSpeedOrbSpawner,
   Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
   // Social
-  createLanSession, mountMpBadge, mountAppMultiplayerWiring, mountRuntimeErrorReporter,
+  createLanSession, mountMpBadge, mountAppMultiplayerWiring, mountRuntimeErrorReporter, mountLoadCheckOverlay,
   // Core
   Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh, mountWorldBuilderControls, mountWorldBuilderHotbar, mountWorldScreens, mountDeviceGraphWiring,
   // Config
@@ -2432,63 +2432,15 @@ mountEcsBootstrap({
   createGrenadeCrateSystem, createArmorVestSystem,
 });
 
-// ── Working-version system ──────────────────────────────────────────────────
-// Shows "Did it load?" overlay 4s after loading screen dismisses.
-// Yes → POST /api/git/verify (tags HEAD as 'working').
-// Pull Working Btn → POST /api/git/pull-working then reload.
-(function () {
-  const GIT_API = "http://localhost:3001/api/git";
-  const overlay = document.getElementById("loadCheckOverlay");
-  const pullBtn = document.getElementById("pullWorkingBtn");
-
-  function hideOverlay() { if (overlay) overlay.style.display = "none"; }
-
-  function showLoadCheck() {
-    if (!overlay) return;
-    overlay.style.display = "block";
-    document.getElementById("loadCheckYes").onclick = async function () {
-      hideOverlay();
-      try {
-        const r = await fetch(GIT_API + "/verify", { method: "POST" });
-        const d = await r.json();
-        if (d.ok) showToast("Marked as working build ✓ (" + d.sha + ")", "success", 3000);
-        else showToast("Could not tag: " + (d.error || "?"), "danger", 3000);
-      } catch { showToast("Server not running — tag skipped", "danger", 2500); }
-    };
-    document.getElementById("loadCheckNo").onclick = hideOverlay;
-  }
-
-  async function pullWorkingVersion() {
-    if (!confirm("Pull last verified working build? Page will reload.")) return;
-    showToast("Fetching working build…", "info", 5000);
-    try {
-      const r = await fetch(GIT_API + "/pull-working", { method: "POST" });
-      const d = await r.json();
-      if (d.ok) { showToast("Switched to working build " + d.sha + " — reloading…", "success", 2000); setTimeout(() => location.reload(), 1800); }
-      else showToast("Pull failed: " + (d.error || "?"), "danger", 4000);
-    } catch { showToast("Server not running — cannot pull", "danger", 3000); }
-  }
-
-  if (pullBtn) {
-    pullBtn.onclick = pullWorkingVersion;
-    // Show pull button after git status check
-    fetch(GIT_API + "/status").then(r => r.json()).then(d => {
-      pullBtn.style.display = "block";
-      if (d.workingSha) pullBtn.title = "Pull last working build: " + d.workingSha;
-    }).catch(() => {});
-  }
-
-  // Watch for loading screen dismiss, then show load-check 4s later
-  const _origDismiss = window._loadingDismissed;
-  let _lcTimer = null;
-  const _lcObs = setInterval(function () {
-    if (window._loadingDismissed) {
-      clearInterval(_lcObs);
-      if (_lcTimer) return;
-      _lcTimer = setTimeout(showLoadCheck, 4000);
-    }
-  }, 500);
-}());
+// Pseudocode: working-build overlay verifies/pulls git after loading succeeds.
+mountLoadCheckOverlay({
+  actions: {
+    showToast,
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    setInterval: (fn, ms) => setInterval(fn, ms),
+    clearInterval: id => clearInterval(id),
+  },
+});
 
 // Pseudocode: report uncaught runtime errors to server artifacts for the agent loop.
 mountRuntimeErrorReporter();
