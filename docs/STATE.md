@@ -1,23 +1,37 @@
-STATE.md - loop progress tracker (updated each iter)
+STATE.md - loop progress tracker
 
-Last completed iter: 683
-index.html total lines: 3766  (was 3820 after iter 682, -54 this iter)
-index.html code lines:  3017
+Last completed iter: 691 in progress
 
-LOOP_PROMPT five named targets — STATUS:
-  1. src/entities/enemy_ai_tick.js     DONE (iters 666-677, all 12 sub-blocks)
-  2. src/systems/bullet_physics.js     DONE (iters 678-681: world-hit, kill, hit-feedback, substep shell)
-  3. src/config/keydown_bindings.js    DONE (already in keydown_handler.js; mount call is wiring-only)
-  4. src/systems/save_wiring.js        DONE (iter 683: collect/apply callbacks, auto-save, Ctrl+S)
-  5. src/systems/screen_interaction.js DONE (iter 682: tryClickWorldScreen, mouse-mode, exit)
+Current index.html:
+  total lines:        3260
+  code lines:         2471
+  blank lines:        244
+  comment-only lines: 545
 
-All five named targets complete. Continuing extraction of remaining >20-line inline
-blocks that are not pure mount-call wiring.
+Original LOOP_PROMPT five named targets:
+  1. enemy AI loop       DONE
+  2. bullet physics      DONE
+  3. keydown handler     DONE
+  4. save wiring         DONE
+  5. screen interaction  DONE
 
-Next scan targets (largest remaining inline blocks in index.html):
-  - Mouse-move handler for screen cursor-mode (~25 lines)
-  - PointerLock / click-to-lock handlers (~20 lines)
-  - WorldBuilder toggle + quest step wiring (~20 lines)
+Current loop prompt:
+  docs/LOOP_PROMPT_NEW.md
 
-Stop condition check:
-  index.html < 3200 lines? NO (currently 3766). Keep extracting.
+Grouped extraction queue:
+  0. canvas_primary_action cleanup          DONE (before codex)
+  1. builder UI refresh                     DONE (iter 691)
+  2. world builder setup/hotbar/creative    NEXT
+  3. in-world screens/build console         pending
+  4. device graph + mon1 screen             pending
+  5. asset loading bootstrap                pending
+  6. app + multiplayer wiring               pending
+  7. runtime error reporter                 pending
+  8. grouped mount factories                pending
+
+Notes:
+  - src/systems/perk_system.js has an unrelated dirty change in the worktree.
+    Do not overwrite it accidentally.
+  - Use npm run count:index for line counts.
+  - Use npm test for every extraction.
+  - Use npm run browser-check for browser/runtime-affecting extraction.

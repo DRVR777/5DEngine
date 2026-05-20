@@ -199,7 +199,7 @@ import {
   // Social
   createLanSession, mountMpBadge,
   // Core
-  Core, mountEngineRegistry, mountEcsBootstrap,
+  Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh,
   // Config
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
@@ -1679,78 +1679,14 @@ setTimeout(() => {
   // ─────────────────────────────────────────────────────────────────────────
 }, 250);
 
-// Each frame: show/hide builder UI + update inspector inputs from the
-// selected object (so external mutations like drag-move keep the panel
-// in sync). Editing an input fires change → writes back to the mesh.
-function _refreshBuilderUI() {
-  const panel = document.getElementById("builderUI");
-  if (!panel) return;
-  panel.style.display = buildMode ? "block" : "none";
-  // Hotbar + texture panel visibility
-  const hb = document.getElementById("hotbar");
-  if (hb) hb.classList.toggle("visible", buildMode);
-  const tp = document.getElementById("texturePanel");
-  if (tp) tp.classList.toggle("visible", buildMode);
-  const inspector = document.getElementById("bInspector");
-  if (!worldBuilder || !buildMode) { if (inspector) inspector.style.display = "none"; return; }
-  // Live-update undo/redo depth counters
-  const uc = document.getElementById("bUndoCount");
-  const rc = document.getElementById("bRedoCount");
-  if (uc) uc.textContent = worldBuilder.undoDepth();
-  if (rc) rc.textContent = worldBuilder.redoDepth();
-  const t = worldBuilder.getTransform();
-  if (!t) { if (inspector) inspector.style.display = "none"; return; }
-  inspector.style.display = "block";
-  document.getElementById("bSelMeta").textContent =
-    (t.meta.primitive ? t.meta.primitive : (t.meta.assetUrl || "mesh"));
-  const set = (id, v, fixed) => {
-    const el = document.getElementById(id);
-    if (el && document.activeElement !== el) el.value = v.toFixed(fixed != null ? fixed : 2);
-  };
-  const DEG = 180 / Math.PI;
-  set("bPosX", t.pos.x); set("bPosY", t.pos.y); set("bPosZ", t.pos.z);
-  set("bRotX", t.rot.x * DEG, 0); set("bRotY", t.rot.y * DEG, 0); set("bRotZ", t.rot.z * DEG, 0);
-  set("bSclX", t.scale.x); set("bSclY", t.scale.y); set("bSclZ", t.scale.z);
-
-  // Color row — show if the selection has a material or light color
-  const cinfo = worldBuilder.getColor();
-  const colorRow = document.getElementById("bColorRow");
-  if (cinfo) {
-    colorRow.style.display = "block";
-    const cel = document.getElementById("bColor");
-    if (cel && document.activeElement !== cel) cel.value = cinfo.hex;
-    document.getElementById("bColorKind").textContent = cinfo.kind;
-  } else { colorRow.style.display = "none"; }
-
-  // Intensity row — only for lights
-  const ints = worldBuilder.getIntensity();
-  const intRow = document.getElementById("bIntensityRow");
-  if (ints != null) {
-    intRow.style.display = "block";
-    const iel = document.getElementById("bIntensity");
-    if (iel && document.activeElement !== iel) iel.value = ints;
-    document.getElementById("bIntensityVal").textContent = ints.toFixed(1);
-  } else { intRow.style.display = "none"; }
-
-  // Script editor — populate with the selected mesh's current script
-  const sel = worldBuilder.getSelected();
-  const scriptEl  = document.getElementById("bScript");
-  const errEl     = document.getElementById("bScriptError");
-  if (scriptEl && sel && document.activeElement !== scriptEl) {
-    scriptEl.value = (t.meta.script) || "";
-  }
-  if (errEl && sel && window.ScriptRunner) {
-    const err = window.ScriptRunner.getError(sel.uuid);
-    errEl.textContent = err ? "ERR: " + err : "";
-  }
-
-  // Refresh scene hierarchy panel if open
-  const shp = document.getElementById("sceneHierarchy");
-  if (shp) {
-    if (!buildMode) { shp.classList.remove("visible"); }
-    else if (shp.classList.contains("visible")) _renderSceneHierarchy();
-  }
-}
+// Pseudocode: each frame, show/hide builder UI and mirror selected transform.
+const _refreshBuilderUI = mountBuilderUiRefresh({
+  get: { buildMode: () => buildMode, worldBuilder: () => worldBuilder },
+  actions: {
+    renderSceneHierarchy: _renderSceneHierarchy,
+    getScriptRunner: () => window.ScriptRunner || null,
+  },
+});
 
 // ---- audio mixer (audio.js + audio_webaudio.js) --------------------
 let audioMixer = null;
@@ -2641,6 +2577,7 @@ let _physicsAcc  = 0;        // leftover time from last frame
 //     drone + ground vehicle physics (already have src/vehicles/ dir)
 //   iter 531: hero_physics.js → src/systems/hero_physics.js (lines ~3757-4050)
 //     hero movement, stamina, jump, gravity, sprint slide
+let _tickDriveMode = false; // when true, tick() skips rAF scheduling (used by test bridge tickGame)
 function tick() {
   const now = performance.now();
   _frameNowMs = now;
@@ -2713,7 +2650,7 @@ function tick() {
     if (!_5D_NO_RENDER) {
       if (composer) composer.render(); else renderer.render(scene, camera);
     }
-    requestAnimationFrame(tick);
+    if (!_tickDriveMode) requestAnimationFrame(tick);
     return;
   }
 
@@ -2976,7 +2913,7 @@ function tick() {
   if (!_5D_NO_RENDER) {
     if (composer) composer.render(); else renderer.render(scene, camera);
   }
-  requestAnimationFrame(tick);
+  if (!_tickDriveMode) requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
 
@@ -3182,6 +3119,7 @@ mountTestBridge({
     heroShotAlertU:   v => { _heroShotAlertU = v; },
     heroShotAlertV:   v => { _heroShotAlertV = v; },
     heroShotAlertT:   v => { _heroShotAlertT = v; },
+    lastT:            v => { lastT = v; },
   },
   fns: {
     getWeapon,
@@ -3203,6 +3141,7 @@ mountTestBridge({
     dropMine:          _dropMine,
     spawnSpeedOrb:     typeof _spawnSpeedOrb !== "undefined" ? _spawnSpeedOrb : null,
     spawnEnemyAtHero:  typeof window._spawnEnemyAtHero === "function" ? window._spawnEnemyAtHero : null,
+    gameTick: () => { _tickDriveMode = true; try { tick(); } finally { _tickDriveMode = false; } },
   },
 });
 

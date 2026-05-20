@@ -157,3 +157,24 @@ Collapse the remaining bullet movement/substep shell into a bullet physics
 coordinator.
 
 **Next:** Tick 3 — wire core.js into index.html as additive import. Register prefabs from data/.
+## iter 691 - extract builder UI refresh
+
+Moved the per-frame builder inspector refresh from `index.html` into
+`src/builder/builder_ui_refresh.js`.
+
+The extraction preserves:
+- build-mode panel/hotbar/texture visibility toggles
+- selected transform mirroring
+- radian-to-degree display conversion
+- active input protection while editing
+- color/intensity rows
+- script error display
+- scene hierarchy refresh while visible
+
+Verification:
+- `npx vitest run tests/unit/builder_ui_refresh.test.js` passed
+- `npm test` passed: 229 files, 3735 tests
+- `npm run count:index`: 3260 total, 2471 code
+
+Next:
+- Extract the larger world-builder setup/hotbar/creative/sync block.
