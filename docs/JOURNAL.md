@@ -201,3 +201,33 @@ Verification:
 
 Next:
 - Extract the larger world-builder setup/hotbar/creative/sync block.
+
+## iter 693 - extract world builder hotbar and sync
+
+Moved the remaining world-builder hotbar, creative inventory, texture panel,
+group selection, and coop-build sync wiring from `index.html` into
+`src/builder/world_builder_hotbar.js`.
+
+The extraction preserves:
+- legacy window bridges: `_builderMultiList`, `_hotbarSelectSlot`, `_hotbarSpawn`,
+  `_openCreativeInv`, `_closeCreativeInv`, `_builderGroupSelected`
+- 9 hotbar slots and the active-slot behavior
+- 2.5m forward spawn offset and y=1.0 spawn height
+- hotbar/creative/texture SFX volumes: 0.4, 0.3, 0.2
+- `tone:440:80:sine` group sound and `noise` fallback
+- creative/texture empty-state text
+- 1000ms build sync interval and 1000ms sync toast
+- existing peaceful-to-coop dirty/sync behavior
+
+Also fixed two browser-check TDZ failures surfaced by this iteration:
+`_mp` is now read through initialized `_mpRef`, and canvas primary action shoot
+callbacks defer `_tryDroneShoot`/`_tryShoot` lookup until click time.
+
+Verification:
+- `npx vitest run tests/unit/world_builder_hotbar.test.js tests/unit/canvas_primary_action.test.js` passed
+- `npm test` passed: 231 files, 3752 tests
+- `npm run browser-check` passed: BROWSER OK
+- `npm run count:index`: 2891 total, 2156 code
+
+Next:
+- Extract in-world screens/build console.

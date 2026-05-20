@@ -199,7 +199,7 @@ import {
   // Social
   createLanSession, mountMpBadge,
   // Core
-  Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh, mountWorldBuilderControls,
+  Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh, mountWorldBuilderControls, mountWorldBuilderHotbar,
   // Config
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
@@ -1015,6 +1015,7 @@ const _renderSceneHierarchy = mountSceneHierarchy({ getWorldBuilder: () => world
 
 // LAN session shared state — referenced by worldBuilder F3 hooks AND the createLanSession call below
 const _mpState = { myIp: null, onMpWelcomeHook: null, onMpBuildEvent: null, pendingFriendRequests: [] };
+let _mpRef = null;
 
 // GLB drop onto canvas → replace hero model (only when char editor is open)
 renderer.domElement.addEventListener("dragover", (e) => e.preventDefault());
@@ -1290,259 +1291,23 @@ setTimeout(() => {
     },
   });
 
-  // ---- Hotbar state ----
-  // 9 slots, each holds null or a library entry / primitive descriptor
-  const hotbarSlots = Array(9).fill(null);
-  let hotbarActive = 0;   // 0-8
-  const multiSelectList = [];  // for group selection; exposed so mousedown handler can reach it
-  window._builderMultiList = multiSelectList;
-
-  function _hotbarSlotEl(i) { return document.querySelector('.hb-slot[data-slot="' + i + '"]'); }
-
-  const PRIM_ICONS = { cube:"🟦", sphere:"🔵", cylinder:"🔶", plane:"🟩", light:"💡" };
-
-  function _refreshHotbar() {
-    for (let i = 0; i < 9; i++) {
-      const el = _hotbarSlotEl(i);
-      if (!el) continue;
-      const slot = hotbarSlots[i];
-      const iconEl = el.querySelector(".hb-icon");
-      const nameEl = el.querySelector(".hb-name");
-      if (slot) {
-        iconEl.textContent = slot.primitive ? (PRIM_ICONS[slot.primitive] || "📦") : "📂";
-        nameEl.textContent = slot.primitive || (slot.name ? slot.name.replace(/\.\w+$/, "").slice(0, 12) : "?");
-      } else {
-        iconEl.textContent = "➕";
-        nameEl.textContent = "empty";
-      }
-      el.classList.toggle("active", i === hotbarActive);
-    }
-  }
-
-  function _setHotbarSlot(i, entry) {
-    hotbarSlots[i] = entry;
-    _refreshHotbar();
-  }
-
-  function _spawnHotbarActive() {
-    const slot = hotbarSlots[hotbarActive];
-    if (!slot) return;
-    const hp = world.players.get("hero");
-    const fx = Math.sin(camYaw) * 2.5;
-    const fz = Math.cos(camYaw) * 2.5;
-    const pos = { x: hp.u + fx, y: 1.0, z: hp.v + fz };
-    if (slot.primitive) {
-      worldBuilder.spawnPrimitive(slot.primitive, pos);
-      playSfx("blip", 0.4);
-    } else if (slot.assetData) {
-      worldBuilder.spawnFromLibrary(slot, pos).then(() => { playSfx("blip", 0.4); });
-    }
-  }
-
-  // Hotbar click (slot click = select that slot; double-click = spawn)
-  document.getElementById("hotbar").addEventListener("click", (e) => {
-    const sl = e.target.closest(".hb-slot");
-    if (!sl) return;
-    const i = parseInt(sl.dataset.slot, 10);
-    if (i === hotbarActive) {
-      // Second click: spawn
-      _spawnHotbarActive();
-    } else {
-      hotbarActive = i;
-      _refreshHotbar();
-    }
+  // Pseudocode: hotbar, creative inventory, textures, grouping, and coop build sync.
+  mountWorldBuilderHotbar({
+    worldBuilder,
+    get: {
+      heroPos: () => world.players.get("hero"),
+      camYaw: () => camYaw,
+      gameMode: () => gameMode,
+      mp: () => _mpRef,
+      mpState: () => _mpState,
+    },
+    actions: {
+      playSfx,
+      showToast,
+      warn: (...args) => console.warn(...args),
+      setInterval: (fn, ms) => setInterval(fn, ms),
+    },
   });
-
-  // 1-9 keys select hotbar slots
-  // (added to the keydown listener later; using the exposed refreshHotbar)
-  window._hotbarSelectSlot = (i) => { hotbarActive = i; _refreshHotbar(); };
-  window._hotbarSpawn = _spawnHotbarActive;
-
-  // ---- Creative Inventory ----
-  function _refreshCreativeInv() {
-    const ciAssets = document.getElementById("ciAssets");
-    if (!ciAssets) return;
-    const lib = worldBuilder.getLibrary();
-    if (lib.length === 0) {
-      ciAssets.innerHTML = '<span style="color:#555;font-size:10px">none yet — drag .glb/.obj/.fbx into the window</span>';
-    } else {
-      ciAssets.innerHTML = lib.map((e, i) =>
-        `<div class="ci-item" data-libidx="${i}">
-          <div class="ci-icon">📂</div>
-          <div class="ci-label">${e.name.replace(/\.\w+$/, "").slice(0,14)}</div>
-        </div>`
-      ).join("");
-    }
-  }
-
-  let creativeOpen = false;
-  function openCreativeInv() {
-    creativeOpen = true;
-    _refreshCreativeInv();
-    document.getElementById("creativeInv").classList.add("open");
-  }
-  function closeCreativeInv() {
-    creativeOpen = false;
-    document.getElementById("creativeInv").classList.remove("open");
-  }
-  window._openCreativeInv = openCreativeInv;
-  window._closeCreativeInv = closeCreativeInv;
-
-  // Primitive click in creative inv → assign to active hotbar slot
-  document.getElementById("ciPrimitives").addEventListener("click", (e) => {
-    const item = e.target.closest(".ci-item");
-    if (!item) return;
-    _setHotbarSlot(hotbarActive, { primitive: item.dataset.kind });
-    closeCreativeInv();
-    playSfx("blip", 0.3);
-  });
-  // Asset click in creative inv
-  document.getElementById("ciAssets").addEventListener("click", (e) => {
-    const item = e.target.closest(".ci-item");
-    if (!item) return;
-    const idx = parseInt(item.dataset.libidx, 10);
-    const lib = worldBuilder.getLibrary();
-    if (lib[idx]) { _setHotbarSlot(hotbarActive, lib[idx]); closeCreativeInv(); playSfx("blip", 0.3); }
-  });
-  document.getElementById("creativeInv").addEventListener("click", (e) => {
-    if (e.target === document.getElementById("creativeInv")) closeCreativeInv();
-  });
-
-  // ---- Texture panel ----
-  function _refreshTexPanel() {
-    const sw = document.getElementById("texSwatches");
-    if (!sw) return;
-    const texs = worldBuilder.getTextures();
-    if (texs.length === 0) {
-      sw.innerHTML = '<span style="color:#555;font-size:9px">none — drop PNG/JPG below</span>';
-    } else {
-      sw.innerHTML = texs.map((t, i) =>
-        `<div class="tex-swatch" title="${t.name}" data-texidx="${i}"
-              style="background-image:url('${t.dataUrl}')"></div>`
-      ).join("");
-    }
-  }
-  document.getElementById("texSwatches").addEventListener("click", (e) => {
-    const sw = e.target.closest(".tex-swatch");
-    if (!sw) return;
-    const idx = parseInt(sw.dataset.texidx, 10);
-    const texs = worldBuilder.getTextures();
-    if (texs[idx]) {
-      const ok = worldBuilder.applyTexture(texs[idx].dataUrl);
-      if (ok) playSfx("blip", 0.4);
-    }
-  });
-  // Texture drop zone
-  const texDrop = document.getElementById("texDropZone");
-  texDrop.addEventListener("click", () => {
-    const inp = document.createElement("input");
-    inp.type = "file"; inp.accept = "image/*"; inp.style.display = "none";
-    document.body.appendChild(inp);
-    inp.click();
-    inp.addEventListener("change", () => {
-      const file = inp.files[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        worldBuilder.addTexture(file.name, ev.target.result);
-        _refreshTexPanel();
-        playSfx("blip", 0.3);
-      };
-      reader.readAsDataURL(file);
-      document.body.removeChild(inp);
-    });
-  });
-  texDrop.addEventListener("dragover", (e) => { e.preventDefault(); });
-  texDrop.addEventListener("drop", (e) => {
-    e.preventDefault();
-    for (const file of (e.dataTransfer && e.dataTransfer.files) || []) {
-      if (!file.type.startsWith("image/")) continue;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        worldBuilder.addTexture(file.name, ev.target.result);
-        _refreshTexPanel();
-        playSfx("blip", 0.3);
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-  _refreshTexPanel();
-
-  // ---- G key: group selected + anything shift-clicked ----
-  window._builderGroupSelected = () => {
-    if (multiSelectList.length >= 2) {
-      worldBuilder.groupSelected(multiSelectList);
-      multiSelectList.length = 0;  // clear in-place so window._builderMultiList stays valid
-      playSfx("tone:440:80:sine", 0.4);
-    } else if (worldBuilder.getSelected()) {
-      playSfx("noise", 0.2);
-    }
-  };
-
-  _refreshHotbar();
-
-  // ── F3 — Collaborative World Sync ─────────────────────────────────────────
-  // Only active when gameMode === "peaceful" AND a multiplayer server is live.
-  // Strategy: dirty-flag + 1 Hz flush so dragging an object doesn't spam 60 JSON
-  // packets/s. Echo prevention: _applyingRemoteSync skips the flush during import.
-  let _buildSyncDirty    = false;
-  let _applyingRemoteSync = false;
-
-  // Mark scene dirty after any local build mutation
-  function _markBuildDirty() {
-    if (gameMode === "peaceful") _buildSyncDirty = true;
-  }
-
-  // Flush: export full scene JSON and send to peers (1 Hz)
-  setInterval(() => {
-    if (!_buildSyncDirty || _applyingRemoteSync) return;
-    if (gameMode !== "coop_build") return;
-    if (typeof _mp === "undefined" || !_mp.enabled) return;
-    _buildSyncDirty = false;
-    const json = worldBuilder.exportSceneJSON();
-    _mp.sendEvent("build", { action: "sync", json });
-  }, 1000);
-
-  // Apply an incoming peer build sync (called by LAN session via _mpState.onMpBuildEvent)
-  _mpState.onMpBuildEvent = function(data) {
-    if (data.action !== "sync" || !data.json) return;
-    if (gameMode !== "coop_build" || !worldBuilder) return;
-    _applyingRemoteSync = true;
-    try {
-      worldBuilder.importSceneJSON(data.json);
-      if (typeof showToast === "function") showToast("Scene synced from peer", "info", 1000);
-    } catch (e) {
-      console.warn("[F3] Build sync import failed:", e);
-    }
-    _applyingRemoteSync = false;
-  };
-
-  // Broadcast current scene when WE connect or a new peer joins
-  _mpState.onMpWelcomeHook = function() {
-    if (gameMode !== "coop_build" || !worldBuilder) return;
-    if (typeof _mp === "undefined" || !_mp.enabled) return;
-    const json = worldBuilder.exportSceneJSON();
-    _mp.sendEvent("build", { action: "sync", json });
-  };
-
-  // Wrap builder mutations to mark scene dirty — only wraps the outbound
-  // path; importSceneJSON is called inside _applyingRemoteSync=true so the
-  // flush interval won't echo it back.
-  const _wbOrigSpawn  = worldBuilder.spawnPrimitive.bind(worldBuilder);
-  const _wbOrigDel    = worldBuilder.deleteSelected.bind(worldBuilder);
-  const _wbOrigClone  = worldBuilder.cloneSelected.bind(worldBuilder);
-  const _wbOrigSetPos = worldBuilder.setPosition.bind(worldBuilder);
-  const _wbOrigSetRot = worldBuilder.setRotation.bind(worldBuilder);
-  const _wbOrigSetScl = worldBuilder.setScale.bind(worldBuilder);
-  const _wbOrigSetCol = worldBuilder.setColor.bind(worldBuilder);
-
-  worldBuilder.spawnPrimitive = (...a) => { const r = _wbOrigSpawn(...a);  _markBuildDirty(); return r; };
-  worldBuilder.deleteSelected = (...a) => { const r = _wbOrigDel(...a);    _markBuildDirty(); return r; };
-  worldBuilder.cloneSelected  = (...a) => { const r = _wbOrigClone(...a);  _markBuildDirty(); return r; };
-  worldBuilder.setPosition    = (...a) => { const r = _wbOrigSetPos(...a); _markBuildDirty(); return r; };
-  worldBuilder.setRotation    = (...a) => { const r = _wbOrigSetRot(...a); _markBuildDirty(); return r; };
-  worldBuilder.setScale       = (...a) => { const r = _wbOrigSetScl(...a); _markBuildDirty(); return r; };
-  worldBuilder.setColor       = (...a) => { const r = _wbOrigSetCol(...a); _markBuildDirty(); return r; };
-  // ─────────────────────────────────────────────────────────────────────────
 }, 250);
 
 // Pseudocode: each frame, show/hide builder UI and mirror selected transform.
@@ -2174,7 +1939,7 @@ function drawMinimap() {
 }
 
 // Pseudocode: LMB on canvas routes to build picking, screen mouse-mode, or gameplay shoot.
-mountCanvasPrimaryAction({ renderer, get: { buildMode: () => buildMode, worldBuilder: () => worldBuilder, pointerLocked: () => pointerLocked, builderMultiList: () => window._builderMultiList, mouseMode: () => mouseMode, activeMouseScreen: () => activeMouseScreen, mouseModeCursor: () => mouseModeCursor, inventoryOpen: () => invDiv.classList.contains("open"), computerOpen: () => computerOpen, computerEntering: () => computerEntering, inCar: () => inCar, activeVehicleId: () => activeVehicleId, activeVehicleDef: () => _activeVehicleDef }, actions: { playSfx, getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleHover: () => window._bcHoverRegion, getBuildConsoleScreen: () => window._buildConsoleScreen, tryDroneShoot: _tryDroneShoot, tryShoot: _tryShoot } });
+mountCanvasPrimaryAction({ renderer, get: { buildMode: () => buildMode, worldBuilder: () => worldBuilder, pointerLocked: () => pointerLocked, builderMultiList: () => window._builderMultiList, mouseMode: () => mouseMode, activeMouseScreen: () => activeMouseScreen, mouseModeCursor: () => mouseModeCursor, inventoryOpen: () => invDiv.classList.contains("open"), computerOpen: () => computerOpen, computerEntering: () => computerEntering, inCar: () => inCar, activeVehicleId: () => activeVehicleId, activeVehicleDef: () => _activeVehicleDef }, actions: { playSfx, getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleHover: () => window._bcHoverRegion, getBuildConsoleScreen: () => window._buildConsoleScreen, tryDroneShoot: (...args) => _tryDroneShoot(...args), tryShoot: (...args) => _tryShoot(...args) } });
 
 // Central shoot function — called from click and from auto-fire tick
 let _mouseHeld = false;
@@ -2875,7 +2640,7 @@ mountComputerUI({
 });
 
 // ── Multiplayer (LAN) ────────────────────────────────────────────────────────
-const _mp = createLanSession({
+const _mp = (_mpRef = createLanSession({
   THREE, scene,
   state: _mpState,
   getShowToast:  () => typeof showToast === "function" ? showToast : null,
@@ -2886,7 +2651,7 @@ const _mp = createLanSession({
     isSprinting: !!(keys && (keys["ShiftLeft"] || keys["ShiftRight"])),
     crouching:   !!(keys && (keys["ControlLeft"] || keys["ControlRight"])),
   }),
-});
+}));
 
 // Mount duel mode — needs _mp ready
 _duelMode = mountDuelMode({
