@@ -22,6 +22,7 @@
     "test:soak:headed": "playwright test tests/playwright/soak.spec.js --headed",
     "test:visual": "node tests/visual/runner.js",
     "test:visual:install": "npx playwright install chromium",
+    "count:index": "node scripts/count-code-lines.js index.html",
     "dev:start": "node scripts/dev-start.js",
     "mark-good": "node scripts/mark-good.js"
   },
