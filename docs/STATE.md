@@ -1,12 +1,12 @@
 STATE.md - loop progress tracker
 
-Last completed iter: 694
+Last completed iter: 695
 
 Current index.html:
-  total lines:        2683
-  code lines:         1973
-  blank lines:        216
-  comment-only lines: 494
+  total lines:        2554
+  code lines:         1865
+  blank lines:        209
+  comment-only lines: 480
 
 Original LOOP_PROMPT five named targets:
   1. enemy AI loop       DONE
@@ -24,8 +24,8 @@ Grouped extraction queue:
   2. world builder controls                 DONE (iter 692)
   3. world builder hotbar/creative/sync     DONE (iter 693)
   4. in-world screens/build console         DONE (iter 694)
-  5. device graph + mon1 screen             NEXT
-  6. asset loading bootstrap                pending
+  5. device graph + mon1 screen             DONE (iter 695)
+  6. asset loading bootstrap                NEXT
   7. app + multiplayer wiring               pending
   8. runtime error reporter                 pending
   9. grouped mount factories                pending

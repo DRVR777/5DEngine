@@ -178,6 +178,7 @@ export { mountMpBadge }    from "./social/mp_badge.js";
 
 // ── Economy ──────────────────────────────────────────────────────────────────
 export { mountShopPanel } from "./economy/shop_panel.js";
+export { mountDeviceGraphWiring } from "./devices/device_graph_wiring.js";
 
 // ── Core ─────────────────────────────────────────────────────────────────────
 export { Core } from "./core/core.js";

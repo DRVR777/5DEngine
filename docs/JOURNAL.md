@@ -254,3 +254,27 @@ Verification:
 
 Next:
 - Extract device graph + mon1 screen wiring.
+
+## iter 695 - extract device graph wiring
+
+Moved the device graph setup, wire mesh rebuild logic, visible device proxies,
+and `mon1` physical screen bridge from `index.html` into
+`src/devices/device_graph_wiring.js`.
+
+The extraction preserves:
+- device ids: `pc1`, `mon1`, `spk1`, `usb1`, `radioA`, `radioB`
+- port wiring: `video_out` to `video_in`, `audio_out` to `audio_in`, `usb_a`
+- default device offsets and world-data override behavior
+- radio frequency 94.7 and tx/rx ranges 80
+- visible proxy colors and dimensions
+- `mon1_phys` screen dimensions, no-signal text, scanline paint, and
+  `window.__mon1Bridge.pollAndPaint()`
+
+Verification:
+- `npx vitest run tests/unit/device_graph_wiring.test.js tests/unit/device_bus_tick.test.js tests/unit/world_screens.test.js` passed
+- `npm test` passed: 233 files, 3763 tests
+- `npm run browser-check` passed: BROWSER OK
+- `npm run count:index`: 2554 total, 1865 code
+
+Next:
+- Extract asset loading bootstrap.

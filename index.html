@@ -199,7 +199,7 @@ import {
   // Social
   createLanSession, mountMpBadge,
   // Core
-  Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh, mountWorldBuilderControls, mountWorldBuilderHotbar, mountWorldScreens,
+  Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh, mountWorldBuilderControls, mountWorldBuilderHotbar, mountWorldScreens, mountDeviceGraphWiring,
   // Config
   ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
   makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
@@ -1110,152 +1110,23 @@ const { group: enemyGroup, hpFg: enemyHpFg } = enemyMeshes.get(enemies[0].id) ||
 // ═══ EXTRACTED → src/render/computer_mesh.js (iter 554)
 const { compGroup, screenFront } = mountComputerMesh({ THREE, scene, computerEntity });
 
-// ---- device graph (devices.js + wires.js) ----------------------------
-// Build a small in-world hardware setup adjacent to the computer pickup:
-// PC ── video → Monitor (placed on top of the desk)
-// PC ── audio → Speaker (placed to the right)
-// PC ── data  ← USB stick (sitting in usb_a)
-// Two radios: one at the desk, one across the map at the same frequency
-// (so a packet sent from one literally appears in the other's inbox).
-const deviceBus = (window.Devices && window.Devices.createBus)
-  ? window.Devices.createBus()
-  : null;
-const wireMeshes = new Map();   // wireId → THREE.Mesh
-const devicePositions = new Map();  // deviceId → THREE.Vector3 (for refresh)
-
-function _rebuildDeviceWires() {
-  if (!deviceBus || !window.Wires) return;
-  // Tear down old meshes
-  for (const m of wireMeshes.values()) scene.remove(m);
-  wireMeshes.clear();
-  const map = window.Wires.buildAllWireMeshes(THREE, deviceBus,
-    (id) => {
-      const v = devicePositions.get(id);
-      return v ? { x: v.x, y: v.y, z: v.z } : null;
-    });
-  for (const [wireId, mesh] of map) {
-    scene.add(mesh);
-    wireMeshes.set(wireId, mesh);
-  }
-}
-
 // Hoist worldScreens here so the mon1-mirror code below can populate it
 // (the rest of the in-world screen setup happens further down).
 const worldScreens = new Map();
 let jumbotronScreen = null;
 let skyScreen = null;
 
-if (deviceBus) {
-  // Device positions from WorldData.devices — du/dv/dy are relative to the computer entity
-  const _devs = WD.devices || {};
-  function _devPos(key, fallbackDu, fallbackDv, fallbackDy) {
-    const d = _devs[key] || {};
-    if (d.u !== undefined) return { u: d.u, v: d.v, y: d.dy !== undefined ? d.dy : fallbackDy };
-    return {
-      u: computerEntity.u + (d.du !== undefined ? d.du : fallbackDu),
-      v: computerEntity.v + (d.dv !== undefined ? d.dv : fallbackDv),
-      y: d.dy !== undefined ? d.dy : fallbackDy,
-    };
-  }
-  const PC_POS  = _devPos("pc",     0,     0,    1.1);
-  const MON_POS = _devPos("mon",    0,     0,    1.6);
-  const SPK_POS = _devPos("spk",    1.0,  -0.2,  0.8);
-  const USB_POS = _devPos("usb",   -0.4,   0.1,  1.0);
-  const RADIO_A = _devPos("radioA", 0.3,  -0.2,  1.4);
-  const RADIO_B = _devPos("radioB", 14.0,  4.0,  1.0);
-
-  deviceBus.makeComputer({ id: "pc1", position: PC_POS,
-    files: { "/boot.txt": "DWRLD OS v0.1", "/readme": "wire stuff together!" } });
-  deviceBus.makeMonitor({ id: "mon1", position: MON_POS, size: "small" });
-  deviceBus.makeSpeaker({ id: "spk1", position: SPK_POS });
-  deviceBus.makeStorageMedia({ id: "usb1", mediaKind: "usb", position: USB_POS,
-    files: { "/notes.txt": "your personal stash" }, label: "MY_USB" });
-  deviceBus.makeRadio({ id: "radioA", position: RADIO_A, frequency: 94.7,
-    txRange: 80, rxRange: 80 });
-  deviceBus.makeRadio({ id: "radioB", position: RADIO_B, frequency: 94.7,
-    txRange: 80, rxRange: 80 });
-
-  deviceBus.connect("pc1", "video_out", "mon1", "video_in", "video");
-  deviceBus.connect("pc1", "audio_out", "spk1", "audio_in", "audio");
-  deviceBus.insertMedia("pc1", "usb_a", "usb1");
-
-  // Place small visual proxies in the world (so you can SEE them)
-  function _proxy(color, w, h, d, pos) {
-    const m = new THREE.Mesh(
-      new THREE.BoxGeometry(w, h, d),
-      new THREE.MeshStandardMaterial({ color: color, metalness: 0.4, roughness: 0.4 })
-    );
-    m.position.set(pos.u, pos.y, pos.v); m.castShadow = true;
-    scene.add(m); return m;
-  }
-  // Speaker box (still a primitive)
-  _proxy(0x553311, 0.3, 0.5, 0.3, SPK_POS);
-  // mon1 — real screen_mesh that mirrors device-graph video_in inbox
-  if (window.ScreenMesh) {
-    const monScreen = window.ScreenMesh.createScreen({
-      id: "mon1_phys",
-      resolutionW: 384, resolutionH: 224,
-      widthM: 0.7, heightM: 0.5,
-      state: { lastFrame: "(no signal — boot the PC and click Devices)" },
-      paint: (ctx, sc) => {
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, sc.resolutionW, sc.resolutionH);
-        // Tiny scanline shimmer
-        for (let y = 0; y < sc.resolutionH; y += 2) {
-          ctx.fillStyle = "rgba(50, 80, 120, 0.05)";
-          ctx.fillRect(0, y, sc.resolutionW, 1);
-        }
-        ctx.fillStyle = "#88ddff";
-        ctx.font = "bold 16px monospace";
-        ctx.fillText("MON1  ◯ ON", 8, 22);
-        ctx.font = "12px monospace";
-        ctx.fillStyle = "#aaccff";
-        const lines = String(sc.state.lastFrame || "").split("\n");
-        let y = 50;
-        for (const line of lines) {
-          ctx.fillText(line, 8, y); y += 16;
-          if (y > sc.resolutionH - 8) break;
-        }
-      },
-    });
-    const monMesh = window.ScreenMesh.bindToThree(THREE, monScreen, { doubleSided: true });
-    if (monMesh) {
-      monMesh.position.set(MON_POS.u, MON_POS.y, MON_POS.v + 0.1);
-      monMesh.rotation.y = Math.PI; // face the player
-      scene.add(monMesh);
-      worldScreens.set(monScreen.id, { screen: monScreen, mesh: monMesh });
-      // Tie this physical monitor to the device-graph mon1 — every tick we
-      // drain its video_in inbox and paint the latest frame text.
-      window.__mon1Bridge = {
-        screen: monScreen,
-        pollAndPaint: () => {
-          if (!deviceBus) return;
-          const frames = deviceBus.drain("mon1", "video_in");
-          if (frames.length > 0) {
-            const last = frames[frames.length - 1];
-            const payload = last.payload || {};
-            const txt = payload.frame || JSON.stringify(payload);
-            monScreen.state.lastFrame = txt;
-          }
-        },
-      };
-    }
-  } else {
-    _proxy(0x222244, 0.7, 0.5, 0.05, MON_POS);
-  }
-  _proxy(0xcccccc, 0.08, 0.25, 0.05, USB_POS);   // USB
-  _proxy(0x222233, 0.18, 0.25, 0.12, RADIO_A);   // walkie A
-  _proxy(0x222233, 0.18, 0.25, 0.12, RADIO_B);   // walkie B
-
-  devicePositions.set("pc1",    new THREE.Vector3(PC_POS.u,  PC_POS.y,  PC_POS.v));
-  devicePositions.set("mon1",   new THREE.Vector3(MON_POS.u, MON_POS.y, MON_POS.v));
-  devicePositions.set("spk1",   new THREE.Vector3(SPK_POS.u, SPK_POS.y, SPK_POS.v));
-  devicePositions.set("usb1",   new THREE.Vector3(USB_POS.u, USB_POS.y, USB_POS.v));
-  devicePositions.set("radioA", new THREE.Vector3(RADIO_A.u, RADIO_A.y, RADIO_A.v));
-  devicePositions.set("radioB", new THREE.Vector3(RADIO_B.u, RADIO_B.y, RADIO_B.v));
-
-  _rebuildDeviceWires();
-}
+// Pseudocode: wire PC/monitor/speaker/USB/radios, visible proxies, wires, and mon1 mirror.
+const { deviceBus } = mountDeviceGraphWiring({
+  THREE,
+  scene,
+  devicesApi: window.Devices || null,
+  wiresApi: window.Wires || null,
+  screenMesh: window.ScreenMesh || null,
+  worldData: WD,
+  computerEntity,
+  worldScreens,
+});
 
 // ═══ EXTRACTED → src/systems/media_pickups.js (iter 574)
 const { heroMedia, worldMedia, spawnMedia: _spawnMedia, tick: _mediaPickupsTick } = mountMediaPickups({ THREE, scene, actions: { playSfx: (str, vol) => playSfx(str, vol) } });
