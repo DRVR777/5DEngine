@@ -3,8 +3,18 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 
 const PORT = Number(process.env.PORT || 8080);
-const URL = `http://localhost:${PORT}/?_5dtest=1`;
+const URL = `http://localhost:${PORT}/?_5dtest=1&_5dnorender=1`;
 const ARTIFACT_DIR = "tests/browser-artifacts";
+const visualMode = process.env.PW_VISUAL === "1" || process.env.PW_WEBGL === "1";
+const baseLaunchArgs = [
+  "--disable-gpu",
+  "--disable-dev-shm-usage",
+  "--js-flags=--max-old-space-size=256",
+];
+const visualLaunchArgs = [
+  "--use-gl=swiftshader",
+  "--enable-webgl",
+];
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -32,9 +42,9 @@ async function main() {
 
   const browser = await chromium.launch({
     headless: true,
-    args: ["--use-gl=swiftshader", "--enable-webgl"],
+    args: visualMode ? [...baseLaunchArgs, ...visualLaunchArgs] : baseLaunchArgs,
   });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const page = await browser.newPage({ viewport: { width: 1, height: 1 } });
   await page.route("http://localhost:3001/api/**", route => {
     const url = route.request().url();
     const body = url.includes("/git/status")

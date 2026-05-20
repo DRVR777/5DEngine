@@ -1,5 +1,19 @@
 import { defineConfig } from "@playwright/test";
 
+const visualMode = process.env.PW_VISUAL === "1" || process.env.PW_WEBGL === "1";
+const baseLaunchArgs = [
+  "--disable-gpu",
+  "--disable-dev-shm-usage",
+  "--disable-background-network-throttling",
+  "--js-flags=--max-old-space-size=256",
+];
+const visualLaunchArgs = [
+  "--use-gl=swiftshader",
+  "--enable-webgl",
+  "--disable-gpu-vsync",
+  "--disable-frame-rate-limit",
+];
+
 export default defineConfig({
   testDir: "tests/playwright",
   timeout: 300000,
@@ -13,15 +27,7 @@ export default defineConfig({
     video: process.env.PW_VIDEO ? "retain-on-failure" : "off",
     trace: process.env.PW_TRACE ? "retain-on-failure" : "off",
     launchOptions: {
-      args: [
-        "--use-gl=swiftshader",
-        "--enable-webgl",
-        "--disable-gpu-vsync",
-        "--disable-frame-rate-limit",
-        "--disable-background-timer-throttling",
-        "--disable-dev-shm-usage",
-        "--js-flags=--max-old-space-size=256",
-      ],
+      args: visualMode ? [...baseLaunchArgs, ...visualLaunchArgs] : baseLaunchArgs,
     },
   },
   webServer: {

@@ -16,6 +16,8 @@
     "test:waves": "playwright test tests/playwright/wave_runner.spec.js",
     "test:paths": "playwright test tests/playwright/state_space_explorer.spec.js",
     "test:campaign": "playwright test tests/playwright/text_wave_campaign.spec.js",
+    "test:campaign:text": "node scripts/run-text-campaign.js",
+    "test:campaign:full": "node scripts/run-text-campaign.js --waves=10 --max-ms=300000",
     "test:soak": "playwright test tests/playwright/soak.spec.js",
     "test:soak:headed": "playwright test tests/playwright/soak.spec.js --headed",
     "test:visual": "node tests/visual/runner.js",
