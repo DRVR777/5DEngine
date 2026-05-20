@@ -87,6 +87,7 @@ export { mountDeviceBusTick }      from "./systems/device_bus_tick.js";
 export { mountProximityTick }      from "./systems/proximity_tick.js";
 export { mountCameraPosTick }      from "./systems/camera_pos_tick.js";
 export { mountCameraZoneTick }     from "./systems/camera_zone_tick.js";
+export { mountAssetBootstrap }     from "./systems/asset_bootstrap.js";
 export { mountEnemyRegenTick }     from "./systems/enemy_regen_tick.js";
 export { mountEnemySepTick }       from "./systems/enemy_sep_tick.js";
 export { hasLOS }                  from "./systems/los_check.js";

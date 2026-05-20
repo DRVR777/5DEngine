@@ -278,3 +278,25 @@ Verification:
 
 Next:
 - Extract asset loading bootstrap.
+
+## iter 696 - extract asset bootstrap
+
+Moved the manifest asset-loading bootstrap from `index.html` into
+`src/systems/asset_bootstrap.js`.
+
+The extraction preserves:
+- 200ms delayed bootstrap after lazy loader imports
+- `AssetLoader.load(THREE, Loaders)` call
+- manifest failure and loader-ready logging strings
+- placeholder replacement ids: `pistol`, `car`, `coin`
+- placeholder offsets: pistol `(0,0,0)`, car y=0.7, coin y=1.0
+- thrown-load warning message
+
+Verification:
+- `npx vitest run tests/unit/asset_bootstrap.test.js tests/unit/loaders.test.js` passed
+- `npm test` passed: 234 files, 3768 tests
+- `npm run browser-check` passed: BROWSER OK
+- `npm run count:index`: 2547 total, 1862 code
+
+Next:
+- Extract app + multiplayer wiring.

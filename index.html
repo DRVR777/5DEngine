@@ -179,7 +179,7 @@ import {
   buildComputerApps, addDynamicIcons,
   mountMouseInput, mountCanvasPrimaryAction, mountKeydownHandler, mountKeyupHandler,
   mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
-  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountScreenInteraction, mountSaveWiring, mountWaveEvents, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountScreenInteraction, mountSaveWiring, mountWaveEvents, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, mountAssetBootstrap, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
   mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
   mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
   mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
@@ -2248,32 +2248,25 @@ document.addEventListener("keydown", (e) => {
 // Wire quest progress: build mode enter → quest "world" step 0
 const _origBuildToggle = () => {};
 
-// ───── Asset loading (gltf_loader.js — multi-format) ─────
-// Wait a tick for the lazy loader imports to settle, then fire load.
-// Supports .glb (Kenney) + .obj (Quaternius) + .fbx (Mixamo etc).
-// Missing files silently fall back to placeholder primitives.
-setTimeout(() => {
-  if (!window.AssetLoader) return;
-  window.AssetLoader.load(THREE, Loaders).then((r) => {
-    if (!r || !r.ok) {
-      console.info("Assets: manifest load skipped/failed:", r && r.reason);
-      return;
-    }
-    console.info("Assets: loaders ready", r.formats, "—", r.slotCount, "slots");
-    // When a pistol GLB loads, swap via registerGunMesh so the registry stays consistent
-    if (window.registerGunMesh) {
-      const pistolPlaceholder = _gunMeshes.get("pistol");
-      window.AssetLoader.replacePlaceholder("pistol", _gunMount, pistolPlaceholder, { position: { x: 0, y: 0, z: 0 } });
-    }
-    window.AssetLoader.replacePlaceholder("car", carGroup, carBody, { position: { x: 0, y: 0.7, z: 0 } });
-    if (typeof pickupMeshes !== "undefined") {
-      for (const pk of pickups) {
-        const m = pickupMeshes.get(pk.id);
-        window.AssetLoader.replacePlaceholder("coin", scene, m, { position: { x: pk.u, y: 1.0, z: pk.v } });
-      }
-    }
-  }).catch((e) => console.warn("Assets: load threw:", e.message));
-}, 200);
+// Pseudocode: after lazy loader imports settle, replace placeholder meshes from asset manifest.
+mountAssetBootstrap({
+  THREE,
+  Loaders,
+  scene,
+  get: {
+    gunMeshes: () => _gunMeshes,
+    gunMount: () => _gunMount,
+    carGroup: () => carGroup,
+    carBody: () => carBody,
+    pickupMeshes: () => (typeof pickupMeshes !== "undefined") ? pickupMeshes : null,
+    pickups: () => pickups,
+  },
+  actions: {
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    info: (...args) => console.info(...args),
+    warn: (...args) => console.warn(...args),
+  },
+});
 
 // EXTRACT-PLAN iter 533: app_wiring.js → src/bridges/app_wiring.js
 // Covers: OS app bindings — calculator, terminal, file manager, etc.
