@@ -231,3 +231,26 @@ Verification:
 
 Next:
 - Extract in-world screens/build console.
+
+## iter 694 - extract in-world screens and build console
+
+Moved the jumbotron, sky screen, and build-console screen setup from
+`index.html` into `src/systems/world_screens.js`.
+
+The extraction preserves:
+- screen ids: `jumbotron50`, `sky1000`, `buildConsole`
+- screen resolutions: 768x460, 1024x512, 1024x400
+- jumbotron button regions and SFX/audio payloads
+- sky marquee timing and text positioning constants
+- build console dimensions, spawn/action button layout, and hover styling
+- build console spawn offset, y=1.0 spawn height, save/load toasts, and
+  legacy `window._buildConsoleScreen` / `window._buildConsoleMesh` bridges
+
+Verification:
+- `npx vitest run tests/unit/world_screens.test.js tests/unit/screen_interaction.test.js tests/unit/screen_mesh_tick.test.js` passed
+- `npm test` passed: 232 files, 3757 tests
+- `npm run browser-check` passed: BROWSER OK
+- `npm run count:index`: 2683 total, 1973 code
+
+Next:
+- Extract device graph + mon1 screen wiring.
