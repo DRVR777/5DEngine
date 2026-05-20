@@ -197,7 +197,7 @@ import {
   mountStaticSupply, mountSpeedOrbSpawner,
   Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
   // Social
-  createLanSession, mountMpBadge,
+  createLanSession, mountMpBadge, mountAppMultiplayerWiring,
   // Core
   Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh, mountWorldBuilderControls, mountWorldBuilderHotbar, mountWorldScreens, mountDeviceGraphWiring,
   // Config
@@ -2268,86 +2268,62 @@ mountAssetBootstrap({
   },
 });
 
-// EXTRACT-PLAN iter 533: app_wiring.js → src/bridges/app_wiring.js
-// Covers: OS app bindings — calculator, terminal, file manager, etc.
-// ───── Desktop OS app wiring ─────
-let _duelMode = null;   // assigned after _mp is created below
-const APPS = buildComputerApps(() => ({
-  getWeapon, pistolAmmo, Inv, heroInv, heroHealth, score, CFG,
-  world, inCar, carState, camDist, camSide, nearComputer,
-  buildings, computerEntity, VEHICLE_DEFS, deviceBus, heroMedia,
-  mpState: _mpState, gameMode,
-  mp: _mp, duelMode: _duelMode,
-}));
-addDynamicIcons();
-
-mountComputerUI({
-  getAPPS:       () => APPS,
-  getDeviceBus:  () => deviceBus,
-  getHeroMedia:  () => heroMedia,
-  setHeroMedia:  (arr) => { heroMedia = arr; },
-  getMpState:    () => _mpState,
-  getDuelMode:   () => _duelMode,
-  playSfx,
-  showToast,
-  closeComputer,
-  setGameMode:   (m) => { gameMode = m; },
-  setFirstLaunch:(b) => { _firstLaunch = b; },
-});
-
-// ── Multiplayer (LAN) ────────────────────────────────────────────────────────
-const _mp = (_mpRef = createLanSession({
+// Pseudocode: build desktop apps, mount computer UI, create LAN session, duel mode, badge, and peer sync.
+const _appMp = mountAppMultiplayerWiring({
   THREE, scene,
-  state: _mpState,
-  getShowToast:  () => typeof showToast === "function" ? showToast : null,
-  getEnemies:    () => enemies,
-  getCamera:     () => camera,
-  getGameState:  () => ({
-    camYaw, currentWeaponId, heroHp, inCar,
-    isSprinting: !!(keys && (keys["ShiftLeft"] || keys["ShiftRight"])),
-    crouching:   !!(keys && (keys["ControlLeft"] || keys["ControlRight"])),
-  }),
-}));
-
-// Mount duel mode — needs _mp ready
-_duelMode = mountDuelMode({
-  mp: _mp,
+  buildComputerApps,
+  addDynamicIcons,
+  mountComputerUI,
+  createLanSession,
+  mountDuelMode,
+  mountMpBadge,
+  eventBus: typeof EventBus !== "undefined" ? EventBus : null,
+  state: { mpState: _mpState },
   get: {
-    heroHp:      () => heroHp,
-    HERO_MAX_HP: () => CFG.heroMaxHp || 100,
-    myId:        () => null,   // _mp exposes no myId externally; duel uses fromId from events
+    getWeapon: () => getWeapon,
+    pistolAmmo: () => pistolAmmo,
+    Inv: () => Inv,
+    heroInv: () => heroInv,
+    heroHealth: () => heroHealth,
+    score: () => score,
+    CFG: () => CFG,
+    world: () => world,
+    inCar: () => inCar,
+    carState: () => carState,
+    camDist: () => camDist,
+    camSide: () => camSide,
+    nearComputer: () => nearComputer,
+    buildings: () => buildings,
+    computerEntity: () => computerEntity,
+    VEHICLE_DEFS: () => VEHICLE_DEFS,
+    deviceBus: () => deviceBus,
+    heroMedia: () => heroMedia,
+    gameMode: () => gameMode,
+    enemies: () => enemies,
+    camera: () => camera,
+    camYaw: () => camYaw,
+    currentWeaponId: () => currentWeaponId,
+    heroHp: () => heroHp,
+    keys: () => keys,
   },
   set: {
-    heroHp: (v) => { heroHp = Math.max(0, Math.min(CFG.heroMaxHp || 100, v)); },
+    heroMedia: arr => { heroMedia = arr; },
+    gameMode: m => { gameMode = m; },
+    firstLaunch: b => { _firstLaunch = b; },
+    heroHp: v => { heroHp = v; },
   },
   actions: {
-    showToast,
     playSfx,
+    showToast,
+    closeComputer,
     spawnParticles: _spawnParticles,
     addKillFeedEntry: _addKillFeedEntry,
-    teleportHero: (u, y, v) => {
-      const hp = world.players.get("hero");
-      if (hp) { hp.u = u; hp.v = v; hp.y = y; }
-    },
+    setInterval: (fn, ms) => setInterval(fn, ms),
   },
 });
-
-// Send hero position to peers at 20 Hz
-setInterval(() => {
-  if (typeof world === "undefined") return;
-  const hp = world.players.get("hero");
-  if (hp) _mp.send(hp);
-}, 50);
-
-// Route all kill events to peers via EventBus so we don't patch every kill site
-if (typeof EventBus !== "undefined") {
-  EventBus.on(EventBus.EVENTS.ENEMY_KILLED, (data) => {
-    _mp.sendEvent("enemy_kill", { enemy_id: data.id });
-  });
-}
-// ═══ EXTRACTED → src/social/mp_badge.js (iter 582)
-mountMpBadge({ getPeersSize: () => _mp.peers.size });
-// ── End multiplayer ──────────────────────────────────────────────────────────
+const APPS = _appMp.APPS;
+const _mp = (_mpRef = _appMp.mp);
+const _duelMode = _appMp.duelMode;
 
 // ═══ EXTRACTED → src/bridges/test_bridge.js (iter 689) ════════════════════════
 mountTestBridge({

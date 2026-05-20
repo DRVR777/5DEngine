@@ -300,3 +300,28 @@ Verification:
 
 Next:
 - Extract app + multiplayer wiring.
+
+## iter 697 - extract app multiplayer wiring
+
+Moved desktop-app construction, computer UI mounting, LAN session creation,
+duel mode mounting, hero peer sync, enemy-kill forwarding, and multiplayer badge
+wiring into `src/bridges/app_multiplayer_wiring.js`.
+
+The extraction preserves:
+- APPS state shape passed to `buildComputerApps`
+- `mountComputerUI` callbacks for apps, media, mp state, duel mode, game mode,
+  first launch, toast, SFX, and close computer
+- LAN session game-state shape, sprint/crouch key checks, and toast getter
+- duel HP clamp to `CFG.heroMaxHp || 100`
+- 50ms hero-position peer sync interval
+- `enemy_kill` event payload forwarded from `EventBus.EVENTS.ENEMY_KILLED`
+- multiplayer badge peer-count callback
+
+Verification:
+- `npx vitest run tests/unit/app_multiplayer_wiring.test.js tests/unit/computer_apps.test.js tests/unit/computer_ui_events.test.js tests/unit/lan_session.test.js tests/unit/duel_mode.test.js tests/unit/mp_badge.test.js` passed
+- `npm test` passed: 235 files, 3773 tests
+- `npm run browser-check` passed: BROWSER OK
+- `npm run count:index`: 2523 total, 1851 code
+
+Next:
+- Extract runtime error reporter.

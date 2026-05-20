@@ -176,6 +176,7 @@ export { default as Vfx, warnRingGeo, warnRingMat } from "./render/vfx.js";
 // ── Social ───────────────────────────────────────────────────────────────────
 export { createLanSession } from "./social/lan_session.js";
 export { mountMpBadge }    from "./social/mp_badge.js";
+export { mountAppMultiplayerWiring } from "./bridges/app_multiplayer_wiring.js";
 
 // ── Economy ──────────────────────────────────────────────────────────────────
 export { mountShopPanel } from "./economy/shop_panel.js";
