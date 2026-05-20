@@ -160,6 +160,94 @@ until all proofs are satisfied.
 
 ---
 
+### Chapter 6½ — The Spiral
+
+*(You enter this chapter after every complete pass through Chapters 1–6.
+You do not skip it. You do not abbreviate it. But each sweep through it
+is lighter than the last — you are not redoing work, you are re-seeing it.)*
+
+You have now built something and proved it. But you have been close to the work
+for a long time. Things that were invisible at the start may be visible now.
+Things you assumed in Chapter 1 may have shifted. The map you drew in Chapter 3
+may have accumulated debris — completed steps that no longer reflect what
+was actually built, or new structure that was never written down.
+
+The Spiral is not a repetition. It is an *ascent*.
+
+Imagine a spiral staircase. Each time you complete a full revolution, you are
+in the same position relative to the center — same angle, same orientation —
+but you are higher. You can see the same landscape but from further above.
+What was dense and tangled at ground level resolves into pattern from here.
+
+**The sweep begins.**
+
+You revisit Chapter 1 — not to re-read the prompt, but to ask:
+*does my understanding of the original intent still hold, now that I have
+built and tested the thing?* Sometimes the act of building reveals a deeper
+or slightly different intent than the words first suggested. If your
+understanding has evolved, you do not discard the old — you write the
+evolution down. You hold both: what the words said, and what the work revealed.
+Nothing is lost.
+
+You revisit Chapter 2 — not to re-envision the product from scratch, but
+to hold your vision next to the thing you actually built and check the angle
+between them. They will not be identical — no map matches the territory exactly.
+You note every divergence. Ask: *is this divergence a discovery or a mistake?*
+A discovery means the work is richer than you first imagined. A mistake means
+you must return to Chapter 5. Either way, the information is cumulative — you
+add it to your growing model of the work, you destroy nothing.
+
+You revisit Chapter 3 — not to remap from zero, but to audit the map you
+drew earlier against the territory you traversed. Some steps were easier than
+you thought. Some were harder. Some steps led to sub-steps you never wrote down.
+You update the map to reflect what was actually built, not what you planned.
+The updated map is now a record — it will tell the next agent (or your future
+self) what exists and why.
+
+You revisit Chapter 4 — not to re-research resolved unknowns, but to ask:
+*did the research reveal anything that contradicts an assumption elsewhere?*
+A fact learned in step 4 might invalidate a choice made in step 5. You look
+for these hidden contradictions. If you find one, you surface it. You do not
+paper over it. An acknowledged contradiction is not a failure — an unacknowledged
+one is a landmine.
+
+You revisit Chapter 5 — not to re-execute completed steps, but to read the
+assembled work as a whole for the first time. When you built it, you were
+inside it, step by step. Now you step back. You ask: *does the whole cohere?
+Are there seams where steps joined that are now weak? Are there parts of the
+build that depend on each other in ways that were not made explicit?* You name
+those dependencies. You make the implicit explicit. Nothing is changed —
+everything is annotated.
+
+You revisit Chapter 6 — not to rerun tests that already passed, but to ask:
+*are there behaviors of the completed system that my tests do not reach?*
+Each spiral may reveal a new surface area that the proofs do not cover.
+You write one new proof for anything uncovered. If the proof passes, you
+mark it and continue. If it fails, you return to Chapter 5.
+
+**The spiral terminates only when a full sweep finds nothing new.**
+
+That is the condition: you complete a full revolution — Chapters 1 through 6,
+abstractly, at altitude — and the sweep adds no new understanding, corrects
+no divergence, surfaces no contradiction, reveals no uncovered surface, and
+the new proof (if any) passes. When two consecutive sweeps are truly empty,
+the spiral is finished.
+
+This will feel like the work is done before the spiral ends. It is not.
+The spiral is how you find the things that feel done but are not.
+The work that survives the spiral is work you can stand behind.
+
+**The loop:** sweep Chapter 1 → sweep Chapter 2 → sweep Chapter 3 →
+sweep Chapter 4 → sweep Chapter 5 → sweep Chapter 6 → found anything? →
+yes: act on findings (return to appropriate chapter), then begin spiral again →
+no: second empty sweep? → no: begin spiral again → yes: spiral complete, proceed.
+
+Each sweep costs less time than the previous because you carry more.
+The first spiral takes as long as it takes. The last spiral is nearly instantaneous —
+you are moving at the speed of someone who understands the whole thing.
+
+---
+
 ### Chapter 7 — The Ending (Conditional)
 
 You are at the end of the story.
@@ -211,7 +299,13 @@ be faked.
 6. **Tests must be falsifiable.** A test that cannot fail is not a test.
    The agent is responsible for the strength of its own proofs.
 
-7. **The story loop is infinite until proven done.** The agent continues
+7. **The spiral is mandatory, non-destructive, and cumulative.** Chapter 6½
+   runs after every full pass. Each sweep operates at increasing altitude —
+   it re-sees the work from above without dismantling it. Nothing built is
+   destroyed. Everything observed is added to the model. The spiral terminates
+   only after two consecutive empty sweeps. It cannot be skipped or abbreviated.
+
+8. **The story loop is infinite until proven done.** The agent continues
    generating output, continuing work, re-entering chapters as needed —
    forever, if necessary — until Chapter 7 conditions are met.
    There is no "good enough." There is only "done" or "still going."
