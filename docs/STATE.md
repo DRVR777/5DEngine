@@ -1,12 +1,12 @@
 STATE.md - loop progress tracker
 
-Last completed iter: 691 in progress
+Last completed iter: 692 in progress
 
 Current index.html:
-  total lines:        3260
-  code lines:         2471
-  blank lines:        244
-  comment-only lines: 545
+  total lines:        3126
+  code lines:         2348
+  blank lines:        239
+  comment-only lines: 539
 
 Original LOOP_PROMPT five named targets:
   1. enemy AI loop       DONE
@@ -21,13 +21,14 @@ Current loop prompt:
 Grouped extraction queue:
   0. canvas_primary_action cleanup          DONE (before codex)
   1. builder UI refresh                     DONE (iter 691)
-  2. world builder setup/hotbar/creative    NEXT
-  3. in-world screens/build console         pending
-  4. device graph + mon1 screen             pending
-  5. asset loading bootstrap                pending
-  6. app + multiplayer wiring               pending
-  7. runtime error reporter                 pending
-  8. grouped mount factories                pending
+  2. world builder controls                 DONE (iter 692)
+  3. world builder hotbar/creative/sync     NEXT
+  4. in-world screens/build console         pending
+  5. device graph + mon1 screen             pending
+  6. asset loading bootstrap                pending
+  7. app + multiplayer wiring               pending
+  8. runtime error reporter                 pending
+  9. grouped mount factories                pending
 
 Notes:
   - src/systems/perk_system.js has an unrelated dirty change in the worktree.

@@ -157,6 +157,29 @@ Collapse the remaining bullet movement/substep shell into a bullet physics
 coordinator.
 
 **Next:** Tick 3 — wire core.js into index.html as additive import. Register prefabs from data/.
+## iter 692 - extract world builder controls
+
+Moved the first world-builder wiring chunk from `index.html` into
+`src/builder/world_builder_controls.js`.
+
+The extraction preserves:
+- spawn-primitive buttons and 2m forward spawn offset
+- inspector position/rotation/scale writeback
+- degree-to-radian conversion with `180 / Math.PI`
+- delete/clone/color/intensity/undo/redo/script buttons
+- named scene save/load/delete list refresh
+- JSON export/import and URL revoke timeout
+- saved scene rehydrate logging
+
+Verification:
+- `npx vitest run tests/unit/world_builder_controls.test.js tests/unit/builder_ui_refresh.test.js` passed
+- `npm test` passed: 230 files, 3745 tests
+- `npm run count:index`: 3126 total, 2348 code
+
+Next:
+- Continue the world-builder block with hotbar, creative inventory, texture
+  panel, group selected, and build sync wiring.
+
 ## iter 691 - extract builder UI refresh
 
 Moved the per-frame builder inspector refresh from `index.html` into

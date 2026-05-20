@@ -184,6 +184,7 @@ export { Core } from "./core/core.js";
 export { mountEngineRegistry } from "./core/engine_registry.js";
 export { mountEcsBootstrap }   from "./core/ecs_bootstrap.js";
 export { mountBuilderUiRefresh, refreshBuilderUi } from "./builder/builder_ui_refresh.js";
+export { mountWorldBuilderControls, wireInspectorInputs } from "./builder/world_builder_controls.js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 export { ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS } from "./config/enemy_types.js";
