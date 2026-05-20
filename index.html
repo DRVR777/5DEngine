@@ -234,6 +234,7 @@ import {
   createGrenadeCrateSystem, createArmorVestSystem,
   computeBulletDamage,
   computeHurtSfx,
+  mountTestBridge,
 } from "./src/engine_modules.js";
 const showToast = Notifications.showToast;
 const _addKillFeedEntry = Notifications.addKillFeedEntry;
@@ -3124,431 +3125,86 @@ if (typeof EventBus !== "undefined") {
 mountMpBadge({ getPeersSize: () => _mp.peers.size });
 // ── End multiplayer ──────────────────────────────────────────────────────────
 
-// ── Test bridge (iter 426) ────────────────────────────────────────────────────
-// Activated ONLY when ?_5dtest=1 is in the URL. Zero production impact.
-// Playwright tests navigate to https://localhost:5050/?_5dtest=1 and use this
-// to inspect internal module state and call internal functions directly.
-if (typeof location !== "undefined" && new URLSearchParams(location.search).has("_5dtest")) {
-  const _5DTestErrors = [];
-  let _5DTestCrashHandlerInstalled = false;
-  const _5DTestSafe = (fn) => {
-    try { return fn(); }
-    catch (e) { return { ok: false, error: e.message, stack: e.stack }; }
-  };
-  const _5DTestHero = () => world.players.get("hero") || { u: 0, v: 0, y: 0 };
-  const _5DTestEnemySnapshot = () => {
-    const hpOf = en => en.hp ?? en.health ?? 0;
-    return enemies.map(en => {
-      const ep = world.players.get(en.id) || { u: null, v: null, y: null };
-      const hp = hpOf(en);
-      const hero = _5DTestHero();
-      return {
-        id: en.id,
-        type: en.type || en.kind || "enemy",
-        u: ep.u,
-        v: ep.v,
-        y: ep.y ?? null,
-        hp,
-        maxHp: en.maxHp ?? en.hpMax ?? en.baseHp ?? hp,
-        dead: !!en.dead || hp <= 0,
-        distance: Number.isFinite(ep.u) && Number.isFinite(ep.v) ? Math.hypot(ep.u - hero.u, ep.v - hero.v) : null,
-        hasLOS: Number.isFinite(ep.u) && Number.isFinite(ep.v) ? hasLOS(hero.u, hero.v, ep.u, ep.v, buildingBlockers) : null,
-      };
-    });
-  };
-  const _5DTestWaveState = () => {
-    const ws = typeof WaveManager !== "undefined" ? WaveManager.getState() : {};
-    const live = enemies.filter(en => !en.dead && (en.hp ?? 1) > 0).length;
-    return {
-      number: ws.wave ?? null,
-      phase: ws.phase ?? null,
-      aliveCount: ws.aliveCount ?? live,
-      totalEnemies: ws.enemies ? ws.enemies.reduce((n, g) => n + (g.count || 0), 0) : live,
-      countdown: ws.countdown ?? 0,
-      pauseLeft: ws.pauseLeft ?? 0,
-      perkPickerVisible: document.getElementById("perkPicker")?.style?.display !== "none",
-    };
-  };
-  window._5DTest = {
-    installCrashHandler: () => {
-      if (_5DTestCrashHandlerInstalled) return { ok: true, installed: false };
-      window.addEventListener("error", e => {
-        _5DTestErrors.push({ type: "error", message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno });
-      });
-      window.addEventListener("unhandledrejection", e => {
-        _5DTestErrors.push({ type: "unhandledrejection", message: String(e.reason?.message || e.reason || "") });
-      });
-      _5DTestCrashHandlerInstalled = true;
-      return { ok: true, installed: true };
-    },
-    getErrors: () => _5DTestErrors.slice(),
-    clearErrors: () => { _5DTestErrors.length = 0; return { ok: true }; },
-    bootStatus: () => ({ ok: true, hasWorld: !!world, hasHero: !!world.players.get("hero"), hasWaveManager: typeof WaveManager !== "undefined" }),
-    setLowPowerMode: () => _5DTestSafe(() => {
-      window._5DTestLowPower = true;
-      if (renderer) {
-        renderer.setPixelRatio(0.01);
-        renderer.setSize(1, 1, false);
-      }
-      const canvas = document.getElementById("gameCanvas") || document.querySelector("canvas");
-      if (canvas) {
-        canvas.width = 1;
-        canvas.height = 1;
-        canvas.style.width = "1px";
-        canvas.style.height = "1px";
-      }
-      if (composer?.setSize) composer.setSize(1, 1);
-      return { ok: true, width: 1, height: 1, noRender: _5D_NO_RENDER };
-    }),
-    state: () => {
-      const hero = _5DTestHero();
-      const weapon = getWeapon();
-      return {
-        hero: {
-          u: hero.u, v: hero.v, y: hero.y,
-          hp: heroHp,
-          maxHp: HERO_MAX_HP + (_perkMaxHpBonus || 0),
-          ammo: pistolAmmo,
-          dead: !!_heroDead,
-          weaponId: currentWeaponId,
-          godMode: !!(window.Engine && window.Engine.debug && window.Engine.debug.godMode),
-          infiniteAmmo: !!window._5DTestInfiniteAmmo,
-        },
-        enemies: _5DTestEnemySnapshot(),
-        wave: _5DTestWaveState(),
-        camera: { yaw: camYaw, pitch: camPitch, dist: camDist, mode: buildMode ? "build" : camDist < 0.5 ? "fp" : "tp" },
-        perf: {
-          fps: _fpsDisplay || 0,
-          frameTimeMs: Math.max(0, performance.now() - lastT),
-          lastFrameMs: lastT,
-          memoryMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
-        },
-        counts: {
-          particles: Vfx.getCounts?.().particles ?? 0,
-          bullets: bullets3D.length,
-          enemyBullets: enemyBullets.length,
-          listeners: null,
-          intervals: null,
-          meshes: scene?.children?.length ?? null,
-          materials: null,
-          geometries: null,
-        },
-        blocked: window._5DTest.isBlocked(),
-        weapon: { id: weapon.id, ammoItem: weapon.ammoItem || null },
-      };
-    },
-    dismissAllDialogs: () => _5DTestSafe(() => {
-      const dismissed = [];
-      if (typeof closeComputer === "function") { closeComputer(); dismissed.push("computer"); }
-      computerOpen = false; computerEntering = false; _firstLaunch = false;
-      if (_shop?.isOpen) { _shop.close(); dismissed.push("shop"); }
-      if (_settings?.isOpen) { _settings.close(); dismissed.push("settings"); }
-      if (_npcDialog?.isOpen) { _npcDialog.close(); dismissed.push("npc_dialog"); }
-      const inv = document.getElementById("inventory");
-      if (inv?.classList?.contains("open")) { inv.classList.remove("open"); dismissed.push("inventory"); }
-      const death = document.getElementById("deathScreen");
-      if (death && death.style.display !== "none") { death.style.display = "none"; dismissed.push("death"); }
-      buildMode = false;
-      return { ok: true, dismissed, remaining: window._5DTest.isBlocked().blocked ? [window._5DTest.isBlocked().by] : [] };
-    }),
-    isBlocked: () => {
-      const perk = document.getElementById("perkPicker");
-      if (perk && perk.style.display !== "none") return { blocked: true, by: "perk_picker" };
-      if (computerOpen || computerEntering) return { blocked: true, by: "computer" };
-      if (_shop?.isOpen) return { blocked: true, by: "shop" };
-      if (_settings?.isOpen) return { blocked: true, by: "settings" };
-      if (_npcDialog?.isOpen) return { blocked: true, by: "npc_dialog" };
-      if (buildMode) return { blocked: true, by: "build_mode" };
-      return { blocked: false, by: null };
-    },
-    startWaveMode: () => _5DTestSafe(() => {
-      window._5DTest.dismissAllDialogs();
-      gameMode = "wave_defense";
-      if (typeof WaveManager !== "undefined") {
-        const ws = WaveManager.getState();
-        if (!ws.started || ws.phase === "idle" || ws.phase === "done") {
-          WaveManager.reset();
-          WaveManager.start();
-        }
-        for (let i = 0; i < 18; i++) WaveManager.tick(0.35);
-      }
-      if (!enemies.some(en => !en.dead && (en.hp ?? 1) > 0) && typeof window._spawnEnemyAtHero === "function") {
-        window._spawnEnemyAtHero("grunt");
-      }
-      return { ok: true, wave: _5DTestWaveState() };
-    }),
-    pickFirstPerk: () => _5DTestSafe(() => {
-      const overlay = document.getElementById("perkPicker");
-      if (!overlay || overlay.style.display === "none") return { ok: true, picked: null, reason: "no perk picker visible" };
-      const card = document.querySelector("#perkCards > div");
-      if (!card) { overlay.style.display = "none"; return { ok: true, picked: null, reason: "no perk card available" }; }
-      const picked = card.textContent || "first";
-      card.click();
-      return { ok: true, picked };
-    }),
-    pickPreferredPerk: (preferredLabels = []) => _5DTestSafe(() => {
-      const overlay = document.getElementById("perkPicker");
-      if (!overlay || overlay.style.display === "none") return { ok: true, picked: null, reason: "no perk picker visible" };
-      const cards = [...document.querySelectorAll("#perkCards > div")];
-      if (cards.length === 0) { overlay.style.display = "none"; return { ok: true, picked: null, reason: "no perk card available" }; }
-      const preferred = preferredLabels.map(s => String(s).toLowerCase());
-      const card = cards.find(c => preferred.some(p => c.textContent.toLowerCase().includes(p))) || cards[0];
-      const picked = card.textContent || "first";
-      card.click();
-      return { ok: true, picked };
-    }),
-    ensureGodModeAndInfiniteAmmo: () => _5DTestSafe(() => {
-      window.Engine.debug.godMode = true;
-      window._5DTestInfiniteAmmo = true;
-      _heroDead = false;
-      heroHp = HERO_MAX_HP + (_perkMaxHpBonus || 0);
-      _reloading = false;
-      for (const w of (CFG.weapons || [])) weaponAmmo.set(w.id, w.magCap || 999);
-      pistolAmmo = getWeapon().magCap || 999;
-      return { ok: true, heroHp, ammo: pistolAmmo };
-    }),
-    healthState: () => ({ hp: heroHp, maxHp: HERO_MAX_HP + (_perkMaxHpBonus || 0), dead: !!_heroDead, armor: heroArmor }),
-    lockOnNearestEnemy: () => _5DTestSafe(() => {
-      const hero = _5DTestHero();
-      const target = _5DTestEnemySnapshot()
-        .filter(en => !en.dead && Number.isFinite(en.u) && Number.isFinite(en.v))
-        .sort((a, b) => a.distance - b.distance)[0];
-      if (!target) return null;
-      camYaw = Math.atan2(target.u - hero.u, target.v - hero.v);
-      camPitch = -0.08;
-      aiming = true;
-      camera.lookAt(target.u, (target.y ?? 0) + 1.0, target.v);
-      camera.updateMatrixWorld(true);
-      return target.id;
-    }),
-    shootNearestBurst: (shots = 1) => _5DTestSafe(() => {
-      const id = window._5DTest.lockOnNearestEnemy();
-      if (!id || id.ok === false) return { ok: false, id: null, shots: 0, reason: "no target" };
-      let fired = 0;
-      const maxShots = window._5DTestLowPower ? 1 : Math.max(1, shots);
-      for (let i = 0; i < maxShots; i++) {
-        if (window._5DTestInfiniteAmmo) {
-          _reloading = false;
-          pistolAmmo = getWeapon().magCap || pistolAmmo || 999;
-          weaponAmmo.set(currentWeaponId, pistolAmmo);
-        }
-        pistolCooldown = 0;
-        _tryShoot();
-        fired++;
-      }
-      return { ok: true, id, shots: fired };
-    }),
-    fireAtEnemyByPosition: (id = null, options = {}) => _5DTestSafe(() => {
-      const hero = _5DTestHero();
-      const target = id
-        ? enemies.find(en => en.id === id && !en.dead && (en.hp ?? 1) > 0)
-        : _5DTestEnemySnapshot()
-            .filter(en => !en.dead && Number.isFinite(en.u) && Number.isFinite(en.v))
-            .sort((a, b) => a.distance - b.distance)[0];
-      if (!target) return { ok: false, id: null, reason: "no target" };
-      const ep = world.players.get(target.id);
-      if (!ep) return { ok: false, id: target.id, reason: "target has no position" };
-      const du = ep.u - hero.u;
-      const dv = ep.v - hero.v;
-      const dist = Math.hypot(du, dv) || 1;
-      const dirU = du / dist;
-      const dirV = dv / dist;
-      const spawnNearTarget = !!options.spawnNearTarget;
-      const startU = spawnNearTarget ? ep.u - dirU * 0.25 : hero.u;
-      const startV = spawnNearTarget ? ep.v - dirV * 0.25 : hero.v;
-      const startY = spawnNearTarget ? ((ep.y ?? 0) + 1.1) : hero.y + 1.1;
-      const wep = getWeapon();
-      if (window._5DTestInfiniteAmmo) {
-        _reloading = false;
-        pistolAmmo = wep.magCap || pistolAmmo || 999;
-        weaponAmmo.set(currentWeaponId, pistolAmmo);
-      }
-      const mesh = new THREE.Object3D();
-      mesh.position.set(startU, startY, startV);
-      bullets3D.push({
-        mesh,
-        posU: startU,
-        posV: startV,
-        posY: startY,
-        dirU,
-        dirY: 0,
-        dirV,
-        speed: spawnNearTarget ? 30 : Math.max(30, Math.min(120, dist * 12)),
-        traveled: 0,
-        range: spawnNearTarget ? 2 : Math.max(10, dist + 5),
-        damage: wep.damage || 12,
-        falloff: wep.falloff || 0,
-        weaponId: currentWeaponId,
-      });
-      _shotsFired++;
-      _lastHeroShotT = performance.now() / 1000;
-      _heroShotAlertU = hero.u;
-      _heroShotAlertV = hero.v;
-      _heroShotAlertT = 3.0;
-      return { ok: true, id: target.id, distance: dist, spawnNearTarget };
-    }),
-    moveHeroTo: (u, v, y = null) => _5DTestSafe(() => {
-      const hero = _5DTestHero();
-      const ny = Number.isFinite(y) ? y : hero.y;
-      world.setPlayer("hero", u, ny, v, u, v);
-      return { ok: true, hero: { u, v, y: ny } };
-    }),
-    moveHeroTowardEnemy: (id = null, desiredDistance = 4) => _5DTestSafe(() => {
-      const hero = _5DTestHero();
-      const target = id
-        ? enemies.find(en => en.id === id && !en.dead && (en.hp ?? 1) > 0)
-        : _5DTestEnemySnapshot()
-            .filter(en => !en.dead && Number.isFinite(en.u) && Number.isFinite(en.v))
-            .sort((a, b) => a.distance - b.distance)[0];
-      if (!target) return { ok: false, reason: "no target" };
-      const ep = world.players.get(target.id);
-      if (!ep) return { ok: false, id: target.id, reason: "target has no position" };
-      const du = hero.u - ep.u;
-      const dv = hero.v - ep.v;
-      const len = Math.hypot(du, dv) || 1;
-      const dist = Math.max(1, desiredDistance);
-      const u = ep.u + (du / len) * dist;
-      const v = ep.v + (dv / len) * dist;
-      world.setPlayer("hero", u, hero.y, v, u, v);
-      camYaw = Math.atan2(ep.u - u, ep.v - v);
-      camPitch = -0.08;
-      return { ok: true, id: target.id, hero: { u, v, y: hero.y }, distance: dist };
-    }),
-    advanceWaveClock: (steps = 1, dt = 0.35) => _5DTestSafe(() => {
-      const maxSteps = Math.max(1, Math.min(60, steps | 0));
-      const safeDt = Math.max(0.016, Math.min(1, Number(dt) || 0.35));
-      if (typeof WaveManager !== "undefined") {
-        for (let i = 0; i < maxSteps; i++) WaveManager.tick(safeDt);
-      }
-      return { ok: true, steps: maxSteps, dt: safeDt, wave: _5DTestWaveState() };
-    }),
-    killEnemy: (id) => _5DTestSafe(() => {
-      const en = enemies.find(e => e.id === id);
-      if (!en) return { ok: false, error: "enemy not found" };
-      en.hp = 0;
-      en.dead = true;
-      en._hpBarShowT = performance.now() / 1000;
-      return { ok: true, id };
-    }),
-    killNearestEnemy: () => {
-      const id = window._5DTest.lockOnNearestEnemy();
-      if (!id || id.ok === false) return id;
-      return window._5DTest.killEnemy(id);
-    },
-    forceNextWave: () => _5DTestSafe(() => {
-      for (const en of enemies) {
-        if (String(en.id).startsWith("en_spawned_")) { en.hp = 0; en.dead = true; }
-      }
-      if (typeof WaveManager !== "undefined") WaveManager.tick(1);
-      return { ok: true, wave: _5DTestWaveState() };
-    }),
-    hardReset: () => _5DTestSafe(() => {
-      window._5DTest.dismissAllDialogs();
-      _heroDead = false;
-      heroHp = HERO_MAX_HP + (_perkMaxHpBonus || 0);
-      for (const en of enemies) { en.dead = true; en.hp = 0; }
-      if (typeof WaveManager !== "undefined") { WaveManager.reset(); WaveManager.start(); }
-      return { ok: true };
-    }),
-    perfSnapshot: () => window._5DTest.state().perf,
-    // Call _tryShoot() directly — bypasses pointer-lock gate so tests can verify
-    // shooting doesn't throw without needing a real browser pointer-lock grant.
-    shoot: () => {
-      try {
-        if (window._5DTestInfiniteAmmo) {
-          _reloading = false;
-          pistolAmmo = getWeapon().magCap || pistolAmmo || 999;
-          weaponAmmo.set(currentWeaponId, pistolAmmo);
-        }
-        _tryShoot();
-        return { ok: true };
-      }
-      catch (e) { return { ok: false, error: e.message }; }
-    },
-    // Switch weapon and update meshes
-    setWeapon: (id) => { currentWeaponId = id; _switchGunMesh(id); },
-    // Toggle aiming state
-    setAiming: (on) => { aiming = !!on; },
-    // Force-close all overlays so tests can drive game state freely
-    closeOverlays: () => {
-      if (typeof closeComputer === "function") closeComputer();
-      computerOpen = false; computerEntering = false;
-      _firstLaunch = false;
-      _shop.close();
-      _settings.close();
-    },
-    // ── Weapon helpers ────────────────────────────────────────────────────────
-    getWeaponIds: () => (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons.map(w => w.id) : [],
-    switchWeapon: (id) => { try { window._5DTest.setWeapon(id); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-
-    // ── Pickup spawners ───────────────────────────────────────────────────────
-    spawnHealth:        (u, v) => { try { _spawnHealthPickup(u, v, 30);               return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    spawnAmmo:          (u, v) => { try { _spawnAmmoPickup(u, v, 30, "pistol_9mm");   return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    spawnArmor:         (u, v) => { try { _spawnArmorShard(u, v, 10);                 return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    spawnWeaponPickup:  (u, v, id) => { try { _spawnWeaponPickup(u, v, id);           return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    spawnCoinDrop:      (u, v) => { try { _spawnCoinDrop(u, v, 5);                    return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    spawnFirePatch:     (u, v) => { try { _spawnFirePatch(u, v, 2, 5);                return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    spawnPoisonPuddle:  (u, v) => { try { _spawnPoisonPuddle(u, v);                   return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-
-    // ── Wave / orb ────────────────────────────────────────────────────────────
-    triggerWaveStart: (waveNum) => {
-      try {
-        if (typeof _spawnSpeedOrb === "function" && waveNum >= 2) {
-          const _ang = Math.random() * Math.PI * 2, _dist = 4 + Math.random() * 4;
-          _spawnSpeedOrb(Math.cos(_ang) * _dist, Math.sin(_ang) * _dist);
-        }
-        return { ok: true };
-      } catch(e) { return { ok: false, error: e.message }; }
-    },
-
-    // ── Explosives / gadgets ──────────────────────────────────────────────────
-    throwGrenade:   () => { try { _throwGrenade(0);       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    throwSmoke:     () => { try { _throwSmokeGrenade();   return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    throwFlashbang: () => { try { _throwFlashbang();      return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    dropMine:       () => { try { _dropMine();             return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-
-    // ── UI panels ─────────────────────────────────────────────────────────────
-    openShop:       () => { try { _shop.open();            return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    closeShop:      () => { try { _shop.close();           return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    openSettings:   () => { try { _settings.open();        return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    closeSettings:  () => { try { _settings.close();       return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    showPerkPicker: (wave) => { try { _showPerkPicker(wave || 1); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    openNpcDialog:  (id) => { try { _npcDialog.open(id || "merchant"); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    closeNpcDialog: () => { try { _npcDialog.close();      return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-
-    // ── Game state mutations ──────────────────────────────────────────────────
-    setHeroHp:      (hp) => { try { heroHp = Math.max(0, Math.min(HERO_MAX_HP + (_perkMaxHpBonus || 0), hp)); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    applyDamage:    (dmg) => { try { heroHp = Math.max(0, heroHp - dmg); flashDamage(); return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-    setGameMode:    (mode) => { try { gameMode = mode; return { ok: true }; } catch(e) { return { ok: false, error: e.message }; } },
-
-    // ── Read snapshot of all core state ──────────────────────────────────────
-    getState: () => window._5DTest.state(),
-    legacyState: () => ({
-      camDist,
-      currentWeaponId,
-      gameMode,
-      pistolAmmo,
-      heroHp,
-      heroAlive:        !_heroDead,
-      pointerLocked,
-      bulletCount:      bullets3D.length,
-      scopeVisible:     document.getElementById("scopeOverlay")?.style?.display === "block",
-      shopOpen:         _shop.isOpen,
-      settingsOpen:     _settings.isOpen,
-      npcDialogOpen:    _npcDialog.isOpen,
-      buildMode:        typeof buildMode !== "undefined" ? buildMode : false,
-      speedOrbCount:    _speedOrbs.length,
-      healthPickupCount: healthPickups.length,
-      coinDropCount:    coinDrops.length,
-      firePatchCount:   firePatches.length,
-      poisonPuddleCount: poisonPuddles.length,
-      mineCount:        _mines.length,
-      inCar:            typeof inCar !== "undefined" ? inCar : false,
-    }),
-  };
-  console.info("[5DTest] test bridge active");
-}
-// ── End test bridge ───────────────────────────────────────────────────────────
+// ═══ EXTRACTED → src/bridges/test_bridge.js (iter 689) ════════════════════════
+mountTestBridge({
+  enemies, world, WaveManager, THREE, renderer, camera, composer, scene, Vfx,
+  bullets3D, enemyBullets, buildingBlockers, hasLOS, CFG,
+  shop: _shop, settings: _settings, npcDialog: _npcDialog,
+  get: {
+    heroHp:           () => heroHp,
+    HERO_MAX_HP:      () => HERO_MAX_HP,
+    perkMaxHpBonus:   () => _perkMaxHpBonus || 0,
+    pistolAmmo:       () => pistolAmmo,
+    heroDead:         () => _heroDead,
+    reloading:        () => _reloading,
+    camYaw:           () => camYaw,
+    camPitch:         () => camPitch,
+    camDist:          () => camDist,
+    buildMode:        () => buildMode,
+    aiming:           () => aiming,
+    gameMode:         () => gameMode,
+    computerOpen:     () => computerOpen,
+    computerEntering: () => computerEntering,
+    firstLaunch:      () => _firstLaunch,
+    currentWeaponId:  () => currentWeaponId,
+    heroArmor:        () => heroArmor,
+    pointerLocked:    () => pointerLocked,
+    fpsDisplay:       () => _fpsDisplay,
+    lastT:            () => lastT,
+    noRender:         () => _5D_NO_RENDER,
+    weaponAmmo:       () => weaponAmmo,
+    shotsFired:       () => _shotsFired,
+    speedOrbs:        () => _speedOrbs,
+    healthPickups:    () => healthPickups,
+    coinDrops:        () => coinDrops,
+    firePatches:      () => firePatches,
+    poisonPuddles:    () => poisonPuddles,
+    mines:            () => _mines,
+    inCar:            () => (typeof inCar !== "undefined" ? inCar : false),
+  },
+  set: {
+    heroHp:           v => { heroHp = v; },
+    pistolAmmo:       v => { pistolAmmo = v; },
+    heroDead:         v => { _heroDead = v; },
+    reloading:        v => { _reloading = v; },
+    camYaw:           v => { camYaw = v; },
+    camPitch:         v => { camPitch = v; },
+    buildMode:        v => { buildMode = v; },
+    aiming:           v => { aiming = v; },
+    gameMode:         v => { gameMode = v; },
+    computerOpen:     v => { computerOpen = v; },
+    computerEntering: v => { computerEntering = v; },
+    firstLaunch:      v => { _firstLaunch = v; },
+    currentWeaponId:  v => { currentWeaponId = v; },
+    pistolCooldown:   v => { pistolCooldown = v; },
+    shotsFired:       v => { _shotsFired = v; },
+    lastHeroShotT:    v => { _lastHeroShotT = v; },
+    heroShotAlertU:   v => { _heroShotAlertU = v; },
+    heroShotAlertV:   v => { _heroShotAlertV = v; },
+    heroShotAlertT:   v => { _heroShotAlertT = v; },
+  },
+  fns: {
+    getWeapon,
+    tryShoot:          _tryShoot,
+    switchGunMesh:     _switchGunMesh,
+    closeComputer:     typeof closeComputer !== "undefined" ? closeComputer : null,
+    flashDamage,
+    showPerkPicker:    _showPerkPicker,
+    spawnHealthPickup: _spawnHealthPickup,
+    spawnAmmoPickup:   _spawnAmmoPickup,
+    spawnArmorShard:   _spawnArmorShard,
+    spawnWeaponPickup: _spawnWeaponPickup,
+    spawnCoinDrop:     _spawnCoinDrop,
+    spawnFirePatch:    _spawnFirePatch,
+    spawnPoisonPuddle: _spawnPoisonPuddle,
+    throwGrenade:      _throwGrenade,
+    throwSmokeGrenade: _throwSmokeGrenade,
+    throwFlashbang:    _throwFlashbang,
+    dropMine:          _dropMine,
+    spawnSpeedOrb:     typeof _spawnSpeedOrb !== "undefined" ? _spawnSpeedOrb : null,
+    spawnEnemyAtHero:  typeof window._spawnEnemyAtHero === "function" ? window._spawnEnemyAtHero : null,
+  },
+});
 
 // ═══ EXTRACTED → src/core/ecs_bootstrap.js (iter 583)
 // ═══ TICK 3 — ECS Core boot (additive, parallel runtime) ═══════════════════
