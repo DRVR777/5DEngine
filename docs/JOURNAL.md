@@ -325,3 +325,24 @@ Verification:
 
 Next:
 - Extract runtime error reporter.
+
+## iter 698 - extract runtime error reporter
+
+Moved the footer runtime error reporter into
+`src/bridges/runtime_error_reporter.js`.
+
+The extraction preserves:
+- `http://localhost:3001/api/errors`
+- `window._5DErrorWave(w)` wave annotation hook
+- `uncaught` and `unhandledrejection` event types
+- POST headers and JSON payload shape
+- timestamp generation and fire-and-forget fetch behavior
+
+Verification:
+- `npx vitest run tests/unit/runtime_error_reporter.test.js` passed
+- `npm test` passed: 236 files, 3776 tests
+- `npm run browser-check` passed: BROWSER OK
+- `npm run count:index`: 2498 total, 1830 code
+
+Next:
+- Grouped mount factories / wiring compression prep.
