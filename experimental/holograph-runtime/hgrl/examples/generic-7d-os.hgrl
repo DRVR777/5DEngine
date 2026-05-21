@@ -1,16 +1,30 @@
-world "any" {
+world "generic-7d-os" {
   dimensions {
     x = identity
     y = dependency
     z = runtime_depth
-    u = world
-    v = machine
-    w = replication
-    t = time
+    u = world_membership
+    v = machine_membership
+    w = network_replication
+    t = time_version_history
   }
-  safety {
-    default_mode = propose_only
-    destructive_actions = forbidden
-    secrets = redact
-  }
+  safety { default_mode = propose_only destructive_actions = forbidden secrets = redact }
+}
+
+adapter "generic_processes" {
+  detects = "ps"
+  observes = "ps auxww"
+  emits = "runtime.process"
+}
+
+policy "high_disk_usage" {
+  applies_to = "server"
+  when = "state.disk.percent_used > 95"
+  propose = "move_artifacts_to_storage"
+  mode = "require_approval"
+}
+
+view "7d_os_graph" {
+  include = ["server", "world", "process", "database", "repo", "backup", "agent", "network"]
+  output = ["json", "markdown", "mermaid"]
 }

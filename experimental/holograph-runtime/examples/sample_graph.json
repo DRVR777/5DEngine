@@ -1,154 +1,32 @@
 {
-  "links": [
-    {
-      "meaning": "hosts",
-      "properties": {},
-      "source": "server-alpha",
-      "target": "world-alpha"
-    },
-    {
-      "meaning": "runs_as",
-      "properties": {},
-      "source": "world-alpha",
-      "target": "process-alpha"
-    },
-    {
-      "meaning": "persists_to",
-      "properties": {},
-      "source": "world-alpha",
-      "target": "database-alpha"
-    },
-    {
-      "meaning": "defines",
-      "properties": {},
-      "source": "repo-5dengine",
-      "target": "world-alpha"
-    },
-    {
-      "meaning": "communicates_via",
-      "properties": {},
-      "source": "world-alpha",
-      "target": "dwrld-peer-alpha"
-    },
-    {
-      "meaning": "observes",
-      "properties": {},
-      "source": "council-agent-alpha",
-      "target": "server-alpha"
-    },
-    {
-      "meaning": "backed_up_by",
-      "properties": {},
-      "source": "database-alpha",
-      "target": "backup-alpha"
-    },
-    {
-      "meaning": "visualizes",
-      "properties": {},
-      "source": "dashboard-alpha",
-      "target": "server-alpha"
-    }
-  ],
-  "name": "sample-7d-os",
+  "dimensions": {
+    "x": "identity",
+    "y": "dependency",
+    "z": "runtime_depth",
+    "u": "world_membership",
+    "v": "machine_membership",
+    "w": "network_replication",
+    "t": "time_version_history"
+  },
   "nodes": [
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "server-alpha",
-      "kind": "server",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "world-alpha",
-      "kind": "world.5d",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "process-alpha",
-      "kind": "runtime.process",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "database-alpha",
-      "kind": "database.postgres",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "repo-5dengine",
-      "kind": "repo.git",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "dwrld-peer-alpha",
-      "kind": "network.peer",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "council-agent-alpha",
-      "kind": "agent.council",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "backup-alpha",
-      "kind": "storage.backup",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    },
-    {
-      "coordinates": {},
-      "evidence": [],
-      "id": "dashboard-alpha",
-      "kind": "visual.dashboard",
-      "labels": [],
-      "links": [],
-      "policies": [],
-      "properties": {},
-      "state": {}
-    }
+    { "id": "server_example", "kind": "server", "labels": ["server"], "coordinates": { "v": "machine" }, "state": { "disk": { "percent_used": 80 } }, "properties": {}, "evidence": [], "policies": ["high_disk_usage"], "links": [] },
+    { "id": "world_alpha", "kind": "world", "labels": ["5D world"], "coordinates": { "u": "world" }, "state": { "status": "observed" }, "properties": {}, "evidence": [], "policies": [], "links": [] },
+    { "id": "process_alpha", "kind": "runtime.process", "labels": ["process"], "coordinates": { "z": "process" }, "state": {}, "properties": {}, "evidence": [], "policies": [], "links": [] },
+    { "id": "database_alpha", "kind": "database", "labels": ["database"], "coordinates": { "z": "database" }, "state": {}, "properties": {}, "evidence": [], "policies": [], "links": [] },
+    { "id": "repo_5dengine", "kind": "repo", "labels": ["5DEngine"], "coordinates": { "t": "source" }, "state": {}, "properties": {}, "evidence": [], "policies": [], "links": [] },
+    { "id": "peer_dwrld", "kind": "network.peer", "labels": ["dwrld peer"], "coordinates": { "w": "replication" }, "state": {}, "properties": {}, "evidence": [], "policies": [], "links": [] },
+    { "id": "agent_council", "kind": "agent", "labels": ["theC0UNCIL"], "coordinates": { "u": "agent" }, "state": {}, "properties": {}, "evidence": [], "policies": [], "links": [] },
+    { "id": "backup_storage", "kind": "backup", "labels": ["storage backup"], "coordinates": { "w": "backup" }, "state": { "verified": true }, "properties": {}, "evidence": [], "policies": [], "links": [] },
+    { "id": "dashboard_visual", "kind": "visual.dashboard", "labels": ["visual dashboard"], "coordinates": { "x": "view" }, "state": {}, "properties": {}, "evidence": [], "policies": [], "links": [] }
+  ],
+  "links": [
+    { "source": "server_example", "target": "world_alpha", "meaning": "hosts", "properties": {} },
+    { "source": "world_alpha", "target": "process_alpha", "meaning": "runs_as", "properties": {} },
+    { "source": "world_alpha", "target": "database_alpha", "meaning": "uses_state", "properties": {} },
+    { "source": "repo_5dengine", "target": "world_alpha", "meaning": "defines", "properties": {} },
+    { "source": "peer_dwrld", "target": "server_example", "meaning": "communicates", "properties": {} },
+    { "source": "agent_council", "target": "database_alpha", "meaning": "inspects", "properties": {} },
+    { "source": "backup_storage", "target": "database_alpha", "meaning": "preserves", "properties": {} },
+    { "source": "dashboard_visual", "target": "server_example", "meaning": "views", "properties": {} }
   ]
 }

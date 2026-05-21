@@ -1,11 +1,18 @@
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from graph import Graph, Node
 
-def test_graph_validates_links():
-    g = Graph("test")
-    g.add_node(Node("a", "kind"))
-    g.add_node(Node("b", "kind"))
-    g.add_link("a", "b", "depends_on")
-    assert g.validate() == []
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from src import Graph, Link, Node
+
+
+def test_graph_exports_all_formats():
+    graph = Graph({"x": "identity"})
+    graph.add_node(Node(id="server", kind="server", labels=["Server"]))
+    graph.add_node(Node(id="world", kind="world", labels=["World"]))
+    graph.add_link(Link("server", "world", "hosts"))
+
+    assert '"nodes"' in graph.to_json()
+    assert "`server` --hosts--> `world`" in graph.to_markdown()
+    assert "server -- hosts --> world" in graph.to_mermaid()

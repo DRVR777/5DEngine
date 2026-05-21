@@ -1,18 +1,18 @@
 graph TD
-  server_alpha["server-alpha<br/>server"]
-  world_alpha["world-alpha<br/>world.5d"]
-  process_alpha["process-alpha<br/>runtime.process"]
-  database_alpha["database-alpha<br/>database.postgres"]
-  repo_5dengine["repo-5dengine<br/>repo.git"]
-  dwrld_peer_alpha["dwrld-peer-alpha<br/>network.peer"]
-  council_agent_alpha["council-agent-alpha<br/>agent.council"]
-  backup_alpha["backup-alpha<br/>storage.backup"]
-  dashboard_alpha["dashboard-alpha<br/>visual.dashboard"]
-  server_alpha -->|hosts| world_alpha
-  world_alpha -->|runs_as| process_alpha
-  world_alpha -->|persists_to| database_alpha
-  repo_5dengine -->|defines| world_alpha
-  world_alpha -->|communicates_via| dwrld_peer_alpha
-  council_agent_alpha -->|observes| server_alpha
-  database_alpha -->|backed_up_by| backup_alpha
-  dashboard_alpha -->|visualizes| server_alpha
+  server_example["server<br/>server"]
+  world_alpha["5D world<br/>world"]
+  process_alpha["process<br/>runtime.process"]
+  database_alpha["database<br/>database"]
+  repo_5dengine["5DEngine<br/>repo"]
+  peer_dwrld["dwrld peer<br/>network.peer"]
+  agent_council["theC0UNCIL<br/>agent"]
+  backup_storage["storage backup<br/>backup"]
+  dashboard_visual["visual dashboard<br/>visual.dashboard"]
+  server_example -- hosts --> world_alpha
+  world_alpha -- runs_as --> process_alpha
+  world_alpha -- uses_state --> database_alpha
+  repo_5dengine -- defines --> world_alpha
+  peer_dwrld -- communicates --> server_example
+  agent_council -- inspects --> database_alpha
+  backup_storage -- preserves --> database_alpha
+  dashboard_visual -- views --> server_example

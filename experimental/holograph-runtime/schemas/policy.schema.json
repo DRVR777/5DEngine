@@ -1,1 +1,1 @@
-{"type":"object","additionalProperties":true}
+{ "$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object", "required": ["name", "mode"], "properties": { "name": { "type": "string" }, "applies_to": { "type": "string" }, "when": { "type": "string" }, "propose": { "type": "string" }, "mode": { "type": "string" } } }

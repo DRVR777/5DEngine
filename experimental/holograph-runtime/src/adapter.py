@@ -1,9 +1,19 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+
 
 @dataclass
 class Adapter:
     name: str
-    observes: str
-    emits_kind: str
-    command: str | None = None
+    emits: str
     mode: str = "read_only"
+    command: str = ""
+
+    def describe(self) -> dict[str, str]:
+        return {
+            "name": self.name,
+            "emits": self.emits,
+            "mode": self.mode,
+            "command": self.command,
+        }

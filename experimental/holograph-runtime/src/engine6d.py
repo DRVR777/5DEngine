@@ -1,17 +1,21 @@
-from graph import Graph, Node
-from engine5d import FiveDEngine
+from __future__ import annotations
+
+from .engine5d import FiveDEngine
+from .graph import Node
+
 
 class SixDServerEngine:
-    def __init__(self, server: Node):
-        self.server = server
-        self.worlds: list[FiveDEngine] = []
-    def add_world(self, world: FiveDEngine):
-        self.worlds.append(world)
-    def model(self) -> Graph:
-        graph = Graph(f"6d:{self.server.id}")
-        graph.add_node(self.server)
-        for world in self.worlds:
-            for node in world.graph.nodes.values():
-                graph.add_node(node)
-                graph.add_link(self.server.id, node.id, "hosts")
-        return graph
+    def __init__(self, hostname: str):
+        self.hostname = hostname
+        self.worlds: dict[str, FiveDEngine] = {}
+        self.server_node = Node(id=f"server_{hostname}", kind="server", labels=[hostname])
+
+    def add_world(self, world: FiveDEngine) -> None:
+        self.worlds[world.name] = world
+
+    def observe(self) -> dict[str, object]:
+        return {
+            "hostname": self.hostname,
+            "mode": "read_only",
+            "worlds": sorted(self.worlds),
+        }

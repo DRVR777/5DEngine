@@ -1,10 +1,18 @@
 # HGRL Grammar Draft
 
 ```text
-world NAME { dimensions { KEY = VALUE } safety { default_mode = propose_only } }
-node NAME { kind = KIND }
-link FROM -> TO { meaning = VALUE }
-adapter NAME { observes COMMAND emits KIND }
-policy NAME { applies_to KIND when EXPR propose ACTION mode MODE }
-view NAME { include [KIND...] output [FORMAT...] }
+document       = block*
+block          = world | adapter | policy | view | manifest
+world          = "world" string "{" section* "}"
+section        = dimensions | safety | nodes | links
+dimensions     = "dimensions" "{" assignment* "}"
+safety         = "safety" "{" assignment* "}"
+adapter        = "adapter" string "{" assignment* "}"
+policy         = "policy" string "{" assignment* "}"
+view           = "view" string "{" assignment* "}"
+assignment     = identifier "=" value
+value          = string | number | bool | list | object
 ```
+
+The current prototype includes a small manifest reader and treats HGRL examples
+as portable design fixtures.
