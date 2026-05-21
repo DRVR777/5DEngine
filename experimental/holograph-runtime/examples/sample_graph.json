@@ -1,0 +1,154 @@
+{
+  "links": [
+    {
+      "meaning": "hosts",
+      "properties": {},
+      "source": "server-alpha",
+      "target": "world-alpha"
+    },
+    {
+      "meaning": "runs_as",
+      "properties": {},
+      "source": "world-alpha",
+      "target": "process-alpha"
+    },
+    {
+      "meaning": "persists_to",
+      "properties": {},
+      "source": "world-alpha",
+      "target": "database-alpha"
+    },
+    {
+      "meaning": "defines",
+      "properties": {},
+      "source": "repo-5dengine",
+      "target": "world-alpha"
+    },
+    {
+      "meaning": "communicates_via",
+      "properties": {},
+      "source": "world-alpha",
+      "target": "dwrld-peer-alpha"
+    },
+    {
+      "meaning": "observes",
+      "properties": {},
+      "source": "council-agent-alpha",
+      "target": "server-alpha"
+    },
+    {
+      "meaning": "backed_up_by",
+      "properties": {},
+      "source": "database-alpha",
+      "target": "backup-alpha"
+    },
+    {
+      "meaning": "visualizes",
+      "properties": {},
+      "source": "dashboard-alpha",
+      "target": "server-alpha"
+    }
+  ],
+  "name": "sample-7d-os",
+  "nodes": [
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "server-alpha",
+      "kind": "server",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "world-alpha",
+      "kind": "world.5d",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "process-alpha",
+      "kind": "runtime.process",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "database-alpha",
+      "kind": "database.postgres",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "repo-5dengine",
+      "kind": "repo.git",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "dwrld-peer-alpha",
+      "kind": "network.peer",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "council-agent-alpha",
+      "kind": "agent.council",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "backup-alpha",
+      "kind": "storage.backup",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    },
+    {
+      "coordinates": {},
+      "evidence": [],
+      "id": "dashboard-alpha",
+      "kind": "visual.dashboard",
+      "labels": [],
+      "links": [],
+      "policies": [],
+      "properties": {},
+      "state": {}
+    }
+  ]
+}

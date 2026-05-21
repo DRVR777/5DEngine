@@ -1,0 +1,16 @@
+world "any" {
+  dimensions {
+    x = identity
+    y = dependency
+    z = runtime_depth
+    u = world
+    v = machine
+    w = replication
+    t = time
+  }
+  safety {
+    default_mode = propose_only
+    destructive_actions = forbidden
+    secrets = redact
+  }
+}

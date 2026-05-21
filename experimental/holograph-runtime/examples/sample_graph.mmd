@@ -1,0 +1,18 @@
+graph TD
+  server_alpha["server-alpha<br/>server"]
+  world_alpha["world-alpha<br/>world.5d"]
+  process_alpha["process-alpha<br/>runtime.process"]
+  database_alpha["database-alpha<br/>database.postgres"]
+  repo_5dengine["repo-5dengine<br/>repo.git"]
+  dwrld_peer_alpha["dwrld-peer-alpha<br/>network.peer"]
+  council_agent_alpha["council-agent-alpha<br/>agent.council"]
+  backup_alpha["backup-alpha<br/>storage.backup"]
+  dashboard_alpha["dashboard-alpha<br/>visual.dashboard"]
+  server_alpha -->|hosts| world_alpha
+  world_alpha -->|runs_as| process_alpha
+  world_alpha -->|persists_to| database_alpha
+  repo_5dengine -->|defines| world_alpha
+  world_alpha -->|communicates_via| dwrld_peer_alpha
+  council_agent_alpha -->|observes| server_alpha
+  database_alpha -->|backed_up_by| backup_alpha
+  dashboard_alpha -->|visualizes| server_alpha
