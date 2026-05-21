@@ -76,6 +76,7 @@ export { mountBulletPhysicsTick }  from "./systems/bullet_physics_tick.js";
 export { mountScreenInteraction }  from "./systems/screen_interaction.js";
 export { mountSaveWiring }         from "./systems/save_wiring.js";
 export { mountWaveEvents }         from "./systems/wave_events.js";
+export { mountServer7dBridge }     from "./bridges/server_7d_bridge.js";
 export { mountTestBridge }         from "./bridges/test_bridge.js";
 export { mountEnemyFootstepTick }  from "./systems/enemy_footstep_tick.js";
 export { mountGrenadeWarnTick }    from "./systems/grenade_warn_tick.js";

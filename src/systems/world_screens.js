@@ -2,6 +2,7 @@
 // Behavior-preservation phase: keep screen ids, dimensions, positions, hit regions, and paint literals.
 
 export function mountWorldScreens({
+  registry = null,
   THREE,
   scene,
   screenMesh,
@@ -234,5 +235,55 @@ export function mountWorldScreens({
   windowRef._buildConsoleScreen = buildConsoleScreen;
   windowRef._buildConsoleMesh = buildConsoleMesh;
 
+  if (registry) _mountServerRoom(registry, scene, SM, THREE);
+
   return { jumbotronScreen, skyScreen, buildConsoleScreen, buildConsoleMesh };
+}
+
+function _hdr(ctx, text, y) {
+  ctx.fillStyle = "#00ff88";
+  ctx.font = "bold 18px monospace";
+  ctx.fillText(text, 8, y);
+}
+function _rows(ctx, lines, y0) {
+  ctx.fillStyle = "#c0ffc0";
+  ctx.font = "14px monospace";
+  lines.slice(0, 12).forEach((l, i) => ctx.fillText(l.slice(0, 48), 8, y0 + i * 18));
+}
+function _bg(ctx) {
+  ctx.fillStyle = "#050f0a";
+  ctx.fillRect(0, 0, 512, 256);
+}
+function _mountServerRoom(registry, scene, SM, THREE) {
+  const SCREENS = [
+    { id:"srv_nginx",    label:"NGINX / HTTP REQUESTS", facet:"http",    rotY: Math.PI/2,       pos:[-27,2, 0],
+      row(t,f){ return (f.method||"GET")+" "+(f.path||"").slice(0,28)+" "+(f.status||""); } },
+    { id:"srv_procs",    label:"SERVER PROCESSES",       facet:"process", rotY: Math.PI/2,       pos:[-27,2, 4],
+      row(t,f){ return (t.name||"").slice(0,20)+"  pid="+(f.pid||"?")+"  cpu="+(f.cpu||"?")+"%"; } },
+    { id:"srv_db",       label:"DATABASE ACTIVITY",      facet:"db",      rotY: Math.PI/2,       pos:[-27,2,-4],
+      row(t,f){ return (f.query||t.name||"").slice(0,46); } },
+    { id:"srv_journal",  label:"SYSTEM JOURNAL",         facet:"journal", rotY: Math.PI/2-0.35,  pos:[-27,2, 8],
+      row(t,f){ return (f.unit||"?").slice(0,12)+"  "+(f.message||t.name||"").slice(0,32); } },
+  ];
+  const active = [];
+  for (const cfg of SCREENS) {
+    const s = SM.createScreen({
+      id: cfg.id, widthM: 3.2, heightM: 1.8, resolutionX: 512, resolutionY: 256,
+      paint(ctx) {
+        _bg(ctx); _hdr(ctx, cfg.label, 20);
+        const things = registry.byFacet ? registry.byFacet(cfg.facet) : [];
+        const lines = things.map(t => {
+          const f = registry.facetData ? registry.facetData(t.id, cfg.facet) : {};
+          return cfg.row(t, f);
+        });
+        _rows(ctx, lines.length ? lines : ["(no data)"], 42);
+      },
+    });
+    const mesh = SM.bindToThree(THREE, s, { doubleSided: false });
+    mesh.position.set(...cfg.pos);
+    mesh.rotation.y = cfg.rotY;
+    scene.add(mesh);
+    active.push(s);
+  }
+  return active;
 }

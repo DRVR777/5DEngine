@@ -14,6 +14,7 @@
     { id: "house",   color: 0xffe66d, u0:  -6, v0: -14, u1:   0, v1:  -8 },
     { id: "garage",  color: 0xa8dadc, u0:   6, v0:  10, u1:  12, v1:  16 },
     { id: "diner",   color: 0xff9f1c, u0: -22, v0: -12, u1: -16, v1:  -6 },
+    { id: "server_room", color: 0x1a3a5c, u0: -38, v0:  -8, u1: -26, v1:   8 },
     { id: "bank",    color: 0x9b5de5, u0:  18, v0:  12, u1:  24, v1:  18 },
     { id: "park",    color: 0x80ed99, u0: -10, v0:  18, u1:  -2, v1:  26 },
     { id: "studio",  color: 0xf72585, u0:  20, v0: -22, u1:  26, v1: -14 },
