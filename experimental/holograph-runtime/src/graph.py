@@ -1,17 +1,13 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field, asdict
-import json
 from typing import Any
-
+import json
 
 @dataclass
 class Link:
     source: str
     target: str
-    meaning: str
+    meaning: str = "relates_to"
     properties: dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass
 class Node:
@@ -21,64 +17,49 @@ class Node:
     coordinates: dict[str, Any] = field(default_factory=dict)
     state: dict[str, Any] = field(default_factory=dict)
     properties: dict[str, Any] = field(default_factory=dict)
-    evidence: list[dict[str, Any]] = field(default_factory=list)
+    evidence: list[Any] = field(default_factory=list)
     policies: list[str] = field(default_factory=list)
     links: list[Link] = field(default_factory=list)
 
-
 class Graph:
-    def __init__(self, dimensions: dict[str, str] | None = None):
-        self.dimensions = dimensions or {}
+    def __init__(self, name: str = "world"):
+        self.name = name
         self.nodes: dict[str, Node] = {}
         self.links: list[Link] = []
 
     def add_node(self, node: Node) -> Node:
-        if node.id in self.nodes:
-            raise ValueError(f"duplicate node id: {node.id}")
         self.nodes[node.id] = node
         return node
 
-    def add_link(self, link: Link) -> Link:
-        if link.source not in self.nodes:
-            raise ValueError(f"missing source node: {link.source}")
-        if link.target not in self.nodes:
-            raise ValueError(f"missing target node: {link.target}")
+    def add_link(self, source: str, target: str, meaning: str = "relates_to", **properties: Any) -> Link:
+        link = Link(source, target, meaning, properties)
         self.links.append(link)
-        self.nodes[link.source].links.append(link)
         return link
 
-    def validate(self) -> None:
+    def validate(self) -> list[str]:
+        errors = []
         for link in self.links:
-            if link.source not in self.nodes or link.target not in self.nodes:
-                raise ValueError(f"broken link: {link.source} -> {link.target}")
+            if link.source not in self.nodes:
+                errors.append(f"missing source: {link.source}")
+            if link.target not in self.nodes:
+                errors.append(f"missing target: {link.target}")
+        return errors
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "dimensions": self.dimensions,
-            "nodes": [asdict(node) for node in self.nodes.values()],
-            "links": [asdict(link) for link in self.links],
-        }
+        return {"name": self.name, "nodes": [asdict(n) for n in self.nodes.values()], "links": [asdict(l) for l in self.links]}
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), indent=2, sort_keys=True)
 
     def to_markdown(self) -> str:
-        lines = ["# Holographic Graph", "", "## Dimensions", ""]
-        for key, value in self.dimensions.items():
-            lines.append(f"- `{key}` = `{value}`")
-        lines.extend(["", "## Nodes", ""])
-        for node in self.nodes.values():
-            lines.append(f"- `{node.id}` ({node.kind})")
-        lines.extend(["", "## Links", ""])
-        for link in self.links:
-            lines.append(f"- `{link.source}` --{link.meaning}--> `{link.target}`")
-        return "\n".join(lines) + "\n"
+        rows = [f"# {self.name}", "", "## Nodes"]
+        rows += [f"- `{n.id}` ({n.kind})" for n in self.nodes.values()]
+        rows += ["", "## Links"]
+        rows += [f"- `{l.source}` --{l.meaning}--> `{l.target}`" for l in self.links]
+        return "\n".join(rows) + "\n"
 
     def to_mermaid(self) -> str:
-        lines = ["graph TD"]
-        for node in self.nodes.values():
-            label = node.labels[0] if node.labels else node.id
-            lines.append(f'  {node.id}["{label}<br/>{node.kind}"]')
-        for link in self.links:
-            lines.append(f"  {link.source} -- {link.meaning} --> {link.target}")
-        return "\n".join(lines) + "\n"
+        rows = ["graph TD"]
+        rows += [f'  {n.id.replace("-", "_")}["{n.id}<br/>{n.kind}"]' for n in self.nodes.values()]
+        rows += [f'  {l.source.replace("-", "_")} -->|{l.meaning}| {l.target.replace("-", "_")}' for l in self.links]
+        return "\n".join(rows) + "\n"

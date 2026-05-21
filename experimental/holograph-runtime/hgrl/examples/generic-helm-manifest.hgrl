@@ -1,4 +1,16 @@
-world "generic-helm-manifest" {
-  dimensions { x = release y = dependency z = service u = namespace v = server w = rollout t = revision }
-  safety { default_mode = propose_only destructive_actions = forbidden }
+world "any" {
+  dimensions {
+    x = identity
+    y = dependency
+    z = runtime_depth
+    u = world
+    v = machine
+    w = replication
+    t = time
+  }
+  safety {
+    default_mode = propose_only
+    destructive_actions = forbidden
+    secrets = redact
+  }
 }
