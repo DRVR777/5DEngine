@@ -1,0 +1,31 @@
+{
+  "id": "legacy/freecam",
+  "kind": "legacy-system",
+  "name": "legacy_freecam",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/freecam_tick.js",
+        "export":     "mountFreecamTick",
+        "tick_args": [
+          "@dt",
+          {
+            "buildMode":  "$const:false",
+            "speed":      "$const:8",
+            "speedFast":  "$const:24",
+            "keys":       "$inputKeys"
+          }
+        ],
+        "_yaw":   0,
+        "_pitch": 0,
+        "bindings": {
+          "get.yaw":         "$thing:legacy/freecam/legacy-mount/_yaw",
+          "get.pitch":       "$thing:legacy/freecam/legacy-mount/_pitch",
+          "actions.move":    "$noop",
+          "actions.moveY":   "$noop"
+        }
+      }
+    }
+  ]
+}

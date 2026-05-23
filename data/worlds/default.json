@@ -141,6 +141,10 @@
     { "ref": "legacy/speed-boost" },
     { "ref": "legacy/burn" },
     { "ref": "legacy/crouch-speed" },
-    { "ref": "legacy/hero-knockback" }
+    { "ref": "legacy/hero-knockback" },
+    { "ref": "legacy/freecam" },
+    { "ref": "legacy/scope-fov" },
+    { "ref": "legacy/sniper-sway" },
+    { "ref": "legacy/motion-springs" }
   ]
 }

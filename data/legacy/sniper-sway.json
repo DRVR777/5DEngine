@@ -1,0 +1,43 @@
+{
+  "id": "legacy/sniper-sway",
+  "kind": "legacy-system",
+  "name": "legacy_sniper_sway",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/sniper_sway.js",
+        "export":     "mountSniperSway",
+        "tick_args": [
+          "@dt",
+          {
+            "isSniperScope": "$const:false",
+            "heroDead":      "$const:false",
+            "holdingBreath": "$input:KeyB",
+            "crouching":     "$input:ControlLeft"
+          }
+        ],
+        "_scopeSwayT":     0,
+        "_breathHoldT":    0,
+        "_lastSwayPitch":  0,
+        "_lastSwayYaw":    0,
+        "_camPitch":       0,
+        "_camYaw":         0,
+        "bindings": {
+          "get.scopeSwayT":    "$thing:legacy/sniper-sway/legacy-mount/_scopeSwayT",
+          "set.scopeSwayT":    "$thing:legacy/sniper-sway/legacy-mount/_scopeSwayT",
+          "get.breathHoldT":   "$thing:legacy/sniper-sway/legacy-mount/_breathHoldT",
+          "set.breathHoldT":   "$thing:legacy/sniper-sway/legacy-mount/_breathHoldT",
+          "get.lastSwayPitch": "$thing:legacy/sniper-sway/legacy-mount/_lastSwayPitch",
+          "set.lastSwayPitch": "$thing:legacy/sniper-sway/legacy-mount/_lastSwayPitch",
+          "get.lastSwayYaw":   "$thing:legacy/sniper-sway/legacy-mount/_lastSwayYaw",
+          "set.lastSwayYaw":   "$thing:legacy/sniper-sway/legacy-mount/_lastSwayYaw",
+          "get.camPitch":      "$thing:legacy/sniper-sway/legacy-mount/_camPitch",
+          "set.camPitch":      "$thing:legacy/sniper-sway/legacy-mount/_camPitch",
+          "get.camYaw":        "$thing:legacy/sniper-sway/legacy-mount/_camYaw",
+          "set.camYaw":        "$thing:legacy/sniper-sway/legacy-mount/_camYaw"
+        }
+      }
+    }
+  ]
+}
