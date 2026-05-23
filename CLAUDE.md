@@ -218,16 +218,31 @@ how a player triggers anything destructive.
   game.html       the preserved legacy engine + game (2449 lines).
                   Continues to run unchanged until its kinds are absorbed.
 
-## The legacy bridge (the base layer, iter 757)
+## The legacy bridge — the COMPATIBILITY KERNEL (iter 757+)
 
-The substrate HOSTS legacy `mount*` subsystems instead of reimplementing
-them up-front. Every legacy module has the uniform shape
+The `legacy-mount` facet IS the compatibility kernel. It lets old
+systems shaped like
 
     export function mountX({ get, set, actions }) { return { tick }; }
 
-The `legacy-system` kind + `legacy-mount` facet wrap that contract.
-A spec declares `module_url`, `export`, `tick_args`, and `bindings`
-written in a tiny DSL:
+run inside the Thing registry without rewriting them. The substrate
+becomes real by HOSTING game.html behavior first, then replacing each
+hosted mount with a proven native Ankhor facet.
+
+  **The game plays because game.html works. The substrate becomes
+  real only when it can host or reproduce game.html behavior.**
+
+  **Substrate complete = `data/spawns/legacy_systems.json` is empty
+  AND every legacy behavior has a proven native facet.**
+
+See `docs/COMPATIBILITY_KERNEL.md` for the full corrected-truth
+statement and the loop.
+
+### Bridge DSL (the real control layer)
+
+A spec declares `module_url`, `export`, optional `params`, optional
+`tick_args`, and `bindings`. The DSL covers all three sides of every
+`mount({get, set, actions})` contract — read, write, dispatch:
 
     $kind:<kind>[<i>]/<facet>/<field>     Nth Thing of kind
     $tuning:<name>/<facet>/<field>        tuning Thinga by name
@@ -288,6 +303,7 @@ will force the shape. Until then:
 ## Continuity
 
   Vision (long-form):           docs/SECOND_ABSTRACTION_PHASE.md
+  Compatibility kernel:         docs/COMPATIBILITY_KERNEL.md
   Per-loop procedure:           docs/AUTONOMOUS_LOOP.md
   Per-kind contract:            docs/codex/specs/
   Migration tracker:            docs/codex/MIGRATION_PROGRESS.md

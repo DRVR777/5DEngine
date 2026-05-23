@@ -4,29 +4,40 @@ The wakeup prompt is: *"Continue the loop. Read CLAUDE.md and this file. Do
 what they say."* Everything specific to the current state lives elsewhere —
 read it on each wakeup.
 
-## Audit-driven loop (added iter 757)
+## Audit-driven loop (the COMPATIBILITY KERNEL loop, iter 757+)
 
-The substrate now has a **base layer** that lets it HOST legacy
-mount* subsystems unchanged. The procedure changed from
-"reimplement everything as native facets" to:
+The `legacy-mount` facet IS the compatibility kernel — see
+`docs/COMPATIBILITY_KERNEL.md` for the full corrected truth.
 
-  1. `node tools/audit_migration.mjs` — see the real coverage gap.
-  2. Pick the next mount* (status MISSING or FACET-only) with the
-     highest playability weight.
+**Future agents should not invent new architecture.** Run this loop:
+
+  1. `node tools/audit_migration.mjs` — see real coverage.
+       HOSTED counts as substrate coverage (legacy bridge IS the path
+       until a native facet supersedes it).
+  2. Pick the highest-impact mount with status MISSING / DOC-only /
+     FACET-only. Domain weight: combat > AI > HUD > vehicles > NPC > meta.
   3. Read its cloned source under `docs/codex/legacy/mount_calls/`
      and `docs/codex/legacy/source/src/...`.
-  4. Add ONE entry to `data/spawns/legacy_systems.json` declaring
-     a `legacy-system` Thinga with a `legacy-mount` facet whose
-     bindings wire get/set/actions to substrate state.
-  5. Run `node tools/test_legacy_bridge.mjs` (or extend it) to
-     prove the new mount binds + ticks cleanly.
-  6. Re-run audit; commit; push.
-  7. Once a native Ankhor facet ships for that mount, DELETE the
-     legacy-system entry (authority-flip per CLAUDE.md).
+  4. Add ONE entry to `data/spawns/legacy_systems.json` declaring a
+     `legacy-system` Thinga with a `legacy-mount` facet whose bindings
+     wire get/set/actions to substrate state (DSL listed in CLAUDE.md).
+  5. Extend `tools/test_legacy_bridge.mjs` to prove the new mount
+     binds + ticks. Where possible, prove it CHANGES STATE correctly
+     (a semantic test, not just a bind test).
+  6. Run `tools/test_compose_browser_like.mjs` to verify the substrate
+     still composes from `data/root.json` cleanly.
+  7. `node tools/audit_migration.mjs --update` to refresh the inventory
+     coverage block.
+  8. Commit. Push. ScheduleWakeup(+420s).
 
-This is the via-negativa progression: subtract a legacy-system row
-each time its native equivalent is proven. The substrate is done
-when `data/spawns/legacy_systems.json` is empty.
+When a NATIVE Ankhor facet ships and proves equivalent behavior:
+  - DELETE the matching legacy-system row in `data/spawns/legacy_systems.json`.
+  - The audit will reclassify the mount from HOSTED → DONE.
+  - Commit the deletion as the authority-flip.
+
+Via-negativa target:
+  **Substrate is done when `data/spawns/legacy_systems.json` is empty
+  AND every legacy behavior has a proven native facet.**
 
 ## Per-wakeup procedure
 
