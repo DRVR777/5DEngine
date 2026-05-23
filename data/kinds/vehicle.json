@@ -3,29 +3,20 @@
   "kind": "kind-def",
   "name": "Kind definition: vehicle",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "vehicle"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "vehicle" },
+    { "name": "required-facets", "data": ["position", "mesh", "health"] },
+    { "name": "optional-facets", "data": ["input-controller", "rigid-body", "passenger-slot"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "src/systems/vehicle_physics_tick.js",
+      "src/systems/vehicle_render_tick.js",
+      "src/systems/vehicle_dash_tick.js",
+      "src/vehicles/sidecar.js"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "vehicle has multiple types per legacy (car, drone, mech, sidecar). Each lives in its own tuning Thinga selected by `mesh.tuning_ref` per spawn. Static visibility this iter; drive controls + physics deferred to input-controller + rigid-body facet iters.",
+      "available": ["vehicle-car-tuning"],
+      "queued":    ["vehicle-drone-tuning", "vehicle-mech-tuning", "vehicle-sidecar-tuning"]
+    } }
   ]
 }

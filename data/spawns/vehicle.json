@@ -1,0 +1,17 @@
+{
+  "id": "spawns/vehicle",
+  "kind": "spawn-set",
+  "name": "Default vehicles",
+  "facets": [
+    { "name": "for-kind", "data": "vehicle" },
+    { "name": "comment",  "data": "1 demo car at scene west edge. Static — no input-controller or rigid-body facets yet. Proves the substrate renders a multi-part car silhouette (chassis + roof + 4 wheels + 2 headlights) from a single mesh-spec." }
+  ],
+  "children": [
+    { "id": "vehicle/car-0", "kind": "vehicle", "name": "demo_car_W",
+      "facets": [
+        { "name": "position", "data": { "x": -20, "y": 0, "z": -16, "heading": 0.4 } },
+        { "name": "mesh",     "data": { "tuning_ref": "vehicle-car-tuning" } },
+        { "name": "health",   "data": { "hp": 250, "maxHp": 250 } }
+      ] }
+  ]
+}
