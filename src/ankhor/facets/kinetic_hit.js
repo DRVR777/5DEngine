@@ -4,20 +4,40 @@
  *  the deliver becomes an `emit` and this handler returns the envelope
  *  instead of applying it directly.
  *
+ *  Two checks per tick:
+ *    1. Target hit — scan byKind(target_kind) for one within `radius`.
+ *       On hit: damage envelope → target.health, optional self-despawn.
+ *    2. Wall hit (when `stop_on_collider` true) — scan byFacet("collider")
+ *       for any AABB the bullet penetrates by more than `radius`. On
+ *       wall hit: despawn the bullet immediately, no damage envelope.
+ *
+ *  Wall check runs FIRST so bullets that brush a wall and a target in
+ *  the same tick still register the wall stop (no damage leaking
+ *  through the wall).
+ *
  *  Data: {
- *    radius:           hit distance (m)
- *    damage:           hp to subtract from target
- *    target_kind:      kind to scan ("enemy", "barrel", "crate", ...)
- *    despawn_on_hit:   bool — if true, despawn this Thing after a hit
- *    pending_hits?:    [] — last hit envelopes recorded (for inspection)
+ *    radius:              hit distance (m)
+ *    damage:              hp to subtract from target
+ *    target_kind:         kind to scan ("enemy", "barrel", "crate", ...)
+ *    despawn_on_hit:      bool — despawn this Thing after a target hit
+ *    stop_on_collider?:   bool — despawn this Thing if it overlaps any
+ *                                Thing's collider AABB. Default false
+ *                                (legacy demo bullets don't carry walls).
+ *    pending_hits?:       [] — last hit envelopes recorded (for inspection)
  *  } */
 export default {
   priority: 45,
   tick(thing, data, _dt, registry) {
-    if (!data || data.radius == null || data.target_kind == null) return;
+    if (!data || data.radius == null) return;
     const pos = registry.facetData(thing.id, "position");
     if (!pos) return;
 
+    if (data.stop_on_collider && hitsWall(thing, pos, data.radius, registry)) {
+      try { registry.despawn(thing.id, "wall-hit"); } catch (_) { /* already gone */ }
+      return;
+    }
+
+    if (data.target_kind == null) return;
     const r2 = data.radius * data.radius;
     let hit = null;
     for (const target of registry.byKind(data.target_kind)) {
@@ -49,3 +69,17 @@ export default {
     if (data.despawn_on_hit) registry.despawn(thing.id, "kinetic-hit");
   }
 };
+
+function hitsWall(thing, pos, radius, registry) {
+  for (const id of registry.byFacet("collider")) {
+    if (id === thing.id) continue;
+    const cpos = registry.facetData(id, "position");
+    if (!cpos) continue;
+    const col = registry.facetData(id, "collider");
+    if (!col || typeof col.half_x !== "number" || typeof col.half_z !== "number") continue;
+    const dx = pos.x - cpos.x;
+    const dz = pos.z - cpos.z;
+    if (Math.abs(dx) < col.half_x + radius && Math.abs(dz) < col.half_z + radius) return true;
+  }
+  return false;
+}

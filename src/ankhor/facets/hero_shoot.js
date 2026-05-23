@@ -50,7 +50,7 @@ export default {
           { name: "mesh",        data: { tuning_ref: "bullet-hero-tuning" } },
           { name: "ttl",         data: { remaining: tuning.bullet_ttl } },
           { name: "kinetic-hit", data: { radius: tuning.bullet_hit_radius, damage: tuning.bullet_damage,
-                                         target_kind: "enemy", despawn_on_hit: true } },
+                                         target_kind: "enemy", despawn_on_hit: true, stop_on_collider: true } },
         ],
       },
     };

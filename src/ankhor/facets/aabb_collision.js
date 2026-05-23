@@ -62,9 +62,10 @@ function resolveMoverExtents(thing, data, registry) {
   if (data && typeof data.half_x === "number" && typeof data.half_z === "number") {
     return { half_x: data.half_x, half_z: data.half_z };
   }
-  if (thing.kind === "hero") {
+  const tuningName = tuningNameFor(thing, registry);
+  if (tuningName) {
     for (const t of registry.byKind("tuning")) {
-      if (t.name !== "hero-tuning") continue;
+      if (t.name !== tuningName) continue;
       const tn = registry.facetData(t.id, "tuning");
       if (tn && typeof tn.body_radius === "number") {
         return { half_x: tn.body_radius, half_z: tn.body_radius };
@@ -73,4 +74,11 @@ function resolveMoverExtents(thing, data, registry) {
     }
   }
   return { half_x: 0, half_z: 0 };
+}
+
+function tuningNameFor(thing, registry) {
+  if (thing.kind === "hero") return "hero-tuning";
+  const mesh = registry.facetData(thing.id, "mesh");
+  if (mesh && typeof mesh.tuning_ref === "string" && mesh.tuning_ref) return mesh.tuning_ref;
+  return null;
 }
