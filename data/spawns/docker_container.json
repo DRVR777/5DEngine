@@ -1,0 +1,29 @@
+{
+  "id": "spawns/docker_container",
+  "kind": "spawn-set",
+  "name": "Demo docker containers",
+  "facets": [
+    { "name": "for-kind", "data": "docker-container" },
+    { "name": "comment",  "data": "3 placeholder containers next to the server-process tiles. Real `docker ps` data feed lands when the WebSocket bridge from quandaleServer ships docker_adapter events into the in-browser registry." }
+  ],
+  "children": [
+    { "id": "docker-container/demo-postgres", "kind": "docker-container", "name": "postgres",
+      "facets": [
+        { "name": "position",         "data": { "x": 10, "y": 0, "z": -2 } },
+        { "name": "mesh",             "data": { "tuning_ref": "docker-container-default-tuning" } },
+        { "name": "process-observer", "data": { "name": "postgres",  "image": "postgres:16",      "status": "Up 3 days",   "ports": "5432/tcp" } }
+      ] },
+    { "id": "docker-container/demo-redis", "kind": "docker-container", "name": "redis",
+      "facets": [
+        { "name": "position",         "data": { "x": 10, "y": 0, "z":  0 } },
+        { "name": "mesh",             "data": { "tuning_ref": "docker-container-default-tuning" } },
+        { "name": "process-observer", "data": { "name": "redis",     "image": "redis:7-alpine",   "status": "Up 6 hours",  "ports": "6379/tcp" } }
+      ] },
+    { "id": "docker-container/demo-supabase", "kind": "docker-container", "name": "supabase-db",
+      "facets": [
+        { "name": "position",         "data": { "x": 10, "y": 0, "z":  2 } },
+        { "name": "mesh",             "data": { "tuning_ref": "docker-container-default-tuning" } },
+        { "name": "process-observer", "data": { "name": "supabase-db", "image": "supabase/postgres:15", "status": "Exited (0) 2 hours ago", "ports": "" } }
+      ] }
+  ]
+}

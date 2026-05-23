@@ -1,0 +1,53 @@
+{
+  "id": "tuning/docker_container_default",
+  "kind": "tuning",
+  "name": "docker-container-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "tile_color": 38637,
+      "tile_emissive": 38637,
+      "tile_emissive_intensity": 0.55,
+      "tile_w": 0.7,
+      "tile_h": 0.35,
+      "tile_d": 0.08,
+      "tile_y": 0.175,
+      "border_color": 2400477,
+      "border_h": 0.06,
+      "border_w": 0.7,
+      "border_d": 0.08,
+      "border_y": 0.04,
+      "status_color_running": 49344,
+      "status_color_paused": 16766208,
+      "status_color_exited": 13369344,
+      "scan_interval_seconds": 10
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "tile",
+          "geometry": { "kind": "box", "args": [0.7, 0.35, 0.08] },
+          "material": { "kind": "standard", "color": 38637, "emissive": 38637, "emissive_intensity": 0.55, "metalness": 0.55, "roughness": 0.4 },
+          "position": { "y": 0.175 }, "cast_shadow": true },
+        { "name": "border",
+          "geometry": { "kind": "box", "args": [0.7, 0.06, 0.08] },
+          "material": { "kind": "standard", "color": 2400477, "metalness": 0.65, "roughness": 0.5 },
+          "position": { "y": 0.04 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "experimental/holograph-runtime/adapters/docker_adapter.py — runs `docker ps -a --format {{json .}}` every 10s, emits one Thinga per container"
+      ],
+      "migrated_iter": 731,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Visual: blue-emissive tile (Docker brand color 0x0096ED = 38637) with a darker base border (0x249EDD = 2400477). Distinct from server-process green so a screen can tell process vs container at a glance.",
+        "Adapter publishes facets: { name, image, status, ports } via the process-observer facet (reused — both kinds share the same data-container shape today).",
+        "status_color_running/paused/exited reserved for the future container-status-color facet that paints tile material by container status string.",
+        "scan_interval_seconds = 10 matches the adapter's poll cadence.",
+        "Substrate held shape this iter — the docker→process relationship (containers run processes) is purely informational on the facet data side; no cross-Thing reach required yet. Strike 0/3 toward actor-lift remains."
+      ]
+    }}
+  ]
+}

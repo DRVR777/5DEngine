@@ -3,29 +3,17 @@
   "kind": "kind-def",
   "name": "Kind definition: docker-container",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "docker-container"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "docker-container" },
+    { "name": "required-facets", "data": ["position", "mesh", "process-observer"] },
+    { "name": "optional-facets", "data": ["label-sprite", "container-status-color"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "experimental/holograph-runtime/adapters/docker_adapter.py"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "docker-container is the second 7D-bridge kind. Adapter polls `docker ps -a` every 10s and publishes Thinga-shaped spawn/despawn events. Per-container data on the process-observer facet (reused with server-process — both are running compute units; data fields: name, image, status, ports).",
+      "available": ["docker-container-default-tuning"],
+      "queued":    []
+    } }
   ]
 }
