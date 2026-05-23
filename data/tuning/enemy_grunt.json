@@ -10,6 +10,7 @@
       "wander_speed": 1.0,
       "damage": 6,
       "attack_range": 1.6,
+      "attack_interval": 1.0,
       "sight_range": 12,
       "drop_ammo": "pistol_9mm",
       "drop_qty": 12,

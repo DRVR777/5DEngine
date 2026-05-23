@@ -19,6 +19,7 @@ const HERO_CONSUMERS = [
   "status-zone",
   "respawn-on-collect",
   "chase-target",
+  "attack-target",
 ];
 
 export default {
