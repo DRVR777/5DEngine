@@ -161,6 +161,28 @@
         { "name": "magnet",        "data": { "range": 3.0, "speed": 8 } },
         { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "heal-hero" } }
       ]
+    },
+    {
+      "id": "ammo-pickup/0", "kind": "ammo-pickup", "name": "ammo_A",
+      "facets": [
+        { "name": "position",      "data": { "x":  3, "y": 0.4, "z":  5 } },
+        { "name": "mesh",          "data": { "factory": "ammo-pickup" } },
+        { "name": "bob",           "data": { "base": 0.4, "amplitude": 0.08, "period_ms": 280 } },
+        { "name": "spin",          "data": { "speed": 2.5 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 8 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "give-ammo" } }
+      ]
+    },
+    {
+      "id": "ammo-pickup/1", "kind": "ammo-pickup", "name": "ammo_B",
+      "facets": [
+        { "name": "position",      "data": { "x": -3, "y": 0.4, "z": -5 } },
+        { "name": "mesh",          "data": { "factory": "ammo-pickup" } },
+        { "name": "bob",           "data": { "base": 0.4, "amplitude": 0.08, "period_ms": 280 } },
+        { "name": "spin",          "data": { "speed": 2.5 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 8 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "give-ammo" } }
+      ]
     }
   ]
 }

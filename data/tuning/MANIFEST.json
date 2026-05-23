@@ -5,6 +5,7 @@
     "barrel.json",
     "speed_orb.json",
     "coin_drop.json",
-    "health_pickup.json"
+    "health_pickup.json",
+    "ammo_pickup.json"
   ]
 }

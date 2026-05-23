@@ -1,7 +1,16 @@
 {
   "kind": "ammo-pickup",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "required_facets": ["position", "mesh"],
+  "optional_facets": ["bob", "spin", "magnet", "pickup-radius", "ammo"],
+  "defaults": {
+    "bob":           { "base": 0.4, "amplitude": 0.08, "period_ms": 280 },
+    "spin":          { "speed": 2.5 },
+    "magnet":        { "range": 3.0, "speed": 8 },
+    "pickup-radius": { "radius": 1.2, "on_pickup_action": "give-ammo" },
+    "ammo":          { "qty": 12, "item": "pistol_9mm" }
+  },
+  "absorbs": [
+    "src/systems/ammo_pickup_tick.js",
+    "src/systems/drop_spawner.js"
+  ]
 }

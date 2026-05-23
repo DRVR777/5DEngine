@@ -24,7 +24,7 @@
 |  2 |  707 | speed-orb       | DONE 2026-05-23 | Yellow dodecahedron. Bob+spin+emissive-pulse facets added to handlers.js. pickup-radius facet defined (collection waits on hero). 3 default spawns. |
 |  3 |  708 | coin-drop       | DONE 2026-05-23 | Gold sphere with magnet facet (priority 35). New `magnet` handler attracts position toward hero when within range. 3 default spawns. |
 |  4 |  709 | health-pickup   | DONE 2026-05-23 | Green octahedron. Extended spin facet to multi-axis (x/y/z) for dual-axis rotation. Added 13 missing kind names to registry.js Kind enum (coin-drop, health/ammo/weapon-pickup, armor-shard/vest, grenade-crate, mine/turret/grenade, spec). 2 default spawns. |
-|  5 |    ? | ammo-pickup     | pending        | magazine pickup |
+|  5 |  710 | ammo-pickup     | DONE 2026-05-23 | Orange box (BoxGeometry 0.18×0.08×0.28). Reuses bob/spin/magnet/pickup-radius. New `ammo` data facet for qty+item. 2 default spawns. |
 |  6 |    ? | weapon-pickup   | pending        | weapon drop from heavy/robot/boss |
 |  7 |    ? | armor-shard     | pending        | gold shard, dual-tone sfx, magnet |
 |  8 |    ? | crate           | pending        | wooden crate, breakable |

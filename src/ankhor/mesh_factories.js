@@ -142,7 +142,24 @@ export const MESH_FACTORIES = {
     return mesh;
   },
 
+  // Ammo pickup — orange box, magazine-shaped.
+  // Reference: src/systems/drop_spawner.js spawnAmmoPickup.
+  "ammo-pickup"(THREE, fd, thing, registry) {
+    const t = (k, v) => tuned(registry, "ammo-pickup", k, v);
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(t("width", 0.18), t("height", 0.08), t("depth", 0.28)),
+      new THREE.MeshStandardMaterial({
+        color:     t("body_color", 0xffaa00),
+        metalness: t("metalness",  0.5),
+        roughness: t("roughness",  0.4),
+      })
+    );
+    mesh.castShadow = true;
+    mesh.name = thing?.id || "ammo-pickup";
+    return mesh;
+  },
+
   // ── Future factories (add as kinds are migrated per docs/codex/specs/migration-sequence.md):
-  // ammoPickup, weaponPickup, armorShard,
+  // weaponPickup, armorShard,
   // crate, grenadeCrate, hazardZone, bullet, enemy, vehicle, npc, screen, ...
 };
