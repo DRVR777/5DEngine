@@ -150,6 +150,7 @@ function makeGetter(spec, registry) {
   if (resolver.kind === "input-mouse")      return () => readInputState(registry)?.mouseHeld === true;
   if (resolver.kind === "input-yaw")        return () => readInputState(registry)?.yaw || 0;
   if (resolver.kind === "input-pointerlock") return () => typeof document !== "undefined" && !!document.pointerLockElement;
+  if (resolver.kind === "kind-pos")         return resolver.get;
   return noop;
 }
 
@@ -253,6 +254,7 @@ function resolveAtBuildTime(value, registry) {
   if (r.kind === "input-mouse")      return readInputState(registry)?.mouseHeld === true;
   if (r.kind === "input-yaw")        return readInputState(registry)?.yaw || 0;
   if (r.kind === "input-pointerlock") return typeof document !== "undefined" && !!document.pointerLockElement;
+  if (r.kind === "kind-pos")         return r.get();
   return null;
 }
 
@@ -287,8 +289,26 @@ function parseSpec(spec, registry) {
   if (spec.startsWith("$emit:"))     return parseEmit(spec.slice(6));
   if (spec.startsWith("$write:"))    return parseWriteOrAdd(spec.slice(7), "write", registry);
   if (spec.startsWith("$add:"))      return parseWriteOrAdd(spec.slice(5),  "add",   registry);
+  if (spec.startsWith("$kindPos:"))  return parseKindPos(spec.slice(9), registry);
   console.warn(`${LEGACY_NS} unknown binding spec: ${spec}`);
   return null;
+}
+
+function parseKindPos(rest, registry) {
+  // <kind>[<i>]  — legacy modules expect {u, y, v}; substrate is {x, y, z}.
+  const m = rest.match(/^([^\/\[]+)(?:\[(\d+)\])?$/);
+  if (!m) { console.warn(`${LEGACY_NS} bad $kindPos spec: ${rest}`); return null; }
+  const kindName = m[1], idx = m[2] ? Number(m[2]) : 0;
+  return {
+    kind: "kind-pos",
+    get: () => {
+      const list = registry.byKind(kindName);
+      if (!list[idx]) return null;
+      const pos = registry.facetData(list[idx].id, "position");
+      if (!pos) return null;
+      return { u: pos.x, y: pos.y, v: pos.z };
+    },
+  };
 }
 
 function parseEmit(rest) {

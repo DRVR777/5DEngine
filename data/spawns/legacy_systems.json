@@ -157,6 +157,28 @@
             "actions.spawnTrail": "$emit:{\"id\":\"decal-particle/speed-trail-<seq>\",\"kind\":\"decal-particle\",\"name\":\"speed_trail_<seq>\",\"facets\":[{\"name\":\"position\",\"data\":{\"x\":0,\"y\":0.15,\"z\":0}},{\"name\":\"mesh\",\"data\":{\"tuning_ref\":\"decal-particle-muzzle-tuning\"}},{\"name\":\"ttl\",\"data\":{\"remaining\":0.22}},{\"name\":\"expand-fade\",\"data\":{}}]}"
           }
         } }
+      ] },
+
+    { "id": "legacy/burn", "kind": "legacy-system", "name": "legacy_burn",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/burn_tick.js",
+          "export":     "mountBurnTick",
+          "tick_args":  ["@dt", "@nowSec"],
+          "bindings": {
+            "get.heroFireT":     "$thing:legacy/burn/legacy-mount/_heroFireT",
+            "set.heroFireT":     "$thing:legacy/burn/legacy-mount/_heroFireT",
+            "get.heroFireDmgT":  "$thing:legacy/burn/legacy-mount/_heroFireDmgT",
+            "set.heroFireDmgT":  "$thing:legacy/burn/legacy-mount/_heroFireDmgT",
+            "get.heroDead":      "$const:false",
+            "get.heroHp":        "$kind:hero[0]/health/hp",
+            "set.heroHp":        "$kind:hero[0]/health/hp",
+            "set.heroLastDamageT": "$thing:legacy/burn/legacy-mount/_heroLastDamageT",
+            "get.heroPos":       "$kindPos:hero",
+            "actions.spawnParticles":      "$emit:{\"id\":\"decal-particle/burn-<seq>\",\"kind\":\"decal-particle\",\"name\":\"burn_<seq>\",\"facets\":[{\"name\":\"position\",\"data\":{\"x\":\"$arg0\",\"y\":\"$arg1\",\"z\":\"$arg2\"}},{\"name\":\"mesh\",\"data\":{\"tuning_ref\":\"decal-particle-impact-tuning\"}},{\"name\":\"ttl\",\"data\":{\"remaining\":0.3}},{\"name\":\"expand-fade\",\"data\":{}}]}",
+            "actions.heroShowDeathScreen": "$log:[hero death]"
+          }
+        } }
       ] }
   ]
 }

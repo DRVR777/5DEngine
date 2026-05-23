@@ -210,4 +210,27 @@ if (speedSpec) {
   console.log(`[test] PASS — $emit action atom spawned ${afterCount - beforeCount} decal-particle(s) via cloned mountSpeedBoostTick.`);
 }
 
+/* ---------- $kindPos + burn-over-time test (iter 761) ---------- */
+const burnSpec = specs.find((s) => s.id === "legacy/burn");
+if (burnSpec) {
+  const bd = batchRegistry.facetData("legacy/burn", "legacy-mount");
+  bd._heroFireT = 3; bd._heroFireDmgT = 0;
+  batchRegistry.updateFacet("hero/main", "position", { x: 1, y: 0, z: 2 });
+  const hp0 = batchRegistry.facetData("hero/main", "health").hp;
+  const decals0 = batchRegistry.byKind("decal-particle").length;
+  for (let i = 0; i < 6; i++) batchRegistry.tick(0.1);  // 0.6s — past BURN_DMG_PERIOD 0.5s
+  const hp1 = batchRegistry.facetData("hero/main", "health").hp;
+  const decals1 = batchRegistry.byKind("decal-particle").length;
+  console.log(`[test] burn: hp ${hp0}→${hp1}, decals ${decals0}→${decals1} after 0.6s`);
+  if (hp1 >= hp0) {
+    console.log(`[test] FAIL — burn did not damage hero.`);
+    process.exit(1);
+  }
+  if (decals1 <= decals0) {
+    console.log(`[test] FAIL — burn did not $emit any particles.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — $kindPos + $emit ($arg0/$arg1/$arg2) drove burn DOT + particle spawn through cloned mountBurnTick.`);
+}
+
 process.exit(0);
