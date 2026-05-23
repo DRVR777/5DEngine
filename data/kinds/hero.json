@@ -5,9 +5,10 @@
   "facets": [
     { "name": "for-kind",        "data": "hero" },
     { "name": "required-facets", "data": ["position", "mesh", "health", "hero-broadcaster"] },
-    { "name": "optional-facets", "data": ["armor", "inventory", "hero-input-move"] },
+    { "name": "optional-facets", "data": ["armor", "inventory", "hero-input-move", "hero-shoot"] },
     { "name": "defaults", "data": {
-      "hero-input-move": {}
+      "hero-input-move": {},
+      "hero-shoot":      {}
     } },
     { "name": "absorbs", "data": [
       "(hero state was originally inline in index.html — never extracted to a single module)",

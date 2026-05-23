@@ -28,7 +28,14 @@
       "capsule_radial_segments": 12,
       "head_radius": 0.22,
       "head_y_offset": 1.85,
-      "head_emissive_intensity": 0.4
+      "head_emissive_intensity": 0.4,
+      "hero_fire_interval": 0.16,
+      "hero_bullet_speed": 38,
+      "hero_bullet_damage": 20,
+      "hero_bullet_ttl": 1.6,
+      "hero_bullet_hit_radius": 0.6,
+      "hero_muzzle_forward": 0.9,
+      "hero_muzzle_up": 1.45
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",
