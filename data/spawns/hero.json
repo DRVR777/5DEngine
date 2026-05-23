@@ -1,0 +1,18 @@
+{
+  "id": "spawns/hero",
+  "kind": "spawn-set",
+  "name": "Default hero",
+  "facets": [
+    { "name": "for-kind", "data": "hero" },
+    { "name": "comment",  "data": "Single hero at origin. No input controller this iter — hero is static. The hero-broadcaster facet does the substrate's most important job: write the hero's (x,z) into every other Thing's facets that declare heroU/heroV. That activation lights up pickup-radius, magnet, damage-zone, status-zone, respawn-on-collect across the world without any of them needing to know about hero specifically." }
+  ],
+  "children": [
+    { "id": "hero/main", "kind": "hero", "name": "hero",
+      "facets": [
+        { "name": "position",          "data": { "x": 0, "y": 0, "z": 0 } },
+        { "name": "mesh",              "data": {} },
+        { "name": "health",            "data": { "hp": 100, "maxHp": 100 } },
+        { "name": "hero-broadcaster",  "data": {} }
+      ] }
+  ]
+}

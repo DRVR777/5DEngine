@@ -1,7 +1,7 @@
 const KIND_NAMES = [
   // Game entities
   "barrel", "crate", "bullet", "enemy", "pickup", "vehicle", "npc", "weapon",
-  "hazard-zone", "speed-orb", "spawn-point", "screen",
+  "hazard-zone", "speed-orb", "spawn-point", "screen", "hero",
   // Specific pickups (added per docs/codex/MIGRATION_PROGRESS.md as kinds are absorbed)
   "coin-drop", "health-pickup", "ammo-pickup", "weapon-pickup",
   "armor-shard", "armor-vest", "grenade-crate",

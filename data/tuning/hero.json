@@ -1,27 +1,65 @@
 {
-  "$version": 1,
-  "$type": "tuning",
-  "$id": "hero",
-  "$facets": {
-    "maxHp":           100,
-    "maxArmor":        75,
-    "armorAbsorb":     0.6,
-    "regenDelay":      5,
-    "regenRate":       4,
-    "walkSpeed":       5,
-    "sprintSpeed":     9,
-    "lifestealPerKill": 3,
-    "medkitHeal":      40,
-    "waveClearHeal":   15,
-    "hitMultiplierHeadshot":    1.85,
-    "hitMultiplierBackstab":    1.50,
-    "hitMultiplierFrontalBlock": 0.50,
-    "hitMultiplierCrit":        2.50
-  },
-  "$refs": {},
-  "$meta": {
-    "source": "../5DEngineMassive/index.html",
-    "extracted_from_lines": "1529-1536, 6607, 5179, 2650",
-    "note": "Core hero tuning constants."
-  }
+  "id": "tuning/hero",
+  "kind": "tuning",
+  "name": "hero-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "max_hp": 100,
+      "max_armor": 75,
+      "armor_absorb": 0.6,
+      "regen_delay_seconds": 5,
+      "regen_rate_per_second": 4,
+      "walk_speed": 5,
+      "sprint_speed": 9,
+      "lifesteal_per_kill": 3,
+      "medkit_heal": 40,
+      "wave_clear_heal": 15,
+      "hit_multiplier_headshot": 1.85,
+      "hit_multiplier_backstab": 1.50,
+      "hit_multiplier_frontal_block": 0.50,
+      "hit_multiplier_crit": 2.50,
+      "color": 7257215,
+      "emissive": 65535,
+      "emissive_intensity": 0.2,
+      "body_radius": 0.35,
+      "body_height": 1.4,
+      "body_y_offset": 1.05,
+      "capsule_cap_segments": 4,
+      "capsule_radial_segments": 12,
+      "head_radius": 0.22,
+      "head_y_offset": 1.85,
+      "head_emissive_intensity": 0.4
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "capsule", "args": [0.35, 1.4, 4, 12] },
+          "material": { "kind": "standard", "color": 7257215, "emissive": 65535, "emissive_intensity": 0.2 },
+          "position": { "y": 1.05 }, "cast_shadow": true },
+        { "name": "head",
+          "geometry": { "kind": "sphere", "args": [0.22, 12, 12] },
+          "material": { "kind": "standard", "color": 7257215, "emissive": 65535, "emissive_intensity": 0.4 },
+          "position": { "y": 1.85 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "../5DEngineMassive/index.html (lines 1529–1536, 6607, 5179, 2650)",
+        "src/systems/enemy_bullet_tick.js (armor_absorb fallback)"
+      ],
+      "migrated_iter": 724,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Stats provided by an external extraction agent that wrote a competing schema ($type/$facets) — values preserved verbatim, wrapped in the Ankhor Thinga shape.",
+        "max_hp=100, max_armor=75, armor_absorb=0.6 (note: legacy enemy_bullet_tick.js used 0.5 as a fallback; 0.6 from extraction is canonical)",
+        "regen: 4 HP/sec starting 5s after last damage",
+        "walk 5, sprint 9 m/s",
+        "Lifesteal 3 HP per kill; medkit pickup heals 40; wave-clear bonus 15",
+        "Headshot 1.85x, backstab 1.5x, frontal block 0.5x, crit 2.5x damage multipliers",
+        "Visual: cyan-blue capsule (color 0x6ec8ff = 7257215) + head sphere — distinct from enemy reds/oranges. Chosen by this iter (no legacy hero mesh existed as a single module)"
+      ]
+    }}
+  ]
 }
