@@ -55,6 +55,7 @@
     { "ref": "tuning/bullet_enemy" },
     { "ref": "tuning/enemy_grunt" },
     { "ref": "tuning/enemy_heavy" },
+    { "ref": "tuning/enemy_fast" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
