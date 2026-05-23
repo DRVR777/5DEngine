@@ -35,7 +35,9 @@
       "hero_bullet_ttl": 1.6,
       "hero_bullet_hit_radius": 0.6,
       "hero_muzzle_forward": 0.9,
-      "hero_muzzle_up": 1.45
+      "hero_muzzle_up": 1.45,
+      "hero_ammo_item": "pistol_9mm",
+      "hero_starting_ammo": 60
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

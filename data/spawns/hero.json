@@ -16,7 +16,7 @@
         { "name": "hero-input-move",   "data": {} },
         { "name": "hero-shoot",        "data": {} },
         { "name": "hero-respawn",      "data": {} },
-        { "name": "inventory",         "data": { "items": {}, "score": 0 } },
+        { "name": "inventory",         "data": { "items": { "pistol_9mm": 60 }, "score": 0 } },
         { "name": "aabb-collision",    "data": {} }
       ] }
   ]

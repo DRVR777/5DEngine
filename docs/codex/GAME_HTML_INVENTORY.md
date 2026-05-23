@@ -51,7 +51,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountBulletEnemyKillTick | enemy-death-cleanup facet (iter 742) | ✅ |
 | mountBulletEnemyHitFeedbackTick | hit-flash + damage numbers | ❌ |
 | mountEnemyBulletTick | enemy-shoot facet (iter 747) — sniper+robot wired; poisoner pending | ⚠ |
-| mountWeaponAmmo | ammo-state facet on hero + per-weapon | ❌ |
+| mountWeaponAmmo | hero.inventory.items[ammo_item] consumed by hero-shoot (iter 749) | ⚠ (single weapon; multi-weapon swap pending) |
 | mountWeaponSelector | weapon-picker UI Thinga | ❌ |
 | mountWeaponHudTick | shots-fired counter inside hud-overlay (iter 743); real ammo pending | ⚠ |
 | mountFpGunPosTick | fp-gun-position facet (gun in front of cam) | ❌ |

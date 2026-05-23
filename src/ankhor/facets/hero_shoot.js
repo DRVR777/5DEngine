@@ -26,10 +26,18 @@ export default {
 
     const tuning = resolveHeroTuning(registry);
     if (tuning.fire_interval <= 0 || tuning.bullet_speed <= 0) return;
+    if (!tuning.ammo_item) return;
+
+    const inv = registry.facetData(thing.id, "inventory");
+    if (!inv || !inv.items || typeof inv.items !== "object") return;
+    const have = typeof inv.items[tuning.ammo_item] === "number" ? inv.items[tuning.ammo_item] : 0;
+    if (have <= 0) return;
 
     const nowSec = Date.now() / 1000;
     if (data._next_fire_at && nowSec < data._next_fire_at) return;
     data._next_fire_at = nowSec + tuning.fire_interval;
+
+    inv.items[tuning.ammo_item] = have - 1;
 
     const yaw = input.yaw || 0;
     const fwdX = -Math.sin(yaw);
@@ -66,7 +74,7 @@ export default {
 function resolveHeroTuning(registry) {
   const empty = { fire_interval: 0, bullet_speed: 0, bullet_damage: 0,
                   bullet_ttl: 0, bullet_hit_radius: 0,
-                  muzzle_forward: 0, muzzle_up: 0 };
+                  muzzle_forward: 0, muzzle_up: 0, ammo_item: "" };
   for (const t of registry.byKind("tuning")) {
     if (t.name !== "hero-tuning") continue;
     const tn = registry.facetData(t.id, "tuning");
@@ -79,6 +87,7 @@ function resolveHeroTuning(registry) {
     if (typeof tn.hero_bullet_hit_radius === "number") out.bullet_hit_radius = tn.hero_bullet_hit_radius;
     if (typeof tn.hero_muzzle_forward    === "number") out.muzzle_forward    = tn.hero_muzzle_forward;
     if (typeof tn.hero_muzzle_up         === "number") out.muzzle_up         = tn.hero_muzzle_up;
+    if (typeof tn.hero_ammo_item         === "string") out.ammo_item         = tn.hero_ammo_item;
     return out;
   }
   return empty;
