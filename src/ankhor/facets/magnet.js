@@ -10,14 +10,12 @@ export default {
     if (hu == null || hv == null) return;
     const pos = registry.facetData(thing.id, "position");
     if (!pos) return;
-    const x = pos.x ?? pos.u ?? 0, z = pos.z ?? pos.v ?? 0;
-    const du = hu - x, dv = hv - z;
+    const du = hu - pos.x, dv = hv - pos.z;
     const d = Math.hypot(du, dv);
-    const range = data.range || 3.0;
-    if (d > 0 && d < range) {
-      const pull = (data.speed || 9) * (1 - d / range);
-      pos.x = x + (du / d) * pull * dt;
-      pos.z = z + (dv / d) * pull * dt;
+    if (d > 0 && d < data.range) {
+      const pull = data.speed * (1 - d / data.range);
+      pos.x += (du / d) * pull * dt;
+      pos.z += (dv / d) * pull * dt;
     }
   }
 };

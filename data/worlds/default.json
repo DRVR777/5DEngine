@@ -2,16 +2,28 @@
   "id": "worlds/default",
   "kind": "world",
   "name": "Default World",
-  "comment": "Short world config. Composes the engine by referencing kind-defs, tuning Things, and spawn-sets — each by Thinga id. To make another world: copy this file, edit children list. Every entry below is a Thinga; the world is just a coordinator.",
+  "comment": "Composes the engine by referencing kind-defs, tuning Things, and spawn-sets via {ref}. All scene + camera + grid params live in the world-params facet below — boot.js reads them with no fallback.",
   "facets": [
     { "name": "world-params", "data": {
-      "background_color":    723730,
+      "background_color":    724242,
       "fog_density":         0.018,
+      "ambient_color":       16777215,
       "ambient_intensity":   0.55,
+      "sun_color":           16777215,
       "sun_intensity":       0.85,
+      "sun_position":        [5, 10, 5],
+      "camera_fov":          60,
+      "camera_near":         0.1,
+      "camera_far":          1000,
+      "camera_initial_position": [0, 14, 28],
+      "camera_look_at":      [0, 0, 0],
       "camera_orbit_radius": 28,
       "camera_height":       14,
-      "camera_orbit_speed":  0.00008
+      "camera_orbit_speed":  0.00008,
+      "grid_size":           60,
+      "grid_divisions":      60,
+      "grid_color_major":    2241348,
+      "grid_color_minor":    1251360
     }}
   ],
   "children": [

@@ -26,7 +26,7 @@ export function installMeshHandler(registry, { THREE, scene, factories = {} }) {
       }
       if (!fd.threeObj) return;
       const pos = registry.facetData(thing.id, "position");
-      if (pos) fd.threeObj.position.set(pos.x ?? pos.u ?? 0, pos.y ?? 0, pos.z ?? pos.v ?? 0);
+      if (pos) fd.threeObj.position.set(pos.x, pos.y, pos.z);
       scene.add(fd.threeObj);
     },
 
@@ -34,8 +34,8 @@ export function installMeshHandler(registry, { THREE, scene, factories = {} }) {
       if (!fd?.threeObj) return;
       const pos = registry.facetData(thing.id, "position");
       if (!pos) return;
-      fd.threeObj.position.set(pos.x ?? pos.u ?? 0, pos.y ?? 0, pos.z ?? pos.v ?? 0);
-      if (pos.heading != null) fd.threeObj.rotation.y = pos.heading;
+      fd.threeObj.position.set(pos.x, pos.y, pos.z);
+      if (typeof pos.heading === "number") fd.threeObj.rotation.y = pos.heading;
     },
 
     cleanup(thing, fd) {

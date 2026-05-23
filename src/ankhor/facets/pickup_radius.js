@@ -9,9 +9,9 @@ export default {
     if (!pos) return;
     const hu = data.heroU, hv = data.heroV;
     if (hu == null || hv == null) return;
-    const du = hu - (pos.x ?? pos.u ?? 0);
-    const dv = hv - (pos.z ?? pos.v ?? 0);
-    if (du * du + dv * dv < (data.radius || 1.2) ** 2) {
+    const du = hu - pos.x;
+    const dv = hv - pos.z;
+    if (du * du + dv * dv < data.radius * data.radius) {
       data.collected = true;
       data.collected_at = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
       registry.despawn(thing.id, `pickup:${data.on_pickup_action || "default"}`);
