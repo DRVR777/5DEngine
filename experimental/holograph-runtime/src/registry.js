@@ -21,6 +21,8 @@ const KIND_NAMES = [
   // Singleton render context — boot.js stashes {THREE, scene, camera} here
   // so facets can reach Three.js without globals
   "render-context",
+  // Singleton wave driver — spawns enemies in escalating waves
+  "wave-spawner",
   // Composition kinds — everything-is-a-Thinga architecture
   "root", "world", "kind-def", "spawn-set",
   // Meta kinds

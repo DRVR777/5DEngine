@@ -100,7 +100,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountBossBarTick | boss-bar facet | ❌ |
 | mountComboHudTick | combo-counter hud | ❌ |
 | mountComboAnnouncer | combo-announcer (sfx) | ❌ |
-| mountWaveHudTick | wave-indicator hud | ❌ |
+| mountWaveHudTick | extended paintKills in hud-overlay (iter 753) | ⚠ (text in kills line; banner pending) |
 | mountWeaponHudTick | weapon-hud | ❌ |
 | mountClockHudTick | day/night clock hud | ❌ |
 | mountVignetteTick | damage-flash overlay covers hit feedback (iter 748); ambient vignette pending | ⚠ |
@@ -180,7 +180,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountFlashlight | flashlight facet on hero | ❌ |
 | mountSpawnSystem | spawn-point Thingas | ❌ |
 | mountLayerTransitionTick | **5D u/v transition** — phase shifts between layers | 🔧 (needs 5D-truth from iter 740+) |
-| mountWaveEvents | wave-spawner Thinga | ❌ |
+| mountWaveEvents | wave-spawner kind+facet (iter 753) — base+scaling, elite every 5 | ✅ |
 | Buildings / blockers / collision walls | collider facet exists; wall/building Thingas pending | ⚠ |
 | GTAPhysics.resolveAABBMove | aabb-collision facet (iter 745+746) | ✅ (hero + all enemies; vehicles/NPCs pending) |
 

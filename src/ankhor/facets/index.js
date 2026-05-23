@@ -28,6 +28,7 @@ import damageFlash    from "./damage_flash.js";
 import healthDisplay  from "./health_display.js";
 import aabbCollision  from "./aabb_collision.js";
 import expandFade     from "./expand_fade.js";
+import waveSpawner    from "./wave_spawner.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -59,6 +60,7 @@ export const FACET_HANDLERS = {
   "health-display":      healthDisplay,
   "aabb-collision":      aabbCollision,
   "expand-fade":         expandFade,
+  "wave-spawner":        waveSpawner,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

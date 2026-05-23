@@ -1,0 +1,26 @@
+{
+  "id": "kinds/wave_spawner",
+  "kind": "kind-def",
+  "name": "Kind definition: wave-spawner",
+  "facets": [
+    { "name": "for-kind",        "data": "wave-spawner" },
+    { "name": "required-facets", "data": ["wave-spawner"] },
+    { "name": "optional-facets", "data": [] },
+    { "name": "defaults", "data": {
+      "wave-spawner": {
+        "_inter_wave_until": null,
+        "_next_spawn_at":    null,
+        "_remaining":        0,
+        "wave_number":       0
+      }
+    } },
+    { "name": "absorbs", "data": [
+      "game.html — mountWaveEvents (line 187+), mountSpawnSystem (line 498). Substrate version: one singleton wave-spawner Thinga driven by its facet handler. Reads alive enemy count via byKind('enemy'); when zero, queues the next wave from tuning."
+    ] },
+    { "name": "variants", "data": {
+      "comment": "Singleton today. Future variants: arena-wave (fixed sequence), survival-wave (random difficulty curve), boss-wave (single boss every Nth wave).",
+      "available": ["wave-default-tuning"],
+      "queued":    ["wave-arena-tuning", "wave-boss-tuning"]
+    } }
+  ]
+}

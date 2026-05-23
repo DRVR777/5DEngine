@@ -1,0 +1,46 @@
+{
+  "id": "tuning/wave_default",
+  "kind": "tuning",
+  "name": "wave-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "base_per_wave":          4,
+      "per_wave_scaling":       2,
+      "spawn_interval_seconds": 1.4,
+      "inter_wave_pause_seconds": 4.0,
+      "variants": [
+        "enemy-grunt-tuning",
+        "enemy-grunt-tuning",
+        "enemy-fast-tuning",
+        "enemy-heavy-tuning",
+        "enemy-poisoner-tuning",
+        "enemy-incendiary-tuning"
+      ],
+      "spawn_positions": [
+        { "x":  22, "z":   0 },
+        { "x": -22, "z":   0 },
+        { "x":   0, "z":  22 },
+        { "x":   0, "z": -22 },
+        { "x":  16, "z":  16 },
+        { "x": -16, "z":  16 },
+        { "x":  16, "z": -16 },
+        { "x": -16, "z": -16 }
+      ],
+      "elite_every_n_waves":   5,
+      "elite_variant_tuning":  "enemy-boss-tuning",
+      "elite_starting_wave":   5
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["game.html mountWaveEvents (line ~187) — substrate analogue, values playtest-tunable"],
+      "migrated_iter": 753,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": false,
+      "notes": [
+        "First-pass wave shape: 4 enemies wave 1, scales +2 per wave. 1.4s between spawns within a wave. 4s pause between waves.",
+        "Variant pool weighted toward grunts (cheap fodder); heavy/poisoner/incendiary mixed in.",
+        "8 spawn positions ring the arena at radius 22 + diagonals at 16.",
+        "Boss as 'elite': spawned in addition to wave quota every 5th wave starting at wave 5."
+      ]
+    }}
+  ]
+}

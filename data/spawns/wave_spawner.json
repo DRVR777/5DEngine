@@ -1,0 +1,15 @@
+{
+  "id": "spawns/wave_spawner",
+  "kind": "spawn-set",
+  "name": "Default wave spawner",
+  "facets": [
+    { "name": "for-kind", "data": "wave-spawner" },
+    { "name": "comment",  "data": "Singleton wave driver. Reads its tuning each tick to decide when/where/what to spawn. Wave 0 = the demo enemies from spawns/enemy.json that ship with the world; wave 1 begins when those are all dead, with quota = base_per_wave + 1*per_wave_scaling. Spawns one at a time at spawn_interval_seconds." }
+  ],
+  "children": [
+    { "id": "wave-spawner/main", "kind": "wave-spawner", "name": "primary_wave_spawner",
+      "facets": [
+        { "name": "wave-spawner", "data": {} }
+      ] }
+  ]
+}

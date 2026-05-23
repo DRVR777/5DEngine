@@ -40,7 +40,7 @@ export default {
     data._lastEnemyCount = enemyCount;
 
     paintHp(data, t, health.hp || 0, health.maxHp || 0);
-    paintKills(data, t, data.kills);
+    paintKills(data, t, data.kills, registry);
     paintAmmo(data, t, registry, hero.id);
   }
 };
@@ -133,8 +133,18 @@ function paintHp(data, t, hp, maxHp) {
   }
 }
 
-function paintKills(data, t, kills) {
-  if (data._killsEl) data._killsEl.textContent = `${kills} ${t.kills_label}`;
+function paintKills(data, t, kills, registry) {
+  if (!data._killsEl) return;
+  let wavePart = "";
+  const ws = registry.byKind("wave-spawner")[0];
+  if (ws) {
+    const wf = registry.facetData(ws.id, "wave-spawner");
+    if (wf && typeof wf.wave_number === "number") {
+      const rem = typeof wf._remaining === "number" ? wf._remaining : 0;
+      wavePart = `  wave ${wf.wave_number}${rem > 0 ? ` (+${rem} incoming)` : ""}`;
+    }
+  }
+  data._killsEl.textContent = `${kills} ${t.kills_label}${wavePart}`;
 }
 
 function paintAmmo(data, t, registry, heroId) {
