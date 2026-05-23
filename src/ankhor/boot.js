@@ -14,56 +14,62 @@ import { requireParam as need }  from "./require_param.js";
 const B = "boot-params";
 
 export async function boot({ canvas, dataDir = "./data/", rootId = "root", onReady } = {}) {
+  // Per-stage try/catch so the next failure pinpoints the broken step
+  // instead of producing a generic black-screen + opaque message.
+  const stage = async (name, fn) => {
+    console.info(`[boot] ▶ ${name}`);
+    try { const r = await fn(); console.info(`[boot] ✓ ${name}`); return r; }
+    catch (e) {
+      console.error(`[boot] ✗ ${name} —`, e);
+      throw new Error(`stage:${name}: ${e?.message || e}`);
+    }
+  };
+
   console.info("[boot] start");
-  const registry = createDefaultRegistry();
-  installFacetHandlers(registry);
+  const registry = await stage("createDefaultRegistry", () => createDefaultRegistry());
+  await stage("installFacetHandlers", () => installFacetHandlers(registry));
   if (!canvas) throw new Error("[ankhor] boot: no canvas provided");
   console.info("[boot] canvas found");
 
-  // Fail-safe renderer FIRST, so even total composition failure still
-  // shows a non-black frame instead of silent black-screen.
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setClearColor(0x201826, 1);  // dark concrete fallback
-  console.info("[boot] renderer ready");
+  const renderer = await stage("new WebGLRenderer", () => new THREE.WebGLRenderer({ canvas, antialias: true }));
+  await stage("renderer.setSize",       () => renderer.setSize(innerWidth, innerHeight));
+  await stage("renderer.setClearColor", () => renderer.setClearColor(0x201826, 1));
 
-  // Compose the Thinga graph — we need root.boot-params and world.world-params
-  // before we can construct camera with no hardcoded fallbacks.
-  const loaded = await composeFromRoot(rootId, dataDir);
-  console.info(`[boot] root loaded — ${loaded.length} Thingas`);
+  const loaded = await stage("composeFromRoot", () => composeFromRoot(rootId, dataDir));
+  console.info(`[boot] loaded ${loaded?.length ?? "?"} Thingas`);
+  if (!Array.isArray(loaded)) throw new Error(`composeFromRoot returned non-array (${typeof loaded})`);
+
   const root   = loaded.find(t => t.kind === "root");
   const world  = loaded.find(t => t.kind === "world");
-  if (!root)  throw new Error("[ankhor] boot: no kind:root Thinga loaded");
-  if (!world) throw new Error("[ankhor] boot: no kind:world Thinga loaded");
+  if (!root)  throw new Error("no kind:root Thinga loaded");
+  if (!world) throw new Error("no kind:world Thinga loaded");
   const bootP  = facetMap(root)[B];
   const worldP = facetMap(world)["world-params"];
+  if (!bootP)  throw new Error("root Thinga missing boot-params facet");
+  if (!worldP) throw new Error("world Thinga missing world-params facet");
 
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, need(bootP, "pixel_ratio_cap", B)));
-
-  const scene = new THREE.Scene();
-  const cp = applyWorldParams(THREE, scene, worldP);   // bg, fog, lights, grid
-  console.info("[boot] world loaded");
-  const cam = new THREE.PerspectiveCamera(cp.fov, innerWidth / innerHeight, cp.near, cp.far);
-  cam.position.set(cp.init_pos[0], cp.init_pos[1], cp.init_pos[2]);
-  cam.lookAt(cp.look_at[0], cp.look_at[1], cp.look_at[2]);
+  await stage("setPixelRatio",         () => renderer.setPixelRatio(Math.min(devicePixelRatio || 1, need(bootP, "pixel_ratio_cap", B))));
+  const scene = await stage("new Scene", () => new THREE.Scene());
+  const cp    = await stage("applyWorldParams", () => applyWorldParams(THREE, scene, worldP));
+  const cam   = await stage("new PerspectiveCamera", () => new THREE.PerspectiveCamera(cp.fov, innerWidth / innerHeight, cp.near, cp.far));
+  await stage("cam.position.set", () => cam.position.set(cp.init_pos[0], cp.init_pos[1], cp.init_pos[2]));
+  await stage("cam.lookAt",       () => cam.lookAt(cp.look_at[0], cp.look_at[1], cp.look_at[2]));
   addEventListener("resize", () => {
     renderer.setSize(innerWidth, innerHeight);
     cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
   });
-  installMeshHandler(registry, { THREE, scene });
+  await stage("installMeshHandler", () => installMeshHandler(registry, { THREE, scene }));
 
-  // Render-context Thinga — singleton carrying refs to THREE + scene +
-  // camera so facets (health-display, future hp-bar/damage-number/decal
-  // facets) can reach the render layer without globals.
-  registry.spawn({
+  await stage("spawn render-context", () => registry.spawn({
     id: "render-context/main",
     kind: "render-context",
     name: "render_context",
     facets: [{ name: "render-context", data: { THREE, scene, camera: cam } }],
-  });
+  }));
 
   // PASS 1: kind-def Thingas → registry.registerKind (capture defaults too).
   const kindDefaults = new Map();
+  let p1bad = 0;
   for (const t of loaded) {
     if (t.kind !== "kind-def") continue;
     const def = facetMap(t);
@@ -74,27 +80,30 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
         defaults:       def["defaults"]        || {},
       });
       kindDefaults.set(def["for-kind"], def["defaults"] || {});
-    } catch (e) { console.warn(`[ankhor] registerKind("${def["for-kind"]}"):`, e.message); }
+    } catch (e) { p1bad++; console.warn(`[ankhor] registerKind("${def["for-kind"]}"):`, e.message); }
   }
+  console.info(`[boot] ✓ PASS 1 (${kindDefaults.size} kinds, ${p1bad} failed)`);
 
   // PASS 2: spawn non-spawn-set Thingas (the world, tuning, kind-def Thingas).
+  let p2ok = 0, p2bad = 0;
   for (const t of loaded) {
     if (t.kind === "spawn-set") continue;
-    try { registry.spawn(t); } catch (e) { console.warn(`[ankhor] spawn ${t.id}:`, e.message); }
+    try { registry.spawn(t); p2ok++; }
+    catch (e) { p2bad++; console.warn(`[ankhor] spawn ${t.id} (${t.kind}):`, e.message); }
   }
+  console.info(`[boot] ✓ PASS 2 (${p2ok} ok, ${p2bad} failed)`);
 
   // PASS 3: spawn-set children become game Things; default facets injected.
-  let materialized = 0;
+  let materialized = 0, p3bad = 0;
   for (const t of loaded) {
     if (t.kind !== "spawn-set") continue;
     for (const child of t.children || []) {
       const filled = injectDefaults(child, kindDefaults.get(child.kind) || {});
       try { registry.spawn(filled); materialized++; }
-      catch (e) { console.warn(`[ankhor] spawn ${child.id}:`, e.message); }
+      catch (e) { p3bad++; console.warn(`[ankhor] spawn ${child.id} (${child.kind}):`, e.message); }
     }
   }
-
-  console.info(`[boot] registry materialized — ${materialized} children`);
+  console.info(`[boot] ✓ PASS 3 (${materialized} ok, ${p3bad} failed)`);
 
   const maxDt = need(bootP, "max_frame_dt_seconds", B);
   let last = performance.now();
