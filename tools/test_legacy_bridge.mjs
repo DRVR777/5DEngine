@@ -119,6 +119,12 @@ batchRegistry.spawn({
   facets: [{ name: "input-state", data: { keys: { KeyW: true, ShiftLeft: true }, mouseHeld: false, yaw: 0 } }],
 });
 
+// register no-op handlers so $emit template kinds spawn cleanly
+batchRegistry.registerFacetHandler("position",    { priority: 10 });
+batchRegistry.registerFacetHandler("mesh",        { priority: 70 });
+batchRegistry.registerFacetHandler("ttl",         { priority: 80 });
+batchRegistry.registerFacetHandler("expand-fade", { priority: 60 });
+
 for (const s of specs) {
   // Rewrite module_url to an absolute file URL (the file in spawns has a
   // browser-relative path that doesn't resolve under Node).
@@ -181,6 +187,27 @@ if (stamSpec && footSpec) {
     process.exit(1);
   }
   console.log(`[test] PASS — $input atoms drove stamina drain through cloned legacy module.`);
+}
+
+/* ---------- $emit-driven action test (iter 760) ---------- */
+// With KeyW held, the speed-boost mount with speedBoostT > 0 should
+// emit decal-particle Things via $emit each TRAIL_PERIOD seconds.
+// Register the kinds the template references so spawn() accepts.
+const speedSpec = specs.find((s) => s.id === "legacy/speed-boost");
+if (speedSpec) {
+  const sd = batchRegistry.facetData("legacy/speed-boost", "legacy-mount");
+  sd._speedBoostT = 5;
+  sd._speedTrailT = 0;  // trigger immediately
+  const beforeCount = batchRegistry.byKind("decal-particle").length;
+  // tick several frames; need ~0.08s * 3 = 0.24s of W held to emit ~3 trails
+  for (let i = 0; i < 6; i++) batchRegistry.tick(0.05);
+  const afterCount = batchRegistry.byKind("decal-particle").length;
+  console.log(`[test] decal-particle count after 0.30s W+boost = ${afterCount} (was ${beforeCount})`);
+  if (afterCount <= beforeCount) {
+    console.log(`[test] FAIL — $emit did not spawn any decal-particle.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — $emit action atom spawned ${afterCount - beforeCount} decal-particle(s) via cloned mountSpeedBoostTick.`);
 }
 
 process.exit(0);

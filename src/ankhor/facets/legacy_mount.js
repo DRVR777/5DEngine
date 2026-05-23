@@ -173,7 +173,63 @@ function makeAction(spec, registry) {
   if (resolver.kind === "noop") return () => {};
   if (resolver.kind === "log")  return (...args) => console.log(resolver.prefix, ...args);
   if (resolver.kind === "const" && typeof resolver.value === "function") return resolver.value;
+  if (resolver.kind === "emit") return (...args) => {
+    const filled = substituteArgs(resolver.template, args, registry);
+    if (!filled || !filled.id || !filled.kind) {
+      console.warn(`${LEGACY_NS} $emit: template missing id/kind after substitution`);
+      return;
+    }
+    // make ids unique per call so repeated emits don't collide
+    if (filled.id.includes("<seq>")) {
+      filled.id = filled.id.replace(/<seq>/g, String((registry._emitSeq = (registry._emitSeq || 0) + 1)));
+      if (filled.name && filled.name.includes("<seq>")) filled.name = filled.id;
+    }
+    try { registry.spawn(filled); }
+    catch (e) { console.warn(`${LEGACY_NS} $emit spawn failed: ${e.message}`); }
+  };
+  if (resolver.kind === "write") return (v) => {
+    const id = resolver.id();
+    if (!id) return;
+    const fd = registry.facetData(id, resolver.facet);
+    if (fd) fd[resolver.field] = v;
+  };
+  if (resolver.kind === "add") return (delta) => {
+    const id = resolver.id();
+    if (!id) return;
+    const fd = registry.facetData(id, resolver.facet);
+    if (!fd) return;
+    const prev = typeof fd[resolver.field] === "number" ? fd[resolver.field] : 0;
+    fd[resolver.field] = prev + (typeof delta === "number" ? delta : 0);
+  };
+  if (resolver.kind === "facet") return (v) => {
+    // makeSetter shape: legacy passes a single value to write
+    const id = resolver.id();
+    if (!id) return;
+    const fd = registry.facetData(id, resolver.facet);
+    if (fd) fd[resolver.field] = v;
+  };
   return () => {};
+}
+
+/** Recursively substitute `$arg0`, `$arg1`, ... and other binding atoms
+ *  inside a JSON template (used by $emit). Plain strings starting with
+ *  $arg<N> are replaced by the Nth argument; other $-strings go through
+ *  resolveAtBuildTime. */
+function substituteArgs(node, args, registry) {
+  if (Array.isArray(node)) return node.map((n) => substituteArgs(n, args, registry));
+  if (node && typeof node === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(node)) out[k] = substituteArgs(v, args, registry);
+    return out;
+  }
+  if (typeof node !== "string") return node;
+  const argMatch = node.match(/^\$arg(\d+)$/);
+  if (argMatch) {
+    const idx = Number(argMatch[1]);
+    return idx < args.length ? args[idx] : undefined;
+  }
+  if (node.startsWith("$")) return resolveAtBuildTime(node, registry);
+  return node;
 }
 
 /** Resolve a spec value once, at bridge-build time (used for `params`).
@@ -228,8 +284,27 @@ function parseSpec(spec, registry) {
   if (spec.startsWith("$thing:"))    return parseThing (spec.slice(7),  registry);
   if (spec.startsWith("$input:"))    return { kind: "input-key", code: spec.slice(7) };
   if (spec.startsWith("$inputAny:")) return { kind: "input-any", codes: spec.slice(10).split(",").map(s => s.trim()).filter(Boolean) };
+  if (spec.startsWith("$emit:"))     return parseEmit(spec.slice(6));
+  if (spec.startsWith("$write:"))    return parseWriteOrAdd(spec.slice(7), "write", registry);
+  if (spec.startsWith("$add:"))      return parseWriteOrAdd(spec.slice(5),  "add",   registry);
   console.warn(`${LEGACY_NS} unknown binding spec: ${spec}`);
   return null;
+}
+
+function parseEmit(rest) {
+  // rest is a JSON object template. Throws clear if it isn't.
+  try { return { kind: "emit", template: JSON.parse(rest) }; }
+  catch (e) { console.warn(`${LEGACY_NS} bad $emit JSON: ${e.message}`); return null; }
+}
+
+function parseWriteOrAdd(rest, kind, registry) {
+  // <id>/<facet>/<field>   — same shape as $thing
+  const parts = rest.split("/");
+  if (parts.length < 3) { console.warn(`${LEGACY_NS} bad $${kind} spec: ${rest}`); return null; }
+  const field = parts.pop();
+  const facet = parts.pop();
+  const id    = parts.join("/");
+  return { kind, facet, field, id: () => id };
 }
 
 function parseConst(rest) {
