@@ -18,6 +18,9 @@ import attackTarget   from "./attack_target.js";
 import inputState     from "./input_state.js";
 import heroInputMove  from "./hero_input_move.js";
 import heroShoot      from "./hero_shoot.js";
+import enemyDeathCleanup from "./enemy_death_cleanup.js";
+import dropOnDeath    from "./drop_on_death.js";
+import heroRespawn    from "./hero_respawn.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -39,6 +42,9 @@ export const FACET_HANDLERS = {
   "input-state":         inputState,
   "hero-input-move":     heroInputMove,
   "hero-shoot":          heroShoot,
+  "enemy-death-cleanup": enemyDeathCleanup,
+  "drop-on-death":       dropOnDeath,
+  "hero-respawn":        heroRespawn,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

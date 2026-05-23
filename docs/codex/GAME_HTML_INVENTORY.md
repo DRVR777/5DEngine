@@ -35,7 +35,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountJumpGravityTick | jump+gravity facet | ❌ |
 | mountCrouchSpeedTick | crouch facet | ❌ |
 | mountStaminaTick | stamina facet | ❌ |
-| mountHeroLifecycle | death-screen + respawn-flow Thingas | ❌ |
+| mountHeroLifecycle | hero-respawn facet (iter 742) — teleport+heal only, no UI yet | ⚠ |
 | mountHeroRegenTick | hp-regen facet (regen_delay + rate already in hero-tuning) | ❌ |
 | mountHeroKnockbackTick | knockback-spring facet | ❌ |
 | mountHeroMesh | hero mesh-spec (iter 724) | ✅ |
@@ -48,7 +48,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountShootSystem | hero-shoot facet (iter 741) | ✅ (hero side) |
 | mountBulletPhysicsTick | position.velocity (iter 720) | ✅ |
 | mountBulletWorldHitTick | bullet collides with barrels/crates/walls — no walls yet | ⚠ |
-| mountBulletEnemyKillTick | kinetic-hit despawns enemy at 0hp | ❌ (damages only) |
+| mountBulletEnemyKillTick | enemy-death-cleanup facet (iter 742) | ✅ |
 | mountBulletEnemyHitFeedbackTick | hit-flash + damage numbers | ❌ |
 | mountEnemyBulletTick | enemy-shoot facet (sniper, robot, poisoner-ranged) | ❌ |
 | mountWeaponAmmo | ammo-state facet on hero + per-weapon | ❌ |
@@ -85,7 +85,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountEnemyStrafeMeleeTick | strafe-while-meleeing | ❌ |
 | `wander` AI when no target | wander facet | ❌ |
 | `flinch` on hit | flinch-spring facet | ❌ |
-| `drop-on-death` | drop-on-death facet (loot already in tuning) | ❌ |
+| `drop-on-death` | drop-on-death facet (iter 742) | ✅ |
 | `alert-bubble` over enemy | alert-bubble facet | ❌ |
 | `health-display` HP bar plane | health-display facet | ❌ |
 
