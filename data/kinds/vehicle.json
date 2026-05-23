@@ -5,9 +5,10 @@
   "facets": [
     { "name": "for-kind",        "data": "vehicle" },
     { "name": "required-facets", "data": ["position", "mesh", "health"] },
-    { "name": "optional-facets", "data": ["vehicle-drive", "rigid-body", "passenger-slot"] },
+    { "name": "optional-facets", "data": ["vehicle-drive", "aabb-collision", "rigid-body", "passenger-slot"] },
     { "name": "defaults", "data": {
-      "vehicle-drive": {}
+      "vehicle-drive":  {},
+      "aabb-collision": { "half_x": 1.05, "half_z": 2.3 }
     } },
     { "name": "absorbs", "data": [
       "src/systems/vehicle_physics_tick.js",

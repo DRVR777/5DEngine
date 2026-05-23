@@ -55,6 +55,7 @@
     { "ref": "kinds/smoke_particle" },
     { "ref": "kinds/decal_particle" },
     { "ref": "kinds/wave_spawner" },
+    { "ref": "kinds/arena_wall" },
     { "ref": "kinds/input" },
     { "ref": "kinds/hud" },
 
@@ -121,6 +122,7 @@
     { "ref": "spawns/agent_message" },
     { "ref": "spawns/input" },
     { "ref": "spawns/hud" },
-    { "ref": "spawns/wave_spawner" }
+    { "ref": "spawns/wave_spawner" },
+    { "ref": "spawns/arena_walls" }
   ]
 }

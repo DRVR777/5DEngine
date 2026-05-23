@@ -1,0 +1,19 @@
+{
+  "id": "kinds/arena_wall",
+  "kind": "kind-def",
+  "name": "Kind definition: arena-wall",
+  "facets": [
+    { "name": "for-kind",        "data": "arena-wall" },
+    { "name": "required-facets", "data": ["position", "collider"] },
+    { "name": "optional-facets", "data": ["mesh"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "game.html — mountWorldLayout boundary clamp + GTAPhysics.resolveAABBMove buildingBlockers (line 1834). Substrate replacement: pure collider Things with no mesh — invisible walls. The aabb-collision facet on movers (hero, vehicles, future NPCs) already handles them via byFacet('collider')."
+    ] },
+    { "name": "variants", "data": {
+      "comment": "No tuning today — each wall declares its own half-extents in the spawn data. Future variants: angled-wall (rotated), one-way-wall (movers pass one direction), force-field (visible-on-impact).",
+      "available": [],
+      "queued":    ["arena-wall-debug-tuning"]
+    } }
+  ]
+}

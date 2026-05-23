@@ -23,6 +23,8 @@ const KIND_NAMES = [
   "render-context",
   // Singleton wave driver — spawns enemies in escalating waves
   "wave-spawner",
+  // Invisible boundary wall — pure collider, no mesh
+  "arena-wall",
   // Composition kinds — everything-is-a-Thinga architecture
   "root", "world", "kind-def", "spawn-set",
   // Meta kinds
