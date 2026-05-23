@@ -1,0 +1,66 @@
+{
+  "id": "tuning/enemy_heavy",
+  "kind": "tuning",
+  "name": "enemy-heavy-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 200,
+      "max_hp": 200,
+      "move_speed": 1.2,
+      "wander_speed": 0.6,
+      "damage": 18,
+      "attack_range": 2.0,
+      "sight_range": 10,
+      "drop_ammo": "pistol_9mm",
+      "drop_qty": 24,
+      "drop_health": 30,
+      "color": 8912930,
+      "emissive": 1114112,
+      "body_radius": 0.55,
+      "body_height": 1.5,
+      "body_y_offset": 1.3,
+      "gem_radius": 0.16,
+      "gem_y_offset": 2.9,
+      "gem_intensity": 0.8,
+      "gem_opacity": 0.92,
+      "capsule_cap_segments": 4,
+      "capsule_radial_segments": 12,
+      "bob_amplitude": 0.05,
+      "bob_freq_multiplier": 3.5
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "capsule", "args": [0.55, 1.5, 4, 12] },
+          "material": { "kind": "standard", "color": 8912930, "emissive": 1114112 },
+          "position": { "y": 1.3 }, "cast_shadow": true },
+        { "name": "gem",
+          "geometry": { "kind": "octahedron", "args": [0.16, 0] },
+          "material": { "kind": "standard", "color": 8912930, "emissive": 8912930, "emissive_intensity": 0.8, "transparent": true, "opacity": 0.92 },
+          "position": { "y": 2.9 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/config/enemy_types.js",
+        "src/render/enemy_mesh.js",
+        "src/systems/enemy_mesh_tick.js"
+      ],
+      "migrated_iter": 722,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Stats from src/config/enemy_types.js line 5 (heavy row of ENEMY_TYPES)",
+        "hp=200, moveSpeed=1.2, damage=18, attackRange=2.0, sightRange=10, dropAmmo=pistol_9mm, dropQty=24, dropHealth=30, wanderSpeed=0.6, color=0x880022 (8912930)",
+        "Body: CapsuleGeometry(0.55, 1.5, 4, 12) per enemy_mesh.js lines 17–18 + 51",
+        "Body y position = bodyHeight*0.5 + bodyRadius = 1.5*0.5 + 0.55 = 1.3 — line 54",
+        "Type gem: OctahedronGeometry(0.16, 0), color/emissive = eDef.color (=0x880022), intensity 0.8, transparent opacity 0.92 — lines 56–62",
+        "Gem y = bodyHeight + bodyRadius*2 + 0.3 = 1.5 + 1.1 + 0.3 = 2.9 — line 60",
+        "Material body emissive = 0x110000 (1114112) — line 52, same as grunt",
+        "Bob amp for heavy = 0.05 (BOB_AMP map) — enemy_mesh_tick.js line 12",
+        "AI behavior (chase + melee attack) NOT in this iter — needs ai-fsm facet + hero-as-Thing"
+      ]
+    }}
+  ]
+}

@@ -54,6 +54,7 @@
     { "ref": "tuning/bullet_hero" },
     { "ref": "tuning/bullet_enemy" },
     { "ref": "tuning/enemy_grunt" },
+    { "ref": "tuning/enemy_heavy" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },

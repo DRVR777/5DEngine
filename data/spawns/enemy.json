@@ -1,10 +1,10 @@
 {
   "id": "spawns/enemy",
   "kind": "spawn-set",
-  "name": "Default enemies (grunt only this iter)",
+  "name": "Default enemies (grunt + heavy)",
   "facets": [
     { "name": "for-kind", "data": "enemy" },
-    { "name": "comment",  "data": "2 demo grunts. No AI yet — they stand still. AI behavior facets (ai-fsm: chase/attack/wander, flinch-spring, walk-bob) land in iter 722+ once hero is a Thing. Health facet carries hp/maxHp; future health-display facet will render the HP bar plane." }
+    { "name": "comment",  "data": "Demo enemies. No AI yet — they stand still. AI behavior facets (ai-fsm: chase/attack/wander, flinch-spring, walk-bob) land once hero is a Thing. Health facet carries hp/maxHp; future health-display facet will render the HP bar plane. Each spawn picks its variant via mesh.tuning_ref." }
   ],
   "children": [
     { "id": "enemy/grunt-0", "kind": "enemy", "name": "grunt_NE",
@@ -18,6 +18,12 @@
         { "name": "position", "data": { "x": -10, "y": 0, "z": -5 } },
         { "name": "mesh",     "data": { "tuning_ref": "enemy-grunt-tuning" } },
         { "name": "health",   "data": { "hp": 80, "maxHp": 80 } }
+      ] },
+    { "id": "enemy/heavy-0", "kind": "enemy", "name": "heavy_N",
+      "facets": [
+        { "name": "position", "data": { "x":  0, "y": 0, "z": 14 } },
+        { "name": "mesh",     "data": { "tuning_ref": "enemy-heavy-tuning" } },
+        { "name": "health",   "data": { "hp": 200, "maxHp": 200 } }
       ] }
   ]
 }
