@@ -87,7 +87,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | `flinch` on hit | flinch-spring facet | ❌ |
 | `drop-on-death` | drop-on-death facet (iter 742) | ✅ |
 | `alert-bubble` over enemy | alert-bubble facet | ❌ |
-| `health-display` HP bar plane | health-display facet | ❌ |
+| `health-display` HP bar plane | health-display facet (iter 750) — billboard plane | ✅ |
 
 ## 4. HUD — overlays, screens, indicators
 

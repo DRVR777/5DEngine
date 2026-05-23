@@ -34,7 +34,13 @@
       "damage_flash_color":         "rgba(220,40,40,1)",
       "damage_flash_max_opacity":   0.5,
       "damage_flash_decay_seconds": 0.45,
-      "damage_flash_min_drop":      0.5
+      "damage_flash_min_drop":      0.5,
+      "enemy_hp_bar_width":         1.2,
+      "enemy_hp_bar_height":        0.12,
+      "enemy_hp_bar_padding":       0.6,
+      "enemy_hp_bar_color_full":    3461210,
+      "enemy_hp_bar_color_low":     13911895,
+      "enemy_hp_bar_color_threshold": 0.5
     }},
     { "name": "provenance", "data": {
       "source_files": ["game.html mountHudTemplate (line 250) — DOM-overlay style emulated; values chosen for legibility, not legacy-extracted"],

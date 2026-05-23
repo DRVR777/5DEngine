@@ -16,6 +16,9 @@ const KIND_NAMES = [
   "input",
   // Singleton DOM overlay — hud-overlay facet owns its container
   "hud",
+  // Singleton render context — boot.js stashes {THREE, scene, camera} here
+  // so facets can reach Three.js without globals
+  "render-context",
   // Composition kinds — everything-is-a-Thinga architecture
   "root", "world", "kind-def", "spawn-set",
   // Meta kinds

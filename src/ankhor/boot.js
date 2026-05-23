@@ -42,6 +42,16 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
   });
   installMeshHandler(registry, { THREE, scene });
 
+  // Render-context Thinga — singleton carrying refs to THREE + scene +
+  // camera so facets (health-display, future hp-bar/damage-number/decal
+  // facets) can reach the render layer without globals.
+  registry.spawn({
+    id: "render-context/main",
+    kind: "render-context",
+    name: "render_context",
+    facets: [{ name: "render-context", data: { THREE, scene, camera: cam } }],
+  });
+
   // PASS 1: kind-def Thingas → registry.registerKind (capture defaults too).
   const kindDefaults = new Map();
   for (const t of loaded) {

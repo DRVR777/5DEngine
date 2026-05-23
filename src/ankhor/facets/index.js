@@ -24,6 +24,7 @@ import dropOnDeath    from "./drop_on_death.js";
 import heroRespawn    from "./hero_respawn.js";
 import hudOverlay     from "./hud_overlay.js";
 import damageFlash    from "./damage_flash.js";
+import healthDisplay  from "./health_display.js";
 import aabbCollision  from "./aabb_collision.js";
 import ttl             from "./ttl.js";
 
@@ -52,6 +53,7 @@ export const FACET_HANDLERS = {
   "hero-respawn":        heroRespawn,
   "hud-overlay":         hudOverlay,
   "damage-flash":        damageFlash,
+  "health-display":      healthDisplay,
   "aabb-collision":      aabbCollision,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
@@ -70,6 +72,10 @@ export const FACET_HANDLERS = {
   "value":               { priority: 41 },
   // AABB extents — read by aabb-collision; data only
   "collider":            { priority: 42 },
+  // Render context — refs to THREE+scene+camera; spawned by boot.js after
+  // scene setup so facets like health-display can reach the render layer
+  // without globals.
+  "render-context":      { priority: 1 },
 };
 
 export function installFacetHandlers(registry) {
