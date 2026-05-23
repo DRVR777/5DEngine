@@ -1,7 +1,31 @@
 {
-  "kind": "hazard-zone",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/hazard_zone",
+  "kind": "kind-def",
+  "name": "Kind definition: hazard-zone",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "hazard-zone"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }

@@ -1,20 +1,47 @@
 {
-  "kind": "barrel",
-  "required_facets": ["position", "health", "destructible"],
-  "optional_facets": ["mesh", "physics", "tuning", "provenance"],
-  "defaults": {
-    "health": { "hp": 40, "maxHp": 40 },
-    "destructible": { "blastRadius": 3.5, "damage": 60 }
-  },
-  "absorbs": ["src/systems/barrel_system.js"],
-  "example": {
-    "id": "barrel/demo",
-    "kind": "barrel",
-    "name": "Explosive Barrel",
-    "facets": [
-      { "name": "position", "data": { "x": 0, "y": 0, "z": 0 } },
-      { "name": "health", "data": { "hp": 40, "maxHp": 40 } },
-      { "name": "destructible", "data": { "blastRadius": 3.5, "damage": 60 } }
-    ]
-  }
+  "id": "kinds/barrel",
+  "kind": "kind-def",
+  "name": "Kind definition: barrel",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "barrel"
+    },
+    {
+      "name": "required-facets",
+      "data": [
+        "position",
+        "health",
+        "destructible"
+      ]
+    },
+    {
+      "name": "optional-facets",
+      "data": [
+        "mesh",
+        "physics",
+        "tuning",
+        "provenance"
+      ]
+    },
+    {
+      "name": "defaults",
+      "data": {
+        "health": {
+          "hp": 40,
+          "maxHp": 40
+        },
+        "destructible": {
+          "blastRadius": 3.5,
+          "damage": 60
+        }
+      }
+    },
+    {
+      "name": "absorbs",
+      "data": [
+        "src/systems/barrel_system.js"
+      ]
+    }
+  ]
 }

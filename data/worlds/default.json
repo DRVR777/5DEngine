@@ -1,0 +1,39 @@
+{
+  "id": "worlds/default",
+  "kind": "world",
+  "name": "Default World",
+  "comment": "Short world config. Composes the engine by referencing kind-defs, tuning Things, and spawn-sets — each by Thinga id. To make another world: copy this file, edit children list. Every entry below is a Thinga; the world is just a coordinator.",
+  "facets": [
+    { "name": "world-params", "data": {
+      "background_color":    723730,
+      "fog_density":         0.018,
+      "ambient_intensity":   0.55,
+      "sun_intensity":       0.85,
+      "camera_orbit_radius": 28,
+      "camera_height":       14,
+      "camera_orbit_speed":  0.00008
+    }}
+  ],
+  "children": [
+    { "ref": "kinds/barrel" },
+    { "ref": "kinds/speed_orb" },
+    { "ref": "kinds/coin_drop" },
+    { "ref": "kinds/health_pickup" },
+    { "ref": "kinds/ammo_pickup" },
+    { "ref": "kinds/weapon_pickup" },
+
+    { "ref": "tuning/barrel" },
+    { "ref": "tuning/speed_orb" },
+    { "ref": "tuning/coin_drop" },
+    { "ref": "tuning/health_pickup" },
+    { "ref": "tuning/ammo_pickup" },
+    { "ref": "tuning/weapon_pickup" },
+
+    { "ref": "spawns/barrel" },
+    { "ref": "spawns/speed_orb" },
+    { "ref": "spawns/coin_drop" },
+    { "ref": "spawns/health_pickup" },
+    { "ref": "spawns/ammo_pickup" },
+    { "ref": "spawns/weapon_pickup" }
+  ]
+}

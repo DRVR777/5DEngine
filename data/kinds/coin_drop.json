@@ -1,16 +1,59 @@
 {
-  "kind": "coin-drop",
-  "required_facets": ["position", "mesh"],
-  "optional_facets": ["bob", "spin", "magnet", "pickup-radius", "value"],
-  "defaults": {
-    "bob":           { "base": 0.5, "amplitude": 0.08, "period_ms": 310 },
-    "spin":          { "speed": 2.8 },
-    "magnet":        { "range": 3.0, "speed": 9 },
-    "pickup-radius": { "radius": 1.2, "on_pickup_action": "score-add" },
-    "value":         { "amount": 1 }
-  },
-  "absorbs": [
-    "src/systems/coin_drop_tick.js",
-    "src/systems/drop_spawner.js"
+  "id": "kinds/coin_drop",
+  "kind": "kind-def",
+  "name": "Kind definition: coin-drop",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "coin-drop"
+    },
+    {
+      "name": "required-facets",
+      "data": [
+        "position",
+        "mesh"
+      ]
+    },
+    {
+      "name": "optional-facets",
+      "data": [
+        "bob",
+        "spin",
+        "magnet",
+        "pickup-radius",
+        "value"
+      ]
+    },
+    {
+      "name": "defaults",
+      "data": {
+        "bob": {
+          "base": 0.5,
+          "amplitude": 0.08,
+          "period_ms": 310
+        },
+        "spin": {
+          "speed": 2.8
+        },
+        "magnet": {
+          "range": 3,
+          "speed": 9
+        },
+        "pickup-radius": {
+          "radius": 1.2,
+          "on_pickup_action": "score-add"
+        },
+        "value": {
+          "amount": 1
+        }
+      }
+    },
+    {
+      "name": "absorbs",
+      "data": [
+        "src/systems/coin_drop_tick.js",
+        "src/systems/drop_spawner.js"
+      ]
+    }
   ]
 }

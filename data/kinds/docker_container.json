@@ -1,7 +1,31 @@
 {
-  "kind": "docker-container",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/docker_container",
+  "kind": "kind-def",
+  "name": "Kind definition: docker-container",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "docker-container"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }

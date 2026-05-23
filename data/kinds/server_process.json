@@ -1,7 +1,31 @@
 {
-  "kind": "server-process",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/server_process",
+  "kind": "kind-def",
+  "name": "Kind definition: server-process",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "server-process"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }

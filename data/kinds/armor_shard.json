@@ -1,7 +1,31 @@
 {
-  "kind": "armor-shard",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/armor_shard",
+  "kind": "kind-def",
+  "name": "Kind definition: armor-shard",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "armor-shard"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }

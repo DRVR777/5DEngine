@@ -1,16 +1,60 @@
 {
-  "kind": "ammo-pickup",
-  "required_facets": ["position", "mesh"],
-  "optional_facets": ["bob", "spin", "magnet", "pickup-radius", "ammo"],
-  "defaults": {
-    "bob":           { "base": 0.4, "amplitude": 0.08, "period_ms": 280 },
-    "spin":          { "speed": 2.5 },
-    "magnet":        { "range": 3.0, "speed": 8 },
-    "pickup-radius": { "radius": 1.2, "on_pickup_action": "give-ammo" },
-    "ammo":          { "qty": 12, "item": "pistol_9mm" }
-  },
-  "absorbs": [
-    "src/systems/ammo_pickup_tick.js",
-    "src/systems/drop_spawner.js"
+  "id": "kinds/ammo_pickup",
+  "kind": "kind-def",
+  "name": "Kind definition: ammo-pickup",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "ammo-pickup"
+    },
+    {
+      "name": "required-facets",
+      "data": [
+        "position",
+        "mesh"
+      ]
+    },
+    {
+      "name": "optional-facets",
+      "data": [
+        "bob",
+        "spin",
+        "magnet",
+        "pickup-radius",
+        "ammo"
+      ]
+    },
+    {
+      "name": "defaults",
+      "data": {
+        "bob": {
+          "base": 0.4,
+          "amplitude": 0.08,
+          "period_ms": 280
+        },
+        "spin": {
+          "speed": 2.5
+        },
+        "magnet": {
+          "range": 3,
+          "speed": 8
+        },
+        "pickup-radius": {
+          "radius": 1.2,
+          "on_pickup_action": "give-ammo"
+        },
+        "ammo": {
+          "qty": 12,
+          "item": "pistol_9mm"
+        }
+      }
+    },
+    {
+      "name": "absorbs",
+      "data": [
+        "src/systems/ammo_pickup_tick.js",
+        "src/systems/drop_spawner.js"
+      ]
+    }
   ]
 }

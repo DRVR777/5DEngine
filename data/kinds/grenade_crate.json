@@ -1,7 +1,31 @@
 {
-  "kind": "grenade-crate",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/grenade_crate",
+  "kind": "kind-def",
+  "name": "Kind definition: grenade-crate",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "grenade-crate"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }

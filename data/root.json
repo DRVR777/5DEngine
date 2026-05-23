@@ -1,0 +1,9 @@
+{
+  "id": "root",
+  "kind": "root",
+  "name": "Engine Root",
+  "comment": "The single entry point. boot.js loads this Thinga and recursively resolves all {ref: '<id>'} children by fetching data/<id>.json (with '/' replaced by '/' in the URL path — IDs ARE paths). Each Thinga referenced is itself a Thinga that may have further children. Infinite recursion is supported by design (a child world can contain another world, a spawn-set's child can be a spawn-set, etc.).",
+  "children": [
+    { "ref": "worlds/default" }
+  ]
+}

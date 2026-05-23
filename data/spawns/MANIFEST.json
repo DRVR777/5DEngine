@@ -1,7 +1,0 @@
-{
-  "version": 1,
-  "comment": "Spawn sets — initial Thing instances created by boot.js. Each file is a JSON document with a `spawns` array. As more kinds are migrated per docs/codex/specs/migration-sequence.md, more entries are added here.",
-  "files": [
-    "default_world.json"
-  ]
-}

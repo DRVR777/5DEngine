@@ -1,7 +1,31 @@
 {
-  "kind": "bullet",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/bullet",
+  "kind": "kind-def",
+  "name": "Kind definition: bullet",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "bullet"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }

@@ -1,18 +1,24 @@
 /**
  * src/ankhor/boot.js — the only wiring module index.html needs.
  *
- * Assembles: ThingRegistry (one Thinga store) + facet handlers + mesh factories
- * + Three.js renderer + tick loop. Spawns initial Things from data/spawns/.
+ * Ankhor architecture: everything is a Thinga. boot starts from a single
+ * root Thinga (data/root.json), recursively resolves {ref: '<id>'} children
+ * by fetching data/<id>.json, then processes the loaded Thinga graph in
+ * three passes:
  *
- * Game content arrives as:
- *   - JSON kind definitions in data/kinds/ (registered via MANIFEST)
- *   - JSON tuning Things in data/tuning/ (loaded via MANIFEST)
- *   - JSON spawns in data/spawns/ (instances created on boot)
- *   - facet handlers in experimental/holograph-runtime/src/handlers.js
- *   - mesh factories in src/ankhor/mesh_factories.js
+ *   1. Bootstrap — kind-def Thingas → registry.registerKind() so all kinds
+ *      are known before any other Thinga's spawn() is validated.
+ *   2. Spawn — every non-spawn-set Thinga is spawned into the registry
+ *      (world, tuning, kind-def, root all become first-class registry rows).
+ *   3. Materialize — spawn-set Thingas have their children spawned as
+ *      actual game Things. world Thingas have their world-params facet
+ *      applied to the Three.js scene.
+ *
+ * Adding a new world / kind / set: write a Thinga JSON file under data/,
+ * reference it from a parent Thinga (or directly from root.json). No
+ * manifest indirection — the parent IS the manifest.
  *
  * Specs: docs/codex/specs/{registry-runtime,facet-catalog,migration-sequence}.md
- * Migration progress: docs/codex/MIGRATION_PROGRESS.md
  */
 
 import * as THREE                                   from "three";
@@ -21,81 +27,82 @@ import { installDefaultHandlers }                   from "handlers";
 import { MESH_FACTORIES }                           from "./mesh_factories.js";
 import { installMeshHandler }                       from "./install_mesh_handler.js";
 
-export async function boot({
-  canvas,
-  kindsDir   = "./data/kinds/",
-  tuningDir  = "./data/tuning/",
-  spawnsDir  = "./data/spawns/",
-  onReady,
-} = {}) {
-  // ── Registry: starts with every Kind in the enum already registered.
+export async function boot({ canvas, dataDir = "./data/", rootId = "root", onReady } = {}) {
   const registry = createDefaultRegistry();
   installDefaultHandlers(registry);
 
-  // ── Render surface ───────────────────────────────────────────────────────
+  // Render surface — scene params are applied once a world Thinga is resolved.
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b0d12);
-  scene.fog        = new THREE.FogExp2(0x0b0d12, 0.018);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.85);
-  sun.position.set(5, 10, 5); scene.add(sun);
-
+  scene.add(new THREE.GridHelper(60, 60, 0x223344, 0x131820));
   const cam = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
   cam.position.set(0, 14, 28); cam.lookAt(0, 0, 0);
-
   addEventListener("resize", () => {
     renderer.setSize(innerWidth, innerHeight);
     cam.aspect = innerWidth / innerHeight;
     cam.updateProjectionMatrix();
   });
-
-  scene.add(new THREE.GridHelper(60, 60, 0x223344, 0x131820));
-
-  // ── Install render-class facet handler (closes over THREE+scene+factories) ──
   installMeshHandler(registry, { THREE, scene, factories: MESH_FACTORIES });
 
-  // ── Load kind catalog (definitions: required/optional facets, defaults) ──
-  const kindsLoaded = await loadJsonCatalog(kindsDir, async (def) => {
+  // ── COMPOSE: resolve root + all {ref} children recursively. ─────────────
+  const loaded = await composeFromRoot(rootId, dataDir);
+
+  // ── PASS 1: register kinds from kind-def Thingas. ───────────────────────
+  for (const t of loaded) {
+    if (t.kind !== "kind-def") continue;
+    const def = facetMap(t);
     try {
-      registry.registerKind(def.kind, {
-        requiredFacets: def.required_facets || [],
-        optionalFacets: def.optional_facets || [],
-        defaults:       def.defaults        || {},
-        absorbs:        def.absorbs         || [],
+      registry.registerKind(def["for-kind"], {
+        requiredFacets: def["required-facets"] || [],
+        optionalFacets: def["optional-facets"] || [],
+        defaults:       def["defaults"]        || {},
+        absorbs:        def["absorbs"]         || [],
       });
-      return def.kind;
-    } catch (e) {
-      console.warn(`[ankhor] registerKind("${def.kind}"):`, e.message);
-      return null;
+    } catch (e) { console.warn(`[ankhor] registerKind("${def["for-kind"]}"):`, e.message); }
+  }
+
+  // ── PASS 2: spawn all non-spawn-set Thingas as first-class registry rows. ──
+  let world = null;
+  const camParams = { orbit: 28, height: 14, speed: 0.00008 };
+  for (const t of loaded) {
+    if (t.kind === "spawn-set") continue;     // spawn-set children handled below
+    try { registry.spawn(t); }
+    catch (e) { console.warn(`[ankhor] spawn ${t.id}:`, e.message); }
+    if (t.kind === "world") world = t;
+  }
+
+  // Apply world-params if a world was loaded.
+  if (world) {
+    const p = facetMap(world)["world-params"] || {};
+    scene.background = new THREE.Color(p.background_color ?? 0x0b0d12);
+    scene.fog        = new THREE.FogExp2(p.background_color ?? 0x0b0d12, p.fog_density ?? 0.018);
+    scene.add(new THREE.AmbientLight(0xffffff, p.ambient_intensity ?? 0.55));
+    const sun = new THREE.DirectionalLight(0xffffff, p.sun_intensity ?? 0.85);
+    sun.position.set(5, 10, 5); scene.add(sun);
+    camParams.orbit  = p.camera_orbit_radius ?? camParams.orbit;
+    camParams.height = p.camera_height       ?? camParams.height;
+    camParams.speed  = p.camera_orbit_speed  ?? camParams.speed;
+  }
+
+  // ── PASS 3: spawn-set children become actual game Things. ──────────────
+  let materialized = 0;
+  for (const t of loaded) {
+    if (t.kind !== "spawn-set") continue;
+    for (const child of t.children || []) {
+      try { registry.spawn(child); materialized++; }
+      catch (e) { console.warn(`[ankhor] spawn ${child.id}:`, e.message); }
     }
-  });
+  }
 
-  // ── Load tuning Things (magic numbers with provenance) before spawns,
-  //    so factories can pick them up. ──
-  const tuningLoaded = await loadJsonCatalog(tuningDir, async (thing) => {
-    try { registry.spawn(thing); return thing.id; }
-    catch (e) { console.warn(`[ankhor] spawn tuning ${thing?.id}:`, e.message); return null; }
-  });
-
-  // ── Spawn the default world (initial Thing instances). ──
-  const spawned = await loadSpawnSets(spawnsDir, (thingDef) => {
-    try { registry.spawn(thingDef); return thingDef.id; }
-    catch (e) { console.warn(`[ankhor] spawn ${thingDef?.id}:`, e.message); return null; }
-  });
-
-  // ── One loop. tick(dt) walks every registered facet handler in priority order.
+  // ── Tick + render loop. ─────────────────────────────────────────────────
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     registry.tick(dt);
-    // Slow camera orbit for substrate aliveness check (no game content yet).
-    const t = now * 0.00008;
-    cam.position.x = Math.sin(t) * 28;
-    cam.position.z = Math.cos(t) * 28;
+    const t = now * camParams.speed;
+    cam.position.set(Math.sin(t) * camParams.orbit, camParams.height, Math.cos(t) * camParams.orbit);
     cam.lookAt(0, 0, 0);
     renderer.render(scene, cam);
     requestAnimationFrame(frame);
@@ -103,59 +110,50 @@ export async function boot({
   requestAnimationFrame(frame);
 
   if (onReady) onReady({
-    registry,
+    registry, world,
     stats: {
-      live:         registry.toJSON().filter(t => !t.deleted_at).length,
-      kindsLoaded:  kindsLoaded.filter(Boolean).length,
-      tuningLoaded: tuningLoaded.filter(Boolean).length,
-      spawned:      spawned.filter(Boolean).length,
+      loaded:       loaded.length,
+      kindDefs:     loaded.filter(t => t.kind === "kind-def").length,
+      tuning:       loaded.filter(t => t.kind === "tuning").length,
+      spawnSets:    loaded.filter(t => t.kind === "spawn-set").length,
+      materialized,
       handlers:     registry.handlerRegistry.size,
     }
   });
   return registry;
 }
 
-// ── Catalog loader: fetch dir/MANIFEST.json then process each listed file ──
-async function loadJsonCatalog(dir, onItem) {
-  const results = [];
-  let manifest;
-  try {
-    const r = await fetch(`${dir}MANIFEST.json`);
-    if (!r.ok) { console.warn(`[ankhor] no MANIFEST at ${dir}`); return results; }
-    manifest = await r.json();
-  } catch (e) { console.warn(`[ankhor] manifest fetch ${dir}:`, e); return results; }
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-  await Promise.all((manifest.files || []).map(async (name) => {
-    try {
-      const f = await fetch(`${dir}${name}`);
-      if (!f.ok) return;
-      const def = await f.json();
-      const out = await onItem(def);
-      results.push(out);
-    } catch (e) { console.warn(`[ankhor] load ${dir}${name}:`, e); }
-  }));
-  return results;
+// Recursive ref resolver: load data/<id>.json then recurse into children.
+// Returns a flat array of every Thinga reachable from rootId (depth-first).
+async function composeFromRoot(rootId, dataDir) {
+  const cache = new Map();    // id → Thinga
+  const order = [];           // load order
+
+  async function visit(id) {
+    if (cache.has(id)) return;
+    const thinga = await loadJson(`${dataDir}${id}.json`);
+    if (!thinga) { console.warn(`[ankhor] missing Thinga ${id}`); return; }
+    cache.set(id, thinga);
+    order.push(thinga);
+    for (const child of thinga.children || []) {
+      if (child && child.ref) await visit(child.ref);
+    }
+  }
+
+  await visit(rootId);
+  return order;
 }
 
-// ── Spawns loader: a spawn file may contain { spawns: [Thing, Thing, ...] } ──
-async function loadSpawnSets(dir, onSpawn) {
-  const results = [];
-  let manifest;
-  try {
-    const r = await fetch(`${dir}MANIFEST.json`);
-    if (!r.ok) { console.warn(`[ankhor] no MANIFEST at ${dir}`); return results; }
-    manifest = await r.json();
-  } catch (e) { console.warn(`[ankhor] spawns manifest fetch ${dir}:`, e); return results; }
+// Convert a Thinga's facets[] into a name→data object for ergonomic access.
+function facetMap(thinga) {
+  const out = {};
+  for (const f of thinga.facets || []) out[f.name] = f.data;
+  return out;
+}
 
-  for (const name of manifest.files || []) {
-    try {
-      const f = await fetch(`${dir}${name}`);
-      if (!f.ok) continue;
-      const set = await f.json();
-      for (const thingDef of (set.spawns || [])) {
-        results.push(onSpawn(thingDef));
-      }
-    } catch (e) { console.warn(`[ankhor] spawn set ${name}:`, e); }
-  }
-  return results;
+async function loadJson(url) {
+  try { const r = await fetch(url); if (!r.ok) return null; return await r.json(); }
+  catch (e) { console.warn(`[ankhor] fetch ${url}:`, e); return null; }
 }

@@ -1,7 +1,31 @@
 {
-  "kind": "vehicle",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/vehicle",
+  "kind": "kind-def",
+  "name": "Kind definition: vehicle",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "vehicle"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }

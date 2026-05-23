@@ -1,7 +1,31 @@
 {
-  "kind": "http-request",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "id": "kinds/http_request",
+  "kind": "kind-def",
+  "name": "Kind definition: http-request",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "http-request"
+    },
+    {
+      "name": "required-facets",
+      "data": []
+    },
+    {
+      "name": "optional-facets",
+      "data": []
+    },
+    {
+      "name": "defaults",
+      "data": {}
+    },
+    {
+      "name": "absorbs",
+      "data": []
+    },
+    {
+      "name": "status",
+      "data": "cataloged-for-registry-adoption"
+    }
+  ]
 }
