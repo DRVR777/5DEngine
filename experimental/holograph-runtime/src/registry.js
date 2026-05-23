@@ -27,6 +27,8 @@ const KIND_NAMES = [
   "arena-wall",
   // Singleton ground plane — first kind using mesh-spec rotation
   "ground",
+  // Legacy bridge — one Thinga per hosted mount* from game.html
+  "legacy-system",
   // Composition kinds — everything-is-a-Thinga architecture
   "root", "world", "kind-def", "spawn-set",
   // Meta kinds

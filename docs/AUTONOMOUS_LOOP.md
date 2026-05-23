@@ -4,6 +4,30 @@ The wakeup prompt is: *"Continue the loop. Read CLAUDE.md and this file. Do
 what they say."* Everything specific to the current state lives elsewhere —
 read it on each wakeup.
 
+## Audit-driven loop (added iter 757)
+
+The substrate now has a **base layer** that lets it HOST legacy
+mount* subsystems unchanged. The procedure changed from
+"reimplement everything as native facets" to:
+
+  1. `node tools/audit_migration.mjs` — see the real coverage gap.
+  2. Pick the next mount* (status MISSING or FACET-only) with the
+     highest playability weight.
+  3. Read its cloned source under `docs/codex/legacy/mount_calls/`
+     and `docs/codex/legacy/source/src/...`.
+  4. Add ONE entry to `data/spawns/legacy_systems.json` declaring
+     a `legacy-system` Thinga with a `legacy-mount` facet whose
+     bindings wire get/set/actions to substrate state.
+  5. Run `node tools/test_legacy_bridge.mjs` (or extend it) to
+     prove the new mount binds + ticks cleanly.
+  6. Re-run audit; commit; push.
+  7. Once a native Ankhor facet ships for that mount, DELETE the
+     legacy-system entry (authority-flip per CLAUDE.md).
+
+This is the via-negativa progression: subtract a legacy-system row
+each time its native equivalent is proven. The substrate is done
+when `data/spawns/legacy_systems.json` is empty.
+
 ## Per-wakeup procedure
 
 This procedure is the 10-step migration loop from

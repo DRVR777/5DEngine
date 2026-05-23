@@ -1,0 +1,65 @@
+{
+  "id": "spawns/legacy_systems",
+  "kind": "spawn-set",
+  "name": "Legacy mount* subsystems hosted via legacy-mount facet",
+  "facets": [
+    { "name": "for-kind", "data": "legacy-system" },
+    { "name": "comment",  "data": "Each child = one legacy mount* call from game.html, hosted unchanged inside the substrate. The legacy-mount facet's binding DSL ($kind/$tuning/$const/$noop/$log/$global) wires the module's get.X / set.X / actions.X to substrate Things. As each subsystem gets a native Ankhor facet, the corresponding child here is deleted (authority-flip). Order matches GAME_HTML_INVENTORY priority — simple-no-deps first, then HUD, then combat, then AI, etc." }
+  ],
+  "children": [
+    { "id": "legacy/hero-regen", "kind": "legacy-system", "name": "legacy_hero_regen",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/hero_regen_tick.js",
+          "export":     "mountHeroRegenTick",
+          "tick_args":  ["@dt", { "nowSec": "@nowSec" }],
+          "bindings": {
+            "get.heroHp":          "$kind:hero[0]/health/hp",
+            "get.maxHp":           "$kind:hero[0]/health/maxHp",
+            "get.perkMaxHpBonus":  "$const:0",
+            "get.lastDamageT":     "$const:0",
+            "get.regenDelay":      "$tuning:hero-tuning/tuning/regen_delay_seconds",
+            "get.regenRate":       "$tuning:hero-tuning/tuning/regen_rate_per_second",
+            "get.perkRegenBonus":  "$const:0",
+            "set.heroHp":          "$kind:hero[0]/health/hp",
+            "set.nearDeathFired":  "$noop"
+          }
+        } }
+      ] },
+
+    { "id": "legacy/heartbeat", "kind": "legacy-system", "name": "legacy_heartbeat",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/heartbeat.js",
+          "export":     "mountHeartbeat",
+          "tick_args":  ["@dt"],
+          "bindings": {
+            "get.heroHp":      "$kind:hero[0]/health/hp",
+            "get.HERO_MAX_HP": "$kind:hero[0]/health/maxHp",
+            "get.heroDead":    "$const:false",
+            "get.heartbeatT":  "$thing:legacy/heartbeat/legacy-mount/_heartbeatT",
+            "set.heartbeatT":  "$thing:legacy/heartbeat/legacy-mount/_heartbeatT",
+            "actions.playSfx": "$log:[heartbeat sfx]"
+          }
+        } }
+      ] },
+
+    { "id": "legacy/fps-tick", "kind": "legacy-system", "name": "legacy_fps_tick",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/fps_tick.js",
+          "export":     "mountFpsTick",
+          "tick_args":  ["@perfMs", null],
+          "bindings": {
+            "get.fpsFrames":  "$thing:legacy/fps-tick/legacy-mount/_frames",
+            "get.fpsWindowT": "$thing:legacy/fps-tick/legacy-mount/_windowT",
+            "get.fpsDisplay": "$thing:legacy/fps-tick/legacy-mount/_display",
+            "set.fpsFrames":  "$thing:legacy/fps-tick/legacy-mount/_frames",
+            "set.fpsWindowT": "$thing:legacy/fps-tick/legacy-mount/_windowT",
+            "set.fpsDisplay": "$thing:legacy/fps-tick/legacy-mount/_display",
+            "actions.onNewFps": "$noop"
+          }
+        } }
+      ] }
+  ]
+}

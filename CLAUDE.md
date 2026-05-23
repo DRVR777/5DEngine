@@ -218,6 +218,35 @@ how a player triggers anything destructive.
   game.html       the preserved legacy engine + game (2449 lines).
                   Continues to run unchanged until its kinds are absorbed.
 
+## The legacy bridge (the base layer, iter 757)
+
+The substrate HOSTS legacy `mount*` subsystems instead of reimplementing
+them up-front. Every legacy module has the uniform shape
+
+    export function mountX({ get, set, actions }) { return { tick }; }
+
+The `legacy-system` kind + `legacy-mount` facet wrap that contract.
+A spec declares `module_url`, `export`, `tick_args`, and `bindings`
+written in a tiny DSL:
+
+    $kind:<kind>[<i>]/<facet>/<field>     Nth Thing of kind
+    $tuning:<name>/<facet>/<field>        tuning Thinga by name
+    $thing:<id>/<facet>/<field>           exact id
+    $const:<jsonValue>                    literal
+    $noop                                 do-nothing function
+    $log:<prefix>                         console.log with prefix
+    $global:<expr>                        document/window/performance
+
+Tick-arg atoms (`@dt`, `@nowSec`, `@perfMs`, `@hero`, `@scene`,
+`@THREE`, `@camera`) are resolved each frame.
+
+Every cloned mount under `docs/codex/legacy/mount_calls/` can be
+brought into the substrate as one entry in
+`data/spawns/legacy_systems.json` — no new facet code per mount.
+Native facets still ship over time; each native facet that proves
+equivalent behavior earns the **deletion** of its legacy-system
+row (authority-flip). Substrate is "done" when that file is empty.
+
 The substrate's job is to make game.html unnecessary by reproducing
 every behavior it contains as Thingas. When the last kind is absorbed,
 game.html becomes archival. Tests still target game.html during

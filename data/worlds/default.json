@@ -57,6 +57,7 @@
     { "ref": "kinds/wave_spawner" },
     { "ref": "kinds/arena_wall" },
     { "ref": "kinds/ground" },
+    { "ref": "kinds/legacy_system" },
     { "ref": "kinds/input" },
     { "ref": "kinds/hud" },
 
@@ -126,6 +127,7 @@
     { "ref": "spawns/hud" },
     { "ref": "spawns/wave_spawner" },
     { "ref": "spawns/arena_walls" },
-    { "ref": "spawns/ground" }
+    { "ref": "spawns/ground" },
+    { "ref": "spawns/legacy_systems" }
   ]
 }

@@ -31,6 +31,7 @@ import expandFade     from "./expand_fade.js";
 import waveSpawner    from "./wave_spawner.js";
 import vehicleEnterPrompt from "./vehicle_enter_prompt.js";
 import vehicleDrive   from "./vehicle_drive.js";
+import legacyMount    from "./legacy_mount.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -65,6 +66,7 @@ export const FACET_HANDLERS = {
   "wave-spawner":        waveSpawner,
   "vehicle-enter-prompt": vehicleEnterPrompt,
   "vehicle-drive":       vehicleDrive,
+  "legacy-mount":        legacyMount,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

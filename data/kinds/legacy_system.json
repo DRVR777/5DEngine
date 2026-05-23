@@ -1,0 +1,19 @@
+{
+  "id": "kinds/legacy_system",
+  "kind": "kind-def",
+  "name": "Kind definition: legacy-system",
+  "facets": [
+    { "name": "for-kind",        "data": "legacy-system" },
+    { "name": "required-facets", "data": ["legacy-mount"] },
+    { "name": "optional-facets", "data": [] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "game.html (whole file) — every mount* subsystem in the legacy modular pattern. Each becomes one legacy-system Thinga whose legacy-mount facet binds the module's {get,set,actions} contract to substrate state via the binding DSL. Authority-flip per CLAUDE.md: as each native facet ships, the corresponding legacy-system Thinga is removed."
+    ] },
+    { "name": "variants", "data": {
+      "comment": "No tuning per kind — each legacy-system spawn carries its own spec inline in its legacy-mount facet. The spec IS the variant. Future variants COULD share common bindings via a tuning, but inline keeps it readable per-mount.",
+      "available": [],
+      "queued":    []
+    } }
+  ]
+}
