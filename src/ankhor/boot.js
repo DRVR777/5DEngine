@@ -5,7 +5,6 @@
  *  Thingas (root.boot-params, world.world-params, tuning.*). No `??` here. */
 import * as THREE                from "three";
 import { createDefaultRegistry } from "registry";
-import { MESH_FACTORIES }        from "./factories/index.js";
 import { installFacetHandlers }  from "./facets/index.js";
 import { installMeshHandler }    from "./install_mesh_handler.js";
 import { composeFromRoot, facetMap } from "./compose.js";
@@ -41,7 +40,7 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
     renderer.setSize(innerWidth, innerHeight);
     cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
   });
-  installMeshHandler(registry, { THREE, scene, factories: MESH_FACTORIES });
+  installMeshHandler(registry, { THREE, scene });
 
   // PASS 1: kind-def Thingas → registry.registerKind (capture defaults too).
   const kindDefaults = new Map();

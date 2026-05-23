@@ -1,0 +1,36 @@
+{
+  "id": "tuning/weapon_pickup_smg",
+  "kind": "tuning",
+  "name": "weapon-pickup-smg-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "color": 2254489,
+      "body_w": 0.55, "body_h": 0.08, "body_d": 0.14,
+      "body_metalness": 0.75, "body_roughness": 0.3, "body_emissive_intensity": 0.5,
+      "grip_color": 2236962, "grip_w": 0.1, "grip_h": 0.16, "grip_d": 0.1,
+      "grip_x": -0.1, "grip_y": -0.1,
+      "pillar_r": 0.04, "pillar_h": 6, "pillar_y": 3, "pillar_opacity_base": 0.35
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "weapon-body",
+          "geometry": { "kind": "box", "args": [0.55, 0.08, 0.14] },
+          "material": { "kind": "standard", "color": 2254489, "metalness": 0.75, "roughness": 0.3, "emissive": 2254489, "emissive_intensity": 0.5 } },
+        { "name": "weapon-grip",
+          "geometry": { "kind": "box", "args": [0.1, 0.16, 0.1] },
+          "material": { "kind": "standard", "color": 2236962, "metalness": 0.4, "roughness": 0.7 },
+          "position": { "x": -0.1, "y": -0.1, "z": 0 } },
+        { "name": "weapon-pillar",
+          "geometry": { "kind": "cylinder", "args": [0.04, 0.04, 6, 6] },
+          "material": { "kind": "basic", "color": 2254489, "transparent": true, "opacity": 0.35, "depth_write": false },
+          "position": { "y": 3 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/systems/drop_spawner.js spawnWeaponPickup, _PICKUP_COLORS.smg = 0x226699"],
+      "migrated_iter": 735, "migrated_at": "2026-05-23", "do_not_optimize": true,
+      "notes": ["smg color 0x226699 (2254489) — cool blue."]
+    }}
+  ]
+}

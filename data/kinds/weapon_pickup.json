@@ -3,59 +3,24 @@
   "kind": "kind-def",
   "name": "Kind definition: weapon-pickup",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "weapon-pickup"
-    },
-    {
-      "name": "required-facets",
-      "data": [
-        "position",
-        "mesh"
-      ]
-    },
-    {
-      "name": "optional-facets",
-      "data": [
-        "bob",
-        "spin",
-        "opacity-pulse",
-        "pickup-radius",
-        "weapon"
-      ]
-    },
-    {
-      "name": "defaults",
-      "data": {
-        "bob": {
-          "base": 0.35,
-          "amplitude": 0.1,
-          "period_ms": 350
-        },
-        "spin": {
-          "speed": 1.8
-        },
-        "opacity-pulse": {
-          "base": 0.25,
-          "amplitude": 0.15,
-          "period_ms": 400,
-          "child_name": "weapon-pillar"
-        },
-        "pickup-radius": {
-          "radius": 1.2,
-          "on_pickup_action": "give-weapon"
-        },
-        "weapon": {
-          "id": "rifle"
-        }
-      }
-    },
-    {
-      "name": "absorbs",
-      "data": [
-        "src/systems/weapon_pickup_tick.js",
-        "src/systems/drop_spawner.js"
-      ]
-    }
+    { "name": "for-kind",        "data": "weapon-pickup" },
+    { "name": "required-facets", "data": ["position", "mesh"] },
+    { "name": "optional-facets", "data": ["bob", "spin", "opacity-pulse", "pickup-radius", "weapon"] },
+    { "name": "defaults", "data": {
+      "bob":           { "base": 0.35, "amplitude": 0.1, "period_ms": 350 },
+      "spin":          { "speed": 1.8 },
+      "opacity-pulse": { "base": 0.25, "amplitude": 0.15, "period_ms": 400, "child_name": "weapon-pillar" },
+      "pickup-radius": { "radius": 1.2, "on_pickup_action": "give-weapon" },
+      "weapon":        { "id": "rifle" }
+    } },
+    { "name": "absorbs", "data": [
+      "src/systems/weapon_pickup_tick.js",
+      "src/systems/drop_spawner.js"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "Per-variant tunings split out in iter 735, retiring the last legacy factory file (src/ankhor/factories/weapon_pickup.js) and the entire factories/ directory. Each spawn picks via mesh.tuning_ref.",
+      "available": ["weapon-pickup-rifle-tuning", "weapon-pickup-smg-tuning", "weapon-pickup-sniper-tuning"],
+      "queued":    []
+    } }
   ]
 }

@@ -1,191 +1,29 @@
 {
   "id": "spawns/weapon_pickup",
   "kind": "spawn-set",
-  "name": "3 default weapon pickups (rifle, smg, sniper)",
+  "name": "Default weapon pickups",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "weapon-pickup"
-    },
-    {
-      "name": "comment",
-      "data": "3 default weapon pickups (rifle, smg, sniper). Provenance: src/systems/weapon_pickup_tick.js + drop_spawner.js spawnWeaponPickup."
-    }
+    { "name": "for-kind", "data": "weapon-pickup" },
+    { "name": "comment",  "data": "Each child declares only unique fields (position + mesh.tuning_ref + weapon.id override). bob/spin/opacity-pulse/pickup-radius come from kinds/weapon_pickup defaults via boot's injectDefaults pass. iter 735 also retired the legacy factory file." }
   ],
   "children": [
-    {
-      "id": "weapon-pickup/0",
-      "kind": "weapon-pickup",
-      "name": "weapon_rifle",
+    { "id": "weapon-pickup/0", "kind": "weapon-pickup", "name": "weapon_rifle",
       "facets": [
-        {
-          "name": "position",
-          "data": {
-            "x": 9,
-            "y": 0.35,
-            "z": -3
-          }
-        },
-        {
-          "name": "mesh",
-          "data": {
-            "factory": "weapon-pickup",
-            "weapon_id": "rifle"
-          }
-        },
-        {
-          "name": "bob",
-          "data": {
-            "base": 0.35,
-            "amplitude": 0.1,
-            "period_ms": 350
-          }
-        },
-        {
-          "name": "spin",
-          "data": {
-            "speed": 1.8
-          }
-        },
-        {
-          "name": "opacity-pulse",
-          "data": {
-            "base": 0.25,
-            "amplitude": 0.15,
-            "period_ms": 400,
-            "child_name": "weapon-pillar"
-          }
-        },
-        {
-          "name": "pickup-radius",
-          "data": {
-            "radius": 1.2,
-            "on_pickup_action": "give-weapon"
-          }
-        },
-        {
-          "name": "weapon",
-          "data": {
-            "id": "rifle"
-          }
-        }
-      ]
-    },
-    {
-      "id": "weapon-pickup/1",
-      "kind": "weapon-pickup",
-      "name": "weapon_smg",
+        { "name": "position", "data": { "x":  9, "y": 0.35, "z": -3 } },
+        { "name": "mesh",     "data": { "tuning_ref": "weapon-pickup-rifle-tuning" } },
+        { "name": "weapon",   "data": { "id": "rifle" } }
+      ] },
+    { "id": "weapon-pickup/1", "kind": "weapon-pickup", "name": "weapon_smg",
       "facets": [
-        {
-          "name": "position",
-          "data": {
-            "x": -9,
-            "y": 0.35,
-            "z": 3
-          }
-        },
-        {
-          "name": "mesh",
-          "data": {
-            "factory": "weapon-pickup",
-            "weapon_id": "smg"
-          }
-        },
-        {
-          "name": "bob",
-          "data": {
-            "base": 0.35,
-            "amplitude": 0.1,
-            "period_ms": 350
-          }
-        },
-        {
-          "name": "spin",
-          "data": {
-            "speed": 1.8
-          }
-        },
-        {
-          "name": "opacity-pulse",
-          "data": {
-            "base": 0.25,
-            "amplitude": 0.15,
-            "period_ms": 400,
-            "child_name": "weapon-pillar"
-          }
-        },
-        {
-          "name": "pickup-radius",
-          "data": {
-            "radius": 1.2,
-            "on_pickup_action": "give-weapon"
-          }
-        },
-        {
-          "name": "weapon",
-          "data": {
-            "id": "smg"
-          }
-        }
-      ]
-    },
-    {
-      "id": "weapon-pickup/2",
-      "kind": "weapon-pickup",
-      "name": "weapon_sniper",
+        { "name": "position", "data": { "x": -9, "y": 0.35, "z":  3 } },
+        { "name": "mesh",     "data": { "tuning_ref": "weapon-pickup-smg-tuning" } },
+        { "name": "weapon",   "data": { "id": "smg" } }
+      ] },
+    { "id": "weapon-pickup/2", "kind": "weapon-pickup", "name": "weapon_sniper",
       "facets": [
-        {
-          "name": "position",
-          "data": {
-            "x": 0,
-            "y": 0.35,
-            "z": 9
-          }
-        },
-        {
-          "name": "mesh",
-          "data": {
-            "factory": "weapon-pickup",
-            "weapon_id": "sniper"
-          }
-        },
-        {
-          "name": "bob",
-          "data": {
-            "base": 0.35,
-            "amplitude": 0.1,
-            "period_ms": 350
-          }
-        },
-        {
-          "name": "spin",
-          "data": {
-            "speed": 1.8
-          }
-        },
-        {
-          "name": "opacity-pulse",
-          "data": {
-            "base": 0.25,
-            "amplitude": 0.15,
-            "period_ms": 400,
-            "child_name": "weapon-pillar"
-          }
-        },
-        {
-          "name": "pickup-radius",
-          "data": {
-            "radius": 1.2,
-            "on_pickup_action": "give-weapon"
-          }
-        },
-        {
-          "name": "weapon",
-          "data": {
-            "id": "sniper"
-          }
-        }
-      ]
-    }
+        { "name": "position", "data": { "x":  0, "y": 0.35, "z":  9 } },
+        { "name": "mesh",     "data": { "tuning_ref": "weapon-pickup-sniper-tuning" } },
+        { "name": "weapon",   "data": { "id": "sniper" } }
+      ] }
   ]
 }

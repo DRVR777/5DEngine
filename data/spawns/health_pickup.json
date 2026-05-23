@@ -3,115 +3,11 @@
   "kind": "spawn-set",
   "name": "2 default health pickups",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "health-pickup"
-    },
-    {
-      "name": "comment",
-      "data": "2 default health pickups. Provenance: src/systems/health_pickup_tick.js + drop_spawner.js."
-    }
+    { "name": "for-kind", "data": "health-pickup" },
+    { "name": "comment",  "data": "Each child = position + mesh only. bob/spin/magnet/pickup-radius/heal come from kinds/health_pickup defaults." }
   ],
   "children": [
-    {
-      "id": "health-pickup/0",
-      "kind": "health-pickup",
-      "name": "med_A",
-      "facets": [
-        {
-          "name": "position",
-          "data": {
-            "x": 7,
-            "y": 0.6,
-            "z": 2
-          }
-        },
-        {
-          "name": "mesh",
-          "data": {
-            "factory": "health-pickup"
-          }
-        },
-        {
-          "name": "bob",
-          "data": {
-            "base": 0.6,
-            "amplitude": 0.1,
-            "period_ms": 320
-          }
-        },
-        {
-          "name": "spin",
-          "data": {
-            "x": 1.5,
-            "y": 2.2
-          }
-        },
-        {
-          "name": "magnet",
-          "data": {
-            "range": 3,
-            "speed": 8
-          }
-        },
-        {
-          "name": "pickup-radius",
-          "data": {
-            "radius": 1.2,
-            "on_pickup_action": "heal-hero"
-          }
-        }
-      ]
-    },
-    {
-      "id": "health-pickup/1",
-      "kind": "health-pickup",
-      "name": "med_B",
-      "facets": [
-        {
-          "name": "position",
-          "data": {
-            "x": -7,
-            "y": 0.6,
-            "z": -2
-          }
-        },
-        {
-          "name": "mesh",
-          "data": {
-            "factory": "health-pickup"
-          }
-        },
-        {
-          "name": "bob",
-          "data": {
-            "base": 0.6,
-            "amplitude": 0.1,
-            "period_ms": 320
-          }
-        },
-        {
-          "name": "spin",
-          "data": {
-            "x": 1.5,
-            "y": 2.2
-          }
-        },
-        {
-          "name": "magnet",
-          "data": {
-            "range": 3,
-            "speed": 8
-          }
-        },
-        {
-          "name": "pickup-radius",
-          "data": {
-            "radius": 1.2,
-            "on_pickup_action": "heal-hero"
-          }
-        }
-      ]
-    }
+    { "id": "health-pickup/0", "kind": "health-pickup", "name": "med_A", "facets": [{ "name": "position", "data": { "x":  7, "y": 0.6, "z":  2 } }, { "name": "mesh", "data": {} }] },
+    { "id": "health-pickup/1", "kind": "health-pickup", "name": "med_B", "facets": [{ "name": "position", "data": { "x": -7, "y": 0.6, "z": -2 } }, { "name": "mesh", "data": {} }] }
   ]
 }
