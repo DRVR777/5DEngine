@@ -8,6 +8,8 @@ import opacityPulse  from "./opacity_pulse.js";
 import magnet        from "./magnet.js";
 import pickupRadius    from "./pickup_radius.js";
 import respawnOnCollect from "./respawn_on_collect.js";
+import damageZone      from "./damage_zone.js";
+import statusZone      from "./status_zone.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -19,6 +21,8 @@ export const FACET_HANDLERS = {
   "magnet":              magnet,
   "pickup-radius":       pickupRadius,
   "respawn-on-collect":  respawnOnCollect,
+  "damage-zone":         damageZone,
+  "status-zone":         statusZone,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

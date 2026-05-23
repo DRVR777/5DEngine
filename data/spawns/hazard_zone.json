@@ -1,0 +1,43 @@
+{
+  "id": "spawns/hazard_zone",
+  "kind": "spawn-set",
+  "name": "Default hazard zones",
+  "facets": [
+    { "name": "for-kind", "data": "hazard-zone" },
+    { "name": "comment",  "data": "Demo: 2 fire patches + 2 poison puddles around the perimeter. Each child uses mesh.tuning_ref to pick its variant tuning. ttl.remaining is set to a long demo value so the patches persist for the substrate-aliveness loop; in real gameplay they would carry the legacy duration (6.0 fire, 4.0 poison) from each variant's tuning." }
+  ],
+  "children": [
+    { "id": "hazard-zone/fire-0", "kind": "hazard-zone", "name": "fire_E",
+      "facets": [
+        { "name": "position",      "data": { "x":  12, "y": 0.04, "z":  0 } },
+        { "name": "mesh",          "data": { "tuning_ref": "hazard-zone-fire-tuning" } },
+        { "name": "ttl",           "data": { "remaining": 600 } },
+        { "name": "damage-zone",   "data": { "radius": 1.5, "damage": 6, "interval_seconds": 0.5, "also_apply_status": "burning" } },
+        { "name": "opacity-pulse", "data": { "base": 0.55, "amplitude": 0.11, "period_ms": 120, "fade_from_ttl_window": 1.5 } }
+      ] },
+    { "id": "hazard-zone/fire-1", "kind": "hazard-zone", "name": "fire_W",
+      "facets": [
+        { "name": "position",      "data": { "x": -12, "y": 0.04, "z":  0 } },
+        { "name": "mesh",          "data": { "tuning_ref": "hazard-zone-fire-tuning" } },
+        { "name": "ttl",           "data": { "remaining": 600 } },
+        { "name": "damage-zone",   "data": { "radius": 1.5, "damage": 6, "interval_seconds": 0.5, "also_apply_status": "burning" } },
+        { "name": "opacity-pulse", "data": { "base": 0.55, "amplitude": 0.11, "period_ms": 120, "fade_from_ttl_window": 1.5 } }
+      ] },
+    { "id": "hazard-zone/poison-0", "kind": "hazard-zone", "name": "poison_N",
+      "facets": [
+        { "name": "position",      "data": { "x":  0, "y": 0.03, "z":  12 } },
+        { "name": "mesh",          "data": { "tuning_ref": "hazard-zone-poison-tuning" } },
+        { "name": "ttl",           "data": { "remaining": 600 } },
+        { "name": "status-zone",   "data": { "radius": 1.2, "status_name": "poisoned", "interval_seconds": 0.8 } },
+        { "name": "opacity-pulse", "data": { "base": 0.5, "amplitude": 0.15, "period_ms": 200, "fade_from_ttl_window": 1.0 } }
+      ] },
+    { "id": "hazard-zone/poison-1", "kind": "hazard-zone", "name": "poison_S",
+      "facets": [
+        { "name": "position",      "data": { "x":  0, "y": 0.03, "z": -12 } },
+        { "name": "mesh",          "data": { "tuning_ref": "hazard-zone-poison-tuning" } },
+        { "name": "ttl",           "data": { "remaining": 600 } },
+        { "name": "status-zone",   "data": { "radius": 1.2, "status_name": "poisoned", "interval_seconds": 0.8 } },
+        { "name": "opacity-pulse", "data": { "base": 0.5, "amplitude": 0.15, "period_ms": 200, "fade_from_ttl_window": 1.0 } }
+      ] }
+  ]
+}

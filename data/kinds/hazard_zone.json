@@ -3,29 +3,18 @@
   "kind": "kind-def",
   "name": "Kind definition: hazard-zone",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "hazard-zone"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "hazard-zone" },
+    { "name": "required-facets", "data": ["position", "mesh", "ttl"] },
+    { "name": "optional-facets", "data": ["damage-zone", "status-zone", "opacity-pulse"] },
+    { "name": "defaults", "data": {} },
+    { "name": "absorbs", "data": [
+      "src/systems/fire_patch_tick.js",
+      "src/systems/poison_puddle_tick.js",
+      "src/systems/hazard_zones.js"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "hazard-zone has multiple per-variant tunings; the spawn's mesh facet uses `tuning_ref` to pick. Defaults differ per variant so no kind-level defaults apply.",
+      "available": ["hazard-zone-fire-tuning", "hazard-zone-poison-tuning"]
+    } }
   ]
 }

@@ -1,0 +1,42 @@
+{
+  "id": "tuning/hazard_zone_poison",
+  "kind": "tuning",
+  "name": "hazard-zone-poison-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "radius": 1.2,
+      "duration_seconds": 4.0,
+      "apply_interval_seconds": 0.8,
+      "status_name": "poisoned",
+      "fade_window_seconds": 1.0,
+      "opacity_base": 0.5,
+      "flicker_amp": 0.3,
+      "flicker_period_ms": 200,
+      "ground_y_offset": 0.03,
+      "color": 4509252,
+      "segments": 14
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "circle", "args": [1.2, 14] },
+      "material": { "kind": "basic", "color": 4509252, "transparent": true, "opacity": 0.5, "depth_write": false },
+      "position": { "y": 0.03 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/systems/poison_puddle_tick.js",
+        "src/systems/hazard_zones.js"
+      ],
+      "migrated_iter": 719,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "APPLY_INTERVAL=0.8, FADE_WINDOW=1.0, OPACITY_BASE=0.5, FLICKER_AMP=0.3, FLICKER_PERIOD=200 — poison_puddle_tick.js lines 1–5",
+        "spawnPoisonPuddle radius=1.2, duration=4.0 — hazard_zones.js line 27",
+        "Mesh: CircleGeometry(1.2, 14), color 0x44cc44 (4509252), basic material, transparent, opacity 0.5, depthWrite false — lines 21–23",
+        "Ground decal at y=0.03, rotation -PI/2 — line 25",
+        "Status applied = 'poisoned' (legacy actions.applyPoison() — line 24)"
+      ]
+    }}
+  ]
+}

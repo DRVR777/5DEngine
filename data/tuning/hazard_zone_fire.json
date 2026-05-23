@@ -1,0 +1,49 @@
+{
+  "id": "tuning/hazard_zone_fire",
+  "kind": "tuning",
+  "name": "hazard-zone-fire-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "radius": 1.5,
+      "duration_seconds": 6.0,
+      "hero_damage_per_tick": 6,
+      "hero_tick_interval_seconds": 0.5,
+      "hero_fire_status_duration": 2.5,
+      "enemy_damage_per_tick": 8,
+      "enemy_tick_interval_seconds": 0.5,
+      "barrel_damage_per_tick": 8,
+      "barrel_tick_interval_seconds": 0.5,
+      "barrel_radius_extra": 0.4,
+      "fade_window_seconds": 1.5,
+      "opacity_base": 0.55,
+      "flicker_amp": 0.2,
+      "flicker_period_ms": 120,
+      "ground_y_offset": 0.04,
+      "color": 16737792,
+      "segments": 12
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "circle", "args": [1.5, 12] },
+      "material": { "kind": "basic", "color": 16737792, "transparent": true, "opacity": 0.55, "depth_write": false },
+      "position": { "y": 0.04 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/systems/fire_patch_tick.js",
+        "src/systems/hazard_zones.js"
+      ],
+      "migrated_iter": 719,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "HERO_DMG_INTERVAL=0.5, HERO_DMG_AMOUNT=6, HERO_FIRE_DUR=2.5 — fire_patch_tick.js lines 1–3",
+        "ENEMY_DMG_INTERVAL=0.5, ENEMY_DMG_AMOUNT=8, BARREL_DMG_INTERVAL=0.5, BARREL_DMG_AMOUNT=8, BARREL_RADIUS_EXTRA=0.4 — lines 4–8",
+        "FADE_WINDOW=1.5, OPACITY_BASE=0.55, FLICKER_AMP=0.2, FLICKER_PERIOD=120 — lines 9–12",
+        "spawnFirePatch default radius=1.5, duration=6.0 — hazard_zones.js lines 6–7",
+        "Mesh: CircleGeometry(radius, 12), color 0xff6600 (16737792), basic material, transparent, opacity 0.55, depthWrite false — lines 8–11",
+        "Ground decal: position y=0.04 — line 13. Three.js circle is rotated -PI/2 to lie flat; for substrate this would need a rotation field on the mesh-spec geometry. For now position-only; visual is acceptable."
+      ]
+    }}
+  ]
+}

@@ -36,6 +36,7 @@
     { "ref": "kinds/armor_shard" },
     { "ref": "kinds/crate" },
     { "ref": "kinds/grenade_crate" },
+    { "ref": "kinds/hazard_zone" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -46,6 +47,8 @@
     { "ref": "tuning/armor_shard" },
     { "ref": "tuning/crate" },
     { "ref": "tuning/grenade_crate" },
+    { "ref": "tuning/hazard_zone_fire" },
+    { "ref": "tuning/hazard_zone_poison" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
@@ -55,6 +58,7 @@
     { "ref": "spawns/weapon_pickup" },
     { "ref": "spawns/armor_shard" },
     { "ref": "spawns/crate" },
-    { "ref": "spawns/grenade_crate" }
+    { "ref": "spawns/grenade_crate" },
+    { "ref": "spawns/hazard_zone" }
   ]
 }
