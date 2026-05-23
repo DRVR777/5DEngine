@@ -46,6 +46,7 @@
     { "ref": "kinds/server_process" },
     { "ref": "kinds/docker_container" },
     { "ref": "kinds/http_request" },
+    { "ref": "kinds/database" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -75,6 +76,7 @@
     { "ref": "tuning/server_process_default" },
     { "ref": "tuning/docker_container_default" },
     { "ref": "tuning/http_request_default" },
+    { "ref": "tuning/database_default" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
@@ -94,6 +96,7 @@
     { "ref": "spawns/screen" },
     { "ref": "spawns/server_process" },
     { "ref": "spawns/docker_container" },
-    { "ref": "spawns/http_request" }
+    { "ref": "spawns/http_request" },
+    { "ref": "spawns/database" }
   ]
 }

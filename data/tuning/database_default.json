@@ -1,0 +1,58 @@
+{
+  "id": "tuning/database_default",
+  "kind": "tuning",
+  "name": "database-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "cylinder_color": 16751155,
+      "cylinder_emissive": 8413696,
+      "cylinder_emissive_intensity": 0.55,
+      "cylinder_radius_top": 0.32,
+      "cylinder_radius_bottom": 0.32,
+      "cylinder_height": 0.5,
+      "cylinder_segments": 16,
+      "cylinder_y": 0.25,
+      "rim_color": 6299648,
+      "rim_radius": 0.34,
+      "rim_height": 0.05,
+      "rim_y_top": 0.5,
+      "rim_y_bottom": 0.0,
+      "scan_interval_seconds": 10,
+      "active_query_color_low": 4509252,
+      "active_query_color_med": 16753920,
+      "active_query_color_high": 16729156
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "cylinder",
+          "geometry": { "kind": "cylinder", "args": [0.32, 0.32, 0.5, 16] },
+          "material": { "kind": "standard", "color": 16751155, "emissive": 8413696, "emissive_intensity": 0.55, "metalness": 0.4, "roughness": 0.5 },
+          "position": { "y": 0.25 }, "cast_shadow": true },
+        { "name": "rim_top",
+          "geometry": { "kind": "cylinder", "args": [0.34, 0.34, 0.05, 16] },
+          "material": { "kind": "standard", "color": 6299648, "metalness": 0.6, "roughness": 0.3 },
+          "position": { "y": 0.5 } },
+        { "name": "rim_bottom",
+          "geometry": { "kind": "cylinder", "args": [0.34, 0.34, 0.05, 16] },
+          "material": { "kind": "standard", "color": 6299648, "metalness": 0.6, "roughness": 0.3 },
+          "position": { "y": 0.0 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "experimental/holograph-runtime/adapters/db_adapter.py — psql pg_stat_activity poll every 10s, emits Thinga per database with {dbname, connections, active_queries}"
+      ],
+      "migrated_iter": 733,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Visual: cylinder (classic database can icon shape) + 2 rim caps top/bottom. Orange-yellow emissive (0xff9933=16751155, emissive 0x804500=8413696) distinct from process green and container blue.",
+        "Rim color (0x602100=6299648) darker for definition.",
+        "active_query_color palette (low green / med orange / high red) reserved for a future db-load-color facet that paints cylinder material by active_queries count.",
+        "scan_interval 10s matches the psql adapter cadence.",
+        "db-connection facet is already a stub at priority 52 in src/ankhor/facets/index.js — pure data container, no tick. This iter doesn't add behavior; substrate held shape (strike 0/3 toward actor-lift)."
+      ]
+    }}
+  ]
+}

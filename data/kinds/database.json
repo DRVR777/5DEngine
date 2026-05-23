@@ -3,29 +3,17 @@
   "kind": "kind-def",
   "name": "Kind definition: database",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "database"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "database" },
+    { "name": "required-facets", "data": ["position", "mesh", "db-connection"] },
+    { "name": "optional-facets", "data": ["label-sprite", "db-load-color"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "experimental/holograph-runtime/adapters/db_adapter.py"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "database is the fourth 7D-bridge kind. Adapter polls pg_stat_activity every 10s and publishes one Thinga per database with {dbname, connections, active_queries}. Visual: classic database-can cylinder shape.",
+      "available": ["database-default-tuning"],
+      "queued":    []
+    } }
   ]
 }
