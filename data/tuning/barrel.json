@@ -34,6 +34,57 @@
       }
     },
     {
+      "name": "mesh-spec",
+      "data": {
+        "kind": "group",
+        "parts": [
+          {
+            "name": "body",
+            "geometry": {
+              "kind": "cylinder",
+              "args": [
+                0.28,
+                0.28,
+                0.85,
+                10
+              ]
+            },
+            "material": {
+              "kind": "standard",
+              "color": 13378560,
+              "metalness": 0.6,
+              "roughness": 0.5
+            },
+            "position": {
+              "y": 0.425
+            },
+            "cast_shadow": true
+          },
+          {
+            "name": "stripe",
+            "geometry": {
+              "kind": "cylinder",
+              "args": [
+                0.285,
+                0.285,
+                0.12,
+                10
+              ]
+            },
+            "material": {
+              "kind": "standard",
+              "color": 16763904,
+              "emissive": 5579776,
+              "emissive_intensity": 0.6
+            },
+            "position": {
+              "y": 0.52
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "provenance",
       "data": {
         "source_file": "src/systems/barrel_system.js",

@@ -7,7 +7,7 @@
       "name": "tuning",
       "data": {
         "collect_dist": 1.2,
-        "magnet_dist": 3.0,
+        "magnet_dist": 3,
         "magnet_speed": 8,
         "spin_x_speed": 1.5,
         "spin_y_speed": 2.2,
@@ -24,6 +24,26 @@
         "pickup_sfx_volume": 0.6,
         "damage_number_color": "#00ff88",
         "toast_ms": 1800
+      }
+    },
+    {
+      "name": "mesh-spec",
+      "data": {
+        "kind": "mesh",
+        "geometry": {
+          "kind": "octahedron",
+          "args": [
+            0.22,
+            0
+          ]
+        },
+        "material": {
+          "kind": "standard",
+          "color": 65416,
+          "emissive": 47940,
+          "emissive_intensity": 0.5
+        },
+        "cast_shadow": true
       }
     },
     {

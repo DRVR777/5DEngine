@@ -7,14 +7,14 @@
       "name": "tuning",
       "data": {
         "collect_dist": 1.2,
-        "magnet_dist": 3.0,
+        "magnet_dist": 3,
         "magnet_speed": 9,
         "spin_x_speed": 1.8,
-        "spin_y_speed": 3.0,
+        "spin_y_speed": 3,
         "bob_base": 0.5,
         "bob_amp": 0.12,
         "bob_period_ms": 260,
-        "spawn_jitter": 1.0,
+        "spawn_jitter": 1,
         "radius": 0.22,
         "body_color": 16765286,
         "emissive_color": 13404160,
@@ -27,6 +27,28 @@
         "pickup_sfx_volume_2": 0.3,
         "damage_number_color": "#ffd166",
         "toast_ms": 1800
+      }
+    },
+    {
+      "name": "mesh-spec",
+      "data": {
+        "kind": "mesh",
+        "geometry": {
+          "kind": "tetrahedron",
+          "args": [
+            0.22,
+            0
+          ]
+        },
+        "material": {
+          "kind": "standard",
+          "color": 16765286,
+          "emissive": 13404160,
+          "emissive_intensity": 0.7,
+          "metalness": 0.6,
+          "roughness": 0.3
+        },
+        "cast_shadow": true
       }
     },
     {

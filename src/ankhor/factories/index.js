@@ -1,19 +1,12 @@
-/** Aggregates per-kind mesh factories. Add a new factory by importing it here
- *  and adding it to MESH_FACTORIES under its kind name. */
-import barrel        from "./barrel.js";
-import speedOrb      from "./speed_orb.js";
-import coinDrop      from "./coin_drop.js";
-import healthPickup  from "./health_pickup.js";
-import ammoPickup    from "./ammo_pickup.js";
-import weaponPickup  from "./weapon_pickup.js";
-import armorShard    from "./armor_shard.js";
+/** Legacy mesh factories. Phased out per iter 715: each kind whose visuals
+ *  can be expressed declaratively gets a `mesh-spec` facet on its tuning
+ *  Thinga, and the mesh handler builds via src/ankhor/build_mesh.js.
+ *
+ *  Only kinds with runtime variation that mesh-spec doesn't yet express
+ *  (e.g. weapon-pickup's color from weapon_id) remain here. The aim is
+ *  for this map to be empty. */
+import weaponPickup from "./weapon_pickup.js";
 
 export const MESH_FACTORIES = {
-  "barrel":         barrel,
-  "speed-orb":      speedOrb,
-  "coin-drop":      coinDrop,
-  "health-pickup":  healthPickup,
-  "ammo-pickup":    ammoPickup,
-  "weapon-pickup":  weaponPickup,
-  "armor-shard":    armorShard,
+  "weapon-pickup": weaponPickup,
 };

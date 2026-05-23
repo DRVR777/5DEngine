@@ -7,7 +7,7 @@
       "name": "tuning",
       "data": {
         "collect_dist": 1.2,
-        "boost_dur_seconds": 4.0,
+        "boost_dur_seconds": 4,
         "spin_speed": 3.5,
         "bob_base": 0.7,
         "bob_amp": 0.18,
@@ -24,6 +24,26 @@
         "pickup_sfx_freq_1": 1400,
         "pickup_sfx_freq_2": 1800,
         "pickup_toast_ms": 2000
+      }
+    },
+    {
+      "name": "mesh-spec",
+      "data": {
+        "kind": "mesh",
+        "geometry": {
+          "kind": "dodecahedron",
+          "args": [
+            0.22,
+            0
+          ]
+        },
+        "material": {
+          "kind": "standard",
+          "color": 16768256,
+          "emissive": 16753920,
+          "emissive_intensity": 0.9,
+          "metalness": 0.2
+        }
       }
     },
     {
