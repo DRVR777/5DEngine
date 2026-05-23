@@ -55,6 +55,13 @@ export const FACET_HANDLERS = {
   "request-stream":      { priority: 51 },
   "db-connection":       { priority: 52 },
   "agent-message":       { priority: 53 },
+  // hero inventory — data only, written by pickup-radius effects
+  "inventory":           { priority: 24 },
+  // pickup-side data containers (read by pickup-radius dispatcher)
+  "heal":                { priority: 41 },
+  "ammo":                { priority: 41 },
+  "armor":               { priority: 41 },
+  "value":               { priority: 41 },
 };
 
 export function installFacetHandlers(registry) {

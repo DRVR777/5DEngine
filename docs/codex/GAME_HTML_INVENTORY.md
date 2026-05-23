@@ -114,12 +114,12 @@ Each game.html system is a `mount*` function call (~135 total).
 
 | game.html system | substrate equiv | status |
 |---|---|---|
-| mountAmmoPickupTick | ammo-pickup kind (iter 710) | ⚠ (mesh only — pickup logic inert) |
-| mountHealthPickupTick | health-pickup kind (iter 709) | ⚠ |
-| mountArmorShardTick | armor-shard kind (iter 713) | ⚠ |
+| mountAmmoPickupTick | ammo-pickup → pickup-radius dispatch (iter 744) | ✅ (consumed; ammo system pending) |
+| mountHealthPickupTick | health-pickup → pickup-radius dispatch (iter 744) | ✅ |
+| mountArmorShardTick | armor-shard → pickup-radius dispatch (iter 744) | ✅ (no max-cap yet) |
 | mountArmorVestTick | armor-vest kind | ❌ |
-| mountSpeedOrbTick | speed-orb kind (iter 707) | ⚠ |
-| mountCoinDropTick | coin-drop kind (iter 708) | ⚠ |
+| mountSpeedOrbTick | speed-orb → pickup-radius dispatch (iter 744) | ⚠ (flag set; consumed by hero-input-move pending) |
+| mountCoinDropTick | coin-drop → pickup-radius dispatch (iter 744) | ✅ |
 | mountGrenadeCrateTick | grenade-crate kind (iter 718) | ⚠ |
 | mountWeaponPickupTick | weapon-pickup kind (iter 711+735) | ⚠ |
 | mountMediaPickups | media-pickup kind | ❌ |

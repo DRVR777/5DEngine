@@ -9,7 +9,8 @@
     { "name": "defaults", "data": {
       "hero-input-move": {},
       "hero-shoot":      {},
-      "hero-respawn":    {}
+      "hero-respawn":    {},
+      "inventory":       { "items": {}, "score": 0 }
     } },
     { "name": "absorbs", "data": [
       "(hero state was originally inline in index.html — never extracted to a single module)",

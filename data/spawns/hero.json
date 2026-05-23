@@ -15,7 +15,8 @@
         { "name": "hero-broadcaster",  "data": {} },
         { "name": "hero-input-move",   "data": {} },
         { "name": "hero-shoot",        "data": {} },
-        { "name": "hero-respawn",      "data": {} }
+        { "name": "hero-respawn",      "data": {} },
+        { "name": "inventory",         "data": { "items": {}, "score": 0 } }
       ] }
   ]
 }

@@ -130,7 +130,17 @@ function paintKills(data, t, kills) {
 }
 
 function paintAmmo(data, t, registry, heroId) {
+  if (!data._ammoEl) return;
+  const inv = registry.facetData(heroId, "inventory");
+  const items = (inv && inv.items && typeof inv.items === "object") ? inv.items : null;
+  const score = (inv && typeof inv.score === "number") ? inv.score : 0;
   const shoot = registry.facetData(heroId, "hero-shoot");
   const shots = (shoot && typeof shoot._seq === "number") ? shoot._seq : 0;
-  if (data._ammoEl) data._ammoEl.textContent = `${t.ammo_label}: ${shots}`;
+  const parts = [];
+  if (items) {
+    for (const [k, n] of Object.entries(items)) parts.push(`${k}:${n}`);
+  }
+  parts.push(`shots:${shots}`);
+  if (score) parts.push(`$${score}`);
+  data._ammoEl.textContent = parts.join("  ");
 }
