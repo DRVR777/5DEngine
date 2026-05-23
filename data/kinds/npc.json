@@ -3,29 +3,21 @@
   "kind": "kind-def",
   "name": "Kind definition: npc",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "npc"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "npc" },
+    { "name": "required-facets", "data": ["position", "mesh"] },
+    { "name": "optional-facets", "data": ["dialog", "ai-routine", "ai-schedule", "interaction-prompt"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "src/render/npc_mesh.js",
+      "src/systems/npc_move_tick.js",
+      "src/entities/npc_routine.js",
+      "src/entities/npc_routing.js",
+      "src/entities/npc_schedule.js"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "npc: non-hostile characters with optional dialog + ai routines. Per-NPC dialog content lives on each spawn's `dialog` facet as pure data (lines + options + branches). Routine/schedule behavior deferred to ai-routine facet. Today: static visible.",
+      "available": ["npc-default-tuning"],
+      "queued":    []
+    } }
   ]
 }

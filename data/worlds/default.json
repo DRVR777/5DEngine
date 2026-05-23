@@ -41,6 +41,7 @@
     { "ref": "kinds/enemy" },
     { "ref": "kinds/hero" },
     { "ref": "kinds/vehicle" },
+    { "ref": "kinds/npc" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -65,6 +66,7 @@
     { "ref": "tuning/enemy_sniper" },
     { "ref": "tuning/hero" },
     { "ref": "tuning/vehicle_car" },
+    { "ref": "tuning/npc_default" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
@@ -79,6 +81,7 @@
     { "ref": "spawns/bullet" },
     { "ref": "spawns/enemy" },
     { "ref": "spawns/hero" },
-    { "ref": "spawns/vehicle" }
+    { "ref": "spawns/vehicle" },
+    { "ref": "spawns/npc" }
   ]
 }

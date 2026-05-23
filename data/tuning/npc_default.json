@@ -1,0 +1,52 @@
+{
+  "id": "tuning/npc_default",
+  "kind": "tuning",
+  "name": "npc-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "body_color": 5687551,
+      "body_radius": 0.35,
+      "body_height": 0.9,
+      "body_y_offset": 0.85,
+      "capsule_cap_segments": 4,
+      "capsule_radial_segments": 12,
+      "ring_inner": 0.45,
+      "ring_outer": 0.60,
+      "ring_segments": 24,
+      "ring_color": 43690,
+      "ring_y_offset": 0.02,
+      "ring_initial_opacity": 0,
+      "interaction_range": 2.0,
+      "ring_visible_opacity": 0.5
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "capsule", "args": [0.35, 0.9, 4, 12] },
+          "material": { "kind": "standard", "color": 5687551 },
+          "position": { "y": 0.85 }, "cast_shadow": true },
+        { "name": "ring",
+          "geometry": { "kind": "ring", "args": [0.45, 0.60, 24] },
+          "material": { "kind": "basic", "color": 43690, "transparent": true, "opacity": 0, "side": 2 },
+          "position": { "y": 0.02 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/render/npc_mesh.js (mesh factory)",
+        "src/systems/npc_move_tick.js (movement + interaction range)"
+      ],
+      "migrated_iter": 728,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Capsule body 0.35×0.9 (smaller than hero, similar to grunt) from npc_mesh.js line 9",
+        "Body color is per-NPC-def in legacy (n.color). Default 0x56cfff (5687551) — a soft civilian blue distinct from hero cyan + enemy reds.",
+        "Glow ring: RingGeometry(0.45, 0.60, 24), color 0x00ffaa (43690), basic transparent, side=DoubleSide (THREE.DoubleSide = 2). Initial opacity 0 — only lights up when hero is in interaction range (future facet).",
+        "Ring lies flat on ground: rotation.x = -PI/2 — for substrate this needs a rotation field on mesh-spec geometry. Today position-only; visual is acceptable for the proof.",
+        "Dialog content + routine/schedule behavior (legacy npc_routine.js, npc_schedule.js, npc_routing.js) deferred — dialog is per-NPC content data on a future dialog facet; routines need ai-fsm."
+      ]
+    }}
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "spawns/npc",
+  "kind": "spawn-set",
+  "name": "Default NPCs",
+  "facets": [
+    { "name": "for-kind", "data": "npc" },
+    { "name": "comment",  "data": "2 demo NPCs at the inner plaza. Static — no ai-routine / dialog handlers yet. The dialog facet on each spawn carries pure data (lines + speaker); rendering the dialog UI lands once a screen-render or hud facet exists." }
+  ],
+  "children": [
+    { "id": "npc/villager-0", "kind": "npc", "name": "villager_NE_inner",
+      "facets": [
+        { "name": "position",  "data": { "x":  3, "y": 0, "z":  3, "heading": 2.4 } },
+        { "name": "mesh",      "data": { "tuning_ref": "npc-default-tuning" } },
+        { "name": "dialog",    "data": {
+          "speaker": "Villager",
+          "lines": [
+            "Strange things have been moving past midnight.",
+            "If you head east, mind the fire."
+          ]
+        } }
+      ] },
+    { "id": "npc/villager-1", "kind": "npc", "name": "villager_SW_inner",
+      "facets": [
+        { "name": "position",  "data": { "x": -3, "y": 0, "z": -3, "heading": 0.7 } },
+        { "name": "mesh",      "data": { "tuning_ref": "npc-default-tuning" } },
+        { "name": "dialog",    "data": {
+          "speaker": "Wanderer",
+          "lines": [
+            "I've seen the sky bend out past the boss arena.",
+            "Don't look for too long."
+          ]
+        } }
+      ] }
+  ]
+}
