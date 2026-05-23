@@ -1,0 +1,57 @@
+{
+  "id": "tuning/bullet_enemy",
+  "kind": "tuning",
+  "name": "bullet-enemy-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hit_radius_sq": 0.36,
+      "hit_height": 0.9,
+      "miss_radius_sq": 2.25,
+      "miss_height": 1.2,
+      "miss_cooldown_seconds": 0.5,
+      "miss_tone_freq": 2800,
+      "miss_tone_duration_ms": 18,
+      "miss_tone_volume": 0.12,
+      "armor_absorb_default": 0.5,
+      "screen_shake_max": 0.35,
+      "screen_shake_div": 55,
+      "damage_indicator_duration_ms": 1200,
+      "hit_particle_count": 4,
+      "hit_particle_size": 3,
+      "hit_particle_life": 0.18,
+      "hit_particle_color": "cyan",
+      "hit_particle_color_poison": "white",
+      "default_speed": 24,
+      "default_damage": 12,
+      "default_range": 35,
+      "mesh_radius": 0.07,
+      "mesh_segments": 6,
+      "mesh_color": 16726072,
+      "mesh_emissive": 13369344,
+      "mesh_emissive_intensity": 0.8
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "sphere", "args": [0.07, 6, 6] },
+      "material": { "kind": "standard", "color": 16726072, "emissive": 13369344, "emissive_intensity": 0.8 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/systems/enemy_bullet_tick.js"
+      ],
+      "migrated_iter": 720,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "HIT_RADIUS_SQ=0.36 (0.6m), HIT_HEIGHT=0.9 from line 1–2",
+        "MISS_RADIUS_SQ=2.25 (1.5m), MISS_HEIGHT=1.2, MISS_COOLDOWN=0.5 from lines 3–5",
+        "Miss tone 'tone:2800:18:sine' @ 0.12 — line 48",
+        "Hit particle 4, size 3, life 0.18, 'cyan' or 'white' if poisonOnHit — line 37",
+        "Screen shake = min(0.35, dmg/55) — line 36",
+        "Damage indicator dirUntil = nowMs + 1200 — line 34",
+        "Default enemy bullet speed 24, damage 12, range 35 (typical legacy enemy fire values; chose to keep parity with grunt baseline)",
+        "Mesh: chose red sphere 0xff3838 with darker emissive 0xcc0000 — visually distinct from hero yellow"
+      ]
+    }}
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "id": "tuning/bullet_hero",
+  "kind": "tuning",
+  "name": "bullet-hero-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hit_radius": 0.6,
+      "hit_radius_sq": 0.36,
+      "physics_substeps": 5,
+      "barrel_hit_radius_sq": 0.18,
+      "crate_hit_radius_sq": 0.25,
+      "y_low_threshold": 0.95,
+      "pierce_tone_freq": 2200,
+      "pierce_tone_duration_ms": 30,
+      "pierce_tone_volume": 0.18,
+      "pierce_color": "#00eeff",
+      "default_speed": 80,
+      "default_damage": 20,
+      "default_range": 30,
+      "default_y": 0.85,
+      "mesh_radius": 0.05,
+      "mesh_segments": 6,
+      "mesh_color": 16763648,
+      "mesh_emissive": 16763648,
+      "mesh_emissive_intensity": 1.0
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "sphere", "args": [0.05, 6, 6] },
+      "material": { "kind": "standard", "color": 16763648, "emissive": 16763648, "emissive_intensity": 1.0 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/systems/bullet_physics_tick.js",
+        "src/systems/bullet_world_hit_tick.js",
+        "src/combat/shoot_system.js"
+      ],
+      "migrated_iter": 720,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "SUBSTEPS=5 from bullet_physics_tick.js line 16 (anti-tunneling)",
+        "Hit radius for enemy = 0.6m (Math.hypot < 0.6) — line 35",
+        "Barrel hit threshold = 0.18 squared (~0.42m) — bullet_world_hit_tick.js line 39",
+        "Crate hit threshold = 0.25 squared (=0.5m) — line 55",
+        "y < 0.95 for barrel/crate hits (ground-level objects) — lines 39, 55",
+        "Pierce tone (sniper) = 2200Hz @ 0.18 volume — bullet_physics_tick.js line 47",
+        "Default bullet speed 80, range 30, damage 20 from ecs_bullet.js (legacy default opts)",
+        "Mesh: bulletGeo/bulletMat provided externally in legacy via get.bulletGeo(); chose SphereGeometry(0.05, 6, 6), yellow emissive 0xffc800 to match typical bullet trail",
+        "Demo bullets use position.velocity for movement — position handler integrates per-frame; no separate velocity facet"
+      ]
+    }}
+  ]
+}

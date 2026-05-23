@@ -3,29 +3,21 @@
   "kind": "kind-def",
   "name": "Kind definition: bullet",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "bullet"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "bullet" },
+    { "name": "required-facets", "data": ["position", "mesh", "ttl"] },
+    { "name": "optional-facets", "data": ["damage-on-hit"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "src/systems/bullet_physics_tick.js",
+      "src/systems/bullet_world_hit_tick.js",
+      "src/systems/enemy_bullet_tick.js",
+      "src/systems/bullet_enemy_hit_feedback_tick.js",
+      "src/systems/bullet_enemy_kill_tick.js",
+      "src/combat/shoot_system.js"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "bullet has per-variant tunings; spawn picks via mesh.tuning_ref. Movement = position.velocity (the position handler integrates). ttl despawns. Collision-sphere + damage-on-hit facets will be added when enemy + barrel kinds are wired for cross-Thing detection (iter 721+).",
+      "available": ["bullet-hero-tuning", "bullet-enemy-tuning"]
+    } }
   ]
 }
