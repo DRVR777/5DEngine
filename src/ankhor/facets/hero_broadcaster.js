@@ -1,13 +1,26 @@
 /** hero-broadcaster facet — sits on the hero Thing and, each tick, writes
- *  the hero's current (x, z) into every other Thing's facet that already
- *  declares `heroU` / `heroV` slots. That is the "subscription" — any
- *  facet (pickup-radius, magnet, damage-zone, status-zone, respawn-on-collect,
- *  …) gets activated automatically by virtue of having the slots.
+ *  the hero's current (x, z) into the facet data of every Thing whose
+ *  facet name is in HERO_CONSUMERS.
  *
- *  Data: { } — no params. The hero's own position facet is the source.
+ *  Priority 5: runs before position handler so consumers see the current
+ *  pose during this tick.
  *
- *  Priority 5: runs before the position handler so consumers see the
- *  current pose during this tick. */
+ *  HERO_CONSUMERS is the explicit subscription list — adding a new
+ *  hero-aware facet means: write the handler and append its name here.
+ *  This keeps the broadcaster pure (no key sniffing on facet data;
+ *  works even when injectDefaults didn't pre-create heroU/heroV keys).
+ *
+ *  Lift-ready: when the actor lift lands, this becomes an emit fan-out
+ *  of `{to: thingId, message: {kind: "hero-pose", x, z}}` envelopes. */
+const HERO_CONSUMERS = [
+  "pickup-radius",
+  "magnet",
+  "damage-zone",
+  "status-zone",
+  "respawn-on-collect",
+  "chase-target",
+];
+
 export default {
   priority: 5,
   tick(thing, _data, _dt, registry) {
@@ -16,18 +29,14 @@ export default {
     const heroU = pos.x;
     const heroV = pos.z;
 
-    // Walk every facet store and update any facet data that declares
-    // heroU / heroV slots. The registry's facetStore maps facetName →
-    // Map<thingId, facetData>. We touch each facetData in place; no
-    // updateFacet round-trip because the data object is shared.
-    for (const [, perThing] of registry.facetStore) {
+    for (const facetName of HERO_CONSUMERS) {
+      const perThing = registry.facetStore.get(facetName);
+      if (!perThing) continue;
       for (const [otherId, fd] of perThing) {
         if (otherId === thing.id) continue;
         if (fd == null) continue;
-        if ("heroU" in fd || "heroV" in fd) {
-          fd.heroU = heroU;
-          fd.heroV = heroV;
-        }
+        fd.heroU = heroU;
+        fd.heroV = heroV;
       }
     }
   }

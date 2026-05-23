@@ -74,7 +74,12 @@ Picked up at any future wake; not blocking handoff:
 
 4. **AI facets for enemy variants** (8 variants exist as Things,
    each with stats; behavior absent): ai-fsm, drop-on-death,
-   alert-bubble, health-display.
+   alert-bubble, health-display. `chase-target` shipped iter 737 —
+   grunt+heavy now walk toward hero in sight range. Next slices:
+   `attack-target` (melee+ranged decisions per variant tuning),
+   `wander` (idle drift outside sight), `drop-on-death` (loot table
+   already in tuning), `alert-bubble` (canvas sprite over enemy),
+   `health-display` (HP-bar plane shrinks with hp).
 
 5. **Vehicle drive controls** — input-controller + rigid-body
    facets. Drone, mech, sidecar variants of vehicle.
@@ -129,7 +134,11 @@ zone facets).
   held shape because no kind this iter actually NEEDED routing —
   every kind we shipped is either a visible Thing or a data
   container. The moment a kind needs to deliver, the lift becomes
-  necessary.
+  necessary. **Post-handoff update:** strike 1/3 logged at iter 736
+  (particle-emitter calls registry.spawn directly). Strike count
+  held at 1/3 through iter 737 (chase-target's cross-Thing reach
+  into variant tuning was clean — `byKind` lookup, no envelope
+  awkwardness).
 
 - Per-variant tuning via `mesh.tuning_ref` emerged organically and
   is now used by weapon-pickup, hazard-zone, bullet, all 8 enemy

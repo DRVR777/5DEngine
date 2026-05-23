@@ -13,6 +13,7 @@ import statusZone      from "./status_zone.js";
 import heroBroadcaster from "./hero_broadcaster.js";
 import kineticHit      from "./kinetic_hit.js";
 import particleEmitter from "./particle_emitter.js";
+import chaseTarget    from "./chase_target.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -29,6 +30,7 @@ export const FACET_HANDLERS = {
   "hero-broadcaster":    heroBroadcaster,
   "kinetic-hit":         kineticHit,
   "particle-emitter":    particleEmitter,
+  "chase-target":        chaseTarget,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

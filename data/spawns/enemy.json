@@ -9,9 +9,10 @@
   "children": [
     { "id": "enemy/grunt-0", "kind": "enemy", "name": "grunt_NE",
       "facets": [
-        { "name": "position", "data": { "x": 10, "y": 0, "z":  5 } },
-        { "name": "mesh",     "data": { "tuning_ref": "enemy-grunt-tuning" } },
-        { "name": "health",   "data": { "hp": 80, "maxHp": 80 } }
+        { "name": "position",     "data": { "x": 10, "y": 0, "z":  5 } },
+        { "name": "mesh",         "data": { "tuning_ref": "enemy-grunt-tuning" } },
+        { "name": "health",       "data": { "hp": 80, "maxHp": 80 } },
+        { "name": "chase-target", "data": {} }
       ] },
     { "id": "enemy/grunt-1", "kind": "enemy", "name": "grunt_SW",
       "facets": [
@@ -21,9 +22,10 @@
       ] },
     { "id": "enemy/heavy-0", "kind": "enemy", "name": "heavy_N",
       "facets": [
-        { "name": "position", "data": { "x":  0, "y": 0, "z": 14 } },
-        { "name": "mesh",     "data": { "tuning_ref": "enemy-heavy-tuning" } },
-        { "name": "health",   "data": { "hp": 200, "maxHp": 200 } }
+        { "name": "position",     "data": { "x":  0, "y": 0, "z": 14 } },
+        { "name": "mesh",         "data": { "tuning_ref": "enemy-heavy-tuning" } },
+        { "name": "health",       "data": { "hp": 200, "maxHp": 200 } },
+        { "name": "chase-target", "data": {} }
       ] },
     { "id": "enemy/fast-0", "kind": "enemy", "name": "fast_E",
       "facets": [

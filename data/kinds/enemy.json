@@ -5,8 +5,10 @@
   "facets": [
     { "name": "for-kind",        "data": "enemy" },
     { "name": "required-facets", "data": ["position", "mesh", "health"] },
-    { "name": "optional-facets", "data": ["ai-fsm", "drop-on-death", "alert-bubble", "health-display"] },
-    { "name": "defaults",        "data": {} },
+    { "name": "optional-facets", "data": ["chase-target", "ai-fsm", "drop-on-death", "alert-bubble", "health-display"] },
+    { "name": "defaults", "data": {
+      "chase-target": { "heroU": null, "heroV": null }
+    } },
     { "name": "absorbs", "data": [
       "src/config/enemy_types.js",
       "src/render/enemy_mesh.js",
