@@ -1,0 +1,59 @@
+{
+  "id": "tuning/barrel",
+  "kind": "tuning",
+  "name": "barrel-tuning",
+  "facets": [
+    {
+      "name": "tuning",
+      "data": {
+        "hp": 40,
+        "max_hp": 40,
+        "blast_radius": 5,
+        "max_damage": 60,
+        "cascade_radius_factor": 0.8,
+        "cascade_delay_ms": 80,
+        "particle_orange_count": 80,
+        "particle_red_count": 40,
+        "particle_yellow_count": 30,
+        "screen_shake_strength": 0.8,
+        "screen_shake_falloff_factor": 1.5,
+        "hero_knockback_strength": 14,
+        "hero_dodge_grace_seconds": 0.28,
+        "body_radius": 0.28,
+        "body_height": 0.85,
+        "body_y": 0.425,
+        "body_color": 13378560,
+        "body_metalness": 0.6,
+        "body_roughness": 0.5,
+        "stripe_radius": 0.285,
+        "stripe_height": 0.12,
+        "stripe_y": 0.52,
+        "stripe_color": 16763904,
+        "stripe_emissive": 5579776,
+        "stripe_intensity": 0.6
+      }
+    },
+    {
+      "name": "provenance",
+      "data": {
+        "source_file": "src/systems/barrel_system.js",
+        "source_iter_extracted_from": 540,
+        "migrated_iter": 706,
+        "migrated_at": "2026-05-23",
+        "do_not_optimize": true,
+        "notes": [
+          "hp/max_hp=40 from makeBarrel() return — line 28",
+          "blast_radius=5, max_damage=60 from explodeBarrel() — line 38",
+          "cascade_radius_factor=0.8 from chain explosion check — line 86",
+          "cascade_delay_ms=80 from setTimeout in chain — line 88",
+          "particle counts from explodeBarrel — lines 32–34",
+          "hero_knockback_strength=14 from _hkbStr — line 79",
+          "screen_shake_strength=0.8, falloff=1.5 from applyScreenShake — line 68",
+          "body geometry: 0.28r × 0.85h, color 0xcc2200, metalness 0.6, roughness 0.5 — lines 16–20",
+          "stripe geometry: 0.285r × 0.12h, color 0xffcc00, emissive 0x552200 intensity 0.6 — lines 21–25",
+          "colors stored as decimal: 0xcc2200=13378560, 0xffcc00=16763904, 0x552200=5579776"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "comment": "Tuning Things — magic numbers extracted from src/ with provenance per docs/codex/specs/feel-preservation.md. Adding a tuning Thing here freezes the constants that affect feel; do_not_optimize=true in provenance signals they must not be 'cleaned up'.",
+  "files": [
+    "barrel.json"
+  ]
+}
