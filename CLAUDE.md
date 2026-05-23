@@ -97,11 +97,41 @@ The substrate's job is to make game.html unnecessary by reproducing every
 behavior it contains as Thingas. When the last kind is absorbed, game.html
 becomes archival. Tests still target game.html during migration.
 
+## Trajectory
+
+What we run today is a **degenerate actor model**. The registry IS a
+scheduler. Facet handlers ARE step functions. But handlers mutate facet
+data in place and reach other Thingas through the registry directly —
+there is no message envelope, no inbox per Thinga, no separation between
+"compute new state" and "deliver effects."
+
+The next abstraction up is the explicit one:
+
+  **Every Thinga is a process. State is private. Behavior is one
+  `step(state, envelope) → { patch, emit }` function. The substrate
+  is a scheduler over a message graph.**
+
+That shape subsumes worlds, agents, network packets, hospital wards,
+federated councils — same runtime, different mailboxes. A 5D/6D/7D
+peer is the same Thinga with a different transport. See
+`docs/ACTOR_TRAJECTORY.md`.
+
+We don't refactor to it yet. We don't yet have enough breadth of kinds
+to know what messages recur or what the scheduler needs to expose. The
+network/server kinds (server-process, http-request, agent-message)
+will force the shape. Until then:
+
+  **Tactical handler rule (starting iter 725):** new facet handlers
+  prefer the return-shape over pure mutation. Compute the patch as a
+  local; assign; later, the assignment becomes an `emit`. This makes
+  the eventual actor-model lift mechanical, not a rewrite.
+
 ## Continuity
 
   Per-loop procedure:           docs/AUTONOMOUS_LOOP.md
   Per-kind contract:            docs/codex/specs/
   Migration tracker:            docs/codex/MIGRATION_PROGRESS.md
+  Trajectory (actor model):     docs/ACTOR_TRAJECTORY.md
   Philosophy — substrate:       yearTwo777/synthesis/ANKHOR_ARCHITECTURE.md
   Philosophy — stack:           yearTwo777/synthesis/THE_STACK.md
   Philosophy — practice:        yearTwo777/synthesis/DEVELOPMENT_PHILOSOPHY.md

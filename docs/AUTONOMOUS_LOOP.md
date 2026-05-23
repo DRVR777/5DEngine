@@ -59,6 +59,20 @@ After 3 consecutive STUCK entries, exit and do not reschedule.
   - skip writing provenance for extracted numbers
   - bypass the registry, the world, or the kind enum
 
+## Tactical rule for new facet handlers (per docs/ACTOR_TRAJECTORY.md)
+
+Every NEW handler should be lift-ready for the actor model:
+
+  - Compute the new value as a local; assign last.
+  - Cross-Thinga effects: build a `{to, message}` object first, then
+    deliver via registry.updateFacet/byKind/etc. That object becomes a
+    real `emit` when the lift lands; no design work then, just grep.
+
+If a kind's behavior feels structurally wrong under the current
+mutate+reach shape, NOTE it in the iter's commit message. Three such
+notes in a row means it's time to pause the kind queue and run the
+actor-shape refactor (per the trajectory doc's trigger condition).
+
 ## Continuity beyond this loop
 
 When the migration sequence is exhausted, the next loop runs on a different
