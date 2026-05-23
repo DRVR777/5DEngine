@@ -95,6 +95,16 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
   }
   requestAnimationFrame(frame);
 
+  // Wait one event-loop tick so legacy-mount facets' async init promises
+  // can resolve before we report stats. The bridge's import() chain is
+  // async; this lets onReady see how many legacy mounts actually bound.
+  await Promise.allSettled(
+    registry.byKind("legacy-system").map((t) => {
+      const d = registry.facetData(t.id, "legacy-mount");
+      return d && d._import_promise ? d._import_promise : Promise.resolve();
+    })
+  );
+
   if (onReady) onReady({ registry, world, stats: {
     loaded:    loaded.length,
     kindDefs:  loaded.filter(t => t.kind === "kind-def").length,
@@ -102,8 +112,19 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
     spawnSets: loaded.filter(t => t.kind === "spawn-set").length,
     materialized,
     handlers:  registry.handlerRegistry.size,
+    legacyBound: countLegacyBound(registry),
+    legacyTotal: registry.byKind("legacy-system").length,
   }});
   return registry;
+}
+
+function countLegacyBound(registry) {
+  let n = 0;
+  for (const t of registry.byKind("legacy-system")) {
+    const d = registry.facetData(t.id, "legacy-mount");
+    if (d && d._ready) n++;
+  }
+  return n;
 }
 
 /** Position camera each frame. If a hero Thinga is in a vehicle,

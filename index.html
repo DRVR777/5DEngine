@@ -54,9 +54,10 @@ const ankhor = await boot({
   canvas:   document.getElementById("stage"),
   kindsDir: "./data/kinds/",
   onReady({ stats }) {
+    const lb = stats.legacyBound ?? 0, lt = stats.legacyTotal ?? 0;
     document.getElementById("boot").innerHTML =
-      `ankhor • ${stats.live} live · ${stats.kindsLoaded} kinds · ${stats.handlers} facets · ` +
-      `<a href="./game.html">→ game.html</a>`;
+      `ankhor • ${stats.materialized} live · ${stats.kindDefs} kinds · ${stats.handlers} facets · ` +
+      `${lb}/${lt} legacy bound · <a href="./game.html">→ game.html</a>`;
   }
 });
 
