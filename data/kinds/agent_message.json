@@ -3,29 +3,17 @@
   "kind": "kind-def",
   "name": "Kind definition: agent-message",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "agent-message"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "agent-message" },
+    { "name": "required-facets", "data": ["position", "mesh", "agent-message", "ttl"] },
+    { "name": "optional-facets", "data": ["router", "read-receipt"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "experimental/holograph-runtime/adapters/agent_bus_adapter.py"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "LAST main-sequence kind. agent-message is literally a message in flight. The natural `router` handler (look up recipient agent Thing by id, append to its inbox) is the first concrete consumer that mutate+reach handles awkwardly — that handler is deferred to the actor-lift phase per docs/codex/HANDOFF_ANKHOR_MIGRATION.md.",
+      "available": ["agent-message-default-tuning"],
+      "queued":    []
+    } }
   ]
 }

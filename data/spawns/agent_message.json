@@ -1,0 +1,39 @@
+{
+  "id": "spawns/agent_message",
+  "kind": "spawn-set",
+  "name": "Demo agent messages",
+  "facets": [
+    { "name": "for-kind", "data": "agent-message" },
+    { "name": "comment",  "data": "4 placeholder messages floating above the east monitor wall. Real agent_bus_adapter.py scans /home/migration-staging/7d-engine-integration/*.md and publishes one Thinga per file. Once the WebSocket bridge ships those events into the in-browser registry, the council's activity becomes a live cloud of message envelopes." }
+  ],
+  "children": [
+    { "id": "agent-message/demo-axiom", "kind": "agent-message", "name": "msg_from_AXIOM",
+      "facets": [
+        { "name": "position",      "data": { "x": 14, "y": 4.0, "z": -3 } },
+        { "name": "mesh",          "data": { "tuning_ref": "agent-message-default-tuning" } },
+        { "name": "agent-message", "data": { "agent": "AXIOM",           "message": "msg_01_from_AXIOM.md",        "path": "/home/migration-staging/7d-engine-integration/msg_01_from_AXIOM.md" } },
+        { "name": "ttl",           "data": { "remaining": 600 } }
+      ] },
+    { "id": "agent-message/demo-alien", "kind": "agent-message", "name": "msg_from_ALIEN_OBSERVER",
+      "facets": [
+        { "name": "position",      "data": { "x": 14, "y": 3.6, "z": -1 } },
+        { "name": "mesh",          "data": { "tuning_ref": "agent-message-default-tuning" } },
+        { "name": "agent-message", "data": { "agent": "ALIEN_OBSERVER",  "message": "msg_01_from_ALIEN_OBSERVER.md","path": "/home/migration-staging/7d-engine-integration/msg_01_from_ALIEN_OBSERVER.md" } },
+        { "name": "ttl",           "data": { "remaining": 600 } }
+      ] },
+    { "id": "agent-message/demo-mailkaren", "kind": "agent-message", "name": "msg_from_MAILKAREN",
+      "facets": [
+        { "name": "position",      "data": { "x": 14, "y": 3.2, "z":  1 } },
+        { "name": "mesh",          "data": { "tuning_ref": "agent-message-default-tuning" } },
+        { "name": "agent-message", "data": { "agent": "MAILKAREN",       "message": "msg_01_from_MAILKAREN_20260325.md", "path": "/home/migration-staging/7d-engine-integration/msg_01_from_MAILKAREN_20260325.md" } },
+        { "name": "ttl",           "data": { "remaining": 600 } }
+      ] },
+    { "id": "agent-message/demo-claude-1", "kind": "agent-message", "name": "msg_from_CLAUDE_1",
+      "facets": [
+        { "name": "position",      "data": { "x": 14, "y": 2.8, "z":  3 } },
+        { "name": "mesh",          "data": { "tuning_ref": "agent-message-default-tuning" } },
+        { "name": "agent-message", "data": { "agent": "CLAUDE_1",        "message": "msg_cross_from_CLAUDE_1.md",  "path": "/home/migration-staging/7d-engine-integration/msg_cross_from_CLAUDE_1.md" } },
+        { "name": "ttl",           "data": { "remaining": 600 } }
+      ] }
+  ]
+}

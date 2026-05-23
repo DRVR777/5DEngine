@@ -1,0 +1,49 @@
+{
+  "id": "tuning/agent_message_default",
+  "kind": "tuning",
+  "name": "agent-message-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "envelope_color": 10066431,
+      "envelope_emissive": 5263615,
+      "envelope_emissive_intensity": 0.7,
+      "envelope_w": 0.5,
+      "envelope_h": 0.32,
+      "envelope_d": 0.06,
+      "envelope_y": 0.16,
+      "seal_color": 16777215,
+      "seal_radius": 0.06,
+      "seal_y": 0.16,
+      "seal_z": 0.04,
+      "ttl_seconds_default": 300,
+      "scan_interval_seconds": 15
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "envelope",
+          "geometry": { "kind": "box", "args": [0.5, 0.32, 0.06] },
+          "material": { "kind": "standard", "color": 10066431, "emissive": 5263615, "emissive_intensity": 0.7, "metalness": 0.3, "roughness": 0.4 },
+          "position": { "y": 0.16 }, "cast_shadow": true },
+        { "name": "seal",
+          "geometry": { "kind": "sphere", "args": [0.06, 8, 8] },
+          "material": { "kind": "standard", "color": 16777215, "emissive": 16777215, "emissive_intensity": 0.6 },
+          "position": { "y": 0.16, "z": 0.04 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "experimental/holograph-runtime/adapters/agent_bus_adapter.py — scans /home/migration-staging/7d-engine-integration/*.md every 15s, publishes one Thinga per file with {agent, message, path} + ttl 300s"
+      ],
+      "migrated_iter": 734,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Visual: small purple-emissive envelope (0x9966ff = 10066431) with a white seal sphere. Distinct from process green, container blue, request purple-different-shade, db orange.",
+        "ttl 300s matches adapter (5min — agent messages persist longer than http requests).",
+        "agent-message facet already exists as a stub at priority 53 in src/ankhor/facets/index.js (data container, no tick).",
+        "ACTOR-LIFT NOTE: this kind is what ACTOR_TRAJECTORY.md flagged as the lift trigger candidate — 'the kind is literally a message; its handler should route, not mutate.' This iter scopes TIGHT (visual + data only, no router handler) so the substrate holds shape. The natural router handler (look up agent by id, append to its message inbox) is the first concrete consumer the actor lift would solve cleanly. That handler is deferred to the actor-lift phase per the HANDOFF doc."
+      ]
+    }}
+  ]
+}
