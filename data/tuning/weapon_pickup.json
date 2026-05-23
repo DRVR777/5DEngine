@@ -1,0 +1,56 @@
+{
+  "id": "tuning/weapon-pickup",
+  "kind": "tuning",
+  "name": "weapon-pickup-tuning",
+  "facets": [
+    {
+      "name": "tuning",
+      "data": {
+        "collect_dist": 1.2,
+        "spin_speed": 1.8,
+        "bob_base": 0.35,
+        "bob_amp": 0.1,
+        "bob_period_ms": 350,
+        "pillar_opacity_base": 0.25,
+        "pillar_opacity_amp": 0.15,
+        "pillar_period_ms": 400,
+        "body_w": 0.55,
+        "body_h": 0.08,
+        "body_d": 0.14,
+        "body_metalness": 0.75,
+        "body_roughness": 0.3,
+        "body_emissive_intensity": 0.5,
+        "grip_w": 0.1,
+        "grip_h": 0.16,
+        "grip_d": 0.1,
+        "grip_color": 2236962,
+        "pillar_r": 0.04,
+        "pillar_h": 6,
+        "pillar_y": 3,
+        "default_color": 5595767,
+        "pickup_colors": { "rifle": 4478310, "smg": 2254489, "sniper": 2245171 }
+      }
+    },
+    {
+      "name": "provenance",
+      "data": {
+        "source_files": [
+          "src/systems/weapon_pickup_tick.js",
+          "src/systems/drop_spawner.js"
+        ],
+        "migrated_iter": 711,
+        "migrated_at": "2026-05-23",
+        "do_not_optimize": true,
+        "notes": [
+          "COLLECT_DIST=1.2, SPIN_SPEED=1.8 from weapon_pickup_tick.js lines 1–2",
+          "BOB_BASE=0.35, BOB_AMP=0.1, BOB_PERIOD=350 from lines 3–5",
+          "PILLAR_BASE=0.25, PILLAR_AMP=0.15, PILLAR_PERIOD=400 from lines 6–8",
+          "Mesh group: body BoxGeometry(0.55, 0.08, 0.14) + grip(0.1, 0.16, 0.1) + pillar CylinderGeometry(0.04, 0.04, 6, 6)",
+          "_PICKUP_COLORS = { rifle: 0x445566 (4478310), smg: 0x226699 (2254489), sniper: 0x224433 (2245171) } default 0x556677 (5595767) — drop_spawner.js",
+          "grip color 0x222222 (2236962) — drop_spawner.js",
+          "Pillar uses opacity-pulse facet (new this iter) targeting child name 'weapon-pillar'"
+        ]
+      }
+    }
+  ]
+}

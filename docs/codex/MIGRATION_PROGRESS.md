@@ -25,7 +25,7 @@
 |  3 |  708 | coin-drop       | DONE 2026-05-23 | Gold sphere with magnet facet (priority 35). New `magnet` handler attracts position toward hero when within range. 3 default spawns. |
 |  4 |  709 | health-pickup   | DONE 2026-05-23 | Green octahedron. Extended spin facet to multi-axis (x/y/z) for dual-axis rotation. Added 13 missing kind names to registry.js Kind enum (coin-drop, health/ammo/weapon-pickup, armor-shard/vest, grenade-crate, mine/turret/grenade, spec). 2 default spawns. |
 |  5 |  710 | ammo-pickup     | DONE 2026-05-23 | Orange box (BoxGeometry 0.18×0.08×0.28). Reuses bob/spin/magnet/pickup-radius. New `ammo` data facet for qty+item. 2 default spawns. |
-|  6 |    ? | weapon-pickup   | pending        | weapon drop from heavy/robot/boss |
+|  6 |  711 | weapon-pickup   | DONE 2026-05-23 | Group: body+grip+pillar. New `opacity-pulse` facet (priority 23) pulses pillar material.opacity. 3 spawns (rifle/smg/sniper) with weapon_id selecting color. |
 |  7 |    ? | armor-shard     | pending        | gold shard, dual-tone sfx, magnet |
 |  8 |    ? | crate           | pending        | wooden crate, breakable |
 |  9 |    ? | grenade-crate   | pending        | restock capped at 9, 30s respawn |
