@@ -1,8 +1,17 @@
 const KIND_NAMES = [
+  // Game entities
   "barrel", "crate", "bullet", "enemy", "pickup", "vehicle", "npc", "weapon",
-  "hazard-zone", "speed-orb", "spawn-point", "screen", "server-process",
-  "docker-container", "http-request", "database", "database-row", "nginx-route",
-  "agent", "agent-message", "journal-event", "tuning", "instruction"
+  "hazard-zone", "speed-orb", "spawn-point", "screen",
+  // Specific pickups (added per docs/codex/MIGRATION_PROGRESS.md as kinds are absorbed)
+  "coin-drop", "health-pickup", "ammo-pickup", "weapon-pickup",
+  "armor-shard", "armor-vest", "grenade-crate",
+  // Combat extensions
+  "mine", "turret", "grenade",
+  // Server / 7D kinds
+  "server-process", "docker-container", "http-request", "database",
+  "database-row", "nginx-route", "agent", "agent-message", "journal-event",
+  // Meta kinds
+  "tuning", "spec", "instruction"
 ];
 
 export const Kind = Object.freeze(Object.fromEntries(KIND_NAMES.map((name) => [toConst(name), name])));

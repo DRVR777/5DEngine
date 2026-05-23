@@ -23,7 +23,7 @@
 |  1 |  706 | barrel          | DONE 2026-05-23 | First proof — mesh factory + tuning + 8 default spawns. Substrate now renders real game content. |
 |  2 |  707 | speed-orb       | DONE 2026-05-23 | Yellow dodecahedron. Bob+spin+emissive-pulse facets added to handlers.js. pickup-radius facet defined (collection waits on hero). 3 default spawns. |
 |  3 |  708 | coin-drop       | DONE 2026-05-23 | Gold sphere with magnet facet (priority 35). New `magnet` handler attracts position toward hero when within range. 3 default spawns. |
-|  4 |    ? | health-pickup   | pending        | green cross, restores HP |
+|  4 |  709 | health-pickup   | DONE 2026-05-23 | Green octahedron. Extended spin facet to multi-axis (x/y/z) for dual-axis rotation. Added 13 missing kind names to registry.js Kind enum (coin-drop, health/ammo/weapon-pickup, armor-shard/vest, grenade-crate, mine/turret/grenade, spec). 2 default spawns. |
 |  5 |    ? | ammo-pickup     | pending        | magazine pickup |
 |  6 |    ? | weapon-pickup   | pending        | weapon drop from heavy/robot/boss |
 |  7 |    ? | armor-shard     | pending        | gold shard, dual-tone sfx, magnet |

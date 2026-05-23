@@ -1,0 +1,50 @@
+{
+  "id": "tuning/health-pickup",
+  "kind": "tuning",
+  "name": "health-pickup-tuning",
+  "facets": [
+    {
+      "name": "tuning",
+      "data": {
+        "collect_dist": 1.2,
+        "magnet_dist": 3.0,
+        "magnet_speed": 8,
+        "spin_x_speed": 1.5,
+        "spin_y_speed": 2.2,
+        "bob_base": 0.6,
+        "bob_amp": 0.1,
+        "bob_period_ms": 320,
+        "spawn_jitter": 0.8,
+        "radius": 0.22,
+        "body_color": 65416,
+        "emissive_color": 47940,
+        "emissive_intensity": 0.5,
+        "pickup_sfx_freq": 660,
+        "pickup_sfx_duration_ms": 120,
+        "pickup_sfx_volume": 0.6,
+        "damage_number_color": "#00ff88",
+        "toast_ms": 1800
+      }
+    },
+    {
+      "name": "provenance",
+      "data": {
+        "source_files": [
+          "src/systems/health_pickup_tick.js",
+          "src/systems/drop_spawner.js"
+        ],
+        "migrated_iter": 709,
+        "migrated_at": "2026-05-23",
+        "do_not_optimize": true,
+        "notes": [
+          "COLLECT_DIST=1.2, MAGNET_DIST=3.0, MAGNET_SPEED=8 from health_pickup_tick.js lines 1–3",
+          "spin_x_speed=1.5, spin_y_speed=2.2 from rotation tick — lines 20–21",
+          "bob_base=0.6, bob_amp=0.1, bob_period_ms=320 from line 22",
+          "Mesh: OctahedronGeometry(0.22, 0), color 0x00ff88 (65416), emissive 0x00bb44 (47940), intensity 0.5 — drop_spawner.js spawnHealthPickup",
+          "pickup sfx 'tone:660:120:sine' at 0.6 volume — line 16",
+          "+N HP damage number in #00ff88 — line 17"
+        ]
+      }
+    }
+  ]
+}

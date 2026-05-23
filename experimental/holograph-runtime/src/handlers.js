@@ -49,15 +49,22 @@ export const facetHandlers = {
     }
   },
 
-  // spin: rotation around y-axis. Writes to position.heading (mesh handler reads).
-  // Data: { speed }  (radians/sec)
+  // spin: rotation. Writes to position.heading (single-axis legacy) AND/OR
+  // directly to mesh.threeObj.rotation for per-axis spin (used by health,
+  // armor-shard, and other multi-axis pickups).
+  // Data: { speed?, x?, y?, z? }  — speed is legacy y-axis; x/y/z are radians/sec.
   spin: {
     priority: 21,
     tick(thing, data, dt, registry) {
       if (!data) return;
       const pos = registry.facetData(thing.id, "position");
-      if (!pos) return;
-      pos.heading = (pos.heading || 0) + (data.speed || 1) * dt;
+      if (pos) pos.heading = (pos.heading || 0) + (data.speed || data.y || 0) * dt;
+      const mesh = registry.facetData(thing.id, "mesh");
+      if (mesh?.threeObj && (data.x != null || data.y != null || data.z != null)) {
+        if (data.x) mesh.threeObj.rotation.x += data.x * dt;
+        if (data.y) mesh.threeObj.rotation.y += data.y * dt;
+        if (data.z) mesh.threeObj.rotation.z += data.z * dt;
+      }
     }
   },
 

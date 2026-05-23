@@ -1,7 +1,16 @@
 {
   "kind": "health-pickup",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "required_facets": ["position", "mesh"],
+  "optional_facets": ["bob", "spin", "magnet", "pickup-radius", "heal"],
+  "defaults": {
+    "bob":           { "base": 0.6, "amplitude": 0.1, "period_ms": 320 },
+    "spin":          { "x": 1.5, "y": 2.2 },
+    "magnet":        { "range": 3.0, "speed": 8 },
+    "pickup-radius": { "radius": 1.2, "on_pickup_action": "heal-hero" },
+    "heal":          { "amount": 25 }
+  },
+  "absorbs": [
+    "src/systems/health_pickup_tick.js",
+    "src/systems/drop_spawner.js"
+  ]
 }

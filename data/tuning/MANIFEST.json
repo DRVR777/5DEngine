@@ -4,6 +4,7 @@
   "files": [
     "barrel.json",
     "speed_orb.json",
-    "coin_drop.json"
+    "coin_drop.json",
+    "health_pickup.json"
   ]
 }
