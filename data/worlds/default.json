@@ -128,27 +128,13 @@
     { "ref": "spawns/wave_spawner" },
     { "ref": "spawns/arena_walls" },
     { "ref": "spawns/ground" },
-    { "ref": "spawns/legacy_systems" },
-
-    { "ref": "legacy/hero-regen" },
-    { "ref": "legacy/heartbeat" },
-    { "ref": "legacy/fps-tick" },
-    { "ref": "legacy/cam-shake" },
-    { "ref": "legacy/cam-pitch-springs" },
-    { "ref": "legacy/vignette" },
-    { "ref": "legacy/stamina" },
-    { "ref": "legacy/footstep-sound" },
-    { "ref": "legacy/speed-boost" },
-    { "ref": "legacy/burn" },
-    { "ref": "legacy/crouch-speed" },
-    { "ref": "legacy/hero-knockback" },
-    { "ref": "legacy/freecam" },
-    { "ref": "legacy/scope-fov" },
-    { "ref": "legacy/sniper-sway" },
-    { "ref": "legacy/motion-springs" },
-    { "ref": "legacy/hero-face" },
-    { "ref": "legacy/dodge" },
-    { "ref": "legacy/jump-gravity" },
-    { "ref": "legacy/layer-transition" }
+    { "ref": "spawns/legacy_systems" }
+  ],
+  "_disabled_legacy_refs_for_emergency_boot": [
+    "legacy/hero-regen", "legacy/heartbeat", "legacy/fps-tick", "legacy/cam-shake",
+    "legacy/cam-pitch-springs", "legacy/vignette", "legacy/stamina", "legacy/footstep-sound",
+    "legacy/speed-boost", "legacy/burn", "legacy/crouch-speed", "legacy/hero-knockback",
+    "legacy/freecam", "legacy/scope-fov", "legacy/sniper-sway", "legacy/motion-springs",
+    "legacy/hero-face", "legacy/dodge", "legacy/jump-gravity", "legacy/layer-transition"
   ]
 }
