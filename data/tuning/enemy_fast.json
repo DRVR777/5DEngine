@@ -1,0 +1,43 @@
+{
+  "id": "tuning/enemy_fast",
+  "kind": "tuning",
+  "name": "enemy-fast-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 40, "max_hp": 40,
+      "move_speed": 5.0, "wander_speed": 2.5,
+      "damage": 4, "attack_range": 1.2, "sight_range": 16,
+      "drop_ammo": "pistol_9mm", "drop_qty": 6, "drop_health": 0,
+      "color": 16737792, "emissive": 1114112,
+      "body_radius": 0.28, "body_height": 0.9, "body_y_offset": 0.73,
+      "gem_radius": 0.16, "gem_y_offset": 1.76,
+      "gem_intensity": 0.8, "gem_opacity": 0.92,
+      "capsule_cap_segments": 4, "capsule_radial_segments": 12,
+      "bob_amplitude": 0.04, "bob_freq_multiplier": 3.5
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "capsule", "args": [0.28, 0.9, 4, 12] },
+          "material": { "kind": "standard", "color": 16737792, "emissive": 1114112 },
+          "position": { "y": 0.73 }, "cast_shadow": true },
+        { "name": "gem",
+          "geometry": { "kind": "octahedron", "args": [0.16, 0] },
+          "material": { "kind": "standard", "color": 16737792, "emissive": 16737792, "emissive_intensity": 0.8, "transparent": true, "opacity": 0.92 },
+          "position": { "y": 1.76 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/config/enemy_types.js", "src/render/enemy_mesh.js", "src/systems/enemy_mesh_tick.js"],
+      "migrated_iter": 723, "migrated_at": "2026-05-23", "do_not_optimize": true,
+      "notes": [
+        "Stats from enemy_types.js line 6 (fast row): color 0xff6600 (16737792), hp 40, moveSpeed 5.0, damage 4, attackRange 1.2, sightRange 16, dropQty 6, wanderSpeed 2.5",
+        "Mesh: capsule(0.28, 0.9) from enemy_mesh.js lines 17–18 (fast is smaller/shorter than grunt)",
+        "body_y = 0.9*0.5 + 0.28 = 0.73; gem_y = 0.9 + 0.56 + 0.3 = 1.76",
+        "Bob amp 0.04 from enemy_mesh_tick.js BOB_AMP.fast",
+        "Charge AI (legacy enemy_fast_charge_tick.js) deferred to ai-fsm facet iter"
+      ]
+    }}
+  ]
+}

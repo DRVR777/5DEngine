@@ -24,6 +24,12 @@
         { "name": "position", "data": { "x":  0, "y": 0, "z": 14 } },
         { "name": "mesh",     "data": { "tuning_ref": "enemy-heavy-tuning" } },
         { "name": "health",   "data": { "hp": 200, "maxHp": 200 } }
+      ] },
+    { "id": "enemy/fast-0", "kind": "enemy", "name": "fast_E",
+      "facets": [
+        { "name": "position", "data": { "x": 14, "y": 0, "z":  0 } },
+        { "name": "mesh",     "data": { "tuning_ref": "enemy-fast-tuning" } },
+        { "name": "health",   "data": { "hp": 40, "maxHp": 40 } }
       ] }
   ]
 }

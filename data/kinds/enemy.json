@@ -16,8 +16,8 @@
     ] },
     { "name": "variants", "data": {
       "comment": "enemy has 8 variants. Each lives in its own tuning Thinga selected by `mesh.tuning_ref` per spawn. Migrated one variant per iter so AI/visual behavior moves cleanly.",
-      "available": ["enemy-grunt-tuning", "enemy-heavy-tuning"],
-      "queued":    ["enemy-fast-tuning", "enemy-poisoner-tuning", "enemy-incendiary-tuning", "enemy-robot-tuning", "enemy-boss-tuning", "enemy-sniper-tuning"]
+      "available": ["enemy-grunt-tuning", "enemy-heavy-tuning", "enemy-fast-tuning"],
+      "queued":    ["enemy-poisoner-tuning", "enemy-incendiary-tuning", "enemy-robot-tuning", "enemy-boss-tuning", "enemy-sniper-tuning"]
     } }
   ]
 }
