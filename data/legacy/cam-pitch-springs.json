@@ -24,5 +24,11 @@
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountCamPitchSprings",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "cam-pitch-springs"
+  }
 }

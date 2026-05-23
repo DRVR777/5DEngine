@@ -14,12 +14,23 @@ import { requireParam as need }  from "./require_param.js";
 const B = "boot-params";
 
 export async function boot({ canvas, dataDir = "./data/", rootId = "root", onReady } = {}) {
+  console.info("[boot] start");
   const registry = createDefaultRegistry();
   installFacetHandlers(registry);
+  if (!canvas) throw new Error("[ankhor] boot: no canvas provided");
+  console.info("[boot] canvas found");
 
-  // Compose the Thinga graph first — we need root.boot-params and world.world-params
-  // before we can construct renderer + camera with no hardcoded fallbacks.
+  // Fail-safe renderer FIRST, so even total composition failure still
+  // shows a non-black frame instead of silent black-screen.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setClearColor(0x201826, 1);  // dark concrete fallback
+  console.info("[boot] renderer ready");
+
+  // Compose the Thinga graph — we need root.boot-params and world.world-params
+  // before we can construct camera with no hardcoded fallbacks.
   const loaded = await composeFromRoot(rootId, dataDir);
+  console.info(`[boot] root loaded — ${loaded.length} Thingas`);
   const root   = loaded.find(t => t.kind === "root");
   const world  = loaded.find(t => t.kind === "world");
   if (!root)  throw new Error("[ankhor] boot: no kind:root Thinga loaded");
@@ -27,12 +38,11 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
   const bootP  = facetMap(root)[B];
   const worldP = facetMap(world)["world-params"];
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, need(bootP, "pixel_ratio_cap", B)));
 
   const scene = new THREE.Scene();
   const cp = applyWorldParams(THREE, scene, worldP);   // bg, fog, lights, grid
+  console.info("[boot] world loaded");
   const cam = new THREE.PerspectiveCamera(cp.fov, innerWidth / innerHeight, cp.near, cp.far);
   cam.position.set(cp.init_pos[0], cp.init_pos[1], cp.init_pos[2]);
   cam.lookAt(cp.look_at[0], cp.look_at[1], cp.look_at[2]);
@@ -84,13 +94,23 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
     }
   }
 
+  console.info(`[boot] registry materialized — ${materialized} children`);
+
   const maxDt = need(bootP, "max_frame_dt_seconds", B);
   let last = performance.now();
+  let frameCount = 0;
   function frame(now) {
     const dt = Math.min(maxDt, (now - last) / 1000); last = now;
-    registry.tick(dt);
-    updateCamera(cam, cp, registry, now);
-    renderer.render(scene, cam);
+    // Per-frame errors must NOT kill the loop — one bad legacy mount
+    // or render call would black-screen the whole engine otherwise.
+    try { registry.tick(dt); }
+    catch (e) { console.error("[boot] registry.tick error (non-fatal):", e); }
+    try { updateCamera(cam, cp, registry, now); }
+    catch (e) { console.error("[boot] updateCamera error (non-fatal):", e); }
+    try { renderer.render(scene, cam); }
+    catch (e) { console.error("[boot] render error (non-fatal):", e); }
+    if (frameCount === 0) console.info("[boot] first frame");
+    frameCount++;
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -98,23 +118,30 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
   // Wait one event-loop tick so legacy-mount facets' async init promises
   // can resolve before we report stats. The bridge's import() chain is
   // async; this lets onReady see how many legacy mounts actually bound.
+  // allSettled never rejects — boot continues even if every spec fails.
   await Promise.allSettled(
     registry.byKind("legacy-system").map((t) => {
       const d = registry.facetData(t.id, "legacy-mount");
       return d && d._import_promise ? d._import_promise : Promise.resolve();
     })
   );
+  console.info(`[boot] legacy bound: ${countLegacyBound(registry)}/${registry.byKind("legacy-system").length}`);
 
-  if (onReady) onReady({ registry, world, stats: {
-    loaded:    loaded.length,
-    kindDefs:  loaded.filter(t => t.kind === "kind-def").length,
-    tuning:    loaded.filter(t => t.kind === "tuning").length,
-    spawnSets: loaded.filter(t => t.kind === "spawn-set").length,
-    materialized,
-    handlers:  registry.handlerRegistry.size,
-    legacyBound: countLegacyBound(registry),
-    legacyTotal: registry.byKind("legacy-system").length,
-  }});
+  // onReady is user-supplied; failure must not kill boot.
+  if (onReady) {
+    try {
+      onReady({ registry, world, stats: {
+        loaded:    loaded.length,
+        kindDefs:  loaded.filter(t => t.kind === "kind-def").length,
+        tuning:    loaded.filter(t => t.kind === "tuning").length,
+        spawnSets: loaded.filter(t => t.kind === "spawn-set").length,
+        materialized,
+        handlers:  registry.handlerRegistry.size,
+        legacyBound: countLegacyBound(registry),
+        legacyTotal: registry.byKind("legacy-system").length,
+      }});
+    } catch (e) { console.warn("[boot] onReady threw (ignored):", e); }
+  }
   return registry;
 }
 

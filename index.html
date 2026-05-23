@@ -50,18 +50,29 @@
 <script type="module">
 import { boot } from "boot";
 
-const ankhor = await boot({
-  canvas:   document.getElementById("stage"),
-  kindsDir: "./data/kinds/",
-  onReady({ stats }) {
-    const lb = stats.legacyBound ?? 0, lt = stats.legacyTotal ?? 0;
-    document.getElementById("boot").innerHTML =
-      `ankhor • ${stats.materialized} live · ${stats.kindDefs} kinds · ${stats.handlers} facets · ` +
-      `${lb}/${lt} legacy bound · <a href="./game.html">→ game.html</a>`;
-  }
-});
+const bootEl = document.getElementById("boot");
+function setBoot(html) { try { bootEl.innerHTML = html; } catch (_) {} }
+setBoot("ankhor • booting…");
 
-window.Ankhor = ankhor;
+// Catch ANY boot-time error and surface it visibly instead of black-
+// screening. The black screen was the symptom we just left behind;
+// from now on the overlay always tells you what happened.
+try {
+  const ankhor = await boot({
+    canvas:   document.getElementById("stage"),
+    onReady({ stats }) {
+      const lb = stats?.legacyBound ?? 0, lt = stats?.legacyTotal ?? 0;
+      const live = stats?.materialized ?? "?";
+      const kinds = stats?.kindDefs ?? "?";
+      const hand = stats?.handlers ?? "?";
+      setBoot(`ankhor • ${live} live · ${kinds} kinds · ${hand} facets · ${lb}/${lt} legacy bound · <a href="./game.html">→ game.html</a>`);
+    }
+  });
+  window.Ankhor = ankhor;
+} catch (e) {
+  console.error("[boot] FATAL:", e);
+  setBoot(`<span style="color:#ff6666">ankhor boot FAILED:</span> ${(e && e.message) || e} · <a href="./game.html">→ game.html</a>`);
+}
 </script>
 </body>
 </html>

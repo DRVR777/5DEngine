@@ -83,7 +83,16 @@ export default {
 
 async function importAndBind(thing, data, registry) {
   try {
-    const mod = await import(/* @vite-ignore */ data.module_url);
+    // module_url in specs is page-relative ("./src/systems/X.js"). A bare
+    // import() inside this file would resolve against this file's URL
+    // (/src/ankhor/facets/legacy_mount.js) — wrong, would 404.
+    // Resolve against document.baseURI so the path matches the page root.
+    // file:// URLs (used by the Node test) pass through unchanged.
+    let url = data.module_url;
+    if (typeof document !== "undefined" && !/^[a-z]+:\/\//i.test(url)) {
+      try { url = new URL(url, document.baseURI).href; } catch (_) { /* keep original */ }
+    }
+    const mod = await import(/* @vite-ignore */ url);
     const mount = mod[data.export];
     if (typeof mount !== "function") {
       console.warn(`${LEGACY_NS} ${thing.id}: export "${data.export}" is not a function`);

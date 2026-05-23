@@ -7,25 +7,31 @@
       "name": "legacy-mount",
       "data": {
         "module_url": "./src/systems/freecam_tick.js",
-        "export":     "mountFreecamTick",
+        "export": "mountFreecamTick",
         "tick_args": [
           "@dt",
           {
-            "buildMode":  "$const:false",
-            "speed":      "$const:8",
-            "speedFast":  "$const:24",
-            "keys":       "$inputKeys"
+            "buildMode": "$const:false",
+            "speed": "$const:8",
+            "speedFast": "$const:24",
+            "keys": "$inputKeys"
           }
         ],
-        "_yaw":   0,
+        "_yaw": 0,
         "_pitch": 0,
         "bindings": {
-          "get.yaw":         "$thing:legacy/freecam/legacy-mount/_yaw",
-          "get.pitch":       "$thing:legacy/freecam/legacy-mount/_pitch",
-          "actions.move":    "$noop",
-          "actions.moveY":   "$noop"
+          "get.yaw": "$thing:legacy/freecam/legacy-mount/_yaw",
+          "get.pitch": "$thing:legacy/freecam/legacy-mount/_pitch",
+          "actions.move": "$noop",
+          "actions.moveY": "$noop"
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountFreecamTick",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "freecam"
+  }
 }

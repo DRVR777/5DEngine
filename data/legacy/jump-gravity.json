@@ -7,30 +7,45 @@
       "name": "legacy-mount",
       "data": {
         "module_url": "./src/systems/jump_gravity_tick.js",
-        "export":     "mountJumpGravityTick",
-        "params":     { "jumpV": 6.5, "gravity": -18 },
-        "tick_args":  ["@dt", { "spaceDown": "$input:Space", "buildMode": "$const:false" }],
-        "_velocityY":      0,
-        "_canDoubleJump":  false,
-        "_spaceWasDown":   false,
-        "_stamina":        100,
+        "export": "mountJumpGravityTick",
+        "params": {
+          "jumpV": 6.5,
+          "gravity": -18
+        },
+        "tick_args": [
+          "@dt",
+          {
+            "spaceDown": "$input:Space",
+            "buildMode": "$const:false"
+          }
+        ],
+        "_velocityY": 0,
+        "_canDoubleJump": false,
+        "_spaceWasDown": false,
+        "_stamina": 100,
         "bindings": {
-          "get.velocityY":     "$thing:legacy/jump-gravity/legacy-mount/_velocityY",
-          "set.velocityY":     "$thing:legacy/jump-gravity/legacy-mount/_velocityY",
+          "get.velocityY": "$thing:legacy/jump-gravity/legacy-mount/_velocityY",
+          "set.velocityY": "$thing:legacy/jump-gravity/legacy-mount/_velocityY",
           "get.canDoubleJump": "$thing:legacy/jump-gravity/legacy-mount/_canDoubleJump",
           "set.canDoubleJump": "$thing:legacy/jump-gravity/legacy-mount/_canDoubleJump",
-          "get.spaceWasDown":  "$thing:legacy/jump-gravity/legacy-mount/_spaceWasDown",
-          "set.spaceWasDown":  "$thing:legacy/jump-gravity/legacy-mount/_spaceWasDown",
-          "get.stamina":       "$thing:legacy/stamina/legacy-mount/_stamina",
-          "set.stamina":       "$thing:legacy/stamina/legacy-mount/_stamina",
-          "actions.getPos":          "$kindPos:hero",
-          "actions.setPos":          "$writePos:hero",
-          "actions.getSupport":      "$return:$const:{\"topY\":0}",
-          "actions.heroDead":        "$return:$const:false",
-          "actions.onLand":          "$log:[hero land]",
+          "get.spaceWasDown": "$thing:legacy/jump-gravity/legacy-mount/_spaceWasDown",
+          "set.spaceWasDown": "$thing:legacy/jump-gravity/legacy-mount/_spaceWasDown",
+          "get.stamina": "$thing:legacy/stamina/legacy-mount/_stamina",
+          "set.stamina": "$thing:legacy/stamina/legacy-mount/_stamina",
+          "actions.getPos": "$kindPos:hero",
+          "actions.setPos": "$writePos:hero",
+          "actions.getSupport": "$return:$const:{\"topY\":0}",
+          "actions.heroDead": "$return:$const:false",
+          "actions.onLand": "$log:[hero land]",
           "actions.spawnDoubleJumpFx": "$emit:{\"id\":\"decal-particle/dj-fx-<seq>\",\"kind\":\"decal-particle\",\"name\":\"dj_fx_<seq>\",\"facets\":[{\"name\":\"position\",\"data\":{\"x\":\"$arg0\",\"y\":\"$arg1\",\"z\":\"$arg2\"}},{\"name\":\"mesh\",\"data\":{\"tuning_ref\":\"decal-particle-impact-tuning\"}},{\"name\":\"ttl\",\"data\":{\"remaining\":0.25}},{\"name\":\"expand-fade\",\"data\":{}}]}"
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountJumpGravityTick",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "jump-gravity"
+  }
 }

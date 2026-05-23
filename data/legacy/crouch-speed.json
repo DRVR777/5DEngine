@@ -27,5 +27,11 @@
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountCrouchSpeedTick",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "crouch-speed"
+  }
 }

@@ -23,5 +23,11 @@
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountFpsTick",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "fps-tick"
+  }
 }

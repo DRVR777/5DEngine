@@ -18,5 +18,11 @@
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountCamShakeTick",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "cam-shake"
+  }
 }

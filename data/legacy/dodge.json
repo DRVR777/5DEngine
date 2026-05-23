@@ -7,28 +7,36 @@
       "name": "legacy-mount",
       "data": {
         "module_url": "./src/systems/dodge_tick.js",
-        "export":     "mountDodgeTick",
-        "tick_args":  ["@dt"],
+        "export": "mountDodgeTick",
+        "tick_args": [
+          "@dt"
+        ],
         "_dodgeCooldown": 0,
-        "_dodgeT":        0,
-        "_dodgeVelU":     0,
-        "_dodgeVelV":     0,
+        "_dodgeT": 0,
+        "_dodgeVelU": 0,
+        "_dodgeVelV": 0,
         "_dodgeBashDone": false,
         "bindings": {
           "get.dodgeCooldown": "$thing:legacy/dodge/legacy-mount/_dodgeCooldown",
           "set.dodgeCooldown": "$thing:legacy/dodge/legacy-mount/_dodgeCooldown",
-          "get.dodgeT":        "$thing:legacy/dodge/legacy-mount/_dodgeT",
-          "set.dodgeT":        "$thing:legacy/dodge/legacy-mount/_dodgeT",
-          "get.dodgeVelU":     "$thing:legacy/dodge/legacy-mount/_dodgeVelU",
-          "get.dodgeVelV":     "$thing:legacy/dodge/legacy-mount/_dodgeVelV",
+          "get.dodgeT": "$thing:legacy/dodge/legacy-mount/_dodgeT",
+          "set.dodgeT": "$thing:legacy/dodge/legacy-mount/_dodgeT",
+          "get.dodgeVelU": "$thing:legacy/dodge/legacy-mount/_dodgeVelU",
+          "get.dodgeVelV": "$thing:legacy/dodge/legacy-mount/_dodgeVelV",
           "get.dodgeBashDone": "$thing:legacy/dodge/legacy-mount/_dodgeBashDone",
           "set.dodgeBashDone": "$thing:legacy/dodge/legacy-mount/_dodgeBashDone",
-          "actions.getPos":    "$kindPos:hero",
-          "actions.setPos":    "$writePos:hero",
+          "actions.getPos": "$kindPos:hero",
+          "actions.setPos": "$writePos:hero",
           "actions.spawnTrail": "$emit:{\"id\":\"decal-particle/dodge-trail-<seq>\",\"kind\":\"decal-particle\",\"name\":\"dodge_trail_<seq>\",\"facets\":[{\"name\":\"position\",\"data\":{\"x\":\"$arg0\",\"y\":\"$arg1\",\"z\":\"$arg2\"}},{\"name\":\"mesh\",\"data\":{\"tuning_ref\":\"decal-particle-impact-tuning\"}},{\"name\":\"ttl\",\"data\":{\"remaining\":0.18}},{\"name\":\"expand-fade\",\"data\":{}}]}",
-          "actions.tryBash":   "$noop"
+          "actions.tryBash": "$noop"
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountDodgeTick",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "dodge"
+  }
 }

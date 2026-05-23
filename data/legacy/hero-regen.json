@@ -27,5 +27,11 @@
         }
       }
     }
-  ]
+  ],
+  "migration": {
+    "legacy_mount": "mountHeroRegenTick",
+    "status": "HOSTED_BIND_ONLY",
+    "semantic_test": null,
+    "native_target": "hero-regen"
+  }
 }
