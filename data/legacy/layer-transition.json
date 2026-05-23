@@ -1,0 +1,27 @@
+{
+  "id": "legacy/layer-transition",
+  "kind": "legacy-system",
+  "name": "legacy_layer_transition",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/layer_transition_tick.js",
+        "export":     "mountLayerTransitionTick",
+        "tick_args": [
+          "@dt",
+          { "heroU": "$kindPos:hero", "heroV": "$kindPos:hero", "buildings": "$const:[]" }
+        ],
+        "_layerId": 1,
+        "bindings": {
+          "get.layerId":            "$thing:legacy/layer-transition/legacy-mount/_layerId",
+          "actions.boundaryAt":     "$return:$const:null",
+          "actions.bldgName":       "$return:$const:\"unknown\"",
+          "actions.logTransition":  "$log:[layer transition]",
+          "actions.showToast":      "$log:[toast]",
+          "actions.playSfx":        "$log:[layer sfx]"
+        }
+      }
+    }
+  ]
+}

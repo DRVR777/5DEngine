@@ -211,6 +211,7 @@ function makeAction(spec, registry) {
     if (fd) fd[resolver.field] = v;
   };
   if (resolver.kind === "write-pos") return resolver.write;
+  if (resolver.kind === "return-spec") return () => resolveAtBuildTime(resolver.inner, registry);
   return () => {};
 }
 
@@ -295,6 +296,7 @@ function parseSpec(spec, registry) {
   if (spec.startsWith("$write:"))    return parseWriteOrAdd(spec.slice(7), "write", registry);
   if (spec.startsWith("$add:"))      return parseWriteOrAdd(spec.slice(5),  "add",   registry);
   if (spec.startsWith("$kindPos:"))  return parseKindPos(spec.slice(9), registry);
+  if (spec.startsWith("$return:"))   return { kind: "return-spec", inner: spec.slice(8) };
   console.warn(`${LEGACY_NS} unknown binding spec: ${spec}`);
   return null;
 }

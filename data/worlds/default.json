@@ -147,6 +147,8 @@
     { "ref": "legacy/sniper-sway" },
     { "ref": "legacy/motion-springs" },
     { "ref": "legacy/hero-face" },
-    { "ref": "legacy/dodge" }
+    { "ref": "legacy/dodge" },
+    { "ref": "legacy/jump-gravity" },
+    { "ref": "legacy/layer-transition" }
   ]
 }
