@@ -3,29 +3,20 @@
   "kind": "kind-def",
   "name": "Kind definition: screen",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "screen"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "screen" },
+    { "name": "required-facets", "data": ["position", "mesh"] },
+    { "name": "optional-facets", "data": ["screen-render", "screen-data-source", "uv-pointer", "screen-buttons"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "src/systems/screen_mesh_tick.js",
+      "src/devices/world_screens.js",
+      "src/systems/screen_interaction.js",
+      "src/systems/server_room_screens.js"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "screen is the bridge into the 7D engine: in-world surfaces that visualize server-process/http-request/database/agent-message Things. Today: static panel only. The screen-render facet (canvas paint each tick from a screen-data-source query) is deferred — likely actor-model lift trigger per docs/ACTOR_TRAJECTORY.md.",
+      "available": ["screen-monitor-tuning"],
+      "queued":    ["screen-jumbotron-tuning", "screen-sky-tuning", "screen-build-console-tuning", "screen-server-room-tuning"]
+    } }
   ]
 }

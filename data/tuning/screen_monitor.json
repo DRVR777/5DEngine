@@ -1,0 +1,71 @@
+{
+  "id": "tuning/screen_monitor",
+  "kind": "tuning",
+  "name": "screen-monitor-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "frame_color": 1184274,
+      "frame_w": 2.4,
+      "frame_h": 1.6,
+      "frame_d": 0.12,
+      "frame_y": 1.6,
+      "panel_color": 720944,
+      "panel_emissive": 4569600,
+      "panel_emissive_intensity": 0.55,
+      "panel_w": 2.2,
+      "panel_h": 1.4,
+      "panel_z_offset": 0.07,
+      "panel_y": 1.6,
+      "stand_color": 3158064,
+      "stand_w": 0.18,
+      "stand_h": 0.85,
+      "stand_d": 0.18,
+      "stand_y": 0.425,
+      "base_color": 3158064,
+      "base_w": 0.7,
+      "base_h": 0.06,
+      "base_d": 0.45,
+      "base_y": 0.03,
+      "canvas_resolution_w": 1024,
+      "canvas_resolution_h": 640
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "base",
+          "geometry": { "kind": "box", "args": [0.7, 0.06, 0.45] },
+          "material": { "kind": "standard", "color": 3158064, "metalness": 0.5, "roughness": 0.7 },
+          "position": { "y": 0.03 }, "cast_shadow": true },
+        { "name": "stand",
+          "geometry": { "kind": "box", "args": [0.18, 0.85, 0.18] },
+          "material": { "kind": "standard", "color": 3158064, "metalness": 0.5, "roughness": 0.7 },
+          "position": { "y": 0.425 } },
+        { "name": "frame",
+          "geometry": { "kind": "box", "args": [2.4, 1.6, 0.12] },
+          "material": { "kind": "standard", "color": 1184274, "metalness": 0.4, "roughness": 0.6 },
+          "position": { "y": 1.6 }, "cast_shadow": true },
+        { "name": "panel",
+          "geometry": { "kind": "plane", "args": [2.2, 1.4] },
+          "material": { "kind": "basic", "color": 720944, "transparent": false },
+          "position": { "y": 1.6, "z": 0.07 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/systems/screen_mesh_tick.js (SM subsystem driving screens each tick)",
+        "src/devices/world_screens.js (jumbotron, sky, console — multi-screen registry)",
+        "src/systems/screen_interaction.js (UV raycast + virtual cursor on screens)",
+        "src/systems/server_room_screens.js (the 7D-server-as-screens vision per CLAUDE.md trajectory)"
+      ],
+      "migrated_iter": 729,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Mesh-spec is a 4-part group: base + stand + frame + panel. The panel is a PlaneGeometry — today it's a flat colored material (dim blue with green emissive for the 'on but no content' look).",
+        "canvas_resolution_w/h (1024×640) — preserved for the future screen-render facet that will paint a HTML5 canvas texture onto the panel each tick. The substrate today does NOT include that handler; this iter is the static screen body only.",
+        "Dynamic content (jumbotron text, sky animation, server-process list, build console buttons + cursor) all wait on the screen-render facet. That facet is likely the actor-model lift trigger (per docs/ACTOR_TRAJECTORY.md) because the screen needs to consume data from elsewhere — natural place for {to, message} envelopes.",
+        "Colors: frame 0x121212 (1184274), panel 0x0b0030 base color (720944) + emissive 0x45c500 (4569600) for the on-state glow, stand+base 0x303030 (3158064)"
+      ]
+    }}
+  ]
+}

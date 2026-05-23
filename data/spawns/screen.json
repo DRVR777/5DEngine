@@ -1,0 +1,21 @@
+{
+  "id": "spawns/screen",
+  "kind": "spawn-set",
+  "name": "Default screens",
+  "facets": [
+    { "name": "for-kind", "data": "screen" },
+    { "name": "comment",  "data": "2 demo monitors at the east plaza. Static panels — no canvas painting yet. The screen-render facet that drives canvas content per-tick lands once a data source kind (server-process, http-request, etc.) exists for it to subscribe to. This is the substrate's first foothold for the 7D engine bridge." }
+  ],
+  "children": [
+    { "id": "screen/monitor-0", "kind": "screen", "name": "monitor_E_left",
+      "facets": [
+        { "name": "position", "data": { "x":  6, "y": 0, "z": -2, "heading": -1.5708 } },
+        { "name": "mesh",     "data": { "tuning_ref": "screen-monitor-tuning" } }
+      ] },
+    { "id": "screen/monitor-1", "kind": "screen", "name": "monitor_E_right",
+      "facets": [
+        { "name": "position", "data": { "x":  6, "y": 0, "z":  2, "heading": -1.5708 } },
+        { "name": "mesh",     "data": { "tuning_ref": "screen-monitor-tuning" } }
+      ] }
+  ]
+}
