@@ -1,0 +1,41 @@
+{
+  "id": "tuning/http_request_default",
+  "kind": "tuning",
+  "name": "http-request-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "tile_w": 0.45,
+      "tile_h": 0.18,
+      "tile_d": 0.05,
+      "tile_y": 0.09,
+      "tile_color_default": 4500616,
+      "tile_color_2xx": 4509252,
+      "tile_color_3xx": 14732800,
+      "tile_color_4xx": 16753920,
+      "tile_color_5xx": 16729156,
+      "ttl_seconds_default": 5,
+      "fall_speed_per_second": 0.3
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "box", "args": [0.45, 0.18, 0.05] },
+      "material": { "kind": "standard", "color": 4500616, "emissive": 4500616, "emissive_intensity": 0.7, "metalness": 0.4, "roughness": 0.35 },
+      "position": { "y": 0.09 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "experimental/holograph-runtime/adapters/nginx_adapter.py — tails /var/log/nginx/access.log, emits one Thinga per request with {method, path, status, ip, bytes} on request-stream facet + ttl 5s"
+      ],
+      "migrated_iter": 732,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Streaming kind: each HTTP request becomes a short-lived Thing that lives ~5s then despawns via ttl. Adapter publishes one per access.log line.",
+        "tile_color palette: 2xx green (0x44cc44=4509252), 3xx amber (0xe0c200=14732800), 4xx orange (0xffaa00=16753920), 5xx red (0xff4444=16729156), default purple (0x44ad88=4500616). A future request-color-by-status handler reads request-stream.status into tile material.color.",
+        "ttl 5s matches the adapter's spawn-time ttl.",
+        "fall_speed_per_second 0.3 — for the visual effect of requests drifting downward like rain on the east monitor wall. Today no movement (position.velocity unused on demo spawns); the fall handler lands later.",
+        "request-stream facet already exists as a stub at priority 51 in src/ankhor/facets/index.js. This iter doesn't add a tick to it — the streaming visual is what makes the actor pattern attractive but the substrate held shape: spawn + ttl + (future) status-color is enough. Strike 0/3 toward actor-lift remains."
+      ]
+    }}
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "id": "spawns/http_request",
+  "kind": "spawn-set",
+  "name": "Demo HTTP requests",
+  "facets": [
+    { "name": "for-kind", "data": "http-request" },
+    { "name": "comment",  "data": "5 placeholder requests above the east monitors, demonstrating the status palette. Demo ttl=600 so they persist for inspection (real adapter spawns each with ttl=5 and a new one per line). Once the WebSocket bridge from quandaleServer/wewon nginx ships live access.log events, demo spawns are removed in favor of streaming." }
+  ],
+  "children": [
+    { "id": "http-request/demo-200-home", "kind": "http-request", "name": "GET /",
+      "facets": [
+        { "name": "position",       "data": { "x": 6, "y": 4.2, "z": -3 } },
+        { "name": "mesh",           "data": { "tuning_ref": "http-request-default-tuning" } },
+        { "name": "request-stream", "data": { "method": "GET",  "path": "/",                "status": 200, "ip": "10.0.0.4",   "bytes": 1842 } },
+        { "name": "ttl",            "data": { "remaining": 600 } }
+      ] },
+    { "id": "http-request/demo-200-api", "kind": "http-request", "name": "GET /api/state",
+      "facets": [
+        { "name": "position",       "data": { "x": 6, "y": 3.9, "z": -2 } },
+        { "name": "mesh",           "data": { "tuning_ref": "http-request-default-tuning" } },
+        { "name": "request-stream", "data": { "method": "GET",  "path": "/api/state",       "status": 200, "ip": "10.0.0.5",   "bytes":  412 } },
+        { "name": "ttl",            "data": { "remaining": 600 } }
+      ] },
+    { "id": "http-request/demo-302-auth", "kind": "http-request", "name": "GET /auth",
+      "facets": [
+        { "name": "position",       "data": { "x": 6, "y": 3.6, "z": -1 } },
+        { "name": "mesh",           "data": { "tuning_ref": "http-request-default-tuning" } },
+        { "name": "request-stream", "data": { "method": "GET",  "path": "/auth",            "status": 302, "ip": "10.0.0.7",   "bytes":    0 } },
+        { "name": "ttl",            "data": { "remaining": 600 } }
+      ] },
+    { "id": "http-request/demo-404-x", "kind": "http-request", "name": "GET /missing",
+      "facets": [
+        { "name": "position",       "data": { "x": 6, "y": 3.3, "z":  0 } },
+        { "name": "mesh",           "data": { "tuning_ref": "http-request-default-tuning" } },
+        { "name": "request-stream", "data": { "method": "GET",  "path": "/missing.css",     "status": 404, "ip": "10.0.0.11",  "bytes":  198 } },
+        { "name": "ttl",            "data": { "remaining": 600 } }
+      ] },
+    { "id": "http-request/demo-500-api", "kind": "http-request", "name": "POST /api/heavy",
+      "facets": [
+        { "name": "position",       "data": { "x": 6, "y": 3.0, "z":  1 } },
+        { "name": "mesh",           "data": { "tuning_ref": "http-request-default-tuning" } },
+        { "name": "request-stream", "data": { "method": "POST", "path": "/api/heavy/work",  "status": 500, "ip": "10.0.0.14",  "bytes": 1024 } },
+        { "name": "ttl",            "data": { "remaining": 600 } }
+      ] }
+  ]
+}

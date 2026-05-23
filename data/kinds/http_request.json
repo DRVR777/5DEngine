@@ -3,29 +3,17 @@
   "kind": "kind-def",
   "name": "Kind definition: http-request",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "http-request"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "http-request" },
+    { "name": "required-facets", "data": ["position", "mesh", "request-stream", "ttl"] },
+    { "name": "optional-facets", "data": ["request-color-by-status", "fall-velocity"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "experimental/holograph-runtime/adapters/nginx_adapter.py"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "http-request is a STREAMING kind — one Thing per log line, lives ~5s via ttl, despawns. request-stream facet (existing stub, priority 51) carries {method, path, status, ip, bytes}. The streaming/throughput pattern is what would normally pressure the actor lift; today it composes cleanly: spawn → ttl → despawn, with optional status-color visual.",
+      "available": ["http-request-default-tuning"],
+      "queued":    []
+    } }
   ]
 }
