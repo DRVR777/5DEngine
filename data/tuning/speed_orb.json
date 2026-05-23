@@ -1,0 +1,52 @@
+{
+  "id": "tuning/speed-orb",
+  "kind": "tuning",
+  "name": "speed-orb-tuning",
+  "facets": [
+    {
+      "name": "tuning",
+      "data": {
+        "collect_dist": 1.2,
+        "boost_dur_seconds": 4.0,
+        "spin_speed": 3.5,
+        "bob_base": 0.7,
+        "bob_amp": 0.18,
+        "bob_period_ms": 280,
+        "emissive_base": 0.7,
+        "emissive_amp": 0.3,
+        "emissive_period_ms": 120,
+        "radius": 0.22,
+        "body_color": 16768256,
+        "emissive_color": 16753920,
+        "emissive_intensity": 0.9,
+        "metalness": 0.2,
+        "pickup_particle_count": 18,
+        "pickup_sfx_freq_1": 1400,
+        "pickup_sfx_freq_2": 1800,
+        "pickup_toast_ms": 2000
+      }
+    },
+    {
+      "name": "provenance",
+      "data": {
+        "source_files": [
+          "src/systems/speed_orb_tick.js",
+          "src/systems/speed_orb_spawner.js"
+        ],
+        "migrated_iter": 707,
+        "migrated_at": "2026-05-23",
+        "do_not_optimize": true,
+        "notes": [
+          "COLLECT_DIST=1.2 from speed_orb_tick.js line 1",
+          "BOOST_DUR=4.0 from line 2 (seconds)",
+          "SPIN_SPEED=3.5 from line 3 (rad/s)",
+          "BOB_BASE=0.7, BOB_AMP=0.18, BOB_PERIOD=280 from lines 4–6",
+          "EMISSIVE_BASE=0.7, EMISSIVE_AMP=0.3, EMISSIVE_PERIOD=120 from lines 7–9",
+          "Mesh: DodecahedronGeometry(0.22, 0) from speed_orb_spawner.js line 6",
+          "Material: color 0xffdd00 (16768256), emissive 0xffa500 (16753920), intensity 0.9, metalness 0.2 — line 7",
+          "Pickup: 18 yellow particles + 1400Hz/1800Hz sine tones + toast 2s — speed_orb_tick.js lines 21–24"
+        ]
+      }
+    }
+  ]
+}

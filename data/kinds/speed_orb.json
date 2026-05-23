@@ -1,7 +1,15 @@
 {
   "kind": "speed-orb",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "required_facets": ["position", "mesh"],
+  "optional_facets": ["bob", "spin", "emissive-pulse", "pickup-radius"],
+  "defaults": {
+    "bob":            { "base": 0.7, "amplitude": 0.18, "period_ms": 280 },
+    "spin":           { "speed": 3.5 },
+    "emissive-pulse": { "base": 0.7, "amplitude": 0.3, "period_ms": 120 },
+    "pickup-radius":  { "radius": 1.2, "on_pickup_action": "speed-boost" }
+  },
+  "absorbs": [
+    "src/systems/speed_orb_tick.js",
+    "src/systems/speed_orb_spawner.js"
+  ]
 }

@@ -21,7 +21,7 @@
 | # | Iter | Kind | Status | Notes |
 |---|------|------|--------|-------|
 |  1 |  706 | barrel          | DONE 2026-05-23 | First proof — mesh factory + tuning + 8 default spawns. Substrate now renders real game content. |
-|  2 |    ? | speed-orb       | pending        | yellow dodecahedron, 4s 1.5x speed boost, bob+spin facets |
+|  2 |  707 | speed-orb       | DONE 2026-05-23 | Yellow dodecahedron. Bob+spin+emissive-pulse facets added to handlers.js. pickup-radius facet defined (collection waits on hero). 3 default spawns. |
 |  3 |    ? | coin-drop       | pending        | tiny coin mesh, magnet, score |
 |  4 |    ? | health-pickup   | pending        | green cross, restores HP |
 |  5 |    ? | ammo-pickup     | pending        | magazine pickup |

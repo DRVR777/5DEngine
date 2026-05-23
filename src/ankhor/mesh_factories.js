@@ -91,7 +91,24 @@ export const MESH_FACTORIES = {
     return g;
   },
 
+  // Speed orb — yellow dodecahedron with emissive pulse.
+  // Reference: src/systems/speed_orb_spawner.js line 6–13 (legacy spawnSpeedOrb).
+  "speed-orb"(THREE, fd, thing, registry) {
+    const t = (k, v) => tuned(registry, "speed-orb", k, v);
+    const mesh = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(t("radius", 0.22), 0),
+      new THREE.MeshStandardMaterial({
+        color:             t("body_color",       0xffdd00),
+        emissive:          t("emissive_color",   0xffa500),
+        emissiveIntensity: t("emissive_intensity", 0.9),
+        metalness:         t("metalness",        0.2),
+      })
+    );
+    mesh.name = thing?.id || "speed-orb";
+    return mesh;
+  },
+
   // ── Future factories (add as kinds are migrated per docs/codex/specs/migration-sequence.md):
-  // speedOrb, coinDrop, healthPickup, ammoPickup, weaponPickup, armorShard,
+  // coinDrop, healthPickup, ammoPickup, weaponPickup, armorShard,
   // crate, grenadeCrate, hazardZone, bullet, enemy, vehicle, npc, screen, ...
 };
