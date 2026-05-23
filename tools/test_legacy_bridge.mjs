@@ -112,6 +112,12 @@ batchRegistry.spawn({
   id: "tuning/hero", kind: "tuning", name: "hero-tuning",
   facets: [{ name: "tuning", data: { regen_delay_seconds: 0, regen_rate_per_second: 10 } }],
 });
+// synthetic input so $input:<key> atoms have something to resolve against
+batchRegistry.registerFacetHandler("input-state", { priority: 2 });
+batchRegistry.spawn({
+  id: "input/main", kind: "input", name: "primary_input",
+  facets: [{ name: "input-state", data: { keys: { KeyW: true, ShiftLeft: true }, mouseHeld: false, yaw: 0 } }],
+});
 
 for (const s of specs) {
   // Rewrite module_url to an absolute file URL (the file in spawns has a
@@ -152,4 +158,29 @@ if (failed.length || notReady.length) {
   process.exit(1);
 }
 console.log(`[test] PASS — all ${specs.length} additional legacy specs bound and ticked.`);
+
+/* ---------- input-driven semantic test (iter 759) ---------- */
+// With KeyW + ShiftLeft held in the synthetic input, stamina should
+// drain when ticked, footstep timer should ALSO drain (then re-arm).
+
+const stamSpec = specs.find((s) => s.id === "legacy/stamina");
+const footSpec = specs.find((s) => s.id === "legacy/footstep-sound");
+if (stamSpec && footSpec) {
+  const sd = batchRegistry.facetData("legacy/stamina", "legacy-mount");
+  sd._stamina = 100; sd._heroEmpT = 0;
+  for (let i = 0; i < 4; i++) batchRegistry.tick(0.1);  // 0.4s of W+Shift held
+  const remainingStam = sd._stamina;
+  console.log(`[test] stamina after 0.4s W+Shift = ${remainingStam.toFixed(2)} (was 100)`);
+  if (remainingStam >= 100) {
+    console.log(`[test] FAIL — stamina did not drain. $input atoms not wiring.`);
+    process.exit(1);
+  }
+  const expected = 100 - 25 * 0.4;
+  if (Math.abs(remainingStam - expected) > 0.5) {
+    console.log(`[test] FAIL — unexpected stamina: got ${remainingStam}, expected ~${expected}`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — $input atoms drove stamina drain through cloned legacy module.`);
+}
+
 process.exit(0);

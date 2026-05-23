@@ -118,7 +118,7 @@
             "STAMINA_MAX":     100,
             "STAMINA_LOCKOUT": 20
           },
-          "tick_args": ["@dt", { "wantsSprint": "$const:false", "isSprinting": "$const:false", "inputMoving": "$const:false" }],
+          "tick_args": ["@dt", { "wantsSprint": "$input:ShiftLeft", "isSprinting": "$input:ShiftLeft", "inputMoving": "$inputAny:KeyW,KeyA,KeyS,KeyD" }],
           "bindings": {
             "get.heroEmpT":            "$thing:legacy/stamina/legacy-mount/_heroEmpT",
             "set.heroEmpT":            "$thing:legacy/stamina/legacy-mount/_heroEmpT",
@@ -134,7 +134,7 @@
         { "name": "legacy-mount", "data": {
           "module_url": "./src/systems/footstep_sound.js",
           "export":     "mountFootstepSound",
-          "tick_args":  ["@dt", { "isMoving": "$const:false", "heroDead": "$const:false", "pointerLocked": "$const:false", "canSprint": "$const:false", "crouching": "$const:false", "onGround": "$const:true" }],
+          "tick_args":  ["@dt", { "isMoving": "$inputAny:KeyW,KeyA,KeyS,KeyD", "heroDead": "$const:false", "pointerLocked": "$pointerLocked", "canSprint": "$input:ShiftLeft", "crouching": "$input:ControlLeft", "onGround": "$const:true" }],
           "bindings": {
             "get.footstepT":  "$thing:legacy/footstep-sound/legacy-mount/_footstepT",
             "set.footstepT":  "$thing:legacy/footstep-sound/legacy-mount/_footstepT",

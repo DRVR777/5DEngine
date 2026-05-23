@@ -145,6 +145,11 @@ function makeGetter(spec, registry) {
     const fd = registry.facetData(resolver.id(), resolver.facet);
     return fd ? fd[resolver.field] : undefined;
   };
+  if (resolver.kind === "input-key")        return () => readInputKey(registry, resolver.code);
+  if (resolver.kind === "input-any")        return () => resolver.codes.some((c) => readInputKey(registry, c));
+  if (resolver.kind === "input-mouse")      return () => readInputState(registry)?.mouseHeld === true;
+  if (resolver.kind === "input-yaw")        return () => readInputState(registry)?.yaw || 0;
+  if (resolver.kind === "input-pointerlock") return () => typeof document !== "undefined" && !!document.pointerLockElement;
   return noop;
 }
 
@@ -187,7 +192,24 @@ function resolveAtBuildTime(value, registry) {
     const fd = registry.facetData(id, r.facet);
     return fd ? fd[r.field] : null;
   }
+  if (r.kind === "input-key")        return readInputKey(registry, r.code);
+  if (r.kind === "input-any")        return r.codes.some((c) => readInputKey(registry, c));
+  if (r.kind === "input-mouse")      return readInputState(registry)?.mouseHeld === true;
+  if (r.kind === "input-yaw")        return readInputState(registry)?.yaw || 0;
+  if (r.kind === "input-pointerlock") return typeof document !== "undefined" && !!document.pointerLockElement;
   return null;
+}
+
+function readInputState(registry) {
+  const inputs = registry.byKind("input");
+  if (inputs.length === 0) return null;
+  return registry.facetData(inputs[0].id, "input-state");
+}
+
+function readInputKey(registry, code) {
+  const st = readInputState(registry);
+  if (!st || !st.keys) return false;
+  return st.keys[code] === true;
 }
 
 /* ---------- spec parser ---------- */
@@ -195,12 +217,17 @@ function resolveAtBuildTime(value, registry) {
 function parseSpec(spec, registry) {
   if (typeof spec !== "string") return null;
   if (spec === "$noop") return { kind: "noop" };
-  if (spec.startsWith("$log:"))    return { kind: "log",    prefix: spec.slice(5) };
-  if (spec.startsWith("$const:"))  return parseConst(spec.slice(7));
-  if (spec.startsWith("$global:")) return { kind: "global", expr:   spec.slice(8) };
-  if (spec.startsWith("$kind:"))   return parseKind  (spec.slice(6),  registry);
-  if (spec.startsWith("$tuning:")) return parseTuning(spec.slice(8),  registry);
-  if (spec.startsWith("$thing:"))  return parseThing (spec.slice(7),  registry);
+  if (spec === "$pointerHeld")   return { kind: "input-mouse" };
+  if (spec === "$pointerLocked") return { kind: "input-pointerlock" };
+  if (spec === "$inputYaw")      return { kind: "input-yaw" };
+  if (spec.startsWith("$log:"))      return { kind: "log",      prefix: spec.slice(5) };
+  if (spec.startsWith("$const:"))    return parseConst(spec.slice(7));
+  if (spec.startsWith("$global:"))   return { kind: "global",   expr:    spec.slice(8) };
+  if (spec.startsWith("$kind:"))     return parseKind  (spec.slice(6),  registry);
+  if (spec.startsWith("$tuning:"))   return parseTuning(spec.slice(8),  registry);
+  if (spec.startsWith("$thing:"))    return parseThing (spec.slice(7),  registry);
+  if (spec.startsWith("$input:"))    return { kind: "input-key", code: spec.slice(7) };
+  if (spec.startsWith("$inputAny:")) return { kind: "input-any", codes: spec.slice(10).split(",").map(s => s.trim()).filter(Boolean) };
   console.warn(`${LEGACY_NS} unknown binding spec: ${spec}`);
   return null;
 }
