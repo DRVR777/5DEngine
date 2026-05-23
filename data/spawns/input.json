@@ -1,0 +1,15 @@
+{
+  "id": "spawns/input",
+  "kind": "spawn-set",
+  "name": "Default input device",
+  "facets": [
+    { "name": "for-kind", "data": "input" },
+    { "name": "comment",  "data": "Singleton input. Its input-state facet's init() installs document keydown/keyup/mousemove/mousedown/mouseup listeners on first tick (idempotent via _installed flag), then writes the captured state into facet data every frame. Consumers (hero-input-move) read byKind('input')[0]." }
+  ],
+  "children": [
+    { "id": "input/main", "kind": "input", "name": "primary_input",
+      "facets": [
+        { "name": "input-state", "data": {} }
+      ] }
+  ]
+}

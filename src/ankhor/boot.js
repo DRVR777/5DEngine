@@ -79,9 +79,7 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
   function frame(now) {
     const dt = Math.min(maxDt, (now - last) / 1000); last = now;
     registry.tick(dt);
-    const tt = now * cp.speed;
-    cam.position.set(Math.sin(tt) * cp.orbit, cp.height, Math.cos(tt) * cp.orbit);
-    cam.lookAt(cp.look_at[0], cp.look_at[1], cp.look_at[2]);
+    updateCamera(cam, cp, registry, now);
     renderer.render(scene, cam);
     requestAnimationFrame(frame);
   }
@@ -96,6 +94,38 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
     handlers:  registry.handlerRegistry.size,
   }});
   return registry;
+}
+
+/** Position camera each frame. If a hero Thinga exists with a position
+ *  facet, follow it from behind (yaw read from input-state if present),
+ *  else fall back to the legacy orbit. All offsets come from world-params. */
+function updateCamera(cam, cp, registry, now) {
+  const heroes = registry.byKind("hero");
+  if (heroes.length === 0) {
+    const tt = now * cp.speed;
+    cam.position.set(Math.sin(tt) * cp.orbit, cp.height, Math.cos(tt) * cp.orbit);
+    cam.lookAt(cp.look_at[0], cp.look_at[1], cp.look_at[2]);
+    return;
+  }
+  const hero = heroes[0];
+  const pos = registry.facetData(hero.id, "position");
+  if (!pos) return;
+
+  const inputs = registry.byKind("input");
+  const yaw = (inputs.length && registry.facetData(inputs[0].id, "input-state")?.yaw) || pos.heading || 0;
+
+  const forwardX = -Math.sin(yaw);
+  const forwardZ = -Math.cos(yaw);
+  cam.position.set(
+    pos.x - forwardX * cp.follow_back,
+    pos.y + cp.follow_up,
+    pos.z - forwardZ * cp.follow_back,
+  );
+  cam.lookAt(
+    pos.x + forwardX * cp.follow_lookahead,
+    pos.y + cp.follow_eye_height,
+    pos.z + forwardZ * cp.follow_lookahead,
+  );
 }
 
 /** Merge kind-def defaults into a spawn instance. The instance's facets win;

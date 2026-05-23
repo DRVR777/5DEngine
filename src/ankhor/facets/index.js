@@ -15,6 +15,8 @@ import kineticHit      from "./kinetic_hit.js";
 import particleEmitter from "./particle_emitter.js";
 import chaseTarget    from "./chase_target.js";
 import attackTarget   from "./attack_target.js";
+import inputState     from "./input_state.js";
+import heroInputMove  from "./hero_input_move.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -33,6 +35,8 @@ export const FACET_HANDLERS = {
   "particle-emitter":    particleEmitter,
   "chase-target":        chaseTarget,
   "attack-target":       attackTarget,
+  "input-state":         inputState,
+  "hero-input-move":     heroInputMove,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

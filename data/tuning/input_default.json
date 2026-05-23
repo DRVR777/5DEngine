@@ -1,0 +1,28 @@
+{
+  "id": "tuning/input_default",
+  "kind": "tuning",
+  "name": "input-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "mouse_sensitivity_yaw": 0.0035,
+      "mouse_button_primary": 0,
+      "key_forward":  "KeyW",
+      "key_back":     "KeyS",
+      "key_left":     "KeyA",
+      "key_right":    "KeyD",
+      "key_sprint":   "ShiftLeft",
+      "key_jump":     "Space"
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["game.html line 1323 (keys map), line 1609 (mouse_held), line 2244 (keydown handler)"],
+      "migrated_iter": 740,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Mouse sensitivity 0.0035 rad/px — typical FPS feel; tune in playtest.",
+        "Key codes use KeyboardEvent.code so layout-independent (WASD on QWERTY = ZQSD on AZERTY by physical position).",
+        "Sprint + jump declared even though hero-input-move doesn't consume them yet — they're the well-known shape so downstream facets can read tuning without churn."
+      ]
+    }}
+  ]
+}

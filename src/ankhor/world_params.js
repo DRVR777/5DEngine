@@ -40,5 +40,9 @@ export function applyWorldParams(THREE, scene, p) {
     orbit:    need(p, "camera_orbit_radius", W),
     height:   need(p, "camera_height", W),
     speed:    need(p, "camera_orbit_speed", W),
+    follow_back:       need(p, "camera_follow_back", W),
+    follow_up:         need(p, "camera_follow_up", W),
+    follow_lookahead:  need(p, "camera_follow_lookahead", W),
+    follow_eye_height: need(p, "camera_follow_eye_height", W),
   };
 }

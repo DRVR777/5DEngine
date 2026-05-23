@@ -1,0 +1,21 @@
+{
+  "id": "kinds/input",
+  "kind": "kind-def",
+  "name": "Kind definition: input",
+  "facets": [
+    { "name": "for-kind",        "data": "input" },
+    { "name": "required-facets", "data": ["input-state"] },
+    { "name": "optional-facets", "data": [] },
+    { "name": "defaults", "data": {
+      "input-state": { "_installed": false, "keys": {}, "mouseX": 0, "mouseY": 0, "mouseHeld": false, "yaw": 0 }
+    } },
+    { "name": "absorbs", "data": [
+      "game.html — `const keys = Object.create(null)` (line 1323) + mountKeydownHandler (line 1362) + mousedown/mouseup listeners (lines 1609–1610). Input is a Thinga: one device, one input-state facet, one bucket of held keys."
+    ] },
+    { "name": "variants", "data": {
+      "comment": "Singleton input device. Future variants: gamepad, touch, vr. Each variant is its own input Thinga with its own input-state semantics, but the consumer (hero-input-move, ui-cursor, etc.) reads byKind('input')[0] and doesn't care which device.",
+      "available": ["input-default-tuning"],
+      "queued":    ["input-gamepad-tuning", "input-touch-tuning"]
+    } }
+  ]
+}
