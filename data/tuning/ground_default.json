@@ -1,0 +1,35 @@
+{
+  "id": "tuning/ground_default",
+  "kind": "tuning",
+  "name": "ground-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "size":       80,
+      "color":      2105894,
+      "roughness":  0.95,
+      "metalness":  0.0,
+      "y_offset":  -0.01,
+      "rotation_x": -1.5707963267948966
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "plane", "args": [80, 80] },
+      "material": { "kind": "standard", "color": 2105894, "roughness": 0.95, "metalness": 0.0 },
+      "position": { "y": -0.01 },
+      "rotation": { "x": -1.5707963267948966 },
+      "receive_shadow": true
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["game.html mountEnvironment — ground was inlined per-scene; substrate makes it a Thinga"],
+      "migrated_iter": 756,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": false,
+      "notes": [
+        "80x80m plane just slightly under the world-params grid (size 60) so the GridHelper lines still read on top. y_offset -0.01 keeps z-fighting away.",
+        "Dark concrete (0x201826 = 2105894) — fits the existing fog tone (bg 0x0b0d12).",
+        "rotation_x = -PI/2 lays the plane flat (PlaneGeometry is XY by default; the engine's ground is XZ).",
+        "Build_mesh extended this iter to honor rotation; first kind that uses it."
+      ]
+    }}
+  ]
+}

@@ -56,6 +56,7 @@
     { "ref": "kinds/decal_particle" },
     { "ref": "kinds/wave_spawner" },
     { "ref": "kinds/arena_wall" },
+    { "ref": "kinds/ground" },
     { "ref": "kinds/input" },
     { "ref": "kinds/hud" },
 
@@ -77,6 +78,7 @@
     { "ref": "tuning/decal_particle_muzzle" },
     { "ref": "tuning/decal_particle_impact" },
     { "ref": "tuning/wave_default" },
+    { "ref": "tuning/ground_default" },
     { "ref": "tuning/bullet_hero" },
     { "ref": "tuning/bullet_enemy" },
     { "ref": "tuning/enemy_grunt" },
@@ -123,6 +125,7 @@
     { "ref": "spawns/input" },
     { "ref": "spawns/hud" },
     { "ref": "spawns/wave_spawner" },
-    { "ref": "spawns/arena_walls" }
+    { "ref": "spawns/arena_walls" },
+    { "ref": "spawns/ground" }
   ]
 }

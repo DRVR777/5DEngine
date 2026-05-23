@@ -1,0 +1,16 @@
+{
+  "id": "spawns/ground",
+  "kind": "spawn-set",
+  "name": "Default ground floor",
+  "facets": [
+    { "name": "for-kind", "data": "ground" },
+    { "name": "comment",  "data": "Single ground plane Thinga at origin. Uses the new rotation support in build_mesh (iter 756). The world's grid_size from world-params still draws on top; ground sits at y=-0.01 to avoid z-fighting with the grid lines." }
+  ],
+  "children": [
+    { "id": "ground/main", "kind": "ground", "name": "ground_floor",
+      "facets": [
+        { "name": "position", "data": { "x": 0, "y": 0, "z": 0 } },
+        { "name": "mesh",     "data": { "tuning_ref": "ground-default-tuning" } }
+      ] }
+  ]
+}

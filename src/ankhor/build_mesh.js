@@ -62,7 +62,13 @@ function buildPart(THREE, part) {
     if (part.position.y != null) mesh.position.y = part.position.y;
     if (part.position.z != null) mesh.position.z = part.position.z;
   }
-  if (part.cast_shadow) mesh.castShadow = true;
+  if (part.rotation) {
+    if (part.rotation.x != null) mesh.rotation.x = part.rotation.x;
+    if (part.rotation.y != null) mesh.rotation.y = part.rotation.y;
+    if (part.rotation.z != null) mesh.rotation.z = part.rotation.z;
+  }
+  if (part.cast_shadow)    mesh.castShadow    = true;
+  if (part.receive_shadow) mesh.receiveShadow = true;
   if (part.name) mesh.name = part.name;
   return mesh;
 }

@@ -1,0 +1,19 @@
+{
+  "id": "kinds/ground",
+  "kind": "kind-def",
+  "name": "Kind definition: ground",
+  "facets": [
+    { "name": "for-kind",        "data": "ground" },
+    { "name": "required-facets", "data": ["position", "mesh"] },
+    { "name": "optional-facets", "data": [] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "game.html — mountEnvironment ground plane / floor texture (line ~195). Substrate replacement: a single flat-plane Thinga rotated to lie horizontal at y=0."
+    ] },
+    { "name": "variants", "data": {
+      "comment": "One variant today (dark concrete). Future variants: grass, sand, snow, hospital tile, marketplace cobblestone — each a tuning Thinga with its own color/roughness/normal map.",
+      "available": ["ground-default-tuning"],
+      "queued":    ["ground-grass-tuning", "ground-tile-tuning"]
+    } }
+  ]
+}

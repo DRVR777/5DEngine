@@ -167,7 +167,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | game.html system | substrate equiv | status |
 |---|---|---|
 | mountScene | boot.js scene init | ✅ |
-| mountEnvironment | world-params (iter 716) | ✅ partial |
+| mountEnvironment | world-params (iter 716) + ground kind (iter 756) | ✅ |
 | mountLighting | world_params.js lights | ✅ |
 | mountSkybox | sky-shader Thinga (currently just bg color) | ❌ |
 | mountSkyDayNightTick | day-night-cycle facet | ❌ |

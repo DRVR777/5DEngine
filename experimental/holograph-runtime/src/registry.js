@@ -25,6 +25,8 @@ const KIND_NAMES = [
   "wave-spawner",
   // Invisible boundary wall — pure collider, no mesh
   "arena-wall",
+  // Singleton ground plane — first kind using mesh-spec rotation
+  "ground",
   // Composition kinds — everything-is-a-Thinga architecture
   "root", "world", "kind-def", "spawn-set",
   // Meta kinds
