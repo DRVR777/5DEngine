@@ -6,25 +6,40 @@ read it on each wakeup.
 
 ## Per-wakeup procedure
 
+This procedure is the 10-step migration loop from
+`docs/SECOND_ABSTRACTION_PHASE.md`, specialized for our substrate.
+
   1. Read CLAUDE.md.                         (doctrine)
   2. Read docs/HALT.                         (exit if it exists)
   3. Read docs/codex/MIGRATION_PROGRESS.md.  (state)
-  4. Pick the next row marked pending. If none, write
-     docs/codex/HANDOFF_ANKHOR_MIGRATION.md and exit clean.
+  4. Pick the next row marked pending. If none, consult the side
+     queue in `docs/codex/HANDOFF_ANKHOR_MIGRATION.md`, then the gap
+     list in `docs/SECOND_ABSTRACTION_PHASE.md` ("Missing for true 5D",
+     "Missing for true 7D", "Missing for true Ankhor"). If all empty,
+     write a final HANDOFF entry and exit clean.
   5. Read the legacy sources listed in that kind's `absorbs` field.
+     This is step 2 of the migration loop (preserve current behavior).
   6. Produce only Thingas. Never code that hardcodes substrate state.
      Per the doctrine, that means:
        - a kind-def Thinga                       (data/kinds/<id>.json)
+         — this IS the migration contract; record `absorbs`.
        - a tuning Thinga with provenance         (data/tuning/<id>.json)
        - a spawn-set Thinga, children inline     (data/spawns/<id>.json)
        - {ref} entries on the active world       (data/worlds/<id>.json)
        - new facet handlers, one per file, only when novel
          (src/ankhor/facets/<name>.js, registered in facets/index.js)
+     NEW spatial facets carry `u, v` from inception (5D-truth rule).
+     NEW operational facets present a Vec7 (7D-truth rule). Legacy
+     3D-only facets stay 3D until their migration iter adds `u, v`.
   7. Verify: parse every JSON; node --check every JS; npm test passes.
      If it fails, fix or revert. Never push broken state.
   8. Mark the row DONE in MIGRATION_PROGRESS.md with iter number + date.
   9. Commit. One concern per commit. Push.
-  10. If you completed an iter cleanly, ScheduleWakeup(+900s) with the
+  10. Shadow-run / authority-flip discipline: do not delete the legacy
+      file listed in `absorbs` until the new Thing path proves
+      identical behavior. The migration loop's last two steps (flip
+      authority; delete legacy) are real steps, not metaphors.
+  11. If you completed an iter cleanly, ScheduleWakeup(+420s) with the
       same prompt to continue. If you got stuck, write docs/STUCK.md
       and DO NOT reschedule — exit.
 
@@ -59,6 +74,15 @@ After 3 consecutive STUCK entries, exit and do not reschedule.
   - skip writing provenance for extracted numbers
   - bypass the registry, the world, or the kind enum
 
+## Vision anchor
+
+The shape of the work is fixed by `docs/SECOND_ABSTRACTION_PHASE.md`.
+That doc names the second abstraction phase, the 5D-truth definition,
+the 7D-truth Vec7, the proposal-envelope rule, the adapter rule, the
+server-room-as-dashboard convergence, and the gap lists. Each iter
+should resolve at least one entry from a gap list or absorb at least
+one legacy kind. If neither, it's a STUCK candidate.
+
 ## Tactical rule for new facet handlers (per docs/ACTOR_TRAJECTORY.md)
 
 Every NEW handler should be lift-ready for the actor model:
@@ -72,6 +96,22 @@ If a kind's behavior feels structurally wrong under the current
 mutate+reach shape, NOTE it in the iter's commit message. Three such
 notes in a row means it's time to pause the kind queue and run the
 actor-shape refactor (per the trajectory doc's trigger condition).
+
+## 5D-truth + 7D-truth checklist (per-iter)
+
+Each iter, before commit, ask:
+
+  - Does the new kind have any spatial coordinate? If yes, does the
+    facet carry `u, v` (even as `0.0` defaults)? If not, why?
+  - Is the new kind operational (process, request, db, agent, backup,
+    proposal)? If yes, does it have a `coordinates` Vec7 facet? If not,
+    note it and queue the addition.
+  - Does any new handler use `u, v` to filter (render, collide, hit,
+    replicate)? If yes, the substrate moved one step closer to 5D-truth.
+    Note it in the commit; it counts as forward progress on the gap list.
+  - Did this iter touch any destructive operation (despawn, write, send)
+    that should eventually become a proposal envelope? If yes, the
+    handler should already be lift-ready (build `{to, message}` first).
 
 ## Continuity beyond this loop
 

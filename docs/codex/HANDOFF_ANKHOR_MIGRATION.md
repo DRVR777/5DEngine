@@ -162,4 +162,57 @@ triggered) the actor lift. Stop conditions in CLAUDE.md unchanged:
 docs/HALT, three consecutive STUCK entries, or — now newly possible
 — side queue empty AND lift complete.
 
+## Second-Abstraction-Phase gap list (the long-form side queue)
+
+`docs/SECOND_ABSTRACTION_PHASE.md` (saved iter 739) defines the
+substrate's destination and three gap lists. The side queue above is
+the tactical version; the gap lists are the strategic version. When
+the side queue empties, draw from these:
+
+  **Missing for true 5D**
+    - position5d facet (additive: keep x/y/z, add u/v)
+    - velocity5d facet
+    - 5D spatial index
+    - u/v render filtering
+    - u/v collision filtering
+    - u/v combat filtering
+    - u/v network packets
+    - u/v debug slice viewer
+    - 5D replay format
+    - 5D pathfinding
+    - 5D portal/morph system
+
+  **Missing for true 7D**
+    - Vec7 coordinates on every operational Thinga
+    - adapter output normalized into Things
+    - server-side 7D daemon
+    - WebSocket bridge to browser
+    - append-only evidence log
+    - proposal state machine
+    - trust ledger
+    - rollback planner
+    - blast-radius analysis
+    - role-scoped graph queries
+    - signed graph revision hashes
+
+  **Missing for true Ankhor** (the actor lift)
+    - every old system absorbed as kind/facet/handler
+    - no direct registry reach-through eventually
+    - message envelope per Thinga
+    - private state per Thinga
+    - step(state, envelope) → { patch, emit }
+    - scheduler over message graph
+    - transport-agnostic local/remote peers
+
+Each iter should resolve at least one entry from either the side
+queue OR these lists. If neither, it's a STUCK candidate.
+
+The convergence target: the in-world computer-room screens become
+real terminals into the 7D operational graph; the actor lift makes
+local/remote peers transport-agnostic; the 5D-truth u/v makes
+worlds projectable slices rather than discrete maps. When those
+three converge, the substrate is one address system for a barrel,
+a hospital ward, an HTTP request, a federated council, and a
+backup — all the same Thinga, different facets, different slice.
+
 — end —

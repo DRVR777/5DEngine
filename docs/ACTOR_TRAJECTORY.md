@@ -171,6 +171,30 @@ The dead capability we noticed in the self-assessment (iter 724) was the
 signal: handlers know how to *speak* but the substrate doesn't yet know
 how to *route*. Routing is what actors add.
 
+## The actor lift IS one entry in the Second-Abstraction-Phase gap list
+
+Per `docs/SECOND_ABSTRACTION_PHASE.md`, "Missing for true Ankhor"
+ends with:
+
+  - every old system absorbed as kind/facet/handler
+  - no direct registry reach-through eventually
+  - message envelope per Thinga
+  - private state per Thinga
+  - step(state, envelope) → { patch, emit }
+  - scheduler over message graph
+  - transport-agnostic local/remote peers
+
+That gap list IS this trajectory. This doc owns the contract change;
+that doc owns the *why it matters* alongside the 5D-truth and 7D-truth
+gaps.
+
+When the lift lands, two adjacent gap-list lines close simultaneously:
+the actor model arrives AND the transport-agnostic local/remote peer
+becomes a one-line change (swap the inbox backend from local Map to
+WebSocket to CWP wire). A 5D peer, a 6D peer, and a 7D peer become
+the same Thinga with different mailbox backends — the convergence the
+Second-Abstraction-Phase doc names as the substrate's destination.
+
 ## What this doc is for
 
 Future-me on a wakeup reads CLAUDE.md → sees "Trajectory" → reads this
