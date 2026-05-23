@@ -57,6 +57,11 @@
     { "ref": "tuning/enemy_grunt" },
     { "ref": "tuning/enemy_heavy" },
     { "ref": "tuning/enemy_fast" },
+    { "ref": "tuning/enemy_poisoner" },
+    { "ref": "tuning/enemy_incendiary" },
+    { "ref": "tuning/enemy_robot" },
+    { "ref": "tuning/enemy_boss" },
+    { "ref": "tuning/enemy_sniper" },
     { "ref": "tuning/hero" },
 
     { "ref": "spawns/barrel" },

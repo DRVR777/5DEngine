@@ -1,0 +1,36 @@
+{
+  "id": "tuning/enemy_sniper",
+  "kind": "tuning",
+  "name": "enemy-sniper-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 55, "max_hp": 55, "move_speed": 0.9, "wander_speed": 0.3,
+      "damage": 45, "attack_range": 20, "sight_range": 22,
+      "drop_ammo": "rifle_556", "drop_qty": 15, "drop_health": 0,
+      "color": 2228275, "emissive": 1114112,
+      "body_radius": 0.4, "body_height": 1.1, "body_y_offset": 0.95,
+      "gem_radius": 0.16, "gem_y_offset": 2.1,
+      "gem_intensity": 0.8, "gem_opacity": 0.92,
+      "capsule_cap_segments": 4, "capsule_radial_segments": 12,
+      "bob_amplitude": 0.035
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "capsule", "args": [0.4, 1.1, 4, 12] },
+          "material": { "kind": "standard", "color": 2228275, "emissive": 1114112 },
+          "position": { "y": 0.95 }, "cast_shadow": true },
+        { "name": "gem",
+          "geometry": { "kind": "octahedron", "args": [0.16, 0] },
+          "material": { "kind": "standard", "color": 2228275, "emissive": 2228275, "emissive_intensity": 0.8, "transparent": true, "opacity": 0.92 },
+          "position": { "y": 2.1 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/config/enemy_types.js row 11", "src/systems/enemy_sniper_tick.js (referenced in old LOOP_PROMPT.md as a ~70-line sub-block)"],
+      "migrated_iter": 725, "migrated_at": "2026-05-23", "do_not_optimize": true,
+      "notes": ["color 0x220033 (2228275), hp 55, speed 0.9 (slowest), dmg 45 (highest per shot), range 20, sight 22 (longest). Slow + far + lethal. Aim+fire AI deferred to ai-fsm iter."]
+    }}
+  ]
+}

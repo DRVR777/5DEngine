@@ -1,0 +1,36 @@
+{
+  "id": "tuning/enemy_poisoner",
+  "kind": "tuning",
+  "name": "enemy-poisoner-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 60, "max_hp": 60, "move_speed": 2.0, "wander_speed": 0.8,
+      "damage": 3, "attack_range": 1.8, "sight_range": 12,
+      "drop_ammo": "pistol_9mm", "drop_qty": 8, "drop_health": 0,
+      "color": 47940, "emissive": 1114112,
+      "body_radius": 0.4, "body_height": 1.1, "body_y_offset": 0.95,
+      "gem_radius": 0.16, "gem_y_offset": 2.1,
+      "gem_intensity": 0.8, "gem_opacity": 0.92,
+      "capsule_cap_segments": 4, "capsule_radial_segments": 12,
+      "bob_amplitude": 0.035
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "capsule", "args": [0.4, 1.1, 4, 12] },
+          "material": { "kind": "standard", "color": 47940, "emissive": 1114112 },
+          "position": { "y": 0.95 }, "cast_shadow": true },
+        { "name": "gem",
+          "geometry": { "kind": "octahedron", "args": [0.16, 0] },
+          "material": { "kind": "standard", "color": 47940, "emissive": 47940, "emissive_intensity": 0.8, "transparent": true, "opacity": 0.92 },
+          "position": { "y": 2.1 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/config/enemy_types.js row 7", "src/render/enemy_mesh.js", "src/systems/enemy_poisoner_spit_tick.js"],
+      "migrated_iter": 725, "migrated_at": "2026-05-23", "do_not_optimize": true,
+      "notes": ["color 0x00bb44 (47940), hp 60, speed 2.0, dmg 3 (low — relies on poison status), range 1.8, sight 12, dropQty 8, wanderSpeed 0.8. Bob amp default 0.035. Poison-spit AI deferred to ai-fsm iter."]
+    }}
+  ]
+}

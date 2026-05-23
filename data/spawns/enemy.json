@@ -1,7 +1,7 @@
 {
   "id": "spawns/enemy",
   "kind": "spawn-set",
-  "name": "Default enemies (grunt + heavy)",
+  "name": "Default enemies (all 8 variants)",
   "facets": [
     { "name": "for-kind", "data": "enemy" },
     { "name": "comment",  "data": "Demo enemies. No AI yet — they stand still. AI behavior facets (ai-fsm: chase/attack/wander, flinch-spring, walk-bob) land once hero is a Thing. Health facet carries hp/maxHp; future health-display facet will render the HP bar plane. Each spawn picks its variant via mesh.tuning_ref." }
@@ -30,6 +30,36 @@
         { "name": "position", "data": { "x": 14, "y": 0, "z":  0 } },
         { "name": "mesh",     "data": { "tuning_ref": "enemy-fast-tuning" } },
         { "name": "health",   "data": { "hp": 40, "maxHp": 40 } }
+      ] },
+    { "id": "enemy/poisoner-0", "kind": "enemy", "name": "poisoner_SE",
+      "facets": [
+        { "name": "position", "data": { "x":  12, "y": 0, "z": -8 } },
+        { "name": "mesh",     "data": { "tuning_ref": "enemy-poisoner-tuning" } },
+        { "name": "health",   "data": { "hp": 60, "maxHp": 60 } }
+      ] },
+    { "id": "enemy/incendiary-0", "kind": "enemy", "name": "incendiary_NW",
+      "facets": [
+        { "name": "position", "data": { "x": -12, "y": 0, "z":  8 } },
+        { "name": "mesh",     "data": { "tuning_ref": "enemy-incendiary-tuning" } },
+        { "name": "health",   "data": { "hp": 70, "maxHp": 70 } }
+      ] },
+    { "id": "enemy/robot-0", "kind": "enemy", "name": "robot_E",
+      "facets": [
+        { "name": "position", "data": { "x":  16, "y": 0, "z":  16 } },
+        { "name": "mesh",     "data": { "tuning_ref": "enemy-robot-tuning" } },
+        { "name": "health",   "data": { "hp": 350, "maxHp": 350 } }
+      ] },
+    { "id": "enemy/boss-0", "kind": "enemy", "name": "boss_far_N",
+      "facets": [
+        { "name": "position", "data": { "x":   0, "y": 0, "z":  24 } },
+        { "name": "mesh",     "data": { "tuning_ref": "enemy-boss-tuning" } },
+        { "name": "health",   "data": { "hp": 1200, "maxHp": 1200 } }
+      ] },
+    { "id": "enemy/sniper-0", "kind": "enemy", "name": "sniper_far_W",
+      "facets": [
+        { "name": "position", "data": { "x": -22, "y": 0, "z":  -2 } },
+        { "name": "mesh",     "data": { "tuning_ref": "enemy-sniper-tuning" } },
+        { "name": "health",   "data": { "hp": 55, "maxHp": 55 } }
       ] }
   ]
 }

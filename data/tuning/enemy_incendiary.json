@@ -1,0 +1,36 @@
+{
+  "id": "tuning/enemy_incendiary",
+  "kind": "tuning",
+  "name": "enemy-incendiary-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 70, "max_hp": 70, "move_speed": 2.2, "wander_speed": 0.9,
+      "damage": 5, "attack_range": 1.8, "sight_range": 12,
+      "drop_ammo": "pistol_9mm", "drop_qty": 10, "drop_health": 0,
+      "color": 16755200, "emissive": 1114112,
+      "body_radius": 0.4, "body_height": 1.1, "body_y_offset": 0.95,
+      "gem_radius": 0.16, "gem_y_offset": 2.1,
+      "gem_intensity": 0.8, "gem_opacity": 0.92,
+      "capsule_cap_segments": 4, "capsule_radial_segments": 12,
+      "bob_amplitude": 0.035
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "capsule", "args": [0.4, 1.1, 4, 12] },
+          "material": { "kind": "standard", "color": 16755200, "emissive": 1114112 },
+          "position": { "y": 0.95 }, "cast_shadow": true },
+        { "name": "gem",
+          "geometry": { "kind": "octahedron", "args": [0.16, 0] },
+          "material": { "kind": "standard", "color": 16755200, "emissive": 16755200, "emissive_intensity": 0.8, "transparent": true, "opacity": 0.92 },
+          "position": { "y": 2.1 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/config/enemy_types.js row 8", "src/systems/enemy_incendiary_tick.js"],
+      "migrated_iter": 725, "migrated_at": "2026-05-23", "do_not_optimize": true,
+      "notes": ["color 0xffaa00 (16755200), hp 70, speed 2.2, dmg 5, range 1.8, sight 12, dropQty 10, wanderSpeed 0.9. Bob amp default 0.035. Fire-bomb AI deferred."]
+    }}
+  ]
+}

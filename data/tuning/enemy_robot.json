@@ -1,0 +1,69 @@
+{
+  "id": "tuning/enemy_robot",
+  "kind": "tuning",
+  "name": "enemy-robot-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 350, "max_hp": 350, "move_speed": 1.0, "wander_speed": 0.4,
+      "damage": 25, "attack_range": 2.2, "sight_range": 14,
+      "drop_ammo": "rifle_556", "drop_qty": 20, "drop_health": 40,
+      "color": 4482730,
+      "body_color": 3359829, "body_metalness": 0.9, "body_roughness": 0.2,
+      "accent_color": 16720384, "accent_emissive": 16711680, "accent_emissive_intensity": 1.2,
+      "bob_amplitude": 0.035
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "torso",
+          "geometry": { "kind": "box", "args": [0.84, 0.9, 0.6] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "y": 1.3 }, "cast_shadow": true },
+        { "name": "head",
+          "geometry": { "kind": "box", "args": [0.56, 0.48, 0.5] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "y": 2.02 } },
+        { "name": "eye",
+          "geometry": { "kind": "box", "args": [0.34, 0.1, 0.06] },
+          "material": { "kind": "standard", "color": 16720384, "emissive": 16711680, "emissive_intensity": 1.2 },
+          "position": { "y": 2.02, "z": 0.28 } },
+        { "name": "arm_left",
+          "geometry": { "kind": "box", "args": [0.22, 0.7, 0.22] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "x": -0.52, "y": 1.18 } },
+        { "name": "arm_right",
+          "geometry": { "kind": "box", "args": [0.22, 0.7, 0.22] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "x":  0.52, "y": 1.18 } },
+        { "name": "leg_left",
+          "geometry": { "kind": "box", "args": [0.28, 0.7, 0.28] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "x": -0.25, "y": 0.55 } },
+        { "name": "leg_right",
+          "geometry": { "kind": "box", "args": [0.28, 0.7, 0.28] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "x":  0.25, "y": 0.55 } },
+        { "name": "foot_left",
+          "geometry": { "kind": "box", "args": [0.32, 0.14, 0.38] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "x": -0.25, "y": 0.14, "z": 0.05 } },
+        { "name": "foot_right",
+          "geometry": { "kind": "box", "args": [0.32, 0.14, 0.38] },
+          "material": { "kind": "standard", "color": 3359829, "metalness": 0.9, "roughness": 0.2 },
+          "position": { "x":  0.25, "y": 0.14, "z": 0.05 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/config/enemy_types.js row 9", "src/render/enemy_mesh.js lines 20–47", "src/systems/enemy_robot_emp_tick.js", "src/systems/enemy_robot_plasma_tick.js"],
+      "migrated_iter": 725, "migrated_at": "2026-05-23", "do_not_optimize": true,
+      "notes": [
+        "BESPOKE mesh, 9 parts: torso + head + eye + 2 arms + 2 legs + 2 feet (boxes only, no capsule).",
+        "Body material 0x334455 (3359829) metalness 0.9 roughness 0.2 — enemy_mesh.js line 21",
+        "Accent (eye) material color 0xff2200 (16720384), emissive 0xff0000 (16711680), intensity 1.2 — line 22",
+        "enemy_types.js color 0x4466aa (4482730) is NOT used in mesh (robot bypasses eDef.color path); kept in tuning for HUD/radar use",
+        "Robot stats: hp 350, speed 1.0, dmg 25, range 2.2, sight 14, dropQty 20, dropHealth 40, wanderSpeed 0.4 — line 9",
+        "EMP burst + plasma AI deferred to ai-fsm iter"
+      ]
+    }}
+  ]
+}
