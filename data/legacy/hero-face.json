@@ -1,0 +1,30 @@
+{
+  "id": "legacy/hero-face",
+  "kind": "legacy-system",
+  "name": "legacy_hero_face",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/hero_face_tick.js",
+        "export":     "mountHeroFaceTick",
+        "tick_args": [
+          "@dt",
+          {
+            "aiming":  "$pointerHeld",
+            "inputF":  "$const:0",
+            "inputR":  "$const:0",
+            "forward": "$const:{\"x\":0,\"z\":1}",
+            "right":   "$const:{\"x\":1,\"z\":0}",
+            "camYaw":  "$inputYaw"
+          }
+        ],
+        "_rotY": 0,
+        "bindings": {
+          "get.rotY": "$thing:legacy/hero-face/legacy-mount/_rotY",
+          "set.rotY": "$thing:legacy/hero-face/legacy-mount/_rotY"
+        }
+      }
+    }
+  ]
+}

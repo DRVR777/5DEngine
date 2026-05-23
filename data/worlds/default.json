@@ -145,6 +145,8 @@
     { "ref": "legacy/freecam" },
     { "ref": "legacy/scope-fov" },
     { "ref": "legacy/sniper-sway" },
-    { "ref": "legacy/motion-springs" }
+    { "ref": "legacy/motion-springs" },
+    { "ref": "legacy/hero-face" },
+    { "ref": "legacy/dodge" }
   ]
 }
