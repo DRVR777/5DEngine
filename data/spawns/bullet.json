@@ -12,14 +12,14 @@
         { "name": "position",     "data": { "x": -20, "y": 1.0, "z":  5, "velocity": { "x": 8, "y": 0, "z": 0 } } },
         { "name": "mesh",         "data": { "tuning_ref": "bullet-hero-tuning" } },
         { "name": "ttl",          "data": { "remaining": 5 } },
-        { "name": "kinetic-hit",  "data": { "radius": 0.6, "damage": 20, "target_kind": "enemy", "despawn_on_hit": true, "stop_on_collider": true } }
+        { "name": "kinetic-hit",  "data": { "radius": 0.6, "damage": 20, "target_kinds": ["enemy", "barrel", "crate"], "despawn_on_hit": true, "stop_on_collider": true } }
       ] },
     { "id": "bullet/demo-hero-1", "kind": "bullet", "name": "demo_hero_north",
       "facets": [
         { "name": "position",     "data": { "x":  0, "y": 1.0, "z": -20, "velocity": { "x": 0, "y": 0, "z": 8 } } },
         { "name": "mesh",         "data": { "tuning_ref": "bullet-hero-tuning" } },
         { "name": "ttl",          "data": { "remaining": 5 } },
-        { "name": "kinetic-hit",  "data": { "radius": 0.6, "damage": 20, "target_kind": "enemy", "despawn_on_hit": true, "stop_on_collider": true } }
+        { "name": "kinetic-hit",  "data": { "radius": 0.6, "damage": 20, "target_kinds": ["enemy", "barrel", "crate"], "despawn_on_hit": true, "stop_on_collider": true } }
       ] },
     { "id": "bullet/demo-enemy-0", "kind": "bullet", "name": "demo_enemy_diagonal",
       "facets": [

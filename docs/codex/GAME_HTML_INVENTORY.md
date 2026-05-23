@@ -173,8 +173,8 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountSkyDayNightTick | day-night-cycle facet | ❌ |
 | mountWorldLayout | world layout — buildings, terrain | ❌ |
 | mountPlatformSystem | platform Thingas (jump pads / elevators) | ❌ |
-| mountBarrelSystem | barrel kind (iter 706) | ⚠ (mesh only — explode missing) |
-| mountCrateSystem | crate kind (iter 717) | ⚠ |
+| mountBarrelSystem | barrel kind + destructible-explode (iter 752) | ✅ (AOE + cascade; knockback/shake pending) |
+| mountCrateSystem | crate kind + destructible-explode (iter 752, tiny blast) | ⚠ (loot-table drop pending) |
 | mountHazardZones | hazard-zone kind (iter 719+736) | ✅ |
 | mountVfxInit / mountDecalSystem / particles | particle Thingas (smoke iter 736) | ⚠ |
 | mountFlashlight | flashlight facet on hero | ❌ |

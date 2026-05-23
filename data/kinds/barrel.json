@@ -12,7 +12,8 @@
       "data": [
         "position",
         "health",
-        "destructible"
+        "destructible",
+        "destructible-explode"
       ]
     },
     {
@@ -34,8 +35,10 @@
         },
         "destructible": {
           "blastRadius": 3.5,
-          "damage": 60
+          "damage": 60,
+          "target_kinds_aoe": ["enemy", "barrel", "crate"]
         },
+        "destructible-explode": {},
         "collider": {
           "half_x": 0.28,
           "half_z": 0.28

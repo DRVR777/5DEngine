@@ -4,25 +4,25 @@
  *  the deliver becomes an `emit` and this handler returns the envelope
  *  instead of applying it directly.
  *
- *  Two checks per tick:
- *    1. Target hit — scan byKind(target_kind) for one within `radius`.
- *       On hit: damage envelope → target.health, optional self-despawn.
+ *  Two checks per tick, in this order:
+ *    1. Target hit — scan byKind for each kind in target_kinds (or the
+ *       legacy single target_kind). First in-radius hit wins. Damage
+ *       envelope → target.health, optional self-despawn, impact decal.
  *    2. Wall hit (when `stop_on_collider` true) — scan byFacet("collider")
  *       for any AABB the bullet penetrates by more than `radius`. On
- *       wall hit: despawn the bullet immediately, no damage envelope.
+ *       wall hit: impact decal + despawn the bullet, no damage envelope.
  *
- *  Wall check runs FIRST so bullets that brush a wall and a target in
- *  the same tick still register the wall stop (no damage leaking
- *  through the wall).
+ *  Target check runs FIRST so a bullet that hits an enemy in front of
+ *  a wall registers the kill, not the wall stop. Things that are BOTH
+ *  targets and have a collider (barrels, crates) get the damage path.
  *
  *  Data: {
  *    radius:              hit distance (m)
  *    damage:              hp to subtract from target
- *    target_kind:         kind to scan ("enemy", "barrel", "crate", ...)
+ *    target_kind?:        single kind (legacy, kept for backwards-compat)
+ *    target_kinds?:       array of kinds (precedence over target_kind)
  *    despawn_on_hit:      bool — despawn this Thing after a target hit
- *    stop_on_collider?:   bool — despawn this Thing if it overlaps any
- *                                Thing's collider AABB. Default false
- *                                (legacy demo bullets don't carry walls).
+ *    stop_on_collider?:   bool — despawn this Thing on AABB overlap
  *    pending_hits?:       [] — last hit envelopes recorded (for inspection)
  *  } */
 export default {
@@ -32,43 +32,45 @@ export default {
     const pos = registry.facetData(thing.id, "position");
     if (!pos) return;
 
-    if (data.stop_on_collider && hitsWall(thing, pos, data.radius, registry)) {
+    const r2 = data.radius * data.radius;
+    const kinds = Array.isArray(data.target_kinds) && data.target_kinds.length > 0
+                ? data.target_kinds
+                : (data.target_kind ? [data.target_kind] : []);
+    let hit = null;
+    for (const k of kinds) {
+      for (const target of registry.byKind(k)) {
+        if (target.id === thing.id) continue;
+        const tpos = registry.facetData(target.id, "position");
+        if (!tpos) continue;
+        const du = tpos.x - pos.x;
+        const dv = tpos.z - pos.z;
+        if (du * du + dv * dv < r2) { hit = target; break; }
+      }
+      if (hit) break;
+    }
+
+    if (hit) {
+      const envelope = {
+        to: hit.id,
+        message: { kind: "damage", amount: data.damage, source: thing.id, at: Date.now() / 1000 },
+      };
+      const targetHealth = registry.facetData(hit.id, "health");
+      if (targetHealth && typeof targetHealth.hp === "number") {
+        targetHealth.hp -= envelope.message.amount;
+      }
+      if (!Array.isArray(data.pending_hits)) data.pending_hits = [];
+      data.pending_hits.push(envelope);
       spawnImpactDecal(registry, thing.id, pos.x, pos.y, pos.z);
-      try { registry.despawn(thing.id, "wall-hit"); } catch (_) { /* already gone */ }
+      if (data.despawn_on_hit) {
+        try { registry.despawn(thing.id, "kinetic-hit"); } catch (_) { /* gone */ }
+      }
       return;
     }
 
-    if (data.target_kind == null) return;
-    const r2 = data.radius * data.radius;
-    let hit = null;
-    for (const target of registry.byKind(data.target_kind)) {
-      if (target.id === thing.id) continue;
-      const tpos = registry.facetData(target.id, "position");
-      if (!tpos) continue;
-      const du = tpos.x - pos.x;
-      const dv = tpos.z - pos.z;
-      if (du * du + dv * dv < r2) { hit = target; break; }
+    if (data.stop_on_collider && hitsWall(thing, pos, data.radius, registry)) {
+      spawnImpactDecal(registry, thing.id, pos.x, pos.y, pos.z);
+      try { registry.despawn(thing.id, "wall-hit"); } catch (_) { /* gone */ }
     }
-    if (!hit) return;
-
-    // Build the envelope first — this is the lift-ready shape. When the
-    // actor model lands, `envelope` becomes the emit and is RETURNED;
-    // today we deliver it inline.
-    const envelope = {
-      to: hit.id,
-      message: { kind: "damage", amount: data.damage, source: thing.id, at: Date.now() / 1000 },
-    };
-
-    const targetHealth = registry.facetData(hit.id, "health");
-    if (targetHealth && typeof targetHealth.hp === "number") {
-      targetHealth.hp -= envelope.message.amount;
-    }
-
-    if (!Array.isArray(data.pending_hits)) data.pending_hits = [];
-    data.pending_hits.push(envelope);
-
-    spawnImpactDecal(registry, thing.id, pos.x, pos.y, pos.z);
-    if (data.despawn_on_hit) registry.despawn(thing.id, "kinetic-hit");
   }
 };
 

@@ -20,6 +20,7 @@ import inputState     from "./input_state.js";
 import heroInputMove  from "./hero_input_move.js";
 import heroShoot      from "./hero_shoot.js";
 import enemyDeathCleanup from "./enemy_death_cleanup.js";
+import destructibleExplode from "./destructible_explode.js";
 import dropOnDeath    from "./drop_on_death.js";
 import heroRespawn    from "./hero_respawn.js";
 import hudOverlay     from "./hud_overlay.js";
@@ -50,6 +51,7 @@ export const FACET_HANDLERS = {
   "hero-input-move":     heroInputMove,
   "hero-shoot":          heroShoot,
   "enemy-death-cleanup": enemyDeathCleanup,
+  "destructible-explode": destructibleExplode,
   "drop-on-death":       dropOnDeath,
   "hero-respawn":        heroRespawn,
   "hud-overlay":         hudOverlay,
