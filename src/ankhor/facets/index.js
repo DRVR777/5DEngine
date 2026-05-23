@@ -10,6 +10,7 @@ import pickupRadius    from "./pickup_radius.js";
 import respawnOnCollect from "./respawn_on_collect.js";
 import damageZone      from "./damage_zone.js";
 import statusZone      from "./status_zone.js";
+import heroBroadcaster from "./hero_broadcaster.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -23,6 +24,7 @@ export const FACET_HANDLERS = {
   "respawn-on-collect":  respawnOnCollect,
   "damage-zone":         damageZone,
   "status-zone":         statusZone,
+  "hero-broadcaster":    heroBroadcaster,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
