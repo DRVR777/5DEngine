@@ -1,0 +1,59 @@
+// engine_browser.js — browser-friendly subset of WorldState.
+// Mirrors multi_dim_engine_skeleton/world_state.js API surface used by the demo.
+// Intentionally minimal: setPlayer, players Map, layer transitions stub.
+(function (root) {
+  "use strict";
+
+  class LayerBoundary {
+    constructor(targetLayerId, kind, params) {
+      this.targetLayerId = targetLayerId;
+      this.kind = kind;     // "rect" | "circle"
+      this.params = params; // rect: {u0,v0,u1,v1}; circle: {cu,cv,r}
+    }
+    contains(u, v) {
+      if (this.kind === "rect") {
+        const { u0, v0, u1, v1 } = this.params;
+        return u >= u0 && u <= u1 && v >= v0 && v <= v1;
+      }
+      if (this.kind === "circle") {
+        const { cu, cv, r } = this.params;
+        const du = u - cu, dv = v - cv;
+        return du * du + dv * dv <= r * r;
+      }
+      return false;
+    }
+  }
+
+  class WorldState {
+    constructor(layerId, opts) {
+      opts = opts || {};
+      this.layerId = layerId;
+      this.players = new Map();          // legacy fast-path (iter 1-6)
+      this.entities = new Map();         // iter 7+ — envelope-based
+      this.transitions = []; // {pid, from, to, kind, t}
+      // iter 9: every world has its own physics profile + own coordinate
+      // origin (per conviction.pdf — worlds are graph nodes, not points).
+      this.physicsProfile = opts.physicsProfile || { name: "earth", gravity: -25, timeScale: 1, walkSpeed: 5, sprintSpeed: 9, jumpVelocity: 8 };
+      this.origin = opts.origin || { x: 0, y: 0, z: 0, u: 0, v: 0 };
+      this.worldId = opts.worldId || `world_${Math.random().toString(36).slice(2, 8)}`;
+    }
+    addEntity(id, entity) { this.entities.set(id, entity); return entity; }
+    getEntity(id) { return this.entities.get(id); }
+    removeEntity(id) { this.entities.delete(id); }
+    setPlayer(id, x, y, z, u, v) {
+      this.players.set(id, { x, y, z, u, v, t: Date.now() });
+    }
+    // Test boundaries for a player. Returns the boundary the player is inside,
+    // or null. Caller decides what to do with a transition.
+    boundaryAt(u, v, boundaries) {
+      for (const b of boundaries) if (b.contains(u, v)) return b;
+      return null;
+    }
+    logTransition(pid, fromLayer, toLayer, kind) {
+      this.transitions.push({ pid, from: fromLayer, to: toLayer, kind, t: Date.now() });
+      this.layerId = toLayer;
+    }
+  }
+
+  root.GTAEngine = { WorldState, LayerBoundary };
+})(typeof self !== "undefined" ? self : this);

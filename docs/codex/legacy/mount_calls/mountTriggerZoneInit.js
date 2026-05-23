@@ -1,0 +1,20 @@
+// Legacy clone of mountTriggerZoneInit call site(s).
+// Source: game.html @ sha256:c7b57cf73a695b8d
+// Cloned by tools/clone_legacy_mounts.mjs — DO NOT EDIT BY HAND.
+// Purpose: preserve the exact legacy invocation so substrate work
+// can diff against it. Per CLAUDE.md the legacy authority is
+// readable until the substrate equivalent proves identical behavior.
+
+// occurrence 1 of 1
+// game.html lines 835..835
+// (context lines 831..839)
+
+// ═══ EXTRACTED → src/systems/particle_terrain_init.js (iter 578)
+mountParticleAndTerrain({ THREE, scene, showToast });
+
+// ═══ EXTRACTED → src/systems/trigger_zone_init.js (iter 576)
+mountTriggerZoneInit({ THREE, scene, showToast });
+
+// ═══ EXTRACTED → src/systems/nav_achievements_init.js (iter 577)
+mountNavAndAchievements({ WD });
+

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="icon" href="data:,">
+<title>5DEngine — Ankhor substrate</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0d12;color:#cfc;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+  #stage{position:fixed;inset:0;display:block;touch-action:none}
+  #boot{position:fixed;top:8px;left:8px;opacity:.72;pointer-events:none;z-index:10}
+  #boot a{color:#9cf;pointer-events:auto;text-decoration:none}
+  #boot a:hover{text-decoration:underline}
+  #philo{position:fixed;bottom:8px;left:8px;opacity:.4;pointer-events:none;z-index:10;font-size:11px}
+</style>
+</head>
+<body>
+<!--
+  5DEngine — Ankhor substrate (iter 701).
+
+  THIS FILE IS THE SUBSTRATE, NOT THE GAME. The legacy engine+game is preserved
+  verbatim at ./game.html. Open game.html to play; open index.html (this file)
+  to see the Ankhor substrate alone.
+
+  What boots here:
+    1. The Registry (experimental/holograph-runtime/src/registry.js) — the Thinga store.
+    2. The facet handlers (experimental/holograph-runtime/src/handlers.js).
+    3. The kind catalog (data/kinds/*.json, listed in data/kinds/MANIFEST.json).
+    4. A minimal Three.js renderer + tick loop. No game content.
+
+  All game logic stays in src/ and loads only via game.html. New content arrives
+  as JSON Thingas in data/kinds/ — adding a kind is a JSON file, not new code.
+
+  Companion docs:
+    docs/codex/specs/{registry-runtime,kind-catalog,facet-catalog,feel-preservation,migration-sequence}.md
+    ../yearTwo777/synthesis/{THE_STACK,ANKHOR_ARCHITECTURE,DEVELOPMENT_PHILOSOPHY}.md
+-->
+<canvas id="stage"></canvas>
+<div id="boot">ankhor • boot</div>
+<div id="philo">subtraction. one type. one tick. <a href="./game.html" style="color:#9cf;pointer-events:auto">→ game.html</a></div>
+<script type="importmap">
+{
+  "imports": {
+    "three":    "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+    "registry": "./experimental/holograph-runtime/src/registry.js",
+    "handlers": "./experimental/holograph-runtime/src/handlers.js",
+    "boot":     "./src/ankhor/boot.js"
+  }
+}
+</script>
+<script type="module">
+import { boot } from "boot";
+
+const ankhor = await boot({
+  canvas:   document.getElementById("stage"),
+  kindsDir: "./data/kinds/",
+  onReady({ stats }) {
+    document.getElementById("boot").innerHTML =
+      `ankhor • ${stats.live} live · ${stats.kindsLoaded} kinds · ${stats.handlers} facets · ` +
+      `<a href="./game.html">→ game.html</a>`;
+  }
+});
+
+window.Ankhor = ankhor;
+</script>
+</body>
+</html>

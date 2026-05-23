@@ -1,0 +1,18 @@
+{
+  "comment": "Asset slot → file path (relative to /assets/). Loader dispatches by extension: .glb (Kenney) / .obj (Quaternius) / .fbx (Mixamo). MTL file with same basename is auto-loaded when an .obj is present. Missing files fall back to placeholder primitives — edit paths to match what you actually have. See ASSET_LIST.md at repo root for sources.",
+  "slots": {
+    "pistol":     { "path": "",  "scale": 1.0, "mountTo": "armR", "offset": [0, -0.7, 0.2] },
+    "car":        { "path": "",  "scale": 1.0 },
+    "hero":       { "path": "",  "scale": 0.01 },
+    "tree":       { "path": "",  "scale": 1.0 },
+    "lamp":       { "path": "",  "scale": 1.0 },
+    "computer":   { "path": "",  "scale": 1.0 },
+    "monitor":    { "path": "",  "scale": 1.0 },
+    "speaker":    { "path": "",  "scale": 1.0 },
+    "radio":      { "path": "",  "scale": 1.0 },
+    "usb":        { "path": "",  "scale": 1.0 },
+    "cd":         { "path": "",  "scale": 1.0 },
+    "coin":       { "path": "",  "scale": 1.0 },
+    "antenna":    { "path": "",  "scale": 1.0 }
+  }
+}

@@ -1,0 +1,2449 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="icon" href="data:,">
+<title>5DEngine — third person on multi_dim_engine</title>
+<link rel="stylesheet" href="./src/ui/styles.css">
+</head>
+<body>
+<div id="loadingScreen">
+  <div id="loadTitle">5DENGINE</div>
+  <div id="loadSub">initializing systems…</div>
+  <div id="loadBarWrap"><div id="loadBar"></div></div>
+  <div id="loadHint">browser · three.js · wave combat</div>
+</div>
+<div id="hud">loading…</div>
+<div id="loadCheckOverlay" style="display:none;position:fixed;bottom:24px;right:24px;z-index:9999;background:rgba(0,0,0,0.82);border:1px solid #444;border-radius:10px;padding:14px 20px;color:#fff;font:14px/1.5 monospace;text-align:center;min-width:200px;">
+  <div style="font-weight:bold;margin-bottom:8px;">Did it load correctly?</div>
+  <button id="loadCheckYes" style="background:#1a8c1a;color:#fff;border:none;border-radius:6px;padding:6px 18px;cursor:pointer;margin-right:8px;font:13px monospace;">Yes ✓</button>
+  <button id="loadCheckNo" style="background:#333;color:#ccc;border:1px solid #555;border-radius:6px;padding:6px 14px;cursor:pointer;font:13px monospace;">No ✗</button>
+</div>
+<div id="pullWorkingBtn" style="display:none;position:fixed;top:8px;right:8px;z-index:9998;background:rgba(0,0,0,0.7);border:1px solid #555;border-radius:6px;padding:5px 10px;color:#8cf;font:12px monospace;cursor:pointer;" title="Pull last verified working build from git">⬇ Pull Working</div>
+<!--
+  ── Legacy global scripts (window.GTAXxx namespace) ─────────────────────────
+  These pre-date the ES module refactor and expose their APIs on window.
+  They load synchronously so the module below can reference them immediately.
+  Migration plan: convert one-by-one to ES modules, import via engine_modules.js.
+
+  load_guard.js       — throws if critical scripts fail to load (CDN / order errors)
+  local_db_bridge.js  — IndexedDB wrapper for save slots (window.LocalDB)
+  engine.js           — WorldState, LayerBoundary, Engine namespace root (window.GTAEngine)
+  dev_console.js      — in-game dev console overlay (window.DevConsole)
+  event_bus.js        — cross-system pub/sub (window.EventBus)
+  day_night.js        — 24h day/night cycle state (window.DayNight)
+  particle_system.js  — high-level particle emitter API (window.ParticleSystem)
+  trigger_zones.js    — enter/exit zone events for quests/traps (window.TriggerZones)
+  sound_zones.js      — positional ambient audio regions (window.SoundZones)
+  cutscene.js         — scripted camera + event sequences (window.Cutscene)
+  behavior_tree.js    — enemy BT nodes: patrol/chase/attack (window.BehaviorTree)
+  terrain.js          — height-map terrain + collision geometry (window.Terrain)
+  a_star.js           — pathfinding grid for AI navigation (window.AStar)
+  achievements.js     — unlock tracking + notification (window.Achievements)
+  status_effects.js   — burn/poison/blind/stagger appliers (window.StatusEffects)
+  wave_manager.js     — enemy wave spawning + phase FSM (window.WaveManager)
+  crafting.js         — recipe + bench system (window.Crafting)
+  game_config.js      — tunable constants: damage, speeds, economy (window.GameConfig)
+  world_data.js       — map layout JSON: buildings, NPCs, vehicles (window.WorldData)
+  engine_browser.js   — browser-specific engine hooks (window.GTABridge shim)
+  engine_bridge.js    — physics↔render coordinate transform (window.GTABridge)
+  physics.js          — AABB collision + gravity (window.GTAPhysics)
+  entity.js           — base entity factory + facet system (window.GTAEntity)
+  registry.js         — subsystem registry (window.GTARegistry)
+  inventory.js        — slot-based inventory CRUD (window.GTAInventory)
+  guns.js             — weapon definitions + fire-rate logic (window.GTAGuns)
+  health.js           — HP + armor + damage application (window.GTAHealth)
+  devices.js          — in-world interactable device objects (window.Devices)
+  wires.js            — wire/port connectivity graph (window.Wires)
+  camera_spine.js     — 4-zone camera mode FSM: INSIDE/FP/TP/BIRD (window.CameraSpine)
+  scripting.js        — Lua-like builder scripting sandbox (window.BuilderScripting)
+  screen_mesh.js      — in-world canvas-textured screen surfaces (window.ScreenMesh)
+  gltf_loader.js      — GLTF/OBJ/FBX async loader with cache (window.GLTFLoader)
+  audio.js            — Web Audio context + SFX scheduler (window.GTAAudio)
+  audio_webaudio.js   — extended sfx helpers: tones, blips (window.Sfx extended)
+  builder.js          — world editor: pick/drag/snap/undo (window.WorldBuilder)
+-->
+<script src="./src/core/load_guard.js"></script>
+<script src="./src/bridges/local_db_bridge.js"></script>
+<script src="./src/core/engine.js"></script>
+<script src="./src/core/dev_console.js"></script>
+<script src="./src/core/event_bus.js"></script>
+<script src="./src/world/day_night.js"></script>
+<script src="./src/render/particle_system.js"></script>
+<script src="./src/systems/trigger_zones.js"></script>
+<script src="./src/audio/sound_zones.js"></script>
+<script src="./src/systems/cutscene.js"></script>
+<script src="./src/entities/behavior_tree.js"></script>
+<script src="./src/world/terrain.js"></script>
+<script src="./src/systems/a_star.js"></script>
+<script src="./src/progression/achievements.js"></script>
+<script src="./src/systems/status_effects.js"></script>
+<script src="./src/systems/wave_manager.js"></script>
+<script src="./src/activities/crafting.js"></script>
+<script src="./src/config/game_config.js"></script>
+<script src="./src/world/world_data.js"></script>
+<script src="./src/bridges/engine_browser.js"></script>
+<script src="./src/bridges/engine_bridge.js"></script>
+<script src="./src/physics/physics.js"></script>
+<script src="./src/entities/entity.js"></script>
+<script src="./src/systems/registry.js"></script>
+<script src="./src/systems/inventory.js"></script>
+<script src="./src/combat/guns.js"></script>
+<script src="./src/combat/health.js"></script>
+<script src="./src/devices/devices.js"></script>
+<script src="./src/devices/wires.js"></script>
+<script src="./src/render/camera_spine.js"></script>
+<script src="./src/builder/scripting.js"></script>
+<script src="./src/render/screen_mesh.js"></script>
+<script src="./src/render/gltf_loader.js"></script>
+<script src="./src/audio/audio.js"></script>
+<script src="./src/audio/audio_webaudio.js"></script>
+<script src="./src/builder/builder.js"></script>
+<!-- socket.io: try local game_server.js first, fall back to CDN, silent fail -->
+<script>
+(function(){
+  var s = document.createElement("script");
+  s.src = "/socket.io/socket.io.js";   // served by game_server.js
+  s.onerror = function() {
+    var s2 = document.createElement("script");
+    s2.src = "https://cdn.socket.io/4.7.5/socket.io.min.js";
+    s2.onerror = function() {};   // silent fail when offline
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+})();
+</script>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+/*
+  ════════════════════════════════════════════════════════════════════════════
+  5DEngine — main module entry point
+  ════════════════════════════════════════════════════════════════════════════
+
+  ARCHITECTURE OVERVIEW
+  ─────────────────────
+  This file is the game's single entry point. All state lives here as `let`
+  variables; systems receive it through closure-based dependency injection:
+
+    mountXxx({ get: { foo: () => foo }, set: { foo: v => { foo = v; } }, actions })
+
+  "get/set" pairs expose individual state fields without passing mutable refs.
+  "actions" provides callbacks to engine functions the module needs to call.
+
+  All extracted modules live in src/ and are re-exported from engine_modules.js.
+  index.html imports only from that one barrel file.
+
+  TICK FUNCTION ORDER (tick(), called via requestAnimationFrame)
+  ──────────────────────────────────────────────────────────────
+  1. Time: dt capped at 50ms; bullet-time scalar applied; Engine.time.tick
+  2. HUD pre-tick: FPS counter, ammo/reload display, auto-fire
+  3. Input: scope FOV, crosshair, sniper sway
+  4. Camera: snap-zoom, computer entry dolly
+  5. Computer-open early-exit: render + rAF, no gameplay
+  6. Movement: freecam, hero WASD, vehicle physics, jump/gravity
+  7. Footsteps, stamina, speed boost, motion springs
+  8. Bullet physics: travel, enemy hit detection, kill processing
+  9. Enemy AI loop: knockback, BT, vision, ranged attacks, movement
+  10. NPC movement, enemy separation, enemy regen
+  11. Pickups, hazards, grenade physics
+  12. Optional systems: TriggerZones, SoundZones, Cutscene, Achievements,
+      DayNight, StatusEffects, WaveManager
+  13. Render: camera position, scene render, post-processing
+  14. HUD post-tick: health bars, wave HUD, kill feed, overlay tints
+  15. requestAnimationFrame(tick) — schedule next frame
+
+  STATE VARIABLE CONVENTIONS
+  ──────────────────────────
+  _xxx     — private to this module (not exposed on window)
+  _xxxTick — an extracted tick system (mountXxxTick return value)
+  _dom.xxx — cached DOM element references (see mountHudElements)
+  window.Engine.xxx — shared cross-module state (see engine.js)
+  window.GTAXxx     — legacy global from pre-module scripts
+*/
+import * as THREE from "three";
+import {
+  // UI
+  mountHudTemplate, mountHudElements, mountWeaponSelector, mountComputerUI,
+  Notifications, Minimap,
+  // Entities
+  createHeroAnimSystem,
+  // Systems
+  mountConfigEditor, mountSceneHierarchy, mountDuelMode, mountDifficultySelect,
+  mountNpcDialog, DEFAULT_NPC_DIALOGS,
+  mountQuestPanel, mountStarterQuests, mountFirstLaunch, mountShopPanel, mountSettingsPanel,
+  buildComputerApps, addDynamicIcons,
+  mountMouseInput, mountCanvasPrimaryAction, mountKeydownHandler, mountKeyupHandler,
+  mountGadgetSystem, mountSpawnSystem, mountPerkSystem,
+  mountHeroLifecycle, mountHeroInventory, mountEntityHooks, mountWeaponAmmo, mountDamageFeedback, mountHeartbeat, mountBurnTick, mountComboAnnouncer, mountFootstepSound, mountSniperSway, mountCamPitchSprings, mountMotionSprings, mountStaminaTick, mountSpeedBoostTick, mountFpsTick, mountCrosshairTick, mountCombatHudTick, mountStatusTintTick, mountClockHudTick, mountVignetteTick, mountStatBarsTick, mountBossBarTick, mountComboHudTick, mountVehicleDashTick, mountWeaponHudTick, mountCombatAmbientTick, mountSkyDayNightTick, mountFpGunPosTick, mountWalkAnimTick, mountHeroFaceTick, mountCamShakeTick, mountHeroKnockbackTick, mountDodgeTick, mountJumpGravityTick, mountHeroMoveTick, mountFreecamTick, mountScopeFovTick, mountNpcMoveTick, mountEnemyRegenTick, mountEnemySepTick, mountPlatformSystem, mountVehicleRenderTick, mountHeroRegenTick, mountLayerTransitionTick, mountAmmoPickupTick, mountHealthPickupTick, mountArmorShardTick, mountSpeedOrbTick, mountPoisonPuddleTick, mountSmokeZoneTick, mountGrenadeCrateTick, mountArmorVestTick, mountCoinDropTick, mountWeaponPickupTick, mountFirePatchTick, mountLegacyPickupTick, mountEnemyBulletTick, mountBulletWorldHitTick, mountBulletEnemyKillTick, mountBulletEnemyHitFeedbackTick, mountBulletPhysicsTick, mountScreenInteraction, mountSaveWiring, mountWaveEvents, mountEnemyFootstepTick, mountGrenadeWarnTick, mountGrenadePhysicsTick, mountGrenadeArcTick, mountWaveHudTick, mountScreenMeshTick, mountDeviceBusTick, mountProximityTick, mountCameraPosTick, mountCameraZoneTick, mountAssetBootstrap, hasLOS, mountDebugHudTick, mountEnemyMeshTick, mountVehiclePhysicsTick, mountGameReset, mountVictoryPlayAgain, mountDevConsoleGame, mountMediaPickups,
+  mountAmmoReloadTick, mountCrouchSpeedTick, mountCamDistTick, mountOptionalSystemsTick,
+  mountTriggerZoneInit, mountNavAndAchievements, mountParticleAndTerrain,
+  mountKillTracking, COIN_BY_TYPE as _COIN_BY_TYPE,
+  mountLevelSystem, mountBarrelSystem, mountCrateSystem, mountHazardZones,
+  mountDropSpawner, WEAPON_DROP_MAP as _WEAPON_DROP_MAP, GameProgress, mountEnemyRobotEmpTick, mountEnemyHeavyGrenadeTick, mountEnemyBossRockTick, mountEnemyPoisonerSpitTick, mountEnemyIncendiaryTick, mountEnemyBossSlamTick, mountEnemyPoisonerRangedSpitTick, mountEnemyFastChargeTick, mountEnemySniperTick, mountEnemyStrafeMeleeTick, mountEnemyRobotPlasmaTick, mountEnemyAiScaffoldTick,
+  // Combat
+  mountShootSystem, createWeaponVisuals,
+  // Render
+  mountRenderer,
+  mountDecalSystem, mountEnemyMeshFactory, mountVehicleMeshFactory,
+  mountVehicleMeshes, mountFlashlight, mountBulletGeo, mountCamVectors, mountScene,
+  mountPostProcessing, mountLoaders, mountVfxInit,
+  mountEnvironment, mountHeroMesh, mountLighting, mountNpcMeshFactory,
+  mountPickupMeshes, mountComputerMesh, mountSkybox,
+  mountStaticSupply, mountSpeedOrbSpawner,
+  Vfx, warnRingGeo as _vfxWarnGeo, warnRingMat as _vfxWarnMat,
+  // Social
+  createLanSession, mountMpBadge, mountAppMultiplayerWiring, mountRuntimeErrorReporter, mountLoadCheckOverlay,
+  // Core
+  Core, mountEngineRegistry, mountEcsBootstrap, mountBuilderUiRefresh, mountWorldBuilderControls, mountWorldBuilderHotbar, mountWorldScreens, mountDeviceGraphWiring,
+  // Config
+  ENEMY_TYPES as _ENEMY_TYPES, WEAPON_DMG_MULTIPLIERS as _DMG_MUL,
+  makeHeroStats, HERO_MAX_ARMOR, ARMOR_ABSORB, DODGE_DURATION, DODGE_SPEED, DODGE_COOLDOWN,
+  STAMINA_MAX, STAMINA_DRAIN, STAMINA_REGEN, STAMINA_LOCKOUT, HERO_HITBOX,
+  makeMovementStats, CAM_DIST_MIN, CAM_DIST_MAX,
+  LEVEL_THRESHOLDS as _LEVEL_THRESHOLDS, STREAK_WINDOW as _STREAK_WINDOW, COMBO_DECAY as _COMBO_DECAY,
+  FIXED_DT,
+  // World
+  Rain, mountWorldLayout,
+  // Audio
+  Sfx,
+  // Progression
+  HighScore,
+  // ECS systems
+  combatSystem, createWaveSystem, pickupSystem, spawnPickup,
+  createShopSystem, createPerkSystem, createAgentDispatch, createStatusEffectSystem,
+  regenSystem, createWeaponSystem, createScoreSystem, createAIMovementSystem,
+  createInventorySystem, invAdd, invRemove, invCount, invHas,
+  createStaminaSystem, createGrenadeSystem, createBulletSystem, spawnBullet,
+  createLootDropSystem, DROP_TABLE,
+  createKnockbackSystem, createPlayerMovementSystem, createEnrageSystem,
+  createBossSlamSystem, createFastChargeSystem, createRobotEmpSystem,
+  createHeavyThrowSystem, createBossRockSystem, createPoisonerSpitSystem,
+  createIncendiaryBombSystem, createSniperShootSystem, createMeleeAttackSystem,
+  createMoralePanicSystem, createStaggerMovementSystem, createGunshotAlertSystem,
+  createRobotShootSystem, createPoisonerDartSystem, createEnemyBulletSystem,
+  createEnemyRegenSystem, createEnemySeparationSystem, createComboSystem,
+  createArenaClampSystem, createEnemyBlindSystem, createSmokeZoneSystem,
+  createMineSystem, createTurretSystem, createFirePatchSystem, createPoisonPuddleSystem,
+  createCoinDropSystem, createSpeedOrbSystem, createArmorShardSystem,
+  createHealthPickupSystem, createAmmoPickupSystem, createWeaponPickupSystem,
+  createGrenadeCrateSystem, createArmorVestSystem,
+  computeBulletDamage,
+  computeHurtSfx,
+  mountTestBridge,
+} from "./src/engine_modules.js";
+const showToast = Notifications.showToast;
+const _addKillFeedEntry = Notifications.addKillFeedEntry;
+// Multi-format loaders — pulled lazily so demo still runs if the CDN is down.
+// ═══ EXTRACTED → src/render/loaders.js (iter 572)
+const { Loaders } = mountLoaders();
+
+// Post-processing — ═══ EXTRACTED → src/render/post_processing.js (iter 571)
+// mountPostProcessing call is placed after mountRenderer (line ~824) so renderer+camera are live.
+let composer = null;
+
+// inject all HUD/panel HTML before any getElementById runs
+mountHudTemplate();
+
+// ════════════════════════════════════════════════════════════════════════════
+// ENGINE BOOTSTRAP — null guards, aliases, world setup
+// ════════════════════════════════════════════════════════════════════════════
+// Null guards: if any engine script failed to load (CDN down, script order wrong,
+// blocked by CORS) we throw with a clear message rather than a cryptic TypeError
+// somewhere deep in game logic. Each guard names what's missing and why it matters.
+if (!window.GTAEngine)   throw new Error("[5DEngine] GTAEngine not loaded — ensure engine scripts run before this module. Check DevTools Network tab for failed script loads.");
+if (!window.GTABridge)   throw new Error("[5DEngine] GTABridge not loaded — physics↔render bridge missing.");
+if (!window.GTAPhysics)  throw new Error("[5DEngine] GTAPhysics not loaded — collision system missing.");
+if (!window.GTARegistry) throw new Error("[5DEngine] GTARegistry not loaded — subsystem registry missing.");
+if (!window.GTAInventory)throw new Error("[5DEngine] GTAInventory not loaded — inventory system missing.");
+const { WorldState, LayerBoundary } = window.GTAEngine;
+const Bridge = window.GTABridge;
+const Phys   = window.GTAPhysics;
+const Entity = window.GTAEntity;  // optional — may not be loaded
+const Reg    = window.GTARegistry.createRegistry();
+const Inv    = window.GTAInventory;
+const Guns   = window.GTAGuns;    // optional — may not be loaded
+const Health = window.GTAHealth;  // optional — may not be loaded
+// ═══ HERO_HITBOX extracted → src/config/hero_stats.js (iter 564) — imported at top
+const CFG = window.GameConfig || {};
+
+// ═══ EXTRACTED → src/systems/hero_inventory.js (iter 563)
+const { heroInv, heroHealth } = mountHeroInventory({ Inv, Health, CFG });
+
+const world = new WorldState(1);
+world.setPlayer("hero", 0, 0, 0, 0, 0);
+
+// World data — loaded from world_data.js (edit that file to change the layout)
+const WD = window.WorldData || {};
+
+// ═══ EXTRACTED → src/world/world_layout.js (iter 556)
+const { buildings, buildingBlockers, buildArenaBoundary: _buildArenaBoundary } =
+  mountWorldLayout({ THREE, LayerBoundary, wdBuildings: WD.buildings || [] });
+
+// NPCs — from WorldData schema
+const NPC_DEFS = WD.npcs || [];
+for (const n of NPC_DEFS) world.setPlayer(n.id, 0, 0, 0, n.u, n.v);
+
+// Vehicles — all vehicle defs from WorldData; each gets a world slot and state
+const VEHICLE_DEFS = WD.vehicles || [
+  { id: "sedan", type: "sedan", color: 0x4488ff, u: 4, v: 6,
+    maxSpeed: 24, acceleration: 8, braking: 18, handling: 1.0, mass: 1400,
+    hitbox: { w: 2, d: 4 }, animations: [] },
+  { id: "drone1", type: "drone", color: 0x00bbff, u: -8, v: -8,
+    maxSpeed: 15, hitbox: { w: 1.4, d: 1.4 } },
+  { id: "mech1", type: "mech", color: 0x556677, u: -12, v: 4,
+    maxSpeed: 6, acceleration: 4, braking: 10, handling: 0.6,
+    hitbox: { w: 1.6, d: 1.6 } },
+];
+const vehicleStates = new Map();
+for (const v of VEHICLE_DEFS) {
+  world.setPlayer(v.id, 0, 0, 0, v.u, v.v);
+  vehicleStates.set(v.id, { speed: 0, heading: 0, gear: 0, gearName: "N" });
+}
+let inCar = false;
+let activeVehicleId = null;
+// Cached active vehicle def — set on enter, cleared on exit (avoids 3x O(V) scan per frame)
+let _activeVehicleDef = null;
+// carState always mirrors the active vehicle's state (backwards-compat reads)
+const carState = { speed: 0, heading: 0, gear: 0, gearName: "N" };
+
+// ════════════════════════════════════════════════════════════════════════════
+// ENEMY STATE — enemy list, boss tracking, kill/streak counters
+// Each enemy object: { id, type, hp, maxHp, dead, heading, u, v, ... }
+// Enemies are mutated in place during AI + bullet physics loops.
+// ════════════════════════════════════════════════════════════════════════════
+// ═══ EXTRACTED → src/config/enemy_types.js (iter 557)
+// _ENEMY_TYPES and _DMG_MUL imported at top from engine_modules.js
+
+const _enemyDefaultDefs = [Object.assign({ id: "enemy1", u: 14, v: -14, heading: 0 }, _ENEMY_TYPES[0])];
+const enemies = (WD.enemies || _enemyDefaultDefs).map(def =>
+  Object.assign({ lastAttackT: -Infinity, dead: false, respawnT: -Infinity }, def)
+);
+window._enemies = enemies;   // exposed for WaveManager alive-count tracking
+// Keep backwards-compat `enemy` alias pointing to first enemy
+const enemy = enemies[0];
+const ENEMY_RESPAWN_DELAY = CFG.enemyRespawnDelay || 8;
+// Cached boss ref — set on spawn, check .dead for liveness (avoids O(E) scan every frame)
+let _liveBoss = null;
+// Shared alert broadcast timestamp — set when any enemy spots hero; avoids O(E²) inner loop
+let _alertBroadcastT = -99;
+let enemyKills = 0;
+let _shotsFired = 0;
+let _shotsHit = 0;
+let _damageDealt = 0;
+// Wave bonus challenge
+let _waveChallenge = null;  // { type, label, bonus, limit? }
+let _waveChallengeStart = 0;
+let _waveChallengeHits = 0; // headshots this wave
+let _waveChallengeNoDmg = true; // hero has not taken damage this wave
+// In-session kill leveling
+let _heroLevel = 0;           // 0–5
+let _heroLvlDmgMul = 1.0;     // multiplied into bullet damage
+let _heroLvlSpeedBonus = 0;   // added to sprint speed
+let _heroApexMode = false;    // L5: each kill restores 5 stamina
+// ═══ _LEVEL_THRESHOLDS extracted → src/config/combat_stats.js (iter 566) — imported at top
+// Elite enemy system
+let _eliteSpawnedThisWave = false; // prevents multiple elites per wave
+let _lastHeroShotT = -999;
+let _streakCount = 0;
+let _lastKillT = 0;
+// ═══ _STREAK_WINDOW, _COMBO_DECAY extracted → src/config/combat_stats.js (iter 566)
+let _comboCount = 0;
+let _comboLastT = 0;
+let _comboAnnouncedMul = 0;
+// ═══ EXTRACTED → src/systems/combo_announcer.js (iter 592)
+const _comboAnnouncer = mountComboAnnouncer({
+  DECAY: _COMBO_DECAY,
+  get: { comboCount: () => _comboCount, comboLastT: () => _comboLastT, comboAnnouncedMul: () => _comboAnnouncedMul },
+  set: { comboCount: v => { _comboCount = v; }, comboAnnouncedMul: v => { _comboAnnouncedMul = v; } },
+  actions: { showToast, playSfx: (...a) => playSfx(...a) },
+});
+// ════════════════════════════════════════════════════════════════════════════
+// PERK SYSTEM STATE — multipliers applied on top of base stats each wave.
+// All are reset on new game via _perkSys.clearTimerAndReset().
+// ════════════════════════════════════════════════════════════════════════════
+// Between-wave perk system
+let _perkDmgMul    = 1.0;   // stacks multiplicatively with kill-level damage
+let _perkReloadMul = 1.0;   // < 1 = faster reload
+let _perkMaxHpBonus = 0;    // added to effective max HP
+let _perkLifesteal  = false; // kills restore 3 HP
+let _perkRegenBonus = 0;    // hp/s bonus stacked onto regen rate
+let _perkSpeedBonus = 0;    // m/s added to sprint speed
+// EXTRACT-PLAN iter 520: perk_system.js → src/systems/perk_system.js
+// Export mountPerkSystem({ showToast, playSfx, addKillFeedEntry, heroInv, getWeapon,
+//   get: { grenadeCount, smokeGrenadeCount, heroHp, heroArmor, stamina, perkDmgMul,
+//          perkReloadMul, perkMaxHpBonus, perkLifesteal, perkRegenBonus, perkSpeedBonus },
+//   set: { ... }, Inv })
+// Returns: { showPerkPicker, refreshPerkHud, applyPerk, PERKS, activePerkLabels,
+//            perkDmgMul getter, perkReloadMul getter, perkLifesteal getter, etc. }
+// Deps defined here: _PERKS, _showPerkPicker, _refreshPerkHud, _applyPerk,
+//   _perkDmgMul, _perkReloadMul, _perkMaxHpBonus, _perkLifesteal, _perkRegenBonus,
+//   _perkSpeedBonus, _perkTimerInt, _activePerkLabels
+// Perk system — mounted here; showToast/playSfx/addKillFeedEntry are const at lines 142/143,
+// all others are closures over index.html state. perkTimerInt exposed via clearTimerAndReset.
+function releasePointerForModal() {
+  if (typeof document !== "undefined" && document.pointerLockElement && document.exitPointerLock) {
+    document.exitPointerLock();
+  }
+}
+function requestGameplayPointer() {
+  const _isBlocked = () =>
+    document.getElementById("perkPicker")?.style?.display !== "none" ||
+    document.getElementById("difficultyScreen")?.style?.display === "flex" ||
+    computerOpen || computerEntering || buildMode || _heroDead;
+  if (_isBlocked() || typeof renderer === "undefined") return;
+  const canvas = renderer.domElement || document.querySelector("canvas");
+  if (!canvas || document.pointerLockElement) return;
+  // Defer by 120ms — browsers reject requestPointerLock if called immediately
+  // after exitPointerLock (Promise rejection: "lock lost"). Re-check blockers
+  // at call time so a perk picker or difficulty screen that appeared in that
+  // window doesn't get locked over.
+  setTimeout(() => {
+    if (document.pointerLockElement || _isBlocked()) return;
+    try {
+      const _p = canvas.requestPointerLock();
+      if (_p && typeof _p.catch === "function") _p.catch(() => {});
+    } catch (_e) {}
+  }, 120);
+}
+const _perkSys        = mountPerkSystem({
+  Inv,
+  get: {
+    perkDmgMul:       () => _perkDmgMul,
+    perkSpeedBonus:   () => _perkSpeedBonus,
+    perkRegenBonus:   () => _perkRegenBonus,
+    perkReloadMul:    () => _perkReloadMul,
+    perkMaxHpBonus:   () => _perkMaxHpBonus,
+    perkLifesteal:    () => _perkLifesteal,
+    grenadeCount:     () => grenadeCount,
+    smokeGrenadeCount:() => smokeGrenadeCount,
+    heroHp:           () => heroHp,
+    heroArmor:        () => heroArmor,
+    HERO_MAX_HP:      () => HERO_MAX_HP,
+    HERO_MAX_ARMOR:   () => HERO_MAX_ARMOR,
+    heroInv:          () => heroInv,
+    weapon:           () => getWeapon(),
+  },
+  set: {
+    perkDmgMul:       (v) => { _perkDmgMul = v; },
+    perkSpeedBonus:   (v) => { _perkSpeedBonus = v; },
+    perkRegenBonus:   (v) => { _perkRegenBonus = v; },
+    perkReloadMul:    (v) => { _perkReloadMul = v; },
+    perkMaxHpBonus:   (v) => { _perkMaxHpBonus = v; },
+    perkLifesteal:    (v) => { _perkLifesteal = v; },
+    grenadeCount:     (v) => { grenadeCount = v; },
+    smokeGrenadeCount:(v) => { smokeGrenadeCount = v; },
+    heroHp:           (v) => { heroHp = v; },
+    heroArmor:        (v) => { heroArmor = v; },
+  },
+  actions: {
+    showToast,
+    addKillFeedEntry: _addKillFeedEntry,
+    playSfx: (t, v) => playSfx(t, v), // lazy — playSfx const is at line 2801
+    releasePointer: releasePointerForModal,
+    requestGameplayPointer,
+  },
+});
+const _showPerkPicker = _perkSys.showPerkPicker;
+const _refreshPerkHud = _perkSys.refreshPerkHud;
+const _applyPerk      = _perkSys.applyPerk;
+const _activePerkLabels = _perkSys.activePerkLabels;
+// Kill tracking + COIN_BY_TYPE imported from src/systems/kill_tracking.js
+const _killTracking = mountKillTracking({
+  enemies, world,
+  get: {
+    perkLifesteal:  () => _perkLifesteal,
+    heroDead:       () => _heroDead,
+    heroHp:         () => heroHp,
+    HERO_MAX_HP:    () => HERO_MAX_HP,
+    perkMaxHpBonus: () => _perkMaxHpBonus,
+  },
+  set: {
+    heroHp: (v) => { heroHp = v; },
+  },
+  actions: {
+    spawnDamageNumber: (u, y, v, text, color) => _spawnDamageNumber(u, y, v, text, color),
+    addKillFeedEntry:  (text, color) => _addKillFeedEntry(text, color),
+    showToast:         (msg, type, dur) => showToast(msg, type, dur),
+    playSfx:           (t, v) => playSfx(t, v),
+  },
+});
+const _trackKillAndPanic = _killTracking.trackKillAndPanic;
+let hitMarkerUntil = 0;
+let _killMarkerUntil = 0, _killMarkerHs = false;
+let _dmgDirAngle = 0;  // world-space angle toward attacker (radians)
+let _dmgDirUntil = 0;  // performance.now() deadline
+let _lastWaveNum  = -1; // tracks last shown wave to detect transitions
+let _waveBeepLast = 0;  // last countdown integer we played a beep for
+let _waveBannerUntil = 0;
+for (const e of enemies) world.setPlayer(e.id, 0, 0, 0, e.u, e.v);
+
+// In-game computer entity (iter 28). Walk near + press E to "use" (we
+// just toast a banner — full sit/screen takeover is iter 28 logic ready
+// to wire in iter 38+).
+const computerEntity = Object.assign(
+  { y: 0, color: 0x666666 },
+  (WD.entities && WD.entities.computer) || { id: "pc1", u: -4, v: 4 }
+);
+
+// EXTRACT-PLAN iter 522: spawn_system.js → src/systems/spawn_system.js
+// Export mountSpawnSystem({ THREE, scene, buildingBlockers })
+// Returns: { addSpawnPoint, getSpawnPoint, spawnClearPos, spawnPoints, spawnMeshes }
+// Replaces: _addSpawnPoint, _getSpawnPoint, _spawnClearPos, _spawnPoints, _spawnMeshes
+// ---- Spawn points (N key in build mode places a respawn marker) ----
+const _spawnSys     = mountSpawnSystem({ THREE, getScene: () => scene, buildingBlockers });
+const _spawnPoints  = _spawnSys.spawnPoints;
+const _addSpawnPoint  = _spawnSys.addSpawnPoint;
+const _getSpawnPoint  = _spawnSys.getSpawnPoint;
+const _spawnClearPos  = _spawnSys.spawnClearPos;
+const _spawnMeshes    = _spawnSys.spawnMeshes;
+let _heroDead = false;
+// Hero death/respawn lifecycle — mounted here; deathCountdownT is internal to module
+const _lifecycle = mountHeroLifecycle({
+  get: {
+    heroDead:         () => _heroDead,
+    shotsFired:       () => _shotsFired,
+    shotsHit:         () => _shotsHit,
+    damageDealt:      () => _damageDealt,
+    enemyKills:       () => enemyKills,
+    score:            () => score,
+    perkMaxHpBonus:   () => _perkMaxHpBonus,
+    HERO_MAX_HP:      () => HERO_MAX_HP,
+    STAMINA_MAX:      () => STAMINA_MAX,
+  },
+  set: {
+    heroDead:         (v) => { _heroDead = v; },
+    grenadePressT:    (v) => { _grenadePressT = v; },
+    heroKbT:          (v) => { _heroKbT = v; },
+    heroHp:           (v) => { heroHp = v; },
+    heroArmor:        (v) => { heroArmor = v; },
+    heroLastDamageT:  (v) => { heroLastDamageT = v; },
+    velocityY:        (v) => { velocityY = v; },
+    stamina:          (v) => { _stamina = v; },
+    shotsFired:       (v) => { _shotsFired = v; },
+    shotsHit:         (v) => { _shotsHit = v; },
+    damageDealt:      (v) => { _damageDealt = v; },
+    comboCount:       (v) => { _comboCount = v; },
+    comboAnnouncedMul:(v) => { _comboAnnouncedMul = v; },
+    heroFireT:        (v) => { _heroFireT = v; },
+    heroEmpT:         (v) => { _heroEmpT = v; },
+    heroBlindT:       (v) => { _heroBlindT = v; },
+    heroKbU:          (v) => { _heroKbU = v; },
+    heroKbV:          (v) => { _heroKbV = v; },
+    slideT:           (v) => { _slideT = v; },
+    speedBoostT:      (v) => { _speedBoostT = v; },
+    bulletTimeLeft:   (v) => { _bulletTimeLeft = v; },
+    killMarkerUntil:  (v) => { _killMarkerUntil = v; },
+  },
+  actions: {
+    waveNum:            () => typeof WaveManager !== "undefined" ? WaveManager.getState().wave : 0,
+    checkHighScore:     (k, w, a) => HighScore.check(k, w, a),
+    highScoreGet:       () => HighScore.get(),
+    getSpawnPoint:      () => _getSpawnPoint(),
+    worldSetPlayer:     (u, v) => world.setPlayer("hero", 0, 0, 0, u, v),
+    playSfx:            (t, v) => playSfx(t, v),
+    heroRespawnedEvent: (sp) => { if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_RESPAWNED, { spawnPoint: sp }); },
+    requestPointerLock: () => { const c = typeof renderer !== "undefined" ? renderer.domElement : null; if (c) c.requestPointerLock(); },
+  },
+});
+const _heroShowDeathScreen = _lifecycle.heroShowDeathScreen;
+const _heroRespawn         = _lifecycle.heroRespawn;
+const _tickDeath           = _lifecycle.tickDeath;
+
+// ═══ EXTRACTED → src/systems/victory_overlay.js (iter 580)
+mountVictoryPlayAgain({ resetGameState: () => resetGameState() });
+
+// resetGameState is mounted below (after all array deps are declared, ~line 1988)
+// Forward-declared so victory IIFE closure can capture the binding safely.
+let resetGameState;
+
+// Difficulty multipliers — set by difficulty selection screen, persist across respawns
+let _diffHpMul  = 1.0;
+let _diffDmgMul = 1.0;
+let _diffLabel  = "";  // e.g. "NORMAL", shown as badge in wave HUD
+
+// ═══ EXTRACTED → src/config/hero_stats.js (iter 560)
+const { HERO_MAX_HP, HERO_REGEN_DELAY, HERO_REGEN_RATE } = makeHeroStats(CFG);
+let heroHp = HERO_MAX_HP;
+let heroLastDamageT = -Infinity;
+let heroArmor = 0;
+
+// Engine debug namespace (godMode, noclip checks are guarded by typeof Engine)
+window.Engine = window.Engine || {};
+window.Engine.debug = window.Engine.debug || { godMode: false, noclip: false };
+
+// ---- Dev console (` key) — game command handler ----
+mountDevConsoleGame({
+  toggleGodMode:   () => { window.Engine.debug.godMode  = !window.Engine.debug.godMode; },
+  isGodMode:       () => window.Engine.debug.godMode,
+  toggleNoclip:    () => { window.Engine.debug.noclip   = !window.Engine.debug.noclip; },
+  isNoclip:        () => window.Engine.debug.noclip,
+  heal:            () => { heroHp = HERO_MAX_HP + _perkMaxHpBonus; heroArmor = HERO_MAX_ARMOR; },
+  refillAmmo:      () => { for (const w of (CFG.weapons || [])) { weaponAmmo.set(w.id, w.magCap); } pistolAmmo = getWeapon().magCap; },
+  spawnEnemy:      (type) => { if (typeof window._spawnEnemyAtHero === "function") window._spawnEnemyAtHero(type); },
+  teleport:        (tu, tv) => { const hp = world.players.get("hero"); world.setPlayer("hero", hp.x, hp.y, hp.z, tu, tv); },
+  setWave:         (wn) => { if (typeof WaveManager !== "undefined") { WaveManager.wave = wn - 1; WaveManager.phase = "spawn"; } },
+  resetGameState:  () => resetGameState(),
+});
+
+// ═══ EXTRACTED → src/systems/entity_hooks.js (iter 587)
+mountEntityHooks({
+  ARMOR_ABSORB,
+  get: {
+    heroHp:         () => heroHp,
+    heroArmor:      () => heroArmor,
+    heroDead:       () => _heroDead,
+    HERO_MAX_HP:    () => HERO_MAX_HP,
+    perkMaxHpBonus: () => _perkMaxHpBonus,
+    dodgeT:         () => _dodgeT,
+  },
+  set: {
+    heroHp:             (v) => { heroHp = v; },
+    heroArmor:          (v) => { heroArmor = v; },
+    heroLastDamageT:    (v) => { heroLastDamageT = v; },
+    waveChallengeNoDmg: (v) => { _waveChallengeNoDmg = v; },
+  },
+  actions: {
+    heroShowDeathScreen: () => _heroShowDeathScreen(),
+  },
+});
+// Dev console hooks
+window._teleportHero = function(u, v) {
+  world.setPlayer("hero", 0, 0, 0, u, v);
+};
+window._spawnEnemyAtHero = function(typeName) {
+  const hp = world.players.get("hero");
+  const _ersp = _spawnClearPos(4, 8, 20, hp.u, hp.v);
+  const eu = _ersp.u;
+  const ev = _ersp.v;
+  const template = typeName
+    ? (_ENEMY_TYPES.find(t => t.type === typeName) || _ENEMY_TYPES[0])
+    : _ENEMY_TYPES[Math.floor(Math.random() * _ENEMY_TYPES.length)];
+  const eid = "en_spawned_" + Date.now();
+  const _wsState = typeof WaveManager !== "undefined" ? WaveManager.getState() : { wave: 1, totalWave: 1 };
+  const _wScaleW = _wsState.totalWave || _wsState.wave; // persistent across loops
+  const _wScale = 1 + (_wScaleW - 1) * 0.05; // +5% per wave, never resets on loop
+  const nEn = Object.assign({}, template, {
+    id: eid,
+    hp:     Math.round(template.maxHp * _wScale * _diffHpMul),
+    maxHp:  Math.round(template.maxHp * _wScale * _diffHpMul),
+    damage: Math.round((template.damage || 10) * _wScale * _diffDmgMul),
+    dead: false,
+    u: eu, v: ev, heading: 0, respawnT: 0,
+    _spawnT: performance.now() / 1000,   // spawn-in animation start
+    _waveScale: _wScale,
+  });
+  // Elite spawn: wave divisible by 3 (w3, w6, w9), one per wave, not boss
+  const _isEliteWave = _wScaleW > 1 && _wScaleW % 3 === 0;
+  if (_isEliteWave && !_eliteSpawnedThisWave && typeName !== "boss" && Math.random() < 0.5) {
+    _eliteSpawnedThisWave = true;
+    nEn._elite = true;
+    nEn.hp     = Math.round(nEn.hp * 2);
+    nEn.maxHp  = Math.round(nEn.maxHp * 2);
+    nEn.damage = Math.round(nEn.damage * 1.3);
+    nEn.moveSpeed = (nEn.moveSpeed || 3) * 1.3;
+  }
+  enemies.push(nEn);
+  world.setPlayer(eid, 0, 0, 0, eu, ev);
+  enemyMeshes.set(eid, _makeEnemyMesh(nEn));
+  // Build flat mesh child cache — avoid em.group.traverse() every tick
+  { const _emRef = enemyMeshes.get(eid); nEn._meshChildren = []; if (_emRef && _emRef.group) { _emRef.group.traverse(ch => { if (ch.isMesh && ch.material && !ch._isHpBar) nEn._meshChildren.push(ch); }); _emRef._alertBubble = _emRef.group.getObjectByName("_alertBubble"); _emRef._typeGem     = _emRef.group.getObjectByName("_typeGem"); } }
+  // Tint elite enemy gold
+  if (nEn._elite) {
+    const _em = enemyMeshes.get(eid);
+    if (_em && _em.group) {
+      _em.group.traverse(ch => {
+        if (ch.isMesh && ch.material && !ch._isHpBar) {
+          ch.material = ch.material.clone();
+          ch.material.color.setHex(0xffd700);
+          ch.material.emissive = new THREE.Color(0xffaa00);
+          ch.material.emissiveIntensity = 0.5;
+        }
+      });
+    }
+    showToast(`★ ELITE ${typeName || "enemy"} INCOMING!`, "warning", 2500);
+    _addKillFeedEntry(`★ ELITE ${typeName || "enemy"} SPAWNED`, "#ffd700");
+    playSfx("tone:440:120:sine", 0.4); playSfx("tone:550:100:sine", 0.35);
+  }
+  _spawnParticles(eu, 0.5, ev, nEn._elite ? 25 : 12, nEn._elite ? "yellow" : "red", 5, 0.4);
+  playSfx("tone:300:60:sawtooth", 0.12);
+  if (typeName === "boss") {
+    _liveBoss = nEn;
+    playSfx("tone:60:800:sawtooth", 0.9);
+    playSfx("tone:80:600:sawtooth", 0.7);
+    _applyScreenShake(0.5);
+    showToast("☠ BOSS INCOMING — 1200 HP!", "danger", 5000);
+    _addKillFeedEntry("☠ BOSS HAS ARRIVED", "#ff0000");
+  }
+};
+
+// ═══ EXTRACTED → src/ui/hud_notifications.js ══════════════════════════════════
+// // ---- Kill feed ----
+// function _addKillFeedEntry(text, color) { ... }
+// // ---- Toast notification system ----
+// function showToast(msg, type, duration) { ... }
+// ═══════════════════════════════════════════════════════════════════════════════
+window.showToast = Notifications.showToast;  // keep global API
+
+// ---- NPC Dialog system ----
+const _npcDialog = mountNpcDialog(DEFAULT_NPC_DIALOGS);
+// ---- Quest / Objective system ----
+const _quest = mountQuestPanel({ showToast });
+window.addQuest = (...a) => _quest.addQuest(...a);
+window.completeQuestStep = (...a) => _quest.completeQuestStep(...a);
+
+// ═══ EXTRACTED → src/world/rain.js ═══════════════════════════════════════════
+// // ---- Rain system ----
+// let _rainActive = false; let _rainDrops = []; let _rainCtx = null;
+// const RAIN_COUNT = 180;
+// function _initRain() { ... }
+// function setRain(on) { ... }
+// function _tickRain(dt) { ... }
+// addEventListener("resize", () => { ... });
+// ═══════════════════════════════════════════════════════════════════════════════
+window.setRain = Rain.setRain;  // keep global API for console/external callers
+
+// Computer and NPC prompt state
+let nearComputer = false;
+let computerOpen = false;
+
+// F1 — Game Mode Select
+// "peaceful" | "solo" | "wave_defense"
+// Default is peaceful: no enemies until player picks a combat mode at the computer.
+// Legacy "coop_build" string still referenced in F3 sync code (intentional dead code).
+let gameMode = "peaceful";
+let _firstLaunch = true;   // cleared after the player picks a mode on first open
+let _nearNpc = null;
+
+// Weapon registry — look up active weapon from CFG.weapons by id
+let currentWeaponId = "pistol";
+// ═══ EXTRACTED → src/systems/weapon_ammo.js (iter 588)
+const _wAmmo = mountWeaponAmmo({
+  getWeapons:        () => (typeof CFG !== "undefined" ? CFG.weapons : []),
+  getActiveWeaponId: () => currentWeaponId,
+});
+const getWeapon  = _wAmmo.getWeapon;
+const getAmmo    = _wAmmo.getAmmo;
+const setAmmo    = _wAmmo.setAmmo;
+const weaponAmmo = _wAmmo.weaponAmmo;
+// Weapon selector bar — momentarily shown when switching
+const _weaponSelector = mountWeaponSelector({
+  getCFG: () => (typeof CFG !== "undefined" ? CFG : {}),
+  getActiveWeaponId: () => currentWeaponId,
+});
+const _showWeaponSelector = () => _weaponSelector.show();
+
+// Shooting state
+const bullets3D = [];
+const enemyBullets = []; // projectiles fired by ranged enemies (robot)
+let pistolAmmo = 12;       // keep for backwards-compat ammoHud render; mirrors getAmmo()
+let pistolCooldown = 0;
+
+// Shop system — Tab to open, coin-based purchases
+const _SHOP_ITEMS = [
+  { id: "ammo_pistol",  name: "Pistol Ammo",    desc: "+30 pistol rounds",         cost: 2,  action: () => { Inv.addItem(heroInv, "pistol_9mm", 30); } },
+  { id: "ammo_rifle",   name: "Rifle Ammo",      desc: "+30 rifle rounds",          cost: 3,  action: () => { Inv.addItem(heroInv, "rifle_556",  30); } },
+  { id: "ammo_shotgun", name: "Shotgun Shells",  desc: "+16 shotgun shells",        cost: 3,  action: () => { Inv.addItem(heroInv, "shotgun_12g", 16); } },
+  { id: "medkit",       name: "Medkit",          desc: "+1 medkit (press H to use)", cost: 4,  action: () => { Inv.addItem(heroInv, "medkit", 1); } },
+  { id: "grenade",      name: "Grenades x3",     desc: "+3 grenades",               cost: 5,  action: () => { grenadeCount = Math.min(9, grenadeCount + 3); } },
+  { id: "armor",        name: "Armor Shard",     desc: "+25 armor (absorbs 60% dmg)", cost: 8,  action: () => { heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 25); } },
+  { id: "ammo_max",     name: "Full Resupply",   desc: "Fill all ammo + 2 medkits", cost: 15, action: () => {
+    const sw = getWeapon();
+    Inv.addItem(heroInv, "pistol_9mm", 60);
+    Inv.addItem(heroInv, "rifle_556",  60);
+    Inv.addItem(heroInv, "shotgun_12g", 32);
+    Inv.addItem(heroInv, "medkit", 2);
+  }},
+  { id: "grenade_max",  name: "Grenade Crate",   desc: "Max grenades (9)",          cost: 12, action: () => { grenadeCount = 9; } },
+  { id: "smoke_x3",    name: "Smoke Pack ×3",   desc: "+3 smoke grenades (T)",     cost: 4,  action: () => { smokeGrenadeCount = Math.min(9, smokeGrenadeCount + 3); } },
+  { id: "flash_x2",    name: "Flashbang ×2",    desc: "+2 flashbangs (U)",         cost: 6,  action: () => { flashbangCount = Math.min(6, flashbangCount + 2); } },
+  { id: "mines_x3",    name: "Mine Kit ×3",     desc: "+3 trap mines (M)",         cost: 5,  action: () => { _mineCount = Math.min(9, _mineCount + 3); } },
+  { id: "ammo_smg",    name: "SMG Ammo",        desc: "+40 rounds (SMG uses pistol ammo)", cost: 3,  action: () => { Inv.addItem(heroInv, "pistol_9mm", 40); } },
+  { id: "ammo_sniper", name: "Sniper Rounds",   desc: "+10 rounds (sniper uses rifle ammo)", cost: 4,  action: () => { Inv.addItem(heroInv, "rifle_556", 10); } },
+];
+const _shop = mountShopPanel({
+  items: _SHOP_ITEMS,
+  getScore: () => score,
+  setScore: (n) => { score = n; },
+  showToast,
+  playSfx: (t, v) => playSfx(t, v),
+  isBlocked: () => computerOpen || buildMode,
+});
+
+// Settings panel — O key opens, Escape closes
+const _settings = mountSettingsPanel({
+  getCFG: () => (typeof CFG !== "undefined" ? CFG : {}),
+  getRenderer: () => renderer,
+  getBuildMode: () => buildMode,
+  password: "5DENGINE",
+  initialSniperSens: 3.0,
+});
+
+// Grenade system data — functions mounted via mountGadgetSystem below
+const grenades3D = [];
+let grenadeCount = 3;
+let smokeGrenadeCount = 2;
+let flashbangCount = 2;
+const smokeZones = [];
+let _mineCount = 2;
+// ═══ EXTRACTED → src/render/bullet_geo.js (iter 561)
+const { bulletGeo, bulletMat } = mountBulletGeo({ THREE });
+
+const damageFlashEl = document.getElementById("damageFlash");
+let damageFlashUntil = 0;
+let _vignetteAmt = 0; // spring [0..1]: driven by hit impulses + low-HP pulse
+let _heroFireT = 0;
+let _heroFireDmgT = 0;
+// ═══ EXTRACTED → src/systems/burn_tick.js (iter 591)
+const _burnTick = mountBurnTick({
+  get: { heroFireT: () => _heroFireT, heroFireDmgT: () => _heroFireDmgT, heroHp: () => heroHp, heroDead: () => _heroDead, heroPos: () => world.players.get("hero") },
+  set: { heroFireT: v => { _heroFireT = v; }, heroFireDmgT: v => { _heroFireDmgT = v; }, heroHp: v => { heroHp = v; }, heroLastDamageT: v => { heroLastDamageT = v; } },
+  actions: { spawnParticles: (u,y,v,n,c,s,sz) => _spawnParticles(u,y,v,n,c,s,sz), heroShowDeathScreen: () => _heroShowDeathScreen() },
+});
+let _heroEmpT = 0;    // seconds sprinting is disabled (robot EMP burst debuff)
+let _camShakeAmt = 0;
+// ═══ EXTRACTED → src/systems/damage_feedback.js (iter 589)
+const { flashDamage, applyScreenShake: _applyScreenShake } = mountDamageFeedback({
+  get: { heroHp: () => heroHp, nearDeathFired: () => _nearDeathFired, bulletTimeLeft: () => _bulletTimeLeft, hitPunchPitch: () => _hitPunchPitch, camShakeAmt: () => _camShakeAmt },
+  set: { waveChallengeNoDmg: v => { _waveChallengeNoDmg = v; }, vignetteAmt: v => { _vignetteAmt = v; }, nearDeathFired: v => { _nearDeathFired = v; }, bulletTimeLeft: v => { _bulletTimeLeft = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camShakeAmt: v => { _camShakeAmt = v; } },
+  actions: { playSfx: (...a) => playSfx(...a), showToast },
+});
+
+// Click-to-shoot handler is registered later, after `renderer` is created
+// (it accesses renderer.domElement, scene, camYaw, pointerLocked, invDiv —
+// all of which are declared further down).
+
+// Pickups (coins) — 8 scattered around the world, the objective is to collect them all.
+// Pickups — from WorldData schema (collected flag added at runtime)
+const pickups = (WD.pickups || []).map(p => Object.assign({ collected: false }, p));
+let score = 0;
+
+// ── Three.js scene — ═══ EXTRACTED → src/render/scene_setup.js (iter 570)
+const { scene } = mountScene({ THREE });
+window._setFogNear = v => { if (scene.fog) scene.fog.near = v; };
+window._setFogFar  = v => { if (scene.fog) scene.fog.far  = v; };
+_buildArenaBoundary(scene); // deferred here — scene now exists
+
+// ═══ EXTRACTED → src/systems/particle_terrain_init.js (iter 578)
+mountParticleAndTerrain({ THREE, scene, showToast });
+
+// ═══ EXTRACTED → src/systems/trigger_zone_init.js (iter 576)
+mountTriggerZoneInit({ THREE, scene, showToast });
+
+// ═══ EXTRACTED → src/systems/nav_achievements_init.js (iter 577)
+mountNavAndAchievements({ WD });
+
+// ═══ EXTRACTED → src/core/engine_registry.js (iter 575)
+mountEngineRegistry();
+
+// ═══ EXTRACTED → src/render/renderer.js (iter 567)
+const { renderer, camera } = mountRenderer({ THREE, getComposer: () => composer });
+// ═══ EXTRACTED → src/render/post_processing.js (iter 571)
+mountPostProcessing({ THREE, renderer, scene, camera, onReady: c => { composer = c; } });
+
+// ── VFX MODULE INIT ──────────────────────────────────────────────────────────
+// Must happen AFTER both scene and camera exist.
+// Vfx.init() allocates shared geometries (sphere, torus, cylinder), materials,
+// and the muzzle flash PointLight, then adds the light to the scene.
+// All the alias consts below replace the original inline functions that were
+// extracted into src/render/vfx.js (see extraction marker at ~line 3140).
+// "warnRingGeo / warnRingMat" are live named exports — after init() they hold
+// the actual TorusGeometry / MeshBasicMaterial for enemy grenade indicators.
+// ═══ EXTRACTED → src/render/vfx_init.js (iter 573)
+const { _warnRingGeo, _warnRingMat, _spawnParticles, _ejectCasing, _spawnDamageNumber, _triggerMuzzleFlash, _spawnShockwave, _shockwaves } =
+  mountVfxInit({ THREE, scene, camera, Vfx, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat });
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ═══ EXTRACTED → src/render/lighting.js (iter 553)
+const { ambLight: _ambLight, sun } = mountLighting({ THREE, scene, Engine, renderer });
+
+// ═══ EXTRACTED → src/systems/wave_events.js (iter 684)
+if (typeof WaveManager !== "undefined") {
+  mountWaveEvents({
+    WaveManager, Engine, THREE, scene, ambLight: _ambLight, sun,
+    get: {
+      score: () => score,         heroHp: () => heroHp,         HERO_MAX_HP: () => HERO_MAX_HP,
+      perkMaxHpBonus: () => _perkMaxHpBonus,
+      shotsFired: () => _shotsFired,       shotsHit: () => _shotsHit,
+      waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart,
+      waveChallengeHits: () => _waveChallengeHits, waveChallengeNoDmg: () => _waveChallengeNoDmg,
+      bulletTimeLeft: () => _bulletTimeLeft, enemyKills: () => enemyKills,
+      crates: () => crates,        barrels: () => barrels,
+      skyboxPresets: () => _skyboxPresets,
+    },
+    set: {
+      score: v => { score = v; },        heroHp: v => { heroHp = v; },
+      waveChallenge: v => { _waveChallenge = v; },
+      waveChallengeStart: v => { _waveChallengeStart = v; },
+      waveChallengeHits: v => { _waveChallengeHits = v; },
+      waveChallengeNoDmg: v => { _waveChallengeNoDmg = v; },
+      eliteSpawnedThisWave: v => { _eliteSpawnedThisWave = v; },
+      shotsFired: v => { _shotsFired = v; }, shotsHit: v => { _shotsHit = v; },
+      bulletTimeLeft: v => { _bulletTimeLeft = v; },
+    },
+    actions: {
+      showToast, playSfx: (str, vol) => playSfx(str, vol),
+      addKillFeedEntry: _addKillFeedEntry, applyScreenShake: amt => _applyScreenShake(amt),
+      spawnSpeedOrb: (u, v) => _spawnSpeedOrb(u, v),
+      showPerkPicker: w => _showPerkPicker(w), checkHighScore: (k, w, a) => _checkHighScore(k, w, a),
+      exitPointerLock: () => { document.exitPointerLock && document.exitPointerLock(); },
+      getWaveChallengeHud: () => _dom.waveChallengeHud,
+      getWaveClearBanner: () => document.getElementById("waveClearBanner"),
+      getWaveClearTitle:  () => document.getElementById("waveClearTitle"),
+      getWaveClearSub:    () => document.getElementById("waveClearSub"),
+      getVictoryOverlay:  () => document.getElementById("victoryOverlay"),
+      getVictoryStats:    () => document.getElementById("victoryStats"),
+    },
+  });
+}
+
+// ═══ EXTRACTED → src/systems/difficulty_select.js (iter 579)
+mountDifficultySelect({
+  set: {
+    diffHpMul:  (v) => { _diffHpMul = v; },
+    diffDmgMul: (v) => { _diffDmgMul = v; },
+    diffLabel:  (v) => { _diffLabel = v; },
+  },
+  showToast,
+  actions: {
+    requestGameplayPointer,
+  },
+});
+
+// Kill leveling — extracted to src/systems/level_system.js
+const _levelSys = mountLevelSystem({
+  get: {
+    heroLvlDmgMul:    () => _heroLvlDmgMul,
+    heroLvlSpeedBonus:() => _heroLvlSpeedBonus,
+    heroExtraStaminaMax: () => _heroExtraStaminaMax,
+    stamina:          () => _stamina,
+    STAMINA_MAX:      () => STAMINA_MAX,
+    heroHp:           () => heroHp,
+    HERO_MAX_HP:      () => HERO_MAX_HP,
+    heroPos:          () => world.players.get("hero"),
+  },
+  set: {
+    heroLvlDmgMul:    (v) => { _heroLvlDmgMul = v; },
+    heroLvlSpeedBonus:(v) => { _heroLvlSpeedBonus = v; },
+    heroExtraStaminaMax: (v) => { _heroExtraStaminaMax = v; },
+    stamina:          (v) => { _stamina = v; },
+    heroHp:           (v) => { heroHp = v; },
+    heroApexMode:     (v) => { _heroApexMode = v; },
+  },
+  actions: {
+    spawnParticles:    (u, y, v, n, c, s, sz) => _spawnParticles(u, y, v, n, c, s, sz),
+    showToast:         (msg, type, dur) => showToast(msg, type, dur),
+    playSfx:           (t, v) => playSfx(t, v),
+    addKillFeedEntry:  (text, color) => _addKillFeedEntry(text, color),
+    setHeroLevelHud:   (text) => { const el = _dom.heroLevelHud; if (el) el.textContent = text; },
+  },
+});
+const _applyLevelUpBuff = _levelSys.applyLevelUpBuff;
+
+// ═══ EXTRACTED → src/render/skybox.js (iter 555)
+const { skyboxPresets: _skyboxPresets } = mountSkybox({ THREE, scene, ambLight: _ambLight, sun, showToast });
+
+// ═══ EXTRACTED → src/render/environment.js (iter 548)
+const { skyUniforms, ground, sky, grid } = mountEnvironment({ THREE, scene, buildings });
+
+// ═══ EXTRACTED → src/render/hero_mesh.js (iter 549)
+const { heroGroup, torso, thighL, shinL, thighR, shinR, armL, armR, walkState, shadowBlob: _shadowBlob } = mountHeroMesh({ THREE, scene });
+
+// ---- Weapon mesh registry ----
+const { gunMount: _gunMount, fpGunGroup: _fpGunGroup, switchGunMesh: _switchGunMesh, registerGunMesh: _wvRegisterGunMesh } = createWeaponVisuals({
+  THREE, armR, camera,
+  weapons: (typeof CFG !== "undefined" && CFG.weapons) ? CFG.weapons : [],
+  getActiveWeaponId: () => currentWeaponId,
+});
+window.registerGunMesh = _wvRegisterGunMesh;
+// ---- Lightweight particle system -------------------------------------------
+// ═══ EXTRACTED → src/systems/barrel_system.js (iter 540) ════════════════════
+// _makeBarrel, _explodeBarrel, barrels — mounted below after all deps declared
+
+// ═══ EXTRACTED → src/systems/crate_system.js (iter 541) ═════════════════════
+// _makeCrate, _breakCrate, crates — mounted below after all deps declared
+
+// ═══ EXTRACTED → src/render/decals.js (iter 539) ════════════════════════════
+const { spawnDecal: _spawnDecal, spawnWallScorch: _spawnWallScorch, wallScorches: _wallScorches } =
+  mountDecalSystem({ THREE, scene });
+
+// ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
+// All of the following was moved to Vfx module (particles, casings, damage
+// numbers, warn ring geo, shockwaves). Aliases live at the Vfx.init() block
+// above (~line 2524). Safe to delete after confirming no regressions.
+//
+// const _particles = [], _pPool = [], _pGeo, _pMat*, _pMatsMap ...
+// const _shellGeo, _shellMat, _casings, _CASING_MAX; function _ejectCasing / _tickCasings ...
+// const _dmgNums; function _spawnDamageNumber / _tickDamageNumbers ...
+// const _warnRingGeo, _warnRingMat (now: Vfx.warnRingGeo / Vfx.warnRingMat via named export)
+// const _shockwaves, _swGeo, _swBaseMat; function _spawnShockwave / _tickShockwaves ...
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
+// Muzzle flash PointLight + _triggerMuzzleFlash are now owned by Vfx module.
+// _triggerMuzzleFlash alias is set at Vfx.init() block (~line 2524).
+// const _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8); scene.add(_muzzleLight);
+// let _muzzleLightT = 0;
+// function _triggerMuzzleFlash(x, y, z) { _muzzleLight.position.set(x, y, z); ... }
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ═══ EXTRACTED → src/render/flashlight.js (iter 559)
+const { flashLight: _flashLight, flashTarget: _flashTarget, tick: _flashlightTick } = mountFlashlight({ THREE, scene, getCamera: () => camera });
+let _flashlightOn = false;
+
+// ═══ EXTRACTED → src/render/vfx.js ═══════════════════════════════════════════
+// _spawnParticles and _tickParticles moved to Vfx module.
+// _spawnParticles alias set at Vfx.init() block (~line 2524).
+// _tickParticles is now called internally by Vfx.tick(dt) — no external tick needed.
+//
+// function _spawnParticles(x, y, z, count, colorKey, speed, lifetime) { ... }
+// function _tickParticles(dt) { ... }
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ---- Hero animation system (AnimationMixer) --------------------------------
+const heroAnim = createHeroAnimSystem(THREE, heroGroup);
+
+// ---- Game Config Editor (K key in build mode) ----
+const cfgEditor = mountConfigEditor(window.GameConfig || {});
+
+// ---- Scene Hierarchy panel ----
+const _renderSceneHierarchy = mountSceneHierarchy({ getWorldBuilder: () => worldBuilder, scene });
+
+// LAN session shared state — referenced by worldBuilder F3 hooks AND the createLanSession call below
+const _mpState = { myIp: null, onMpWelcomeHook: null, onMpBuildEvent: null, pendingFriendRequests: [] };
+let _mpRef = null;
+
+// GLB drop onto canvas → replace hero model (only when char editor is open)
+renderer.domElement.addEventListener("dragover", (e) => e.preventDefault());
+renderer.domElement.addEventListener("drop", (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const ext = file.name.split(".").pop().toLowerCase();
+  if (!["glb","gltf","obj","fbx"].includes(ext)) return;
+  const charEd = document.getElementById("charEditor");
+  if (charEd && charEd.style.display !== "none") {
+    // Replace hero
+    const url = URL.createObjectURL(file);
+    heroAnim.loadGLB(url, file.name);
+  }
+});
+
+// ── Vehicle mesh factory — iter 547 ──────────────────────────────────────────
+const { makeVehicleMesh: _makeVehicleMesh } = mountVehicleMeshFactory({ THREE });
+
+// ═══ EXTRACTED → src/render/vehicle_meshes.js (iter 558)
+const { vehicleMeshes, carGroup, carBody } = mountVehicleMeshes({ THREE, scene, vehicleDefs: VEHICLE_DEFS, makeVehicleMesh: _makeVehicleMesh });
+
+// Ammo/weapon/health/shard/coin drops
+// ═══ EXTRACTED → src/systems/drop_spawner.js (iter 544) ══════════════════════
+const {
+  spawnAmmoPickup:   _spawnAmmoPickup,
+  spawnWeaponPickup: _spawnWeaponPickup,
+  spawnHealthPickup: _spawnHealthPickup,
+  spawnArmorShard:   _spawnArmorShard,
+  spawnCoinDrop:     _spawnCoinDrop,
+  ammoPickups, weaponPickups, healthPickups, armorShards, coinDrops,
+} = mountDropSpawner({ THREE, scene, CFG, get: { weapon: () => getWeapon() } });
+
+// ═══ EXTRACTED → src/systems/static_supply.js (iter 550)
+const { grenadeCrates, armorPickups } = mountStaticSupply({ THREE, scene });
+
+// ═══ EXTRACTED → src/systems/speed_orb_spawner.js (iter 551)
+// _speedBoostT / _speedTrailT remain here — mutated by lifecycle + tick
+let _speedBoostT = 0;
+let _speedTrailT = 0;
+const _speedBoostTick = mountSpeedBoostTick({ get: { speedBoostT: () => _speedBoostT, speedTrailT: () => _speedTrailT }, set: { speedBoostT: v => { _speedBoostT = v; }, speedTrailT: v => { _speedTrailT = v; } }, actions: { spawnTrail: () => { const _h = world.players.get("hero"); if (_h) _spawnParticles(_h.u - Math.sin(camYaw)*0.3, 0.15, _h.v - Math.cos(camYaw)*0.3, 2, "yellow", 3, 0.22); } } });
+const { speedOrbs: _speedOrbs, spawnSpeedOrb: _spawnSpeedOrb } = mountSpeedOrbSpawner({ THREE, scene });
+
+// ═══ EXTRACTED → src/systems/hazard_zones.js (iter 543) ═════════════════════
+const {
+  spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle,
+  firePatches, poisonPuddles,
+} = mountHazardZones({ THREE, scene });
+
+// ═══ EXTRACTED → src/render/pickup_mesh.js (iter 554)
+const { pickupMeshes } = mountPickupMeshes({ THREE, scene, pickups });
+
+// ═══ EXTRACTED → src/render/npc_mesh.js (iter 552)
+const { npcMeshes } = mountNpcMeshFactory({ THREE, scene, npcDefs: NPC_DEFS });
+
+// Enemy meshes — one group per enemy def
+const enemyMeshes = new Map();  // enemy.id → { group, hpFg }
+
+// Game reset — full session teardown (all arrays declared above this point)
+const _resetSys = mountGameReset({
+  scene, world, Inv, CFG,
+  enemies, enemyMeshes,
+  bullets3D, enemyBullets, grenades3D,
+  smokeZones, firePatches, poisonPuddles,
+  wallScorches: _wallScorches, armorShards,
+  speedOrbs: _speedOrbs, weaponPickups,
+  heroInv, weaponAmmo,
+  actions: {
+    gadgetClearAll:    () => gadget.clearAll(),
+    heroRespawn:       () => _heroRespawn(),
+    waveRestart:       () => { if (typeof WaveManager !== "undefined" && gameMode !== "peaceful") { WaveManager.reset(); WaveManager.start(); } },
+    resetWeapon:       () => { currentWeaponId = "pistol"; pistolAmmo = (CFG.weapons.find(w => w.id === "pistol") || { magCap: 12 }).magCap; if (typeof _switchGunMesh === "function") _switchGunMesh("pistol"); },
+    resetGrenades:     () => { grenadeCount = 3; smokeGrenadeCount = 2; flashbangCount = 2; _mineCount = 2; },
+    resetStats:        () => { score = 0; enemyKills = 0; _shotsFired = 0; _shotsHit = 0; _damageDealt = 0; _comboCount = 0; _comboAnnouncedMul = 0; _streakCount = 0; _lastKillT = 0; _waveBeepLast = 0; _killTracking.resetPanic(); },
+    resetLevel:        () => { _heroLevel = 0; _heroLvlDmgMul = 1.0; _heroLvlSpeedBonus = 0; _heroApexMode = false; _heroExtraStaminaMax = 0; _eliteSpawnedThisWave = false; },
+    resetPerks:        () => { _perkDmgMul = 1.0; _perkReloadMul = 1.0; _perkMaxHpBonus = 0; _perkLifesteal = false; _perkRegenBonus = 0; _perkSpeedBonus = 0; _perkSys.clearTimerAndReset(); },
+    hidePerkPicker:    () => { const el = document.getElementById("perkPicker"); if (el) el.style.display = "none"; },
+    refreshPerkHud:    () => _refreshPerkHud(),
+    clearHeroLevelHud: () => { const el = _dom.heroLevelHud; if (el) el.textContent = ""; },
+  },
+});
+resetGameState = _resetSys.resetGameState;
+window.resetGameState = resetGameState;
+
+// ── Enemy mesh factory — iter 546 ─────────────────────────────────────────────
+const { makeEnemyMesh: _makeEnemyMesh } = mountEnemyMeshFactory({ THREE, scene });
+for (const e of enemies) enemyMeshes.set(e.id, _makeEnemyMesh(e));
+// Backwards-compat: keep enemyGroup/enemyHpFg pointing to first enemy's mesh
+const { group: enemyGroup, hpFg: enemyHpFg } = enemyMeshes.get(enemies[0].id) || {};
+
+// ═══ EXTRACTED → src/render/computer_mesh.js (iter 554)
+const { compGroup, screenFront } = mountComputerMesh({ THREE, scene, computerEntity });
+
+// Hoist worldScreens here so the mon1-mirror code below can populate it
+// (the rest of the in-world screen setup happens further down).
+const worldScreens = new Map();
+let jumbotronScreen = null;
+let skyScreen = null;
+
+// Pseudocode: wire PC/monitor/speaker/USB/radios, visible proxies, wires, and mon1 mirror.
+const { deviceBus } = mountDeviceGraphWiring({
+  THREE,
+  scene,
+  devicesApi: window.Devices || null,
+  wiresApi: window.Wires || null,
+  screenMesh: window.ScreenMesh || null,
+  worldData: WD,
+  computerEntity,
+  worldScreens,
+});
+
+// ═══ EXTRACTED → src/systems/media_pickups.js (iter 574)
+const { heroMedia, worldMedia, spawnMedia: _spawnMedia, tick: _mediaPickupsTick } = mountMediaPickups({ THREE, scene, actions: { playSfx: (str, vol) => playSfx(str, vol) } });
+_spawnMedia({ id: "cd_mix", kind: "cd", label: "MIX_2026",
+              files: { "/track1.wav": "(440Hz sine)", "/track2.wav": "(beep loop)",
+                       "/readme.txt": "Burned by jumbotron HYPE crew" } },
+            { u: -2, v: 2, y: 1.0 });
+_spawnMedia({ id: "usb_work", kind: "usb", label: "WORK_USB",
+              files: { "/todo.txt": "* finish device graph\n* wire audio\n* fix everything",
+                       "/passwords.txt": "dont put real passwords on USBs that respawn" } },
+            { u: -1, v: 2.5, y: 1.0 });
+
+// ---- world-builder (builder.js) ------------------------------------
+// Lazy-init after the lazy three.js loaders settle. The builder doesn't
+// strictly need them for click-select / move / delete — only drag-drop.
+let worldBuilder = null;
+setTimeout(() => {
+  if (!window.Builder) return;
+  worldBuilder = window.Builder.createBuilder({
+    THREE, scene, camera, domEl: renderer.domElement,
+    loaders: Loaders,
+  });
+  worldBuilder.attachDragDrop();
+
+  // Pseudocode: wire builder buttons, inspector, scene save/load, import/export.
+  mountWorldBuilderControls({
+    worldBuilder,
+    get: { heroPos: () => world.players.get("hero"), camYaw: () => camYaw },
+    actions: {
+      playSfx,
+      getScriptRunner: () => window.ScriptRunner || null,
+      info: (...args) => console.info(...args),
+    },
+  });
+
+  // Pseudocode: hotbar, creative inventory, textures, grouping, and coop build sync.
+  mountWorldBuilderHotbar({
+    worldBuilder,
+    get: {
+      heroPos: () => world.players.get("hero"),
+      camYaw: () => camYaw,
+      gameMode: () => gameMode,
+      mp: () => _mpRef,
+      mpState: () => _mpState,
+    },
+    actions: {
+      playSfx,
+      showToast,
+      warn: (...args) => console.warn(...args),
+      setInterval: (fn, ms) => setInterval(fn, ms),
+    },
+  });
+}, 250);
+
+// Pseudocode: each frame, show/hide builder UI and mirror selected transform.
+const _refreshBuilderUI = mountBuilderUiRefresh({
+  get: { buildMode: () => buildMode, worldBuilder: () => worldBuilder },
+  actions: {
+    renderSceneHierarchy: _renderSceneHierarchy,
+    getScriptRunner: () => window.ScriptRunner || null,
+  },
+});
+
+// ---- audio mixer (audio.js + audio_webaudio.js) --------------------
+let audioMixer = null;
+if (window.GTAAudio && window.WebAudioAdapter) {
+  const adapter = window.WebAudioAdapter.createWebAudioAdapter();
+  audioMixer = window.GTAAudio.createMixer({ adapter });
+}
+Sfx.init(audioMixer);
+// ═══ EXTRACTED → src/audio/sfx.js ════════════════════════════════════════════
+// function playSfx(src, vol) { ... }
+// const _ambCtx = ...; const _ambNodes = {};
+// function _setAmbient(id, freq, type, targetVol, fadeSecs) { ... }
+// ═════════════════════════════════════════════════════════════════════════════
+const playSfx = Sfx.playSfx;
+const _setAmbient = Sfx.setAmbient;
+
+// ═══ EXTRACTED → src/systems/screen_interaction.js (iter 682) ═══════════════════
+// Pseudocode: E-key raycast → worldScreens, big screen → mouse-mode, normal → click.
+const _screenInteraction = mountScreenInteraction({ THREE, getScreenMesh: () => window.ScreenMesh || null, get: { worldScreens: () => worldScreens, camera: () => camera, mouseMode: () => mouseMode }, set: { activeMouseScreen: v => { activeMouseScreen = v; }, mouseMode: v => { mouseMode = v; }, mouseModeCursorX: v => { mouseModeCursor.x = v; }, mouseModeCursorY: v => { mouseModeCursor.y = v; } }, exitPointerLock: () => { if (document.pointerLockElement) document.exitPointerLock(); } });
+const tryClickWorldScreen  = () => _screenInteraction.tryClickWorldScreen();
+const enterScreenMouseMode = (screen, uv) => _screenInteraction.enterScreenMouseMode(screen, uv);
+const exitScreenMouseMode  = () => _screenInteraction.exitScreenMouseMode();
+
+// Pseudocode: create jumbotron, sky screen, and build console hit regions.
+const _worldScreens = mountWorldScreens({
+  THREE,
+  scene,
+  screenMesh: window.ScreenMesh || null,
+  worldScreens,
+  worldData: WD,
+  get: {
+    deviceBus: () => deviceBus,
+    heroPos: () => world.players.get("hero"),
+    score: () => score,
+    pickups: () => pickups,
+    heroHp: () => heroHp,
+    heroMaxHp: () => HERO_MAX_HP,
+    freeCamYaw: () => freeCamYaw,
+    worldBuilder: () => worldBuilder,
+  },
+  set: {
+    score: v => { score = v; },
+  },
+  actions: {
+    playSfx,
+    showToast,
+  },
+});
+jumbotronScreen = _worldScreens.jumbotronScreen;
+skyScreen = _worldScreens.skyScreen;
+
+// ---- gadget system (turrets, mines, grenades) ----
+const gadget = mountGadgetSystem({
+  THREE, scene, world, enemies, bullets3D, grenades3D, smokeZones,
+  HERO_MAX_ARMOR, ARMOR_ABSORB,
+  coinByType: _COIN_BY_TYPE,
+  weaponDropMap: _WEAPON_DROP_MAP,
+  get: {
+    grenadeCount:      () => grenadeCount,
+    smokeGrenadeCount: () => smokeGrenadeCount,
+    flashbangCount:    () => flashbangCount,
+    mineCount:         () => _mineCount,
+    buildMode:         () => buildMode,
+    computerOpen:      () => computerOpen,
+    heroDead:          () => _heroDead,
+    dodgeT:            () => _dodgeT,
+    camYaw:            () => camYaw,
+    inCar:             () => inCar,
+    heroArmor:         () => heroArmor,
+    heroHp:            () => heroHp,
+    heroLastDamageT:   () => heroLastDamageT,
+    score:             () => score,
+    enemyKills:        () => enemyKills,
+    comboCount:        () => _comboCount,
+    comboLastT:        () => _comboLastT,
+    heroLevel:         () => _heroLevel,
+    levelThresholds:   () => _LEVEL_THRESHOLDS,
+    shopIsOpen:        () => _shop.isOpen,
+    bulletGeo:         () => bulletGeo,
+    bulletMat:         () => bulletMat,
+  },
+  set: {
+    grenadeCount:      (v) => { grenadeCount = v; },
+    smokeGrenadeCount: (v) => { smokeGrenadeCount = v; },
+    flashbangCount:    (v) => { flashbangCount = v; },
+    mineCount:         (v) => { _mineCount = v; },
+    heroArmor:         (v) => { heroArmor = v; },
+    heroHp:            (v) => { heroHp = v; },
+    heroLastDamageT:   (v) => { heroLastDamageT = v; },
+    score:             (v) => { score = v; },
+    enemyKills:        (v) => { enemyKills = v; },
+    comboCount:        (v) => { _comboCount = v; },
+    comboLastT:        (v) => { _comboLastT = v; },
+    heroKbU:           (v) => { _heroKbU = v; },
+    heroKbV:           (v) => { _heroKbV = v; },
+    heroKbT:           (v) => { _heroKbT = v; },
+    heroBlindT:        (v) => { _heroBlindT = v; },
+  },
+  actions: {
+    spawnParticles:      _spawnParticles,
+    playSfx,
+    showToast,
+    spawnDamageNumber:   _spawnDamageNumber,
+    spawnDecal:          _spawnDecal,
+    spawnCoinDrop:       _spawnCoinDrop,
+    spawnAmmoPickup:     _spawnAmmoPickup,
+    spawnHealthPickup:   _spawnHealthPickup,
+    spawnWeaponPickup:   _spawnWeaponPickup,
+    spawnFirePatch:      _spawnFirePatch,
+    spawnPoisonPuddle:   _spawnPoisonPuddle,
+    addKillFeedEntry:    _addKillFeedEntry,
+    trackKillAndPanic:   _trackKillAndPanic,
+    applyScreenShake:    _applyScreenShake,
+    flashDamage,
+    heroShowDeathScreen: _heroShowDeathScreen,
+    applyLevelUpBuff:    _applyLevelUpBuff,
+  },
+});
+const _deploySmokeZone   = gadget.deploySmokeZone;
+const _placeTurret       = gadget.placeTurret;
+const _tickTurrets       = gadget.tickTurrets;
+const _dropMine          = gadget.dropMine;
+const _tickMines         = gadget.tickMines;
+const _throwSmokeGrenade = gadget.throwSmokeGrenade;
+const _throwFlashbang    = gadget.throwFlashbang;
+const _throwGrenade      = gadget.throwGrenade;
+const _explodeGrenade    = gadget.explodeGrenade;
+let _heroBlindT          = 0; // seconds of white-out flash; written by gadget.explodeGrenade via set.heroBlindT
+const _statusTintTick = mountStatusTintTick({ get: { heroBlindT: () => _heroBlindT, heroFireT: () => _heroFireT, heroEmpT: () => _heroEmpT }, set: { heroBlindT: v => { _heroBlindT = v; } }, actions: { getActiveEffects: id => (typeof StatusEffects !== "undefined") ? (StatusEffects.getActive(id) || []) : [] } });
+
+// ---- input ----
+const keys = Object.create(null);
+const _5D_NO_RENDER = typeof location !== "undefined" && new URLSearchParams(location.search).has("_5dnorender");
+const invDiv = document.getElementById("inventory");
+function renderInventory() {
+  const grid = document.getElementById("invGrid");
+  grid.innerHTML = "";
+  for (const r of Inv.toRows(heroInv)) {
+    const div = document.createElement("div");
+    div.className = "slot" + (r.hotbar ? " hotbar" : "") + (r.active ? " active" : "");
+    if (r.type) {
+      div.innerHTML = `<div>${r.type}</div><div class="qty">×${r.qty}</div>`;
+    } else {
+      div.innerHTML = `<div class="empty">—</div>`;
+    }
+    grid.appendChild(div);
+  }
+  document.getElementById("invWeight").textContent = Inv.totalWeight(heroInv).toFixed(1);
+}
+
+// ── Crate system — iter 541 ──────────────────────────────────────────────────
+const { makeCrate: _makeCrate, breakCrate: _breakCrate, crates } = mountCrateSystem({
+  THREE, scene,
+  get: {
+    score:  () => score,
+    weapon: () => getWeapon(),
+  },
+  set: {
+    score: (v) => { score = v; },
+  },
+  actions: {
+    playSfx,
+    showToast,
+    spawnParticles:   _spawnParticles,
+    spawnAmmoPickup:  _spawnAmmoPickup,
+    spawnHealthPickup: _spawnHealthPickup,
+    spawnDamageNumber: _spawnDamageNumber,
+  },
+});
+
+mountKeydownHandler({
+  keys,
+  invDiv,
+  renderInventory,
+  getState: () => ({
+    buildMode, computerOpen, computerEntering, nearComputer, camYaw, camSide,
+    CFG, currentWeaponId, pistolAmmo, weaponAmmo, _reloading,
+    grenadeCount, inCar, activeVehicleId, vehicleStates,
+    heroInv, heroHp, HERO_MAX_HP, _perkMaxHpBonus, enemies,
+    crates, worldScreens, _stamina, _dodgeCooldown,
+    _meleeCooldown, _grenadePressT, mouseMode, CAM_DIST_MAX,
+    snapZoomTarget, _rainActive: Rain.isActive(), _heroDead, NPC_DEFS,
+    VEHICLE_DEFS, world, freeCamPos, freeCamYaw, freeCamPitch,
+    _flashlightOn, enemyKills, comboCount: _comboCount, hitMarkerUntil,
+    DODGE_SPEED, DODGE_DURATION, DODGE_COOLDOWN,
+  }),
+  set: {
+    buildMode:           (v) => { buildMode = v; },
+    camSide:             (v) => { camSide = v; },
+    freeCamYaw:          (v) => { freeCamYaw = v; },
+    freeCamPitch:        (v) => { freeCamPitch = v; },
+    freeCamPos:          (x, y, z) => { freeCamPos.set(x, y, z); },
+    snapZoomTarget:      (v) => { snapZoomTarget = v; },
+    currentWeaponId:     (v) => { currentWeaponId = v; },
+    pistolAmmo:          (v) => { pistolAmmo = v; },
+    weaponAmmoEntry:     (id, v) => { weaponAmmo.set(id, v); },
+    reloading:           (v) => { _reloading = v; },
+    reloadStart:         (v) => { _reloadStart = v; },
+    reloadMsg:           (v) => { reloadMsg = v; },
+    reloadMsgUntil:      (v) => { reloadMsgUntil = v; },
+    weaponSwitchT:       (v) => { _weaponSwitchT = v; },
+    flashlightOn:        (v) => { _flashlightOn = v; },
+    flashLightIntensity: (v) => { _flashLight.intensity = v; },
+    grenadePressT:       (v) => { _grenadePressT = v; },
+    meleeCooldown:       (v) => { _meleeCooldown = v; },
+    meleeSwing:          (v) => { _meleeSwing = v; },
+    hitMarkerUntil:      (v) => { hitMarkerUntil = v; },
+    enemyKills:          (v) => { enemyKills = v; },
+    comboCount:          (v) => { _comboCount = v; },
+    comboLastT:          (v) => { _comboLastT = v; },
+    dodgeVelU:           (v) => { _dodgeVelU = v; },
+    dodgeVelV:           (v) => { _dodgeVelV = v; },
+    dodgeT:              (v) => { _dodgeT = v; },
+    dodgeCooldown:       (v) => { _dodgeCooldown = v; },
+    stamina:             (v) => { _stamina = v; },
+    heroHp:              (v) => { heroHp = v; },
+    heroLastDamageT:     (v) => { heroLastDamageT = v; },
+    inCar:               (v) => { inCar = v; },
+    activeVehicleId:     (v) => { activeVehicleId = v; },
+    activeVehicleDef:    (v) => { _activeVehicleDef = v; },
+    platformsDirty:      (v) => { if (v) _platformSys.markDirty(); },
+  },
+  get: {
+    worldBuilder:    () => worldBuilder,
+    npcDialog:       () => _npcDialog,
+    quest:           () => _quest,
+    shop:            () => _shop,
+    settings:        () => _settings,
+    heroAnim:        () => heroAnim,
+    cfgEditor:       () => cfgEditor,
+    renderer:        () => renderer,
+    camera:          () => camera,
+    bridge:          () => Bridge,
+    weapon:          () => getWeapon(),
+    pistolMagCap:    () => PISTOL_MAG_CAP(),
+    reloadDur:       () => RELOAD_DUR(),
+    weaponAmmoEntry: (id) => weaponAmmo.get(id),
+  },
+  actions: {
+    closeComputer:        closeComputer,
+    beginComputerEntry:   beginComputerEntry,
+    tryClickWorldScreen:  tryClickWorldScreen,
+    playSfx:              playSfx,
+    showToast:            showToast,
+    switchGunMesh:        _switchGunMesh,
+    showWeaponSelector:   _showWeaponSelector,
+    throwSmokeGrenade:    _throwSmokeGrenade,
+    throwFlashbang:       _throwFlashbang,
+    dropMine:             _dropMine,
+    placeTurret:          _placeTurret,
+    addSpawnPoint:        _addSpawnPoint,
+    renderSceneHierarchy: _renderSceneHierarchy,
+    spawnParticles:       _spawnParticles,
+    spawnDamageNumber:    _spawnDamageNumber,
+    spawnDecal:           _spawnDecal,
+    spawnAmmoPickup:      _spawnAmmoPickup,
+    spawnWeaponPickup:    _spawnWeaponPickup,
+    spawnCoinDrop:        _spawnCoinDrop,
+    breakCrate:           _breakCrate,
+    spawnFirePatch:       _spawnFirePatch,
+    spawnPoisonPuddle:    _spawnPoisonPuddle,
+    addKillFeedEntry:     _addKillFeedEntry,
+    trackKillAndPanic:    _trackKillAndPanic,
+    applyScreenShake:     _applyScreenShake,
+    heroShowDeathScreen:  _heroShowDeathScreen,
+    exitScreenMouseMode:  exitScreenMouseMode,
+    enterScreenMouseMode: enterScreenMouseMode,
+  },
+  weaponDropMap: _WEAPON_DROP_MAP,
+  coinByType:    _COIN_BY_TYPE,
+});;
+mountKeyupHandler({
+  keys,
+  getState: () => ({
+    buildMode, computerOpen, _heroDead, _grenadePressT,
+    heroHp, world, grenadeCount,
+  }),
+  set: {
+    grenadePressT: (v) => { _grenadePressT = v; },
+    heroHp:        (v) => { heroHp = v; },
+    grenadeCount:  (v) => { grenadeCount = v; },
+  },
+  actions: {
+    flashDamage:        flashDamage,
+    applyScreenShake:   _applyScreenShake,
+    spawnParticles:     _spawnParticles,
+    playSfx:            playSfx,
+    showToast:          showToast,
+    heroShowDeathScreen:_heroShowDeathScreen,
+    throwGrenade:       _throwGrenade,
+  },
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// CAMERA STATE
+// camYaw/camPitch — mouse-driven orientation (radians)
+// camDist         — 0–0.5 = first-person, >0.5 = third-person (max ~12)
+// aiming/aimAmt   — RMB zoom; aimAmt is a smoothed [0..1] lerp factor
+// computerEntering/computerEntryT — cinematic dolly into desk screen
+// snapZoomTarget  — Q/Z/V keybind zoom snap; lerped each tick until reached
+// mouseMode       — M toggles: cursor drives an in-world screen, not the camera
+// ════════════════════════════════════════════════════════════════════════════
+let camYaw = 0;
+let camPitch = -0.25;
+let camDist = 7;          // 0..0.5 = first-person, > 0.5 = third-person
+let camSide = 1;          // +1 = right shoulder, -1 = left shoulder
+// ═══ CAM_DIST_MIN/MAX extracted → src/config/movement_stats.js (iter 565) — imported at top
+let camDistBeforeEntry = 7;     // restore zoom when leaving computer
+let aiming = false;             // RMB-hold zoom-aim state
+let aimAmt = 0;                 // smoothed [0..1] aim multiplier
+let computerEntering = false;   // playing cinematic-entry animation
+let computerEntryT = 0;         // 0..1 progress
+const COMPUTER_ENTRY_DUR = 0.45; // seconds
+let snapZoomTarget = null;      // Q/Z/V keybinds: lerp camDist toward this
+let mouseMode = false;          // M toggles — cursor controls in-world screen cursor
+let activeMouseScreen = null;   // which screen we're driving in mouse-mode
+const mouseModeCursor = { x: 0, y: 0 };  // current cursor pos in screen canvas pixels
+let reloadMsg = "";             // transient HUD line for reload feedback
+let reloadMsgUntil = 0;
+let buildMode = false;          // B toggles world-builder mode
+let buildSelected = null;
+// Freecam — active while buildMode is on
+const freeCamPos = new THREE.Vector3(0, 5, -8);
+let freeCamYaw   = 0;
+let freeCamPitch = 0;
+const FREE_CAM_SPEED = 8;       // m/s base; doubled with ShiftLeft
+
+function beginComputerEntry() {
+  computerEntering = true;
+  computerEntryT = 0;
+  camDistBeforeEntry = camDist;
+  // Release pointer lock so the user can interact with the overlay
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function finishComputerEntry() {
+  computerEntering = false;
+  computerOpen = true;
+  document.getElementById("computerOverlay").classList.add("open");
+}
+function closeComputer() {
+  computerOpen = false;
+  computerEntering = false;
+  document.getElementById("computerOverlay").classList.remove("open");
+  // Reset app pane back to home
+  const aw = document.getElementById("appWindow");
+  if (aw) aw.classList.remove("open");
+  const ah = document.getElementById("appHome");
+  if (ah) ah.style.display = "block";
+  // Restore zoom level
+  camDist = camDistBeforeEntry;
+  // Re-acquire pointer lock so game controls resume immediately
+  setTimeout(() => {
+    if (!document.pointerLockElement && !buildMode) renderer.domElement.requestPointerLock();
+  }, 50);
+}
+
+let pointerLocked = false;
+mountMouseInput({
+  getState: () => ({
+    buildMode, computerOpen, computerEntering, _heroDead,
+    mouseMode, aiming, pointerLocked, freeCamYaw, freeCamPitch,
+    camYaw, camPitch, camDist, CAM_DIST_MIN, CAM_DIST_MAX, CFG,
+    currentWeaponId, pistolAmmo, _reloading,
+  }),
+  getRenderer:        () => renderer,
+  getWorldBuilder:    () => worldBuilder,
+  getActiveMouseScreen: () => activeMouseScreen,
+  getMouseModeCursor:   () => mouseModeCursor,
+  getShop:            () => _shop,
+  getSettings:        () => _settings,
+  getNpcDialog:       () => _npcDialog,
+  setCamYaw:          (v) => { camYaw = v; },
+  setCamPitch:        (v) => { camPitch = v; },
+  setFreeCamYaw:      (v) => { freeCamYaw = v; },
+  setFreeCamPitch:    (v) => { freeCamPitch = v; },
+  setCamDist:         (v) => { camDist = v; },
+  setAiming:          (v) => { aiming = v; },
+  setPointerLocked:   (v) => { pointerLocked = v; },
+  setCurrentWeaponId: (v) => { currentWeaponId = v; },
+  setPistolAmmo:      (v) => { pistolAmmo = v; },
+  setWeaponAmmoEntry: (id, ammo) => { weaponAmmo.set(id, ammo); },
+  getWeaponAmmoEntry: (id) => weaponAmmo.get(id),
+  setReloading:       (v) => { _reloading = v; },
+  setReloadMsg:       (v) => { reloadMsg = v; },
+  setReloadMsgUntil:  (v) => { reloadMsgUntil = v; },
+  switchGunMesh:      _switchGunMesh,
+  showWeaponSelector: _showWeaponSelector,
+  playSfx,
+});
+// ---- physics-lite ----
+let velocityY = 0;
+let _canDoubleJump = false; // resets to true on ground jump, consumed by mid-air Space
+let _spaceWasDown = false;  // rising-edge detection for double jump
+// ═══ EXTRACTED → src/config/movement_stats.js (iter 565)
+const { GRAVITY, JUMP_V, WALK, SPRINT } = makeMovementStats(CFG);
+
+// ---- main loop ----
+const { dom: _dom, hud, mini, MINI_HALF, dmgDirSvg: _dmgDirSvg, dmgDirG: _dmgDirG } = mountHudElements(CFG);
+
+// ═══ EXTRACTED → src/ui/minimap.js ═══════════════════════════════════════════
+// drawMinimap() — full 250-line body moved to Minimap.draw(ctx, state)
+// ═════════════════════════════════════════════════════════════════════════════
+function drawMinimap() {
+  Minimap.draw(mini, {
+    world, buildings, VEHICLE_DEFS, NPC_DEFS, pickups, ammoPickups,
+    grenadeCrates, crates, weaponPickups, armorPickups, healthPickups,
+    speedOrbs: _speedOrbs, grenades3D, enemies,
+    heroGroupRotY: heroGroup.rotation.y,
+    MINI_HALF, spawnPoints: _spawnPoints, nearNpc: _nearNpc,
+  });
+}
+
+// Pseudocode: LMB on canvas routes to build picking, screen mouse-mode, or gameplay shoot.
+mountCanvasPrimaryAction({ renderer, get: { buildMode: () => buildMode, worldBuilder: () => worldBuilder, pointerLocked: () => pointerLocked, builderMultiList: () => window._builderMultiList, mouseMode: () => mouseMode, activeMouseScreen: () => activeMouseScreen, mouseModeCursor: () => mouseModeCursor, inventoryOpen: () => invDiv.classList.contains("open"), computerOpen: () => computerOpen, computerEntering: () => computerEntering, inCar: () => inCar, activeVehicleId: () => activeVehicleId, activeVehicleDef: () => _activeVehicleDef }, actions: { playSfx, getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleHover: () => window._bcHoverRegion, getBuildConsoleScreen: () => window._buildConsoleScreen, tryDroneShoot: (...args) => _tryDroneShoot(...args), tryShoot: (...args) => _tryShoot(...args) } });
+
+// Central shoot function — called from click and from auto-fire tick
+let _mouseHeld = false;
+document.addEventListener("mousedown", (e) => { if (e.button === 0) _mouseHeld = true; });
+document.addEventListener("mouseup",   (e) => { if (e.button === 0) _mouseHeld = false; });
+
+// ═══ EXTRACTED → src/combat/shoot_system.js ═══
+// _getAimAngle, _tryShoot, _tryDroneShoot — mounted after RELOAD_DUR below
+let _droneCooldown = 0;
+let lastT = performance.now();
+let _frameNowMs = lastT;
+let _bulletTimeLeft = 0;  // seconds remaining of bullet-time slow (sniper incoming / headshot kill / wave clear)
+let _nearDeathFired = false; // near-death bullet-time has fired this life (resets above 15 HP)
+let _heartbeatT = 0;
+// ═══ EXTRACTED → src/systems/heartbeat.js (iter 590)
+const _heartbeat = mountHeartbeat({
+  get: { heroHp: () => heroHp, HERO_MAX_HP: () => HERO_MAX_HP, heroDead: () => _heroDead, heartbeatT: () => _heartbeatT },
+  set: { heartbeatT: v => { _heartbeatT = v; } },
+  actions: { playSfx },
+});
+let _hpGhost = 100;       // lagging HP ghost bar — catches up slowly after damage
+let _fpsFrames = 0, _fpsDisplay = 0, _fpsWindowT = performance.now();
+const _fpsTick = mountFpsTick({ get: { fpsFrames: () => _fpsFrames, fpsWindowT: () => _fpsWindowT, fpsDisplay: () => _fpsDisplay }, set: { fpsFrames: v => { _fpsFrames = v; }, fpsWindowT: v => { _fpsWindowT = v; }, fpsDisplay: v => { _fpsDisplay = v; } }, actions: { onNewFps: fps => { if (typeof Engine !== "undefined") { Engine.debug.fpsHistory.push(fps); if (Engine.debug.fpsHistory.length > 60) Engine.debug.fpsHistory.shift(); } } } });
+const _crosshairTick = mountCrosshairTick();
+const _combatHudTick = mountCombatHudTick();
+const _clockHudTick  = mountClockHudTick({ actions: { getDayNightHour: () => (typeof DayNight !== "undefined") ? DayNight.getHour() : null } });
+const _vignetteTick  = mountVignetteTick({ get: { vignetteAmt: () => _vignetteAmt }, set: { vignetteAmt: v => { _vignetteAmt = v; } } });
+const _statBarsTick  = mountStatBarsTick({ get: { hpGhost: () => _hpGhost }, set: { hpGhost: v => { _hpGhost = v; } } });
+const _bossBarTick   = mountBossBarTick();
+const _comboHudTick    = mountComboHudTick();
+const _vehicleDashTick = mountVehicleDashTick();
+let _combatAmbT = 0;
+const _combatAmbientTick = mountCombatAmbientTick({ get: { ambT: () => _combatAmbT }, set: { ambT: v => { _combatAmbT = v; } }, actions: { isAmbientReady: () => Sfx.isAmbientReady(), setAmbient: (k, f, t, v, fade) => _setAmbient(k, f, t, v, fade) } });
+const _skyDayNightTick   = mountSkyDayNightTick({ actions: { setTopColor: (r,g,b) => skyUniforms.topColor.value.setRGB(r,g,b), setBottomColor: (r,g,b) => skyUniforms.bottomColor.value.setRGB(r,g,b), setFogColor: (r,g,b) => scene.fog.color.setRGB(r,g,b), setSunPos: (x,y,z) => sun.position.set(x,y,z), setSunIntensity: v => { sun.intensity = v; } } });
+const _fpGunPosTick      = mountFpGunPosTick({ get: { weaponSwitchT: () => _weaponSwitchT }, set: { weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { setPosition: (x,y,z) => _fpGunGroup.position.set(x,y,z), setRotation: (x,y,z) => _fpGunGroup.rotation.set(x,y,z) } });
+const _walkAnimTick      = mountWalkAnimTick({ get: { gunKickZ: () => _gunKickZ, gunReloadX: () => _gunReloadX }, set: { gunKickZ: v => { _gunKickZ = v; }, gunReloadX: v => { _gunReloadX = v; } }, actions: { walkCycle: (dt, gs) => Bridge.walkCyclePhase(walkState, dt, gs), setThighs: m => { thighL.rotation.x = +m; thighR.rotation.x = -m; }, setShins: m => { shinL.rotation.x = Math.max(0, m) * 0.75; shinR.rotation.x = Math.max(0, -m) * 0.75; }, setArms: (lx, rx) => { armL.rotation.x = lx; armR.rotation.x = rx; }, setGunMount: (px,py,pz,rx,ry,rz) => { _gunMount.position.set(px,py,pz); _gunMount.rotation.set(rx,ry,rz); }, setTorsoY: y => { torso.position.y = y; } } });
+const _heroFaceTick      = mountHeroFaceTick({ get: { rotY: () => heroGroup.rotation.y }, set: { rotY: v => { heroGroup.rotation.y = v; } } });
+const _camShakeTick      = mountCamShakeTick({ get: { camShakeAmt: () => _camShakeAmt }, set: { camShakeAmt: v => { _camShakeAmt = v; } }, actions: { offsetCamera: (dx, dy) => { camera.position.x += dx; camera.position.y += dy; } } });
+const _heroKbTick        = mountHeroKnockbackTick({ get: { kbT: () => _heroKbT, kbU: () => _heroKbU, kbV: () => _heroKbV }, set: { kbT: v => { _heroKbT = v; }, kbU: v => { _heroKbU = v; }, kbV: v => { _heroKbV = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), resolveMove: (mover,du,dv) => GTAPhysics.resolveAABBMove(mover,du,dv,buildingBlockers) } });
+const _dodgeTick         = mountDodgeTick({ get: { dodgeCooldown: () => _dodgeCooldown, dodgeT: () => _dodgeT, dodgeVelU: () => _dodgeVelU, dodgeVelV: () => _dodgeVelV, dodgeBashDone: () => _dodgeBashDone }, set: { dodgeCooldown: v => { _dodgeCooldown = v; }, dodgeT: v => { _dodgeT = v; }, dodgeBashDone: v => { _dodgeBashDone = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), spawnTrail: (u,y,v) => { if (Math.random() < 0.7) _spawnParticles(u, y + 0.6, v, 2, "cyan", 2.5, 0.18); }, tryBash: heroPos => { const bd = Math.round(25 * _heroLvlDmgMul); for (const en of enemies) { if (en.dead) continue; const ep = world.players.get(en.id); if (Math.hypot(ep.u - heroPos.u, ep.v - heroPos.v) < 0.9) { en.hp = Math.max(0, en.hp - bd); en._hpBarShowT = _frameNowMs / 1000; const a = Math.atan2(ep.u - heroPos.u, ep.v - heroPos.v); en._kbU = Math.sin(a) * 5; en._kbV = Math.cos(a) * 5; en._kbT = 0.18; _spawnDamageNumber(ep.u, 1.4, ep.v, `BASH! ${bd}`, "#00ffff"); _spawnParticles(ep.u, 1.0, ep.v, 8, "cyan", 5, 0.2); playSfx("tone:180:60:sawtooth", 0.28); return true; } } return false; } } });
+const _enemyRegenTick    = mountEnemyRegenTick({ actions: { getPos: id => world.players.get(id), spawnDamageNumber: (u,y,v,t,c) => _spawnDamageNumber(u,y,v,t,c) } });
+const _enemySepTick      = mountEnemySepTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v) } });
+const _empTick           = mountEnemyRobotEmpTick({ THREE, scene, shockwaves: _shockwaves, actions: { playSfx, setHeroEmpT: v => { _heroEmpT=v; }, showToast, flashDamage: o => { damageFlashEl.style.opacity=String(o); } } });
+const _heavyGrenadeTick  = mountEnemyHeavyGrenadeTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat, grenades: grenades3D, GRAVITY, actions: { playSfx } });
+const _bossRockTick      = mountEnemyBossRockTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, warnRingMat: _vfxWarnMat, grenades: grenades3D, GRAVITY, actions: { playSfx, screenShake: _applyScreenShake } });
+const _poisonerSpitTick  = mountEnemyPoisonerSpitTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
+const _incendiaryTick    = mountEnemyIncendiaryTick({ THREE, scene, warnRingGeo: _vfxWarnGeo, grenades: grenades3D, GRAVITY, actions: { playSfx } });
+const _bossSlamTick      = mountEnemyBossSlamTick({ ARMOR_ABSORB, getHeroPos: () => world.players.get("hero"), getEnemyPos: id => world.players.get(id), enemies, actions: { playSfx, screenShake: _applyScreenShake, spawnParticles: _spawnParticles, spawnShockwave: _spawnShockwave, flashDamage, setHeroHp: v => { heroHp = v; }, setHeroArmor: v => { heroArmor = v; }, setHeroLastDamageT: v => { heroLastDamageT = v; }, onHeroDeath: () => { if (!_heroDead) _heroShowDeathScreen(); } } });
+const _poisonerRangedSpitTick = mountEnemyPoisonerRangedSpitTick({ THREE, scene, enemyBullets, actions: { playSfx } });
+const _fastChargeTick          = mountEnemyFastChargeTick({ getEnemyPos: id => world.players.get(id), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), actions: { playSfx, spawnParticles: _spawnParticles } });
+const _sniperTick              = mountEnemySniperTick({ THREE, scene, enemyBullets, resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), getEnemyPos: id => world.players.get(id), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), actions: { playSfx, screenShake: _applyScreenShake, alertShot: () => { showToast("SNIPER SHOT INCOMING!", "danger", 800); _bulletTimeLeft = 0.38; } } });
+const _robotPlasmaTick         = mountEnemyRobotPlasmaTick({ THREE, scene, enemyBullets, actions: { playSfx } });
+const _strafeMeleeTick         = mountEnemyStrafeMeleeTick({ ARMOR_ABSORB, getHeroPos: () => world.players.get("hero"), getEnemyPos: id => world.players.get(id), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), setEnemyPos: (id, x, z, rot, u, v) => world.setPlayer(id, x, z, rot, u, v), applyStatusEffect: effect => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", effect); }, actions: { playSfx, flashDamage, screenShake: _applyScreenShake, setHeroHp: v => { heroHp = v; }, setHeroArmor: v => { heroArmor = v; }, setHeroLastDamageT: v => { heroLastDamageT = v; }, setDmgDir: (ang, until) => { _dmgDirAngle = ang; _dmgDirUntil = until; }, setHeroKb: (u, v, t) => { _heroKbU = u; _heroKbV = v; _heroKbT = t; }, setHeroFireT: v => { _heroFireT = Math.max(_heroFireT, v); }, onHeroDeath: () => { if (!_heroDead) _heroShowDeathScreen(); }, emitHeroDied: id => { if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.HERO_DIED, { killer: id }); } } });
+const _enemyAiScaffold         = mountEnemyAiScaffoldTick({ getEnemyPos: id => world.players.get(id), setEnemyPos: (id, a, b, c, u, v) => world.setPlayer(id, a, b, c, u, v), resolveMove: (mover, du, dv) => GTAPhysics.resolveAABBMove(mover, du, dv, buildingBlockers), hasLOS: (u0, v0, u1, v1) => hasLOS(u0, v0, u1, v1, buildingBlockers), makeBt: opts => typeof BehaviorTree !== "undefined" ? BehaviorTree.makeEnemyTree(opts) : null, runBt: (bt, ctx) => { if (typeof BehaviorTree !== "undefined") BehaviorTree.run(bt, ctx); }, pathfind: (u0, v0, u1, v1) => typeof AStar !== "undefined" ? AStar.findPath(u0, v0, u1, v1) : null, getAlertBroadcastT: () => _alertBroadcastT, setAlertBroadcastT: t => { _alertBroadcastT = t; }, robotPlasmaTick: _robotPlasmaTick, empTick: _empTick, heavyGrenadeTick: _heavyGrenadeTick, bossRockTick: _bossRockTick, poisonerSpitTick: _poisonerSpitTick, incendiaryTick: _incendiaryTick, bossSlamTick: _bossSlamTick, poisonerRangedSpitTick: _poisonerRangedSpitTick, fastChargeTick: _fastChargeTick, sniperTick: _sniperTick, strafeMeleeTick: _strafeMeleeTick, getHeroDead: () => _heroDead, getGodMode: () => typeof Engine !== "undefined" && Engine.debug.godMode, getDodgeT: () => _dodgeT, getHeroHp: () => heroHp, getHeroArmor: () => heroArmor, actions: { playSfx, showToast, spawnParticles: _spawnParticles } });
+const _npcMoveTick       = mountNpcMoveTick({ actions: { getPos: id => world.players.get(id), setPos: (id,x,y,z,u,v) => world.setPlayer(id,x,y,z,u,v), wanderStep: (id,h,spd,dt2) => Bridge.wanderStep(world,id,h,spd,dt2), clampToArena: (id,r) => Bridge.clampToArena(world,id,r), toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) } });
+const _scopeFovTick      = mountScopeFovTick({ get: { aimAmt: () => aimAmt, sprintFovAmt: () => _sprintFovAmt, wasSniperScope: () => _wasSniperScope, sniperSavedCamDist: () => _sniperSavedCamDist, camDist: () => camDist }, set: { aimAmt: v => { aimAmt = v; }, sprintFovAmt: v => { _sprintFovAmt = v; }, wasSniperScope: v => { _wasSniperScope = v; }, sniperSavedCamDist: v => { _sniperSavedCamDist = v; }, camDist: v => { camDist = v; } }, actions: { setFov: fov => { camera.fov = fov; }, updateProjectionMatrix: () => camera.updateProjectionMatrix() } });
+const _freecamTick       = mountFreecamTick({ get: { yaw: () => freeCamYaw, pitch: () => freeCamPitch }, actions: { move: (dx, dy, dz) => { freeCamPos.x += dx; freeCamPos.y += dy; freeCamPos.z += dz; }, moveY: dy => { freeCamPos.y += dy; } } });
+const _heroMoveTick      = mountHeroMoveTick({ get: { slideT: () => _slideT, slideDU: () => _slideDU, slideDV: () => _slideDV, ctrlWasDown: () => _ctrlWasDown }, set: { slideT: v => { _slideT = v; }, slideDU: v => { _slideDU = v; }, slideDV: v => { _slideDV = v; }, ctrlWasDown: v => { _ctrlWasDown = v; } }, actions: { playSlideSound: () => playSfx("tone:120:80:triangle", 0.18), slideMove: (du, dv, bl) => { const _heroSlP = world.players.get("hero"); const _slMover = { u: _heroSlP.u, v: _heroSlP.v, hitbox: HERO_HITBOX }; GTAPhysics.resolveAABBMove(_slMover, du, dv, bl); world.setPlayer("hero", _heroSlP.x, _heroSlP.y, _heroSlP.z, _slMover.u, _slMover.v); }, spawnTrail: () => { const _heroSlP = world.players.get("hero"); if (Math.random() < 0.6) _spawnParticles(_heroSlP.u, _heroSlP.y + 0.05, _heroSlP.v, 1, "white", 1.5, 0.15); }, applyMove: (f, r, fwd, rt, spd, dt2, bl) => Bridge.applyCameraRelativeMove(world, "hero", f, r, fwd, rt, spd, dt2, (window.Engine && window.Engine.debug.noclip) ? {} : { blockers: bl, heroHitbox: HERO_HITBOX }) } });
+const _jumpGravityTick   = mountJumpGravityTick({ jumpV: JUMP_V, gravity: GRAVITY, get: { velocityY: () => velocityY, spaceWasDown: () => _spaceWasDown, canDoubleJump: () => _canDoubleJump, stamina: () => _stamina }, set: { velocityY: v => { velocityY = v; }, spaceWasDown: v => { _spaceWasDown = v; }, canDoubleJump: v => { _canDoubleJump = v; }, stamina: v => { _stamina = v; } }, actions: { getPos: () => world.players.get("hero"), setPos: (x,y,z,u,v) => world.setPlayer("hero",x,y,z,u,v), getSupport: (u,v,y) => _platformSys.getSupport(u,v,y), spawnDoubleJumpFx: (u,y,v) => { const _djp = world.players.get("hero"); _spawnParticles(_djp.u, _djp.y + 0.5, _djp.v, 10, "cyan", 4, 0.3); playSfx("tone:700:60:sine", 0.22); }, onLand: impact => { const fd = Math.min(90, Math.max(0, (-impact - 15) * 5)); if (fd > 0 && !(typeof Engine !== "undefined" && Engine.debug.godMode)) { heroHp = Math.max(0, heroHp - fd); heroLastDamageT = _frameNowMs / 1000; flashDamage(); showToast(`Fall damage: -${Math.round(fd)} HP`, "danger", 1500); } }, heroDead: () => _heroDead } });
+const _weaponHudTick   = mountWeaponHudTick({ get: { lowAmmoWarnedAt: () => _lowAmmoWarnedAt, lastMagBarAmmo: () => _lastMagBarAmmo, lastMagBarReloading: () => _lastMagBarReloading }, set: { lowAmmoWarnedAt: v => { _lowAmmoWarnedAt = v; }, lastMagBarAmmo: v => { _lastMagBarAmmo = v; }, lastMagBarReloading: v => { _lastMagBarReloading = v; } }, actions: { getWeapon: () => getWeapon(), getReserve: ammoItem => Inv.countItem(heroInv, ammoItem), playSfx: (str, vol) => playSfx(str, vol) } });
+let _reloading = false, _reloadStart = 0;
+let _recoilPitch = 0;
+const _camPitchSprings = mountCamPitchSprings({ camPitchMax: CFG.camPitchMax || 0.4, get: { recoilPitch: () => _recoilPitch, hitPunchPitch: () => _hitPunchPitch, camPitch: () => camPitch }, set: { recoilPitch: v => { _recoilPitch = v; }, hitPunchPitch: v => { _hitPunchPitch = v; }, camPitch: v => { camPitch = v; } } });
+let _gunKickZ = 0;      // offset applied to _gunMount.position.z each frame
+let _gunReloadX = 0;   // spring: tilts gun down during reload window
+let _weaponSwitchT = 0; // countdown for weapon-swap dip animation (0.3s total)
+let _meleeSwing = 0;   // spring: lateral swing for melee attack (applied to fpGun roll)
+let _meleeCooldown = 0; // seconds until next melee allowed
+let _dodgeCooldown = 0; // seconds until next dodge allowed
+let _dodgeVelU = 0;     // world-space dodge impulse (u axis)
+let _dodgeVelV = 0;     // world-space dodge impulse (v axis)
+let _dodgeT = 0;        // seconds remaining on active dodge (iframes window)
+let _dodgeBashDone = false; // prevents multiple bash hits per roll
+// ═══ EXTRACTED → src/config/hero_stats.js (iter 560) — DODGE_DURATION/SPEED/COOLDOWN imported at top
+let _sprintFovAmt = 0; // spring [0..1]: pushes FOV wider while sprinting
+let _moveSpread = 0;   // spring: accuracy penalty while moving/sprinting
+let _hitPunchPitch = 0; // spring: upward camera kick when taking damage
+let _footstepT = 0;    // seconds until next footstep tick
+const _footstepSnd = mountFootstepSound({ get: { footstepT: () => _footstepT }, set: { footstepT: v => { _footstepT = v; } }, actions: { playSfx } });
+let _gunBobPhase = 0;  // oscillation phase for FP weapon bob
+let _strafeRollAmt = 0; // spring [−1..1]: FP camera roll when strafing
+const _motionSprings = mountMotionSprings({ get: { moveSpread: () => _moveSpread, gunBobPhase: () => _gunBobPhase, strafeRollAmt: () => _strafeRollAmt }, set: { moveSpread: v => { _moveSpread = v; }, gunBobPhase: v => { _gunBobPhase = v; }, strafeRollAmt: v => { _strafeRollAmt = v; } } });
+let _lowAmmoWarnedAt = -1; // magCap at last low-ammo beep (avoid repeat beep per mag)
+let _scopeSwayT = 0;      // accumulates real time for sniper scope sway oscillation
+let _breathHoldT = 0;    // seconds Shift held while scoped (>1.5s causes trembling)
+let _wasSniperScope = false;
+let _sniperSavedCamDist = 7; // camDist restored when scope is dropped
+let _lastSwayPitch = 0;  // sway offset applied last frame — subtracted before re-applying
+let _lastSwayYaw   = 0;
+const _sniperSway = mountSniperSway({ get: { scopeSwayT: () => _scopeSwayT, breathHoldT: () => _breathHoldT, lastSwayPitch: () => _lastSwayPitch, lastSwayYaw: () => _lastSwayYaw, camPitch: () => camPitch, camYaw: () => camYaw }, set: { scopeSwayT: v => { _scopeSwayT = v; }, breathHoldT: v => { _breathHoldT = v; }, lastSwayPitch: v => { _lastSwayPitch = v; }, lastSwayYaw: v => { _lastSwayYaw = v; }, camPitch: v => { camPitch = v; }, camYaw: v => { camYaw = v; } } });
+let _grenadePressT = 0;   // performance.now() when G was pressed (0 = not held)
+let _heroKbU = 0, _heroKbV = 0, _heroKbT = 0; // knockback burst from heavy/boss melee
+let _enFsT = 0;   // global enemy-footstep timer — plays for nearest approaching enemy
+let _heroShotAlertU = 0, _heroShotAlertV = 0, _heroShotAlertT = 0; // last shot pos alert to nearby enemies
+// _crouchAmt managed by mountCrouchSpeedTick (iter 660)
+let _slideT = 0, _slideDU = 0, _slideDV = 0, _ctrlWasDown = false; // sprint slide state
+let _stamina = 100;    // 0..100; depletes while sprinting, regens when idle
+// ═══ EXTRACTED → src/config/hero_stats.js (iter 562) — STAMINA_MAX/DRAIN/REGEN/LOCKOUT imported at top
+let _heroExtraStaminaMax = 0; // bonus from kill level 3
+const _staminaTick = mountStaminaTick({ STAMINA_DRAIN, STAMINA_REGEN, STAMINA_MAX, STAMINA_LOCKOUT, get: { stamina: () => _stamina, heroEmpT: () => _heroEmpT, heroExtraStaminaMax: () => _heroExtraStaminaMax }, set: { stamina: v => { _stamina = v; }, heroEmpT: v => { _heroEmpT = v; } } });
+// These resolve per-weapon dynamically at call sites
+const RELOAD_DUR     = () => Math.round((getWeapon().reloadDuration || 1200) * _perkReloadMul);
+const PISTOL_MAG_CAP = () => getWeapon().magCap || 12;
+
+// ── Shoot system — iter 538 ──────────────────────────────────────────────────
+const _shootSys = mountShootSystem({
+  THREE, scene, camera, world, bullets3D, heroGroup, Inv,
+  get: {
+    shopOpen:        () => _shop.isOpen,
+    reloading:       () => _reloading,
+    pistolAmmo:      () => pistolAmmo,
+    pistolCooldown:  () => pistolCooldown,
+    weapon:          () => getWeapon(),
+    weapons:         () => CFG.weapons,
+    heroInv:         () => heroInv,
+    currentWeaponId: () => currentWeaponId,
+    weaponAmmoEntry: (id) => weaponAmmo.has(id) ? weaponAmmo.get(id) : null,
+    moveSpread:      () => _moveSpread,
+    reloadDur:       () => RELOAD_DUR(),
+    droneCooldown:   () => _droneCooldown,
+    activeVehicleId: () => activeVehicleId,
+    camYaw:          () => camYaw,
+    camPitch:        () => camPitch,
+    bulletGeo:       () => bulletGeo,
+    bulletMat:       () => bulletMat,
+    shotsFired:      () => _shotsFired,
+  },
+  set: {
+    reloading:       (v) => { _reloading = v; },
+    reloadStart:     (v) => { _reloadStart = v; },
+    reloadMsg:       (v) => { reloadMsg = v; },
+    reloadMsgUntil:  (v) => { reloadMsgUntil = v; },
+    pistolAmmo:      (v) => { pistolAmmo = v; },
+    pistolCooldown:  (v) => { pistolCooldown = v; },
+    currentWeaponId: (v) => { currentWeaponId = v; },
+    weaponAmmoEntry: (id, v) => { weaponAmmo.set(id, v); },
+    shotsFired:      (v) => { _shotsFired = v; },
+    lastHeroShotT:   (v) => { _lastHeroShotT = v; },
+    heroShotAlertU:  (v) => { _heroShotAlertU = v; },
+    heroShotAlertV:  (v) => { _heroShotAlertV = v; },
+    heroShotAlertT:  (v) => { _heroShotAlertT = v; },
+    addRecoilPitch:  (v) => { _recoilPitch += v; },
+    gunKickZ:        (v) => { _gunKickZ = v; },
+    droneCooldown:   (v) => { _droneCooldown = v; },
+  },
+  actions: {
+    playSfx,
+    showToast,
+    spawnParticles:     _spawnParticles,
+    triggerMuzzleFlash: _triggerMuzzleFlash,
+    ejectCasing:        _ejectCasing,
+    showWeaponSelector: _showWeaponSelector,
+    switchGunMesh:      _switchGunMesh,
+  },
+});
+const _tryShoot      = _shootSys.tryShoot;
+const _tryDroneShoot = _shootSys.tryDroneShoot;
+const _getAimAngle   = _shootSys.getAimAngle;
+
+// ── Barrel system — iter 540 ─────────────────────────────────────────────────
+const { makeBarrel: _makeBarrel, explodeBarrel: _explodeBarrel, barrels } = mountBarrelSystem({
+  THREE, scene, enemies, world,
+  coinByType:    _COIN_BY_TYPE,
+  weaponDropMap: _WEAPON_DROP_MAP,
+  get: {
+    heroDead:   () => _heroDead,
+    heroHp:     () => heroHp,
+    dodgeT:     () => _dodgeT,
+    enemyKills: () => enemyKills,
+    comboCount: () => _comboCount,
+    comboLastT: () => _comboLastT,
+  },
+  set: {
+    heroHp:           (v) => { heroHp = v; },
+    heroLastDamageT:  (v) => { heroLastDamageT = v; },
+    enemyKills:       (v) => { enemyKills = v; },
+    comboCount:       (v) => { _comboCount = v; },
+    comboLastT:       (v) => { _comboLastT = v; },
+    heroKbU:          (v) => { _heroKbU = v; },
+    heroKbV:          (v) => { _heroKbV = v; },
+    heroKbT:          (v) => { _heroKbT = v; },
+  },
+  actions: {
+    playSfx,
+    spawnParticles:      _spawnParticles,
+    triggerMuzzleFlash:  _triggerMuzzleFlash,
+    spawnDecal:          _spawnDecal,
+    spawnFirePatch:      _spawnFirePatch,
+    spawnPoisonPuddle:   _spawnPoisonPuddle,
+    addKillFeedEntry:    _addKillFeedEntry,
+    trackKillAndPanic:   _trackKillAndPanic,
+    spawnCoinDrop:       _spawnCoinDrop,
+    spawnAmmoPickup:     _spawnAmmoPickup,
+    spawnHealthPickup:   _spawnHealthPickup,
+    spawnWeaponPickup:   _spawnWeaponPickup,
+    applyScreenShake:    _applyScreenShake,
+    flashDamage,
+    heroShowDeathScreen: _heroShowDeathScreen,
+  },
+});
+
+window._loadingDismissed = false;
+const _platformSys = mountPlatformSystem();
+const _vehicleRenderTick = mountVehicleRenderTick();
+const _heroRegenTick     = mountHeroRegenTick({ get: { heroHp: () => heroHp, maxHp: () => HERO_MAX_HP, perkMaxHpBonus: () => _perkMaxHpBonus, lastDamageT: () => heroLastDamageT, regenDelay: () => HERO_REGEN_DELAY, regenRate: () => HERO_REGEN_RATE, perkRegenBonus: () => _perkRegenBonus }, set: { heroHp: v => { heroHp = v; }, nearDeathFired: v => { _nearDeathFired = v; } } });
+const _layerBldgName = id => ({ 2:"shop", 3:"tower", 4:"house", 5:"garage", 6:"diner", 7:"bank", 8:"park", 9:"studio" })[id] || `L${id}`;
+const _layerTransTick    = mountLayerTransitionTick({ get: { layerId: () => world.layerId }, actions: { boundaryAt: (u, v, blds) => world.boundaryAt(u, v, blds), bldgName: id => _layerBldgName(id), logTransition: (from, to) => world.logTransition("hero", from, to, "phase_shift"), showToast: (msg, type, dur) => showToast(msg, type, dur), playSfx: (str, vol) => playSfx(str, vol) } });
+const _ammoPickupTick    = mountAmmoPickupTick({ actions: { removeMesh: mesh => scene.remove(mesh), addAmmo: (item, qty) => Inv.addItem(heroInv, item || getWeapon().ammoItem || "pistol_9mm", qty), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
+const _healthPickupTick  = mountHealthPickupTick({ get: { heroHp: () => heroHp, maxHp: () => HERO_MAX_HP }, set: { heroHp: v => { heroHp = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
+const _armorShardTick    = mountArmorShardTick({ get: { heroArmor: () => heroArmor, maxArmor: () => HERO_MAX_ARMOR }, set: { heroArmor: v => { heroArmor = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
+const _speedOrbTick      = mountSpeedOrbTick({ set: { speedBoostT: v => { _speedBoostT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
+const _poisonPuddleTick  = mountPoisonPuddleTick({ actions: { removeMesh: mesh => scene.remove(mesh), applyPoison: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison"); } } });
+const _smokeZoneTick     = mountSmokeZoneTick({ actions: { spawnSmoke: (u, y, v) => _spawnParticles(u, y, v, 1, "white", 0.6, 0.9) } });
+const _grenadeCrateTick  = mountGrenadeCrateTick({ get: { grenadeCount: () => grenadeCount }, set: { grenadeCount: v => { grenadeCount = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
+const _armorVestTick     = mountArmorVestTick({ get: { heroArmor: () => heroArmor, maxArmor: () => HERO_MAX_ARMOR }, set: { heroArmor: v => { heroArmor = v; } }, actions: { playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur) } });
+const _coinDropTick      = mountCoinDropTick({ actions: { removeMesh: mesh => scene.remove(mesh), addScore: v => { score += v; if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.SCORE_CHANGED, { score, delta: v, source: "coin" }); }, playSfx: (str, vol) => playSfx(str, vol), spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c) } });
+const _weaponPickupTick  = mountWeaponPickupTick({ get: { currentWeaponId: () => currentWeaponId, currentMag: () => pistolAmmo, currentWeaponAmmoItem: () => getWeapon().ammoItem || "pistol_9mm" }, set: { currentWeaponId: v => { currentWeaponId = v; }, currentMag: v => { pistolAmmo = v; }, weaponSwitchT: v => { _weaponSwitchT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), findWeaponDef: id => (CFG.weapons || []).find(w => w.id === id) || null, setWeaponAmmo: (id, v) => weaponAmmo.set(id, v), addReserveAmmo: (item, qty) => Inv.addItem(heroInv, item, qty), countReserveAmmo: item => Inv.countItem(heroInv, item), playSfx: (str, vol) => playSfx(str, vol), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), clearReload: () => { _reloading = false; reloadMsg = ""; reloadMsgUntil = 0; }, switchGunMesh: id => _switchGunMesh(id), showWeaponSelector: () => _showWeaponSelector(), showToast: (msg, type, dur) => showToast(msg, type, dur), addKillFeed: (msg, col) => _addKillFeedEntry(msg, col) } });
+const _legacyPickupTick  = mountLegacyPickupTick({ actions: { collectPickup: () => Bridge.collectPickup(world, "hero", pickups, 1.2), getMesh: id => pickupMeshes.get(id) || null, onCollected: id => { score++; const _m = pickupMeshes.get(id); if (_m) scene.remove(_m); showToast(`Coin collected (${score}/${pickups.length})`, "success", 1500); _quest.completeQuestStep("intro", 0); if (score >= 3) _quest.completeQuestStep("intro", 1); if (score >= pickups.length) _quest.completeQuestStep("intro", 2); } } });
+const _optionalSystemsTick = mountOptionalSystemsTick({ actions: { getTriggerZones: () => typeof TriggerZones !== "undefined" ? TriggerZones : null, getSoundZones: () => typeof SoundZones !== "undefined" ? SoundZones : null, getCutscene: () => typeof Cutscene !== "undefined" ? Cutscene : null, getAchievements: () => typeof Achievements !== "undefined" ? Achievements : null, getDayNight: () => typeof DayNight !== "undefined" ? DayNight : null, getStatusEffects: () => typeof StatusEffects !== "undefined" ? StatusEffects : null, getWaveManager: () => typeof WaveManager !== "undefined" ? WaveManager : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0, y: 0 }, getEnemyPos: id => world.players.get(id) || null, getCamera: () => camera, waveHudTick: (dt, ws, nowMs) => _waveHudTick.tick(dt, { ws, nowMs }) } });
+const _camDistTick       = mountCamDistTick({ get: { camDist: () => camDist, snapZoomTarget: () => snapZoomTarget, computerEntering: () => computerEntering, computerEntryT: () => computerEntryT, camDistBeforeEntry: () => camDistBeforeEntry, computerEntryDur: () => COMPUTER_ENTRY_DUR }, set: { camDist: v => { camDist = v; }, snapZoomTarget: v => { snapZoomTarget = v; }, computerEntryT: v => { computerEntryT = v; } }, actions: { lerpZoom: (dist, target, dt, speed) => window.CameraSpine ? window.CameraSpine.lerpZoom(dist, target, dt, speed) : null, finishComputerEntry: () => finishComputerEntry() } });
+const _cameraZoneTick    = mountCameraZoneTick({ get: { camDist: () => camDist, aimAmt: () => aimAmt, camDistMax: () => CAM_DIST_MAX }, actions: { evaluateSpine: (zoom, max) => (window.CameraSpine && window.CameraSpine.evaluate) ? window.CameraSpine.evaluate(zoom, { camDistMax: max }) : null, isActiveDrone: (inCar) => !!(inCar ? _activeVehicleDef : null) && (_activeVehicleDef.type === "drone"), setHeroGroupVisible: v => { heroGroup.visible = v; }, setShadowBlobVisible: v => { _shadowBlob.visible = v; }, setFpGunGroupVisible: v => { _fpGunGroup.visible = v; } } });
+const { _camTarget, _camOff, _camLook, _camAimTarget, _camBuildLook } = mountCamVectors({ THREE });
+const _cameraPosTick     = mountCameraPosTick({ vectors: { camTarget: _camTarget, camOff: _camOff, camLook: _camLook, camAimTarget: _camAimTarget, camBuildLook: _camBuildLook }, actions: { getCamera: () => camera } });
+const _proximityTick     = mountProximityTick({ get: { dialogOpen: () => _npcDialog.isOpen, computerOpen: () => computerOpen }, set: { nearComputer: v => { nearComputer = v; }, nearNpc: n => { _nearNpc = n; } }, actions: { getComputerPos: () => computerEntity, getScreenFront: () => screenFront || null, getNpcDefs: () => NPC_DEFS, getNpcPos: id => world.players.get(id) || null } });
+const _deviceBusTick     = mountDeviceBusTick({ actions: { getDeviceBus: () => typeof deviceBus !== "undefined" ? deviceBus : null, getHeroPos: () => world.players.get("hero") || { u: 0, v: 0 }, hasAudioMixer: () => typeof audioMixer !== "undefined" && !!audioMixer, playSfx: (str, vol) => playSfx(str, vol), pollMon1Bridge: () => { if (window.__mon1Bridge) window.__mon1Bridge.pollAndPaint(); } } });
+const _screenMeshTick    = mountScreenMeshTick({ actions: { getScreenMesh: () => window.ScreenMesh || null, getBuildConsoleScreen: () => window._buildConsoleScreen || null, getBuildConsoleMesh: () => window._buildConsoleMesh || null, intersectMesh: (mesh) => { const _r = new THREE.Raycaster(); _r.setFromCamera({ x: 0, y: 0 }, camera); return _r.intersectObject(mesh, false); }, setHoverRegion: id => { window._bcHoverRegion = id; } } });
+const _debugHudTick      = mountDebugHudTick({ actions: { getVehDist: id => Bridge.uvDist(world, "hero", id), setHudHtml: html => { hud.innerHTML = html; }, clearEnemyHpDirty: () => { _hudEnemyHpDirty = false; } } });
+const _enemyMeshTick     = mountEnemyMeshTick({ actions: { getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), spawnClearPos: (r1, r2) => _spawnClearPos(r1, r2), setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), markHudDirty: () => { _hudEnemyHpDirty = true; } } });
+const _vehiclePhysicsTick = mountVehiclePhysicsTick({ actions: { key: k => !!keys[k], getCamYaw: () => camYaw, getPos: id => world.players.get(id) || null, setPos: (id, x, yy, z, u, vv) => world.setPlayer(id, x, yy, z, u, vv), carPhysicsStep: (vId, vSt, throttle, steerIn, dt, opts) => Bridge.carPhysicsStep(world, vId, vSt, throttle, steerIn, dt, opts), updateCarState: next => Object.assign(carState, next), markPlatformDirty: () => _platformSys.markDirty() } });
+const _ammoReloadTick    = mountAmmoReloadTick({ set: { reloading: v => { _reloading = v; }, pistolAmmo: v => { pistolAmmo = v; }, pistolCooldown: v => { pistolCooldown = v; }, getPistolAmmo: () => pistolAmmo }, actions: { getReloadDur: () => RELOAD_DUR(), getMagCap: () => PISTOL_MAG_CAP(), getWeapon: () => getWeapon(), countInvAmmo: item => Inv.countItem(heroInv, item), removeInvAmmo: (item, n) => Inv.removeItem(heroInv, item, n), setAmmo: v => setAmmo(v), getReloadCircle: () => _dom.reloadCircle || null, getAmmoHud: () => _dom.ammoHud || null } });
+const _crouchSpeedTick   = mountCrouchSpeedTick({ actions: { spawnSprintTrail: () => { const _spTp = world.players.get("hero"); if (_spTp) _spawnParticles(_spTp.u, _spTp.y + 0.08, _spTp.v, 1, "orange", 1.2, 0.22); } } });
+const _waveHudTick       = mountWaveHudTick({ get: { waveBeepLast: () => _waveBeepLast, lastWaveNum: () => _lastWaveNum, waveBannerUntil: () => _waveBannerUntil, waveChallenge: () => _waveChallenge, waveChallengeStart: () => _waveChallengeStart, waveChallengeHits: () => _waveChallengeHits, heroLevel: () => _heroLevel, levelThresholds: () => _LEVEL_THRESHOLDS, enemyKills: () => enemyKills }, set: { waveBeepLast: v => { _waveBeepLast = v; }, lastWaveNum: v => { _lastWaveNum = v; }, waveBannerUntil: v => { _waveBannerUntil = v; } }, actions: { getWaveHud: () => _dom.waveHud || null, getWaveLabel: () => _dom.waveLabel || null, getWaveDetail: () => _dom.waveDetail || null, getLevelHud: () => _dom.heroLevelHud || null, getChallengeHud: () => _dom.waveChallengeHud || null, getBannerLabel: () => _dom.waveBannerLabel || null, getBannerSub: () => _dom.waveBannerSub || null, getBanner: () => _dom.waveBanner || null, playSfx: (str, vol) => playSfx(str, vol) } });
+const _grenadeArcTick    = mountGrenadeArcTick({ THREE, get: { heroHp: () => heroHp }, set: { heroHp: v => { heroHp = v; }, grenadeCount: v => { grenadeCount = v; }, grenadePressT: v => { _grenadePressT = v; } }, actions: { addToScene: m => scene.add(m), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), playSfx: (str, vol) => playSfx(str, vol), showToast: (msg, type, dur) => showToast(msg, type, dur), showDeathScreen: () => { if (!_heroDead) _heroShowDeathScreen(); }, getTimerEl: () => _dom.grenCookTimer || null } });
+const _grenadePhysicsTick = mountGrenadePhysicsTick({ actions: { spawnParticles: (u, y, v) => { if (Math.random() < 0.55) _spawnParticles(u, y, v, 1, "white", 0.8, 0.35); }, removeMesh: m => scene.remove(m), deploySmokeZone: (u, v) => _deploySmokeZone(u, v), explodeGrenade: g => _explodeGrenade(g), playSfx: (str, vol) => playSfx(str, vol) } });
+const _grenadeWarnTick   = mountGrenadeWarnTick({ actions: { getWarnEl: () => _dom.grenadeWarn || null } });
+const _enemyFootstepTick = mountEnemyFootstepTick({ get: { enFsT: () => _enFsT }, set: { enFsT: v => { _enFsT = v; } }, actions: { getHeroPos: () => world.players.get("hero") || null, getEnemyPos: id => world.players.get(id) || null, playSfx: (str, vol) => playSfx(str, vol) } });
+const _enemyBulletTick   = mountEnemyBulletTick({ get: { heroPos: () => world.players.get("hero") || null, heroHp: () => heroHp, heroArmor: () => heroArmor, dodgeT: () => _dodgeT, godMode: () => typeof Engine !== "undefined" && Engine.debug.godMode, armorAbsorb: () => ARMOR_ABSORB, nowSec: () => _frameNowMs / 1000, nowMs: () => _frameNowMs }, set: { heroHp: v => { heroHp = v; }, heroArmor: v => { heroArmor = v; }, lastDamageT: v => { heroLastDamageT = v; }, dmgDirAngle: v => { _dmgDirAngle = v; }, dmgDirUntil: v => { _dmgDirUntil = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), flashDamage: () => flashDamage(), applyScreenShake: amt => _applyScreenShake(amt), spawnParticles: (u, y, v, n, col, spd, size) => _spawnParticles(u, y, v, n, col, spd, size), applyPoison: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "poison"); }, showDeathScreen: () => _heroShowDeathScreen(), playSfx: (str, vol) => playSfx(str, vol) } });
+const _bulletWorldHitTick = mountBulletWorldHitTick({ getMp: () => _mp, barrels, crates, buildingBlockers, actions: { spawnParticles: _spawnParticles, spawnDamageNumber: _spawnDamageNumber, playSfx, explodeBarrel: (u, v) => _explodeBarrel(u, v), breakCrate: cr => _breakCrate(cr), spawnWallScorch: (u, y, v, nU, nV) => _spawnWallScorch(u, y, v, nU, nV) } });
+const _bulletEnemyKillTick = mountBulletEnemyKillTick({ enemies, coinByType: _COIN_BY_TYPE, weaponDropMap: _WEAPON_DROP_MAP, levelThresholds: _LEVEL_THRESHOLDS, get: { bulletTimeLeft: () => _bulletTimeLeft, enemyKills: () => enemyKills, heroLevel: () => _heroLevel, heroApexMode: () => _heroApexMode, stamina: () => _stamina, staminaMax: () => STAMINA_MAX, heroExtraStaminaMax: () => _heroExtraStaminaMax, heroArmor: () => heroArmor, heroMaxArmor: () => HERO_MAX_ARMOR, score: () => score, lastKillT: () => _lastKillT, streakWindow: () => _STREAK_WINDOW, streakCount: () => _streakCount, comboCount: () => _comboCount, heroHp: () => heroHp, heroMaxHp: () => HERO_MAX_HP, heroDead: () => _heroDead, vignetteAmt: () => _vignetteAmt }, set: { bulletTimeLeft: v => { _bulletTimeLeft = v; }, killMarkerUntil: v => { _killMarkerUntil = v; }, killMarkerHs: v => { _killMarkerHs = v; }, liveBoss: v => { _liveBoss = v; }, enemyKills: v => { enemyKills = v; }, heroLevel: v => { _heroLevel = v; }, stamina: v => { _stamina = v; }, heroArmor: v => { heroArmor = v; }, score: v => { score = v; }, lastKillT: v => { _lastKillT = v; }, streakCount: v => { _streakCount = v; }, comboCount: v => { _comboCount = v; }, comboLastT: v => { _comboLastT = v; }, heroHp: v => { heroHp = v; }, vignetteAmt: v => { _vignetteAmt = v; } }, actions: { playSfx, spawnDecal: _spawnDecal, spawnFirePatch: _spawnFirePatch, spawnPoisonPuddle: _spawnPoisonPuddle, applyLevelUpBuff: _applyLevelUpBuff, showToast, addKillFeedEntry: _addKillFeedEntry, spawnDamageNumber: _spawnDamageNumber, trackKillAndPanic: _trackKillAndPanic, emitEnemyKilled: (id, kills) => { if (typeof EventBus !== "undefined") EventBus.emit(EventBus.EVENTS.ENEMY_KILLED, { id, kills }); }, completeQuestStep: (q, i) => _quest.completeQuestStep(q, i), getWaveState: () => typeof WaveManager !== "undefined" ? WaveManager.getState() : null, spawnAmmoPickup: _spawnAmmoPickup, spawnHealthPickup: _spawnHealthPickup, spawnCoinDrop: _spawnCoinDrop, spawnWeaponPickup: _spawnWeaponPickup, spawnParticles: _spawnParticles, emitParticle: (name, payload) => { if (typeof ParticleSystem !== "undefined") ParticleSystem.emit(name, payload); }, applyScreenShake: _applyScreenShake, spawnArmorShard: _spawnArmorShard } });
+const _bulletEnemyHitFeedbackTick = mountBulletEnemyHitFeedbackTick({ computeHurtSfx, set: { hudEnemyHpDirty: v => { _hudEnemyHpDirty = v; }, shotsHitDelta: v => { _shotsHit += v; }, damageDealtDelta: v => { _damageDealt += v; }, hitMarkerUntil: v => { hitMarkerUntil = v; }, waveChallengeHitsDelta: v => { _waveChallengeHits += v; } }, actions: { spawnDamageNumber: _spawnDamageNumber, playSfx, showToast, spawnParticles: _spawnParticles, emitParticle: (name, payload) => { if (typeof ParticleSystem !== "undefined") ParticleSystem.emit(name, payload); }, spawnFirePatch: _spawnFirePatch } });
+const _bulletPhysicsTick = mountBulletPhysicsTick({ bullets3D, enemies, getPlayerPos: id => world.players.get(id) || null, computeBulletDamage, hitFeedbackTick: _bulletEnemyHitFeedbackTick, killTick: _bulletEnemyKillTick, worldHitTick: _bulletWorldHitTick, get: { pistolCooldown: () => pistolCooldown, dmgMul: () => _DMG_MUL, lvlDmgMul: () => _heroLvlDmgMul, perkDmgMul: () => _perkDmgMul }, set: { pistolCooldown: v => { pistolCooldown = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), spawnDamageNumber: _spawnDamageNumber, playSfx } });
+const _firePatchTick     = mountFirePatchTick({ get: { heroHp: () => heroHp, heroFireT: () => _heroFireT }, set: { heroHp: v => { heroHp = v; }, heroFireT: v => { _heroFireT = v; } }, actions: { removeMesh: mesh => scene.remove(mesh), applyBurning: () => { if (typeof StatusEffects !== "undefined") StatusEffects.apply("hero", "burning"); }, applyScreenShake: amt => _applyScreenShake(amt), getEnemyPos: id => world.players.get(id) || null, spawnDamageNumber: (u, y, v, t, c) => _spawnDamageNumber(u, y, v, t, c), onEnemyKill: (en, u, v) => { enemyKills++; _comboCount++; _comboLastT = _frameNowMs / 1000; _addKillFeedEntry(`🔥 FIRE KILL #${enemyKills} — ${en.type}`, "#ff6600"); _trackKillAndPanic(u, v); _spawnDecal(u, v, "blood"); _spawnCoinDrop(u, v, (_COIN_BY_TYPE[en.type] || 1) * Math.min(8, _comboCount)); _spawnAmmoPickup(u, v, en.dropQty || 12, en.dropAmmo); if (en._elite) { score += 15; heroArmor = Math.min(HERO_MAX_ARMOR, heroArmor + 20); } if (_heroLevel < 5 && enemyKills >= _LEVEL_THRESHOLDS[_heroLevel]) _applyLevelUpBuff(++_heroLevel); }, explodeBarrel: (u, v) => _explodeBarrel(u, v) } });
+// HUD enemy HP dirty-flag — skip expensive filter/map/join when no HP changed
+let _hudEnemyHpDirty = true;
+let _lastHudEnemyHpStr = "";
+// Mag bar dirty-flag — skip innerHTML rebuild when ammo unchanged
+let _lastMagBarAmmo = -1;
+let _lastMagBarReloading = false;
+// ── Fixed-timestep physics accumulator ──────────────────────────────────────
+// ═══ FIXED_DT extracted → src/config/physics_stats.js (iter 569) — imported at top
+let _physicsAcc  = 0;        // leftover time from last frame
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ════════════════════════════════════════════════════════════════════════════
+// GAME LOOP — tick() is the single rAF callback driving all gameplay.
+// Subsystems extracted so far call into it via their _xxxTick.tick(dt, ...).
+// See the TICK FUNCTION ORDER comment at the top of this file.
+// EXTRACT-PLAN: tick() (~2900 lines) — extract in subsections:
+//   iter 527: enemy_ai_tick.js → src/entities/enemy_ai_tick.js (lines ~4756-5569)
+//     the main AI loop: BT, knockback, alerts, ranged attacks, movement
+//   iter 528: bullet_physics.js → src/systems/bullet_physics.js (lines ~4290-4560)
+//     hero bullet travel, hit detection, kill processing
+//   iter 529: hud_tick.js → src/ui/hud_tick.js (lines ~5570-6657)
+//     all HUD state updates (health bar, wave HUD, crosshair, blind effect, etc.)
+//   iter 530: vehicle_physics.js → src/vehicles/vehicle_physics.js (lines ~4050-4160)
+//     drone + ground vehicle physics (already have src/vehicles/ dir)
+//   iter 531: hero_physics.js → src/systems/hero_physics.js (lines ~3757-4050)
+//     hero movement, stamina, jump, gravity, sprint slide
+let _tickDriveMode = false; // when true, tick() skips rAF scheduling (used by test bridge tickGame)
+function tick() {
+  const now = performance.now();
+  _frameNowMs = now;
+  const rawDt = Math.min(0.05, (now - lastT) / 1000);  // cap at 50ms (20fps min)
+  let dt = rawDt;
+  lastT = now;
+
+  // Fixed-step accumulator: drain in FIXED_DT chunks.
+  // _physicsSteps is how many full steps fit this frame; alpha is the remainder.
+  _physicsAcc += rawDt;
+  let _physicsSteps = 0;
+  while (_physicsAcc >= FIXED_DT) { _physicsAcc -= FIXED_DT; _physicsSteps++; }
+  const _physicsAlpha = _physicsAcc / FIXED_DT; // for future render interpolation
+  // physicsdt: the time actually consumed by fixed steps this frame
+  const _physicsDt = _physicsSteps * FIXED_DT;
+  // Note: current tick() still uses variable `dt` throughout for backward compat.
+  // Migrate individual subsystems to _physicsDt / FIXED_DT over time.
+
+  // Dismiss loading screen on first real frame
+  if (!window._loadingDismissed) {
+    window._loadingDismissed = true;
+    const _ls = document.getElementById("loadingScreen");
+    const _lb = document.getElementById("loadBar");
+    if (_lb) _lb.style.width = "100%";
+    if (_ls) setTimeout(function () {
+      _ls.style.opacity = "0";
+      setTimeout(function () { _ls.style.display = "none"; }, 700);
+    }, 300);
+  }
+  // Bullet time — sniper shot triggers 0.35s at 35% speed
+  if (_bulletTimeLeft > 0) {
+    _bulletTimeLeft = Math.max(0, _bulletTimeLeft - dt);
+    dt *= 0.35;
+  }
+
+  // Engine namespace time tick
+  if (typeof Engine !== "undefined") Engine.time.tick(now);
+
+  // FPS counter — extracted → src/systems/fps_tick.js (iter 599)
+  _fpsTick.tick(now, _dom.fpsCounter);
+
+  // Ammo HUD + reload circle + completion — extracted → src/systems/ammo_reload_tick.js (iter 659)
+  _ammoReloadTick.tick(dt, { nowMs: now, reloading: _reloading, reloadStart: _reloadStart, pistolAmmo });
+
+  if (_droneCooldown > 0) _droneCooldown -= dt;
+  // Auto-fire for automatic weapons (rifle etc.) — held LMB
+  if (_mouseHeld && pointerLocked && !invDiv.classList.contains("open") && !buildMode) {
+    const _isDroneNow = inCar && activeVehicleId && (_activeVehicleDef || {}).type === "drone";
+    if (_isDroneNow) { _tryDroneShoot(); }
+    else { const _aw = getWeapon(); if (_aw.automatic) _tryShoot(); }
+  }
+  if (_droneCooldown > 0) _droneCooldown -= dt;
+
+  const isSprinting = !!(keys["ShiftLeft"] || keys["ShiftRight"]);
+  const { isSniperScope } = _scopeFovTick.tick(dt, { aiming, computerOpen, computerEntering, isSprinting, heroDead: _heroDead, buildMode, inCar, currentWeaponId });
+  // Scope overlay + crosshair bloom/color — extracted → src/systems/crosshair_tick.js (iter 600)
+  _crosshairTick.tick(_dom.scopeOverlay, _dom.crosshair, { isSniperScope, aiming, moveSpread: _moveSpread, heroDead: _heroDead, heroApexMode: _heroApexMode });
+
+  // Sniper scope sway — breathing oscillation while scoped (crouching/breath-hold modulate amplitude)
+  _sniperSway.tick(dt, { isSniperScope, heroDead: _heroDead, holdingBreath: !!(keys["ShiftLeft"] || keys["ShiftRight"]), crouching: !!(keys["ControlLeft"] || keys["ControlRight"]) && !buildMode && !inCar && !computerOpen });
+
+  // Snap-zoom + computer entry dolly — extracted → src/systems/cam_dist_tick.js (iter 661)
+  _camDistTick.tick(dt);
+
+  // While computer is open, freeze the player — no movement, no shooting.
+  if (computerOpen) {
+    // Still render scene + HUD, but skip movement/physics
+    const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
+    heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
+    if (!_5D_NO_RENDER) {
+      if (composer) composer.render(); else renderer.render(scene, camera);
+    }
+    if (!_tickDriveMode) requestAnimationFrame(tick);
+    return;
+  }
+
+  _freecamTick.tick(dt, { buildMode, speed: FREE_CAM_SPEED, speedFast: FREE_CAM_SPEED * 2.5, keys });
+
+  // camera-relative basis projected to ground.
+  // Camera sits at hero + (-sin(yaw), -cos(yaw)) * dist (behind hero),
+  // so forward (the direction W should move = away from camera) is
+  // the opposite vector: (+sin(yaw), +cos(yaw)).
+  const forward = { x: Math.sin(camYaw), y: 0, z: Math.cos(camYaw) };
+  const right   = { x: -Math.cos(camYaw), y: 0, z: Math.sin(camYaw) };
+
+  // Death countdown tick
+  if (_heroDead) _tickDeath(dt);
+
+  // In build mode WASD drives the freecam; while dead, all movement blocked
+  const inputF = (buildMode || _heroDead) ? 0 : ((keys["KeyW"] ? 1 : 0) - (keys["KeyS"] ? 1 : 0));
+  const inputR = (buildMode || _heroDead) ? 0 : ((keys["KeyD"] ? 1 : 0) - (keys["KeyA"] ? 1 : 0));
+  const isMoving = (inputF !== 0 || inputR !== 0) && !inCar;
+  // Crouching spring, speed mul, move spread, sprint trail — extracted → src/systems/crouch_speed_tick.js (iter 660)
+  const { crouching, crouchAmt: _crouchAmt, crouchSpeedMul, moveSpreadTarget } = _crouchSpeedTick.tick(dt, { keys, buildMode, inCar, computerOpen, heroDead: _heroDead, aiming, isSprinting, isMoving, pointerLocked });
+  // Stamina — drains while sprinting, regens otherwise; requires STAMINA_LOCKOUT to re-enter sprint
+  const wantsSprint = !!(keys["ShiftLeft"] || keys["ShiftRight"]) && !crouching && !inCar && !_heroDead;
+  const canSprint = _staminaTick.tick(dt, { wantsSprint, isSprinting, inputMoving: (inputF !== 0 || inputR !== 0) });
+  const _speedBoostMul = _speedBoostTick.tick(dt, { isMoving, inCar, buildMode, heroDead: _heroDead });
+  const _baseSpeed = canSprint ? (SPRINT + _heroLvlSpeedBonus + _perkSpeedBonus) : (WALK + _heroLvlSpeedBonus * 0.5) * crouchSpeedMul;
+  const speed = _baseSpeed * _speedBoostMul;
+
+  _motionSprings.tick(dt, { moveSpreadTarget, isMoving, inCar, buildMode, heroDead: _heroDead, canSprint, inputR, aiming });
+
+  if (!buildMode && inCar && activeVehicleId) {
+    // Vehicle physics (drone + ground) — extracted → src/systems/vehicle_physics_tick.js (iter 658)
+    _vehiclePhysicsTick.tick(dt, { vDef: _activeVehicleDef, vSt: vehicleStates.get(activeVehicleId), activeVehicleId, blockers: buildingBlockers });
+  } else {
+    const _heroNow = world.players.get("hero");
+    const CAR_BLOCKER_H = 0.75;
+    const vehicleBlockers = VEHICLE_DEFS.map(v => { const vp = world.players.get(v.id); const hb = v.hitbox || { w: 2, d: 4 }; if (_heroNow && _heroNow.y > CAR_BLOCKER_H) return null; return { u: vp.u, v: vp.v, y: 0, hitbox: { w: hb.w, d: hb.d, h: CAR_BLOCKER_H } }; }).filter(Boolean);
+    _heroMoveTick.tick(dt, { inputF, inputR, forward, right, speed, sprintSpeed: SPRINT, canSprint, isMoving, heroDead: _heroDead, buildMode, ctrlDown: !!(keys["ControlLeft"] || keys["ControlRight"]), blockers: buildingBlockers.concat(vehicleBlockers) });
+  }
+
+  // onGround is set later in the jump/gravity block; pre-declare here so footstep
+  // check can safely reference it (will be false until the block below assigns it)
+  let onGround = false;
+
+
+  _camPitchSprings.tick(dt); // recoil + hit-punch camera pitch springs (extracted iter 595)
+
+  // Rain tick
+  Rain.tick(dt);
+
+  // Pulse spawn point meshes
+  for (const { mesh } of _spawnMeshes) {
+    mesh.material.opacity = 0.4 + 0.4 * Math.abs(Math.sin(now / 600));
+    mesh.rotation.y += dt * 1.2;
+  }
+
+  // Tick all VFX subsystems in one call:
+  //   • sphere particle pool (bullet impacts, death bursts, muzzle sparks)
+  //   • floating damage numbers (world→screen projection + rise + fade)
+  //   • shell casings (physics: gravity + bounce + fade)
+  //   • boss shockwave rings (expanding torus + opacity ramp)
+  //   • muzzle flash PointLight decay (60ms fade from intensity 4 → 0)
+  Vfx.tick(dt);
+  // High-count instanced particle emitters (rain, smoke) — separate module
+  if (typeof ParticleSystem !== "undefined") ParticleSystem.tick(dt);
+  // Flashlight camera tracking — extracted → src/render/flashlight.js (iter 662)
+  _flashlightTick(_flashlightOn);
+  // Trigger zones — check hero + all enemies
+  // Optional global systems (TriggerZones, SoundZones, Cutscene, Achievements, DayNight, StatusEffects, WaveManager)
+  // extracted → src/systems/optional_systems_tick.js (iter 663)
+  _optionalSystemsTick.tick(dt, { enemies, performanceNow: performance.now() });
+
+// ═══ EXTRACTED → src/systems/bullet_physics_tick.js (iter 681) ══════════════════════
+  // Pseudocode: substep loop (5×), enemy hit, pierce, world hit → all in bullet_physics_tick.js
+  _bulletPhysicsTick.tick(dt, { nowMs: now });
+
+  _enemyBulletTick.tick(dt, { bullets: enemyBullets, heroDead: _heroDead });
+  _heroShotAlertT = Math.max(0, _heroShotAlertT - dt);
+
+  const heroNow = world.players.get("hero");
+
+  // Grenade physics + detonation
+  _grenadeWarnTick.tick(dt, { grenades: grenades3D, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _grenadePhysicsTick.tick(dt, { grenades: grenades3D, gravity: GRAVITY, nowMs: now });
+
+  _grenadeArcTick.tick(dt, { buildMode, computerOpen, heroDead: _heroDead, grenadeCount, keyG: !!keys["KeyG"], heroU: heroNow.u, heroV: heroNow.v, heroY: heroNow.y, camYaw, grenadePressT: _grenadePressT, performanceNow: performance.now() });
+
+  // Line-of-sight check — extracted → src/systems/los_check.js (iter 655)
+  const _hasLOS = (u0, v0, u1, v1) => hasLOS(u0, v0, u1, v1, buildingBlockers);
+
+  _enemyFootstepTick.tick(dt, { enemies, heroDead: _heroDead });
+
+// EXTRACT-PLAN see iter 527 note above — enemy AI loop starts here (~800 lines)
+  // Drive all enemy AI via BehaviorTree (patrol→chase→attack)
+  // In peaceful mode enemies are static decorations — skip AI entirely.
+  const _heroNowAI = world.players.get("hero");
+  for (const en of enemies) {
+    if (gameMode === "peaceful") continue;   // no AI in peaceful mode
+    const em = enemyMeshes.get(en.id);
+    if (!em) continue;
+
+    if (!en.dead) {
+      _enemyAiScaffold.tick(dt, en, { heroU: _heroNowAI.u, heroV: _heroNowAI.v, nowMs: now, em, crouching, smokeZones, heroShotAlertT: _heroShotAlertT, heroShotAlertU: _heroShotAlertU, heroShotAlertV: _heroShotAlertV }); // → enemy_ai_scaffold_tick.js
+    }
+    // tickEntry handles both alive visual updates and dead fall animation — must run for dead enemies too
+    if (_enemyMeshTick.tickEntry(en, em, dt, now, ENEMY_RESPAWN_DELAY)) continue;
+  }
+
+  _enemyRegenTick.tick(dt, { nowSec: now / 1000, enemies });
+
+  _enemySepTick.tick(dt, { enemies });
+
+  _heroRegenTick.tick(dt, { nowSec: now / 1000 });
+
+  // Computer + NPC proximity — extracted → src/systems/proximity_tick.js (iter 652)
+  _proximityTick.tick(dt, { heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _npcMoveTick.tick(dt, { nowMs: now, heroU: heroNow.u, heroV: heroNow.v, npcDefs: NPC_DEFS, npcMeshes, dialogOpen: _npcDialog.isOpen, lastHeroShotT: _lastHeroShotT });
+
+  _platformSys.tick(dt, { vehicles: VEHICLE_DEFS.map(vDef => ({ id: vDef.id, pos: world.players.get(vDef.id), hitbox: vDef.hitbox })) });
+
+  const hero = world.players.get("hero");
+  ({ onGround } = _jumpGravityTick.tick(dt, { spaceDown: !!keys["Space"], buildMode }));
+
+  _footstepSnd.tick(dt, { isMoving, heroDead: _heroDead, pointerLocked, canSprint, crouching, onGround });
+
+  const { insideNow } = _layerTransTick.tick(dt, { heroU: hero.u, heroV: hero.v, buildings: buildings.map(b => b.b) });
+
+  // Ambient soundscape disabled — oscillator hum removed per user request
+
+  _vehicleRenderTick.tick(dt, { vehicleDefs: VEHICLE_DEFS, vehicleMeshes, vehicleStates, activeVehicleId, inCar, keys, toRenderPos: id => Bridge.engineToRenderPos(world.players.get(id)) });
+
+  const heroPos = Bridge.engineToRenderPos(world.players.get("hero"));
+  // hero visibility is set below after firstPerson is computed
+  heroGroup.position.set(heroPos.x, heroPos.y, heroPos.z);
+  // Blob shadow follows hero on ground, fades when airborne
+  _shadowBlob.position.set(heroPos.x, 0.01, heroPos.z);
+  _shadowBlob.material.opacity = Math.max(0, 0.28 - heroPos.y * 0.06);
+
+  _walkAnimTick.tick(dt, { groundSpeed: inCar ? 0 : Math.hypot(inputF, inputR) * speed, aimAmt, reloading: _reloading });
+  _heroFaceTick.tick(dt, { aiming, inputF, inputR, forward, right, camYaw });
+
+  // Camera zone, spine, mesh visibility — extracted → src/systems/camera_zone_tick.js (iter 654)
+  const { firstPerson, spineZone, dist, spine, fpGunActive: _fpGunActive } = _cameraZoneTick.tick(dt, { buildMode, inCar, computerOpen, heroDead: _heroDead });
+  // Melee cooldown + swing spring
+  if (_meleeCooldown > 0) _meleeCooldown -= dt;
+  _dodgeTick.tick(dt);
+  _heroKbTick.tick(dt);
+  _meleeSwing += (0 - _meleeSwing) * Math.min(1, dt * 18);
+  // FP gun position/rotation — extracted → src/systems/fp_gun_pos_tick.js (iter 612)
+  _fpGunPosTick.tick(dt, now, { active: _fpGunActive, aiming, reloading: _reloading, reloadStart: _reloadStart, reloadDur: RELOAD_DUR(), canSprint, gunBobPhase: _gunBobPhase, gunKickZ: _gunKickZ, gunReloadX: _gunReloadX, meleeSwing: _meleeSwing });
+  // Camera positioning (eye height + build/FP/3P branches) — extracted → src/systems/camera_pos_tick.js (iter 653)
+  _cameraPosTick.tick(dt, { buildMode, firstPerson, heroPos, freeCamPos, freeCamYaw, freeCamPitch, camYaw, camPitch, dist, crouchAmt: _crouchAmt, gunBobPhase: _gunBobPhase, aiming, canSprint, camSide, strafeRollAmt: _strafeRollAmt });
+  _camShakeTick.tick(dt);
+
+  // Debug HUD part 1 (vehicle proximity, position) — merged into debug_hud_tick.js (iter 656)
+
+  _mediaPickupsTick(dt, { heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _ammoPickupTick.tick(dt, { pickups: ammoPickups, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _healthPickupTick.tick(dt, { pickups: healthPickups, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _speedOrbTick.tick(dt, { pickups: _speedOrbs, heroU: heroNow.u, heroV: heroNow.v, nowMs: now, heroDead: _heroDead });
+
+  _armorShardTick.tick(dt, { pickups: armorShards, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _firePatchTick.tick(dt, { patches: firePatches, heroU: heroNow.u, heroV: heroNow.v, nowMs: now, nowSec: now / 1000, enemies, barrels });
+
+  _poisonPuddleTick.tick(dt, { pickups: poisonPuddles, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  // Trap mines — arm delay, proximity check, detonate
+  _tickMines(dt);
+  // Deployable turrets — rotate to target, fire, take damage from enemies
+  _tickTurrets(dt);
+
+  _smokeZoneTick.tick(dt, { zones: smokeZones });
+
+  _weaponPickupTick.tick(dt, { pickups: weaponPickups, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _grenadeCrateTick.tick(dt, { crates: grenadeCrates, heroU: heroNow.u, heroV: heroNow.v, nowSec: now / 1000, nowMs: now });
+
+  _armorVestTick.tick(dt, { pickups: armorPickups, heroU: heroNow.u, heroV: heroNow.v, nowSec: now / 1000, nowMs: now });
+
+  _coinDropTick.tick(dt, { pickups: coinDrops, heroU: heroNow.u, heroV: heroNow.v, nowMs: now });
+
+  _legacyPickupTick.tick(dt, { pickups, nowMs: now });
+
+  // day-night cycle (60s full day for demo speed) — drives sky shader + sun
+  const dn = Bridge.dayNightPhase(now / 1000, 60);
+  _skyDayNightTick.tick(dn); // extracted → src/render/sky_day_night_tick.js (iter 611)
+
+  // Clock HUD — extracted → src/systems/clock_hud_tick.js (iter 603)
+  _clockHudTick.tick(now, dn.dayMix, _dom.clockHud);
+
+  // Debug HUD (position + vehicle + HP + kills + mode flags) — extracted → src/systems/debug_hud_tick.js (iter 656)
+  _debugHudTick.tick(dt, { heroPos, heroU: hero.u, heroV: hero.v, worldLayerId: world.layerId, insideNow, inCar, activeVehicleId, activeVehicleType: (_activeVehicleDef || { type: "vehicle" }).type, carSpeed: carState.speed, vehicleInteractDist: (CFG.vehicleInteractDist || 3.0), vehicleDefs: VEHICLE_DEFS, score, pickupsLen: pickups.length, heroHp, heroMaxHp: HERO_MAX_HP, perkMaxHpBonus: _perkMaxHpBonus || 0, enemyKills, enemies, nowSec: now / 1000, enemyRespawnDelay: ENEMY_RESPAWN_DELAY, enemyHpDirty: _hudEnemyHpDirty, nearNpc: _nearNpc, nearComputer, computerOpen, spine, mouseMode, buildMode, reloadMsgUntil, performanceNow: performance.now(), reloadMsg });
+
+  // Hit marker, kill marker, damage direction — extracted → src/systems/combat_hud_tick.js (iter 601)
+  _combatHudTick.tick({ crosshair: _dom.crosshair, killMarker: _dom.killMarker, dmgDirIndicator: _dom.dmgDirIndicator }, { now, hitMarkerUntil, killMarkerUntil: _killMarkerUntil, killMarkerHs: _killMarkerHs, moveSpread: _moveSpread, dmgDirAngle: _dmgDirAngle, dmgDirUntil: _dmgDirUntil, camYaw, dmgDirG: _dmgDirG });
+
+  _heartbeat.tick(dt); // low-HP heartbeat (extracted iter 590)
+
+  // Damage vignette — extracted → src/systems/vignette_tick.js (iter 604)
+  _vignetteTick.tick(dt, now, heroHp, HERO_MAX_HP, damageFlashEl);
+
+  _burnTick.tick(dt, now / 1000); // hero on-fire DoT (extracted iter 591)
+
+  // Status tint + HUD pills — extracted → src/systems/status_tint_tick.js (iter 602)
+  _statusTintTick.tick(dt, now, _dom.statusTint, _dom.statusEffectsHud);
+
+  // mini-map (top-right)
+  drawMinimap();
+
+  // Builder UI refresh (inspector + show/hide)
+  if (typeof _refreshBuilderUI === "function") _refreshBuilderUI();
+
+  // Device bus: PC video broadcast + speaker drain + mon1 poll — extracted → src/systems/device_bus_tick.js (iter 651)
+  _deviceBusTick.tick(dt, { nowMs: now, lastMs: lastT, score, pickupCount: pickups.length });
+
+  // In-world screens + build console cursor + mouse overlay — extracted → src/systems/screen_mesh_tick.js (iter 650)
+  _screenMeshTick.tick(dt, { buildMode, pointerLocked, mouseMode, spineZone, jumbotronScreen, skyScreen, worldScreens, activeMouseScreen, mouseModeCursor });
+
+  // Hero animation state machine + mixer
+  {
+    const isMoving = (inputF !== 0 || inputR !== 0) && !buildMode;
+    const isSprinting = !!keys["ShiftLeft"];
+    const isDead = heroHp <= 0;
+    heroAnim.tick(onGround, isMoving, isSprinting, !onGround && velocityY > 0.5, isDead, dt);
+  }
+
+  // Scripted world objects — run each managed mesh's script if present
+  if (window.ScriptRunner && worldBuilder && worldBuilder.getManagedMap) {
+    const scriptEnv = { scene, world, CFG };
+    for (const [mesh, meta] of worldBuilder.getManagedMap()) {
+      if (meta && meta.script) window.ScriptRunner.tick(mesh.uuid, mesh, meta, dt, scriptEnv);
+    }
+  }
+
+  // HP ghost, HP fill, armor, stamina bars — extracted → src/systems/stat_bars_tick.js (iter 605)
+  _statBarsTick.tick(dt, { heroHp, heroMaxHp: HERO_MAX_HP, heroArmor, heroMaxArmor: HERO_MAX_ARMOR, stamina: _stamina, staminaMax: STAMINA_MAX, staminaExtraMax: _heroExtraStaminaMax, staminaLockout: STAMINA_LOCKOUT, apexMode: _heroApexMode, perkMaxHpBonus: _perkMaxHpBonus }, { hbGhost: _dom.hbGhost, hbFill: _dom.hbFill, hbVal: _dom.hbVal, armorBar: _dom.armorBar, arFill: _dom.arFill, arVal: _dom.arVal, stFill: _dom.stFill });
+
+  // Boss HP bar — extracted → src/systems/boss_bar_tick.js (iter 606)
+  _bossBarTick.tick(now, (_liveBoss && !_liveBoss.dead) ? _liveBoss : null, { bossBar: _dom.bossHpBar, bossHpFill: _dom.bossHpFill, bossHpVal: _dom.bossHpVal, bossName: _dom.bossName });
+
+  // Kill combo multiplier HUD — extracted → src/systems/combo_hud_tick.js (iter 607)
+  { const _cNow = now / 1000; _comboAnnouncer.tick(_cNow); _comboHudTick.tick(_cNow, _comboCount, _comboLastT, _COMBO_DECAY, { comboHud: _dom.comboHud, comboMulText: _dom.comboMulText, comboFill: _dom.comboFill }); }
+
+  // Holographic weapon panel — extracted → src/systems/weapon_hud_tick.js (iter 609)
+  _weaponHudTick.tick(now, pistolAmmo, _reloading, { frag: grenadeCount, smoke: smokeGrenadeCount, flash: flashbangCount, mines: _mineCount }, { wpName: _dom.wpName, wpAmmo: _dom.wpAmmo, wpReserve: _dom.wpReserve, wpMagBar: _dom.wpMagBar, wpGrenades: _dom.wpGrenades });
+
+  // Vehicle dashboard — extracted → src/systems/vehicle_dash_tick.js (iter 608)
+  _vehicleDashTick.tick(inCar && activeVehicleId, vehicleStates.get(activeVehicleId) || null, !!((_activeVehicleDef) && _activeVehicleDef.type === "drone"), { vehicleDash: _dom.vehicleDash, vdSpeed: _dom.vdSpeed, vdGear: _dom.vdGear });
+
+  // Combat-reactive ambient soundscape — extracted → src/systems/combat_ambient_tick.js (iter 610)
+  _combatAmbientTick.tick(now / 1000, enemies, !!(_liveBoss && !_liveBoss.dead), _heroDead);
+
+  if (typeof _mp !== "undefined" && _mp.enabled) _mp.tick(dt);
+  if (!_5D_NO_RENDER) {
+    if (composer) composer.render(); else renderer.render(scene, camera);
+  }
+  if (!_tickDriveMode) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ═══ EXTRACTED → src/systems/first_launch.js (iter 586)
+mountFirstLaunch({
+  getFirstLaunch:      () => _firstLaunch,
+  finishComputerEntry: () => finishComputerEntry(),
+  getApps:             () => APPS,
+});
+
+// ---- High score (separate from save) ----
+// ═══ EXTRACTED → src/progression/high_score.js ════════════════════════════════
+// const _HS_KEY, let _bestRecord, function _checkHighScore — all moved to module
+// ═════════════════════════════════════════════════════════════════════════════
+const _checkHighScore = HighScore.check;
+// _bestRecord accessed via HighScore.get() at the two call sites below
+
+// EXTRACT-PLAN iter 532: save_system.js → src/systems/save_system.js
+// Covers: localStorage save/load, _loadGameState, _saveGameState
+// ═══ EXTRACTED → src/systems/save_wiring.js (iter 683) ════════════════════════
+// Pseudocode: GameProgress.init(collect, apply) + auto-save 30s + Ctrl+S keydown.
+const { save: _saveGame, load: _loadGame } = mountSaveWiring({ GameProgress, get: { score: () => score, enemyKills: () => enemyKills, heroHp: () => heroHp, heroMaxHp: () => HERO_MAX_HP, currentWeaponId: () => currentWeaponId, computerOpen: () => computerOpen, heroPos: () => world.getPlayer ? (world.getPlayer("hero") || { u: 0, v: 0, y: 0 }) : { u: 0, v: 0, y: 0 }, inventory: () => (typeof _inventory !== "undefined") ? _inventory : [], spawnPoints: () => _spawnPoints, quests: () => _quest.getQuests() }, set: { score: v => { score = v; }, enemyKills: v => { enemyKills = v; }, heroHp: v => { heroHp = v; } }, actions: { addSpawnPoint: _addSpawnPoint, renderQuests: () => _quest.renderQuests(), showToast }, registerKeydown: fn => document.addEventListener("keydown", fn) });
+window._saveGame = _saveGame;
+window._loadGame = _loadGame;
+
+// ═══ EXTRACTED → src/systems/starter_quests.js (iter 581)
+mountStarterQuests({
+  addQuest: (...a) => _quest.addQuest(...a),
+  showToast,
+  loadGame: () => _loadGame(),
+});
+
+// J key closes quest panel too if focus is in-game
+document.addEventListener("keydown", (e) => {
+  if (e.code === "KeyJ" && !computerOpen) _quest.renderQuests();
+}, { capture: false });
+
+// Wire quest progress: build mode enter → quest "world" step 0
+const _origBuildToggle = () => {};
+
+// Pseudocode: after lazy loader imports settle, replace placeholder meshes from asset manifest.
+mountAssetBootstrap({
+  THREE,
+  Loaders,
+  scene,
+  get: {
+    gunMeshes: () => _gunMeshes,
+    gunMount: () => _gunMount,
+    carGroup: () => carGroup,
+    carBody: () => carBody,
+    pickupMeshes: () => (typeof pickupMeshes !== "undefined") ? pickupMeshes : null,
+    pickups: () => pickups,
+  },
+  actions: {
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    info: (...args) => console.info(...args),
+    warn: (...args) => console.warn(...args),
+  },
+});
+
+// Pseudocode: build desktop apps, mount computer UI, create LAN session, duel mode, badge, and peer sync.
+const _appMp = mountAppMultiplayerWiring({
+  THREE, scene,
+  buildComputerApps,
+  addDynamicIcons,
+  mountComputerUI,
+  createLanSession,
+  mountDuelMode,
+  mountMpBadge,
+  eventBus: typeof EventBus !== "undefined" ? EventBus : null,
+  state: { mpState: _mpState },
+  get: {
+    getWeapon: () => getWeapon,
+    pistolAmmo: () => pistolAmmo,
+    Inv: () => Inv,
+    heroInv: () => heroInv,
+    heroHealth: () => heroHealth,
+    score: () => score,
+    CFG: () => CFG,
+    world: () => world,
+    inCar: () => inCar,
+    carState: () => carState,
+    camDist: () => camDist,
+    camSide: () => camSide,
+    nearComputer: () => nearComputer,
+    buildings: () => buildings,
+    computerEntity: () => computerEntity,
+    VEHICLE_DEFS: () => VEHICLE_DEFS,
+    deviceBus: () => deviceBus,
+    heroMedia: () => heroMedia,
+    gameMode: () => gameMode,
+    enemies: () => enemies,
+    camera: () => camera,
+    camYaw: () => camYaw,
+    currentWeaponId: () => currentWeaponId,
+    heroHp: () => heroHp,
+    keys: () => keys,
+  },
+  set: {
+    heroMedia: arr => { heroMedia = arr; },
+    gameMode: m => { gameMode = m; },
+    firstLaunch: b => { _firstLaunch = b; },
+    heroHp: v => { heroHp = v; },
+  },
+  actions: {
+    playSfx,
+    showToast,
+    closeComputer,
+    spawnParticles: _spawnParticles,
+    addKillFeedEntry: _addKillFeedEntry,
+    setInterval: (fn, ms) => setInterval(fn, ms),
+  },
+});
+const APPS = _appMp.APPS;
+const _mp = (_mpRef = _appMp.mp);
+const _duelMode = _appMp.duelMode;
+
+// ═══ EXTRACTED → src/bridges/test_bridge.js (iter 689) ════════════════════════
+mountTestBridge({
+  enemies, world, WaveManager, THREE, renderer, camera, composer, scene, Vfx,
+  bullets3D, enemyBullets, buildingBlockers, hasLOS, CFG,
+  shop: _shop, settings: _settings, npcDialog: _npcDialog,
+  get: {
+    heroHp:           () => heroHp,
+    HERO_MAX_HP:      () => HERO_MAX_HP,
+    perkMaxHpBonus:   () => _perkMaxHpBonus || 0,
+    pistolAmmo:       () => pistolAmmo,
+    heroDead:         () => _heroDead,
+    reloading:        () => _reloading,
+    camYaw:           () => camYaw,
+    camPitch:         () => camPitch,
+    camDist:          () => camDist,
+    buildMode:        () => buildMode,
+    aiming:           () => aiming,
+    gameMode:         () => gameMode,
+    computerOpen:     () => computerOpen,
+    computerEntering: () => computerEntering,
+    firstLaunch:      () => _firstLaunch,
+    currentWeaponId:  () => currentWeaponId,
+    heroArmor:        () => heroArmor,
+    pointerLocked:    () => pointerLocked,
+    fpsDisplay:       () => _fpsDisplay,
+    lastT:            () => lastT,
+    noRender:         () => _5D_NO_RENDER,
+    weaponAmmo:       () => weaponAmmo,
+    shotsFired:       () => _shotsFired,
+    speedOrbs:        () => _speedOrbs,
+    healthPickups:    () => healthPickups,
+    coinDrops:        () => coinDrops,
+    firePatches:      () => firePatches,
+    poisonPuddles:    () => poisonPuddles,
+    mines:            () => _mines,
+    inCar:            () => (typeof inCar !== "undefined" ? inCar : false),
+  },
+  set: {
+    heroHp:           v => { heroHp = v; },
+    pistolAmmo:       v => { pistolAmmo = v; },
+    heroDead:         v => { _heroDead = v; },
+    reloading:        v => { _reloading = v; },
+    camYaw:           v => { camYaw = v; },
+    camPitch:         v => { camPitch = v; },
+    buildMode:        v => { buildMode = v; },
+    aiming:           v => { aiming = v; },
+    gameMode:         v => { gameMode = v; },
+    computerOpen:     v => { computerOpen = v; },
+    computerEntering: v => { computerEntering = v; },
+    firstLaunch:      v => { _firstLaunch = v; },
+    currentWeaponId:  v => { currentWeaponId = v; },
+    pistolCooldown:   v => { pistolCooldown = v; },
+    shotsFired:       v => { _shotsFired = v; },
+    lastHeroShotT:    v => { _lastHeroShotT = v; },
+    heroShotAlertU:   v => { _heroShotAlertU = v; },
+    heroShotAlertV:   v => { _heroShotAlertV = v; },
+    heroShotAlertT:   v => { _heroShotAlertT = v; },
+    lastT:            v => { lastT = v; },
+  },
+  fns: {
+    getWeapon,
+    tryShoot:          _tryShoot,
+    switchGunMesh:     _switchGunMesh,
+    closeComputer:     typeof closeComputer !== "undefined" ? closeComputer : null,
+    flashDamage,
+    showPerkPicker:    _showPerkPicker,
+    spawnHealthPickup: _spawnHealthPickup,
+    spawnAmmoPickup:   _spawnAmmoPickup,
+    spawnArmorShard:   _spawnArmorShard,
+    spawnWeaponPickup: _spawnWeaponPickup,
+    spawnCoinDrop:     _spawnCoinDrop,
+    spawnFirePatch:    _spawnFirePatch,
+    spawnPoisonPuddle: _spawnPoisonPuddle,
+    throwGrenade:      _throwGrenade,
+    throwSmokeGrenade: _throwSmokeGrenade,
+    throwFlashbang:    _throwFlashbang,
+    dropMine:          _dropMine,
+    spawnSpeedOrb:     typeof _spawnSpeedOrb !== "undefined" ? _spawnSpeedOrb : null,
+    spawnEnemyAtHero:  typeof window._spawnEnemyAtHero === "function" ? window._spawnEnemyAtHero : null,
+    gameTick: () => { _tickDriveMode = true; try { tick(); } finally { _tickDriveMode = false; } },
+  },
+});
+
+// ═══ EXTRACTED → src/core/ecs_bootstrap.js (iter 583)
+// ═══ TICK 3 — ECS Core boot (additive, parallel runtime) ═══════════════════
+mountEcsBootstrap({
+  Core, CFG,
+  combatSystem, createWaveSystem, pickupSystem, spawnPickup,
+  createShopSystem, createPerkSystem, createAgentDispatch, createStatusEffectSystem,
+  regenSystem, createWeaponSystem, createScoreSystem, createAIMovementSystem,
+  createInventorySystem, invAdd, invRemove, invCount, invHas,
+  createStaminaSystem, createGrenadeSystem, createBulletSystem, spawnBullet,
+  createLootDropSystem, DROP_TABLE,
+  createKnockbackSystem, createPlayerMovementSystem, createEnrageSystem,
+  createBossSlamSystem, createFastChargeSystem, createRobotEmpSystem,
+  createHeavyThrowSystem, createBossRockSystem, createPoisonerSpitSystem,
+  createIncendiaryBombSystem, createSniperShootSystem, createMeleeAttackSystem,
+  createMoralePanicSystem, createStaggerMovementSystem, createGunshotAlertSystem,
+  createRobotShootSystem, createPoisonerDartSystem, createEnemyBulletSystem,
+  createEnemyRegenSystem, createEnemySeparationSystem, createComboSystem,
+  createArenaClampSystem, createEnemyBlindSystem, createSmokeZoneSystem,
+  createMineSystem, createTurretSystem, createFirePatchSystem, createPoisonPuddleSystem,
+  createCoinDropSystem, createSpeedOrbSystem, createArmorShardSystem,
+  createHealthPickupSystem, createAmmoPickupSystem, createWeaponPickupSystem,
+  createGrenadeCrateSystem, createArmorVestSystem,
+});
+
+// Pseudocode: working-build overlay verifies/pulls git after loading succeeds.
+mountLoadCheckOverlay({
+  actions: {
+    showToast,
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    setInterval: (fn, ms) => setInterval(fn, ms),
+    clearInterval: id => clearInterval(id),
+  },
+});
+
+// Pseudocode: report uncaught runtime errors to server artifacts for the agent loop.
+mountRuntimeErrorReporter();
+</script>
+</body>
+</html>

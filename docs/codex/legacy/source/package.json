@@ -1,0 +1,40 @@
+{
+  "name": "5dengine-server",
+  "version": "1.0.0",
+  "description": "5DEngine local PostgreSQL API server",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "db:init": "node -e \"import('./server.js').then(m => m.initDb())\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "browser-check": "node scripts/browser_check.js",
+    "test:playwright": "playwright test",
+    "test:playwright:smoke": "playwright test tests/playwright/boot.spec.js tests/playwright/gameplay.spec.js tests/playwright/regression.spec.js",
+    "test:playwright:headed": "playwright test --headed",
+    "test:waves": "playwright test tests/playwright/wave_runner.spec.js",
+    "test:paths": "playwright test tests/playwright/state_space_explorer.spec.js",
+    "test:campaign": "playwright test tests/playwright/text_wave_campaign.spec.js",
+    "test:campaign:text": "node scripts/run-text-campaign.js",
+    "test:campaign:full": "node scripts/run-text-campaign.js --waves=10 --max-ms=300000",
+    "test:soak": "playwright test tests/playwright/soak.spec.js",
+    "test:soak:headed": "playwright test tests/playwright/soak.spec.js --headed",
+    "test:visual": "node tests/visual/runner.js",
+    "test:visual:install": "npx playwright install chromium",
+    "count:index": "node scripts/count-code-lines.js index.html",
+    "dev:start": "node scripts/dev-start.js",
+    "mark-good": "node scripts/mark-good.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "playwright": "^1.60.0",
+    "vitest": "^4.1.6"
+  }
+}
