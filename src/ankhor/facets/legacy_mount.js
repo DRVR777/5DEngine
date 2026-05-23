@@ -90,6 +90,14 @@ async function importAndBind(thing, data, registry) {
       data._failed = true; return;
     }
     const bridge = buildBridge(data.bindings || {}, registry);
+    // Constructor-level params: anything in spec.params is merged into the
+    // bridge as a sibling of get/set/actions. Strings starting with $ are
+    // resolved through parseSpec; everything else passes through literally.
+    if (data.params && typeof data.params === "object") {
+      for (const [pkey, pval] of Object.entries(data.params)) {
+        bridge[pkey] = resolveAtBuildTime(pval, registry);
+      }
+    }
     data._bridge = bridge;
     const result = mount(bridge);
     const tickFn = result && typeof result.tick === "function" ? result.tick : null;
@@ -163,6 +171,25 @@ function makeAction(spec, registry) {
   return () => {};
 }
 
+/** Resolve a spec value once, at bridge-build time (used for `params`).
+ *  Strings starting with $ go through parseSpec then collapse to a value;
+ *  others are returned as-is. */
+function resolveAtBuildTime(value, registry) {
+  if (typeof value !== "string" || !value.startsWith("$")) return value;
+  const r = parseSpec(value, registry);
+  if (!r) return null;
+  if (r.kind === "const")  return r.value;
+  if (r.kind === "noop")   return () => {};
+  if (r.kind === "log")    return (...args) => console.log(r.prefix, ...args);
+  if (r.kind === "global") return resolveGlobalExpr(r.expr);
+  if (r.kind === "facet")  {
+    const id = r.id(); if (!id) return null;
+    const fd = registry.facetData(id, r.facet);
+    return fd ? fd[r.field] : null;
+  }
+  return null;
+}
+
 /* ---------- spec parser ---------- */
 
 function parseSpec(spec, registry) {
@@ -226,6 +253,9 @@ function resolveTickArg(spec, dt, registry) {
     const out = {};
     for (const [k, v] of Object.entries(spec)) out[k] = resolveTickArg(v, dt, registry);
     return out;
+  }
+  if (typeof spec === "string" && spec.startsWith("$")) {
+    return resolveAtBuildTime(spec, registry);  // re-resolve each tick for binding refs
   }
   if (typeof spec !== "string" || !spec.startsWith("@")) return spec;
   switch (spec) {

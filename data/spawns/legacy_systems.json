@@ -60,6 +60,87 @@
             "actions.onNewFps": "$noop"
           }
         } }
+      ] },
+
+    { "id": "legacy/cam-shake", "kind": "legacy-system", "name": "legacy_cam_shake",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/cam_shake_tick.js",
+          "export":     "mountCamShakeTick",
+          "tick_args":  ["@dt"],
+          "bindings": {
+            "get.camShakeAmt":      "$thing:legacy/cam-shake/legacy-mount/_camShakeAmt",
+            "set.camShakeAmt":      "$thing:legacy/cam-shake/legacy-mount/_camShakeAmt",
+            "actions.offsetCamera": "$noop"
+          }
+        } }
+      ] },
+
+    { "id": "legacy/cam-pitch-springs", "kind": "legacy-system", "name": "legacy_cam_pitch_springs",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/cam_pitch_springs.js",
+          "export":     "mountCamPitchSprings",
+          "params": { "camPitchMax": 0.4 },
+          "tick_args":  ["@dt"],
+          "bindings": {
+            "get.recoilPitch":   "$thing:legacy/cam-pitch-springs/legacy-mount/_recoilPitch",
+            "get.hitPunchPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_hitPunchPitch",
+            "get.camPitch":      "$thing:legacy/cam-pitch-springs/legacy-mount/_camPitch",
+            "set.recoilPitch":   "$thing:legacy/cam-pitch-springs/legacy-mount/_recoilPitch",
+            "set.hitPunchPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_hitPunchPitch",
+            "set.camPitch":      "$thing:legacy/cam-pitch-springs/legacy-mount/_camPitch"
+          }
+        } }
+      ] },
+
+    { "id": "legacy/vignette", "kind": "legacy-system", "name": "legacy_vignette",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/vignette_tick.js",
+          "export":     "mountVignetteTick",
+          "tick_args":  ["@dt", "@perfMs", "$kind:hero[0]/health/hp", "$kind:hero[0]/health/maxHp", null],
+          "bindings": {
+            "get.vignetteAmt": "$thing:legacy/vignette/legacy-mount/_vignetteAmt",
+            "set.vignetteAmt": "$thing:legacy/vignette/legacy-mount/_vignetteAmt"
+          }
+        } }
+      ] },
+
+    { "id": "legacy/stamina", "kind": "legacy-system", "name": "legacy_stamina",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/stamina_tick.js",
+          "export":     "mountStaminaTick",
+          "params": {
+            "STAMINA_DRAIN":   25,
+            "STAMINA_REGEN":   18,
+            "STAMINA_MAX":     100,
+            "STAMINA_LOCKOUT": 20
+          },
+          "tick_args": ["@dt", { "wantsSprint": "$const:false", "isSprinting": "$const:false", "inputMoving": "$const:false" }],
+          "bindings": {
+            "get.heroEmpT":            "$thing:legacy/stamina/legacy-mount/_heroEmpT",
+            "set.heroEmpT":            "$thing:legacy/stamina/legacy-mount/_heroEmpT",
+            "get.stamina":             "$thing:legacy/stamina/legacy-mount/_stamina",
+            "set.stamina":             "$thing:legacy/stamina/legacy-mount/_stamina",
+            "get.heroExtraStaminaMax": "$const:0"
+          }
+        } }
+      ] },
+
+    { "id": "legacy/footstep-sound", "kind": "legacy-system", "name": "legacy_footstep_sound",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/footstep_sound.js",
+          "export":     "mountFootstepSound",
+          "tick_args":  ["@dt", { "isMoving": "$const:false", "heroDead": "$const:false", "pointerLocked": "$const:false", "canSprint": "$const:false", "crouching": "$const:false", "onGround": "$const:true" }],
+          "bindings": {
+            "get.footstepT":  "$thing:legacy/footstep-sound/legacy-mount/_footstepT",
+            "set.footstepT":  "$thing:legacy/footstep-sound/legacy-mount/_footstepT",
+            "actions.playSfx": "$log:[footstep sfx]"
+          }
+        } }
       ] }
   ]
 }

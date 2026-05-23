@@ -82,4 +82,74 @@ const expected = Math.min(100, before + 10 * 0.5 * 5);
 if (Math.abs(after - expected) > 0.01) throw new Error(`unexpected hp: ${after} (expected ${expected})`);
 
 console.log(`[test] PASS — legacy-mount bridge regenerated hero hp via cloned legacy module.`);
+
+/* ---------- batch-binding test (iter 758) ---------- */
+// Verifies every spec in data/spawns/legacy_systems.json binds without
+// _failed and ticks once without throwing. Doesn't verify semantic
+// correctness — that requires per-mount visual / state inspection —
+// only the wiring is checked here.
+
+import { readFileSync } from "node:fs";
+const spawnsRaw = readFileSync(new URL("../data/spawns/legacy_systems.json", import.meta.url), "utf8");
+const spawnSet = JSON.parse(spawnsRaw);
+const specs = spawnSet.children
+  .map((c) => ({ id: c.id, name: c.name, mount: c.facets.find(f => f.name === "legacy-mount")?.data }))
+  .filter((s) => s.mount && s.id !== "legacy/hero-regen");  // hero-regen already covered above
+
+console.log(`[test] batch: ${specs.length} additional legacy specs`);
+
+const batchRegistry = createDefaultRegistry();
+batchRegistry.registerFacetHandler("legacy-mount", legacyMount);
+batchRegistry.registerFacetHandler("health",       { priority: 25 });
+batchRegistry.registerFacetHandler("tuning",       { priority: 41 });
+
+// minimal scene so $kind:hero / $tuning:hero-tuning resolve where needed
+batchRegistry.spawn({
+  id: "hero/main", kind: "hero", name: "hero",
+  facets: [{ name: "health", data: { hp: 60, maxHp: 100 } }],
+});
+batchRegistry.spawn({
+  id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+  facets: [{ name: "tuning", data: { regen_delay_seconds: 0, regen_rate_per_second: 10 } }],
+});
+
+for (const s of specs) {
+  // Rewrite module_url to an absolute file URL (the file in spawns has a
+  // browser-relative path that doesn't resolve under Node).
+  const absUrl = new URL("../" + s.mount.module_url.replace(/^\.\//, ""), import.meta.url).href;
+  const liveSpec = { ...s.mount, module_url: absUrl };
+  batchRegistry.spawn({
+    id: s.id, kind: "legacy-system", name: s.name,
+    facets: [{ name: "legacy-mount", data: liveSpec }],
+  });
+}
+
+// wait for every async import
+for (const s of specs) {
+  const d = batchRegistry.facetData(s.id, "legacy-mount");
+  if (d._import_promise) await d._import_promise;
+}
+
+let bound = 0, failed = [], notReady = [];
+for (const s of specs) {
+  const d = batchRegistry.facetData(s.id, "legacy-mount");
+  if (d._failed) failed.push(s.id);
+  else if (!d._ready) notReady.push(s.id);
+  else bound++;
+}
+
+// tick once
+try { batchRegistry.tick(0.5); } catch (e) {
+  throw new Error(`batch tick threw: ${e.message}`);
+}
+
+console.log(`[test] batch result: ${bound}/${specs.length} bound`);
+if (failed.length)   console.log(`[test] FAILED: ${failed.join(", ")}`);
+if (notReady.length) console.log(`[test] NOT READY: ${notReady.join(", ")}`);
+
+if (failed.length || notReady.length) {
+  console.log(`[test] FAIL — some legacy specs did not bind cleanly.`);
+  process.exit(1);
+}
+console.log(`[test] PASS — all ${specs.length} additional legacy specs bound and ticked.`);
 process.exit(0);
