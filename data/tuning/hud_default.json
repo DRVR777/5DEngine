@@ -30,7 +30,11 @@
       "ammo_label":             "shots fired",
       "crosshair_size_px":      10,
       "crosshair_color":        "rgba(255,255,255,0.85)",
-      "crosshair_thickness_px": 2
+      "crosshair_thickness_px": 2,
+      "damage_flash_color":         "rgba(220,40,40,1)",
+      "damage_flash_max_opacity":   0.5,
+      "damage_flash_decay_seconds": 0.45,
+      "damage_flash_min_drop":      0.5
     }},
     { "name": "provenance", "data": {
       "source_files": ["game.html mountHudTemplate (line 250) — DOM-overlay style emulated; values chosen for legibility, not legacy-extracted"],

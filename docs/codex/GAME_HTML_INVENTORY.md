@@ -103,10 +103,10 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountWaveHudTick | wave-indicator hud | ❌ |
 | mountWeaponHudTick | weapon-hud | ❌ |
 | mountClockHudTick | day/night clock hud | ❌ |
-| mountVignetteTick | vignette overlay | ❌ |
+| mountVignetteTick | damage-flash overlay covers hit feedback (iter 748); ambient vignette pending | ⚠ |
 | mountStatusTintTick | screen-tint per status effect | ❌ |
 | mountVehicleDashTick | vehicle-dashboard hud | ❌ |
-| mountDamageFeedback / damage numbers | floating-text Thingas | ❌ |
+| mountDamageFeedback / damage numbers | damage-flash facet (iter 748); floating numbers pending | ⚠ |
 | mountDebugHudTick | debug-hud | ❌ |
 | mountFpsTick | fps-counter | ❌ |
 

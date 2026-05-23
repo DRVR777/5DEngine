@@ -101,6 +101,13 @@ function installDom(data, t) {
   `;
   root.appendChild(ch);
 
+  const flashEl = document.createElement("div");
+  flashEl.style.cssText = `
+    position:absolute; inset:0; background:${t.damage_flash_color};
+    opacity:0; transition:opacity 0.06s linear; mix-blend-mode:screen;
+  `;
+  root.appendChild(flashEl);
+
   document.body.appendChild(root);
   data._installed = true;
   data._el        = root;
@@ -108,6 +115,7 @@ function installDom(data, t) {
   data._hpLabel   = hpLabel;
   data._killsEl   = killsEl;
   data._ammoEl    = ammoEl;
+  data._flashEl   = flashEl;
 }
 
 function paintHp(data, t, hp, maxHp) {

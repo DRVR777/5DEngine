@@ -23,6 +23,7 @@ import enemyDeathCleanup from "./enemy_death_cleanup.js";
 import dropOnDeath    from "./drop_on_death.js";
 import heroRespawn    from "./hero_respawn.js";
 import hudOverlay     from "./hud_overlay.js";
+import damageFlash    from "./damage_flash.js";
 import aabbCollision  from "./aabb_collision.js";
 import ttl             from "./ttl.js";
 
@@ -50,6 +51,7 @@ export const FACET_HANDLERS = {
   "drop-on-death":       dropOnDeath,
   "hero-respawn":        heroRespawn,
   "hud-overlay":         hudOverlay,
+  "damage-flash":        damageFlash,
   "aabb-collision":      aabbCollision,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
