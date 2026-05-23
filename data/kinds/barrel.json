@@ -21,7 +21,8 @@
         "mesh",
         "physics",
         "tuning",
-        "provenance"
+        "provenance",
+        "collider"
       ]
     },
     {
@@ -34,6 +35,10 @@
         "destructible": {
           "blastRadius": 3.5,
           "damage": 60
+        },
+        "collider": {
+          "half_x": 0.28,
+          "half_z": 0.28
         }
       }
     },

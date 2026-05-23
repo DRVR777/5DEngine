@@ -5,11 +5,12 @@
   "facets": [
     { "name": "for-kind",        "data": "crate" },
     { "name": "required-facets", "data": ["position", "mesh"] },
-    { "name": "optional-facets", "data": ["health", "destructible", "loot-table"] },
+    { "name": "optional-facets", "data": ["health", "destructible", "loot-table", "collider"] },
     { "name": "defaults", "data": {
       "health":       { "hp": 35, "maxHp": 35 },
       "destructible": { "blast_radius": 0, "damage": 0, "drop_on_break": true },
-      "loot-table":   { "weights": ["ammo", "health", "coin", "coin", "ammo"] }
+      "loot-table":   { "weights": ["ammo", "health", "coin", "coin", "ammo"] },
+      "collider":     { "half_x": 0.45, "half_z": 0.45 }
     } },
     { "name": "absorbs", "data": ["src/systems/crate_system.js"] }
   ]

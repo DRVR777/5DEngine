@@ -47,7 +47,7 @@ Each game.html system is a `mount*` function call (~135 total).
 |---|---|---|
 | mountShootSystem | hero-shoot facet (iter 741) | ✅ (hero side) |
 | mountBulletPhysicsTick | position.velocity (iter 720) | ✅ |
-| mountBulletWorldHitTick | bullet collides with barrels/crates/walls — no walls yet | ⚠ |
+| mountBulletWorldHitTick | bullet vs collider pending; barrels/crates have collider (iter 745) | ⚠ |
 | mountBulletEnemyKillTick | enemy-death-cleanup facet (iter 742) | ✅ |
 | mountBulletEnemyHitFeedbackTick | hit-flash + damage numbers | ❌ |
 | mountEnemyBulletTick | enemy-shoot facet (sniper, robot, poisoner-ranged) | ❌ |
@@ -181,8 +181,8 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountSpawnSystem | spawn-point Thingas | ❌ |
 | mountLayerTransitionTick | **5D u/v transition** — phase shifts between layers | 🔧 (needs 5D-truth from iter 740+) |
 | mountWaveEvents | wave-spawner Thinga | ❌ |
-| Buildings / blockers / collision walls | building/wall Thingas + collision facet | 🔧 |
-| GTAPhysics.resolveAABBMove | aabb-collision substrate primitive | 🔧 |
+| Buildings / blockers / collision walls | collider facet exists; wall/building Thingas pending | ⚠ |
+| GTAPhysics.resolveAABBMove | aabb-collision facet (iter 745) | ✅ (hero only; vehicles/NPCs pending) |
 
 ## 9. Status effects / Perks / Levels
 

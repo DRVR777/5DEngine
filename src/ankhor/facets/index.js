@@ -22,6 +22,7 @@ import enemyDeathCleanup from "./enemy_death_cleanup.js";
 import dropOnDeath    from "./drop_on_death.js";
 import heroRespawn    from "./hero_respawn.js";
 import hudOverlay     from "./hud_overlay.js";
+import aabbCollision  from "./aabb_collision.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -47,6 +48,7 @@ export const FACET_HANDLERS = {
   "drop-on-death":       dropOnDeath,
   "hero-respawn":        heroRespawn,
   "hud-overlay":         hudOverlay,
+  "aabb-collision":      aabbCollision,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
@@ -62,6 +64,8 @@ export const FACET_HANDLERS = {
   "ammo":                { priority: 41 },
   "armor":               { priority: 41 },
   "value":               { priority: 41 },
+  // AABB extents — read by aabb-collision; data only
+  "collider":            { priority: 42 },
 };
 
 export function installFacetHandlers(registry) {
