@@ -1,0 +1,30 @@
+{
+  "id": "legacy/footstep-sound",
+  "kind": "legacy-system",
+  "name": "legacy_footstep_sound",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/footstep_sound.js",
+        "export": "mountFootstepSound",
+        "tick_args": [
+          "@dt",
+          {
+            "isMoving": "$inputAny:KeyW,KeyA,KeyS,KeyD",
+            "heroDead": "$const:false",
+            "pointerLocked": "$pointerLocked",
+            "canSprint": "$input:ShiftLeft",
+            "crouching": "$input:ControlLeft",
+            "onGround": "$const:true"
+          }
+        ],
+        "bindings": {
+          "get.footstepT": "$thing:legacy/footstep-sound/legacy-mount/_footstepT",
+          "set.footstepT": "$thing:legacy/footstep-sound/legacy-mount/_footstepT",
+          "actions.playSfx": "$log:[footstep sfx]"
+        }
+      }
+    }
+  ]
+}

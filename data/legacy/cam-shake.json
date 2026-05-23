@@ -1,0 +1,22 @@
+{
+  "id": "legacy/cam-shake",
+  "kind": "legacy-system",
+  "name": "legacy_cam_shake",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/cam_shake_tick.js",
+        "export": "mountCamShakeTick",
+        "tick_args": [
+          "@dt"
+        ],
+        "bindings": {
+          "get.camShakeAmt": "$thing:legacy/cam-shake/legacy-mount/_camShakeAmt",
+          "set.camShakeAmt": "$thing:legacy/cam-shake/legacy-mount/_camShakeAmt",
+          "actions.offsetCamera": "$noop"
+        }
+      }
+    }
+  ]
+}

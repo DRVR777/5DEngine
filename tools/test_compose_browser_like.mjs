@@ -63,9 +63,21 @@ for (const t of loaded) {
   } catch (e) { /* tolerate dup */ }
 }
 
-// PASS 2: spawn non-spawn-set (world, tuning, kind-def, render-context, etc.)
+// PASS 2: spawn non-spawn-set (world, tuning, kind-def, render-context,
+// legacy-system, etc.) — legacy-system Thingas now live as top-level
+// files under data/legacy/ (post iter 764.5 split), so rewrite their
+// module_urls to file:// here too.
+function rewriteLegacyModuleUrl(thing) {
+  if (thing.kind !== "legacy-system") return;
+  for (const f of thing.facets || []) {
+    if (f.name === "legacy-mount" && typeof f.data?.module_url === "string") {
+      f.data.module_url = "file://" + resolve(ROOT, f.data.module_url.replace(/^\.\//, "")).replace(/\\/g, "/");
+    }
+  }
+}
 for (const t of loaded) {
   if (t.kind === "spawn-set") continue;
+  rewriteLegacyModuleUrl(t);
   try { registry.spawn(t); } catch (e) { /* skip dup */ }
 }
 

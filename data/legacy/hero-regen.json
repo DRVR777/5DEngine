@@ -1,0 +1,31 @@
+{
+  "id": "legacy/hero-regen",
+  "kind": "legacy-system",
+  "name": "legacy_hero_regen",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/hero_regen_tick.js",
+        "export": "mountHeroRegenTick",
+        "tick_args": [
+          "@dt",
+          {
+            "nowSec": "@nowSec"
+          }
+        ],
+        "bindings": {
+          "get.heroHp": "$kind:hero[0]/health/hp",
+          "get.maxHp": "$kind:hero[0]/health/maxHp",
+          "get.perkMaxHpBonus": "$const:0",
+          "get.lastDamageT": "$const:0",
+          "get.regenDelay": "$tuning:hero-tuning/tuning/regen_delay_seconds",
+          "get.regenRate": "$tuning:hero-tuning/tuning/regen_rate_per_second",
+          "get.perkRegenBonus": "$const:0",
+          "set.heroHp": "$kind:hero[0]/health/hp",
+          "set.nearDeathFired": "$noop"
+        }
+      }
+    }
+  ]
+}

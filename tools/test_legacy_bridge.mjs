@@ -89,11 +89,14 @@ console.log(`[test] PASS — legacy-mount bridge regenerated hero hp via cloned 
 // correctness — that requires per-mount visual / state inspection —
 // only the wiring is checked here.
 
-import { readFileSync } from "node:fs";
-const spawnsRaw = readFileSync(new URL("../data/spawns/legacy_systems.json", import.meta.url), "utf8");
-const spawnSet = JSON.parse(spawnsRaw);
-const specs = spawnSet.children
-  .map((c) => ({ id: c.id, name: c.name, mount: c.facets.find(f => f.name === "legacy-mount")?.data }))
+import { readFileSync, readdirSync } from "node:fs";
+const LEGACY_DIR = new URL("../data/legacy/", import.meta.url);
+const specs = readdirSync(LEGACY_DIR)
+  .filter((f) => f.endsWith(".json"))
+  .map((f) => {
+    const t = JSON.parse(readFileSync(new URL(f, LEGACY_DIR), "utf8"));
+    return { id: t.id, name: t.name, mount: t.facets.find((x) => x.name === "legacy-mount")?.data };
+  })
   .filter((s) => s.mount && s.id !== "legacy/hero-regen");  // hero-regen already covered above
 
 console.log(`[test] batch: ${specs.length} additional legacy specs`);

@@ -1,0 +1,25 @@
+{
+  "id": "legacy/heartbeat",
+  "kind": "legacy-system",
+  "name": "legacy_heartbeat",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/heartbeat.js",
+        "export": "mountHeartbeat",
+        "tick_args": [
+          "@dt"
+        ],
+        "bindings": {
+          "get.heroHp": "$kind:hero[0]/health/hp",
+          "get.HERO_MAX_HP": "$kind:hero[0]/health/maxHp",
+          "get.heroDead": "$const:false",
+          "get.heartbeatT": "$thing:legacy/heartbeat/legacy-mount/_heartbeatT",
+          "set.heartbeatT": "$thing:legacy/heartbeat/legacy-mount/_heartbeatT",
+          "actions.playSfx": "$log:[heartbeat sfx]"
+        }
+      }
+    }
+  ]
+}

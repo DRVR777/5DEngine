@@ -1,0 +1,31 @@
+{
+  "id": "legacy/hero-knockback",
+  "kind": "legacy-system",
+  "name": "legacy_hero_knockback",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/hero_knockback_tick.js",
+        "export": "mountHeroKnockbackTick",
+        "tick_args": [
+          "@dt"
+        ],
+        "_kbT": 0,
+        "_kbU": 0,
+        "_kbV": 0,
+        "bindings": {
+          "get.kbT": "$thing:legacy/hero-knockback/legacy-mount/_kbT",
+          "set.kbT": "$thing:legacy/hero-knockback/legacy-mount/_kbT",
+          "get.kbU": "$thing:legacy/hero-knockback/legacy-mount/_kbU",
+          "set.kbU": "$thing:legacy/hero-knockback/legacy-mount/_kbU",
+          "get.kbV": "$thing:legacy/hero-knockback/legacy-mount/_kbV",
+          "set.kbV": "$thing:legacy/hero-knockback/legacy-mount/_kbV",
+          "actions.getPos": "$kindPos:hero",
+          "actions.setPos": "$writePos:hero",
+          "actions.resolveMove": "$noop"
+        }
+      }
+    }
+  ]
+}

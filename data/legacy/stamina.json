@@ -1,0 +1,35 @@
+{
+  "id": "legacy/stamina",
+  "kind": "legacy-system",
+  "name": "legacy_stamina",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/stamina_tick.js",
+        "export": "mountStaminaTick",
+        "params": {
+          "STAMINA_DRAIN": 25,
+          "STAMINA_REGEN": 18,
+          "STAMINA_MAX": 100,
+          "STAMINA_LOCKOUT": 20
+        },
+        "tick_args": [
+          "@dt",
+          {
+            "wantsSprint": "$input:ShiftLeft",
+            "isSprinting": "$input:ShiftLeft",
+            "inputMoving": "$inputAny:KeyW,KeyA,KeyS,KeyD"
+          }
+        ],
+        "bindings": {
+          "get.heroEmpT": "$thing:legacy/stamina/legacy-mount/_heroEmpT",
+          "set.heroEmpT": "$thing:legacy/stamina/legacy-mount/_heroEmpT",
+          "get.stamina": "$thing:legacy/stamina/legacy-mount/_stamina",
+          "set.stamina": "$thing:legacy/stamina/legacy-mount/_stamina",
+          "get.heroExtraStaminaMax": "$const:0"
+        }
+      }
+    }
+  ]
+}

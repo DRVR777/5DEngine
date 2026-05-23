@@ -1,0 +1,27 @@
+{
+  "id": "legacy/fps-tick",
+  "kind": "legacy-system",
+  "name": "legacy_fps_tick",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/fps_tick.js",
+        "export": "mountFpsTick",
+        "tick_args": [
+          "@perfMs",
+          null
+        ],
+        "bindings": {
+          "get.fpsFrames": "$thing:legacy/fps-tick/legacy-mount/_frames",
+          "get.fpsWindowT": "$thing:legacy/fps-tick/legacy-mount/_windowT",
+          "get.fpsDisplay": "$thing:legacy/fps-tick/legacy-mount/_display",
+          "set.fpsFrames": "$thing:legacy/fps-tick/legacy-mount/_frames",
+          "set.fpsWindowT": "$thing:legacy/fps-tick/legacy-mount/_windowT",
+          "set.fpsDisplay": "$thing:legacy/fps-tick/legacy-mount/_display",
+          "actions.onNewFps": "$noop"
+        }
+      }
+    }
+  ]
+}

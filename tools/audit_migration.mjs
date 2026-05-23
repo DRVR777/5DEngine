@@ -35,7 +35,7 @@ const GAME = join(ROOT, "game.html");
 const FACETS_DIR = join(ROOT, "src", "ankhor", "facets");
 const KINDS_DIR  = join(ROOT, "data", "kinds");
 const INVENTORY  = join(ROOT, "docs", "codex", "GAME_HTML_INVENTORY.md");
-const LEGACY_SPAWNS = join(ROOT, "data", "spawns", "legacy_systems.json");
+const LEGACY_DIR = join(ROOT, "data", "legacy");
 
 /** Heuristic: a mount* name maps to a likely facet or kind name. */
 function mountToSlugs(mountName) {
@@ -80,18 +80,20 @@ function inventoryMounts() {
 }
 
 /** Names of mount* exports HOSTED by the legacy-mount bridge —
- *  read from data/spawns/legacy_systems.json's children. Each child's
- *  legacy-mount facet declares the `export` name of the mount it hosts.
- *  A HOSTED mount counts as substrate coverage (per CLAUDE.md the
- *  bridge IS the substrate path until a native facet supersedes it). */
+ *  scans data/legacy/*.json (one standalone legacy-system Thinga per
+ *  file, post the iter-764.5 split). Each file declares one legacy-
+ *  mount facet with an `export` name. A HOSTED mount counts as
+ *  substrate coverage (per CLAUDE.md the bridge IS the substrate path
+ *  until a native facet supersedes it). */
 function legacyHosts() {
-  if (!existsSync(LEGACY_SPAWNS)) return new Set();
-  let parsed;
-  try { parsed = JSON.parse(readFileSync(LEGACY_SPAWNS, "utf8")); }
-  catch { return new Set(); }
+  if (!existsSync(LEGACY_DIR)) return new Set();
   const set = new Set();
-  for (const child of parsed.children || []) {
-    for (const facet of child.facets || []) {
+  for (const f of readdirSync(LEGACY_DIR)) {
+    if (!f.endsWith(".json")) continue;
+    let parsed;
+    try { parsed = JSON.parse(readFileSync(join(LEGACY_DIR, f), "utf8")); }
+    catch { continue; }
+    for (const facet of parsed.facets || []) {
       if (facet.name !== "legacy-mount") continue;
       const name = facet.data?.export;
       if (typeof name === "string" && name) set.add(name);

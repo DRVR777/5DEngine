@@ -1,0 +1,25 @@
+{
+  "id": "legacy/vignette",
+  "kind": "legacy-system",
+  "name": "legacy_vignette",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/vignette_tick.js",
+        "export": "mountVignetteTick",
+        "tick_args": [
+          "@dt",
+          "@perfMs",
+          "$kind:hero[0]/health/hp",
+          "$kind:hero[0]/health/maxHp",
+          null
+        ],
+        "bindings": {
+          "get.vignetteAmt": "$thing:legacy/vignette/legacy-mount/_vignetteAmt",
+          "set.vignetteAmt": "$thing:legacy/vignette/legacy-mount/_vignetteAmt"
+        }
+      }
+    }
+  ]
+}

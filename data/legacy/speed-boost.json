@@ -1,0 +1,30 @@
+{
+  "id": "legacy/speed-boost",
+  "kind": "legacy-system",
+  "name": "legacy_speed_boost",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/speed_boost_tick.js",
+        "export": "mountSpeedBoostTick",
+        "tick_args": [
+          "@dt",
+          {
+            "isMoving": "$inputAny:KeyW,KeyA,KeyS,KeyD",
+            "inCar": "$const:false",
+            "buildMode": "$const:false",
+            "heroDead": "$const:false"
+          }
+        ],
+        "bindings": {
+          "get.speedBoostT": "$thing:legacy/speed-boost/legacy-mount/_speedBoostT",
+          "set.speedBoostT": "$thing:legacy/speed-boost/legacy-mount/_speedBoostT",
+          "get.speedTrailT": "$thing:legacy/speed-boost/legacy-mount/_speedTrailT",
+          "set.speedTrailT": "$thing:legacy/speed-boost/legacy-mount/_speedTrailT",
+          "actions.spawnTrail": "$emit:{\"id\":\"decal-particle/speed-trail-<seq>\",\"kind\":\"decal-particle\",\"name\":\"speed_trail_<seq>\",\"facets\":[{\"name\":\"position\",\"data\":{\"x\":0,\"y\":0.15,\"z\":0}},{\"name\":\"mesh\",\"data\":{\"tuning_ref\":\"decal-particle-muzzle-tuning\"}},{\"name\":\"ttl\",\"data\":{\"remaining\":0.22}},{\"name\":\"expand-fade\",\"data\":{}}]}"
+        }
+      }
+    }
+  ]
+}

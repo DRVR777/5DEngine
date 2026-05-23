@@ -128,6 +128,19 @@
     { "ref": "spawns/wave_spawner" },
     { "ref": "spawns/arena_walls" },
     { "ref": "spawns/ground" },
-    { "ref": "spawns/legacy_systems" }
+    { "ref": "spawns/legacy_systems" },
+
+    { "ref": "legacy/hero-regen" },
+    { "ref": "legacy/heartbeat" },
+    { "ref": "legacy/fps-tick" },
+    { "ref": "legacy/cam-shake" },
+    { "ref": "legacy/cam-pitch-springs" },
+    { "ref": "legacy/vignette" },
+    { "ref": "legacy/stamina" },
+    { "ref": "legacy/footstep-sound" },
+    { "ref": "legacy/speed-boost" },
+    { "ref": "legacy/burn" },
+    { "ref": "legacy/crouch-speed" },
+    { "ref": "legacy/hero-knockback" }
   ]
 }

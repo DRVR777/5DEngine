@@ -1,0 +1,28 @@
+{
+  "id": "legacy/cam-pitch-springs",
+  "kind": "legacy-system",
+  "name": "legacy_cam_pitch_springs",
+  "facets": [
+    {
+      "name": "legacy-mount",
+      "data": {
+        "module_url": "./src/systems/cam_pitch_springs.js",
+        "export": "mountCamPitchSprings",
+        "params": {
+          "camPitchMax": 0.4
+        },
+        "tick_args": [
+          "@dt"
+        ],
+        "bindings": {
+          "get.recoilPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_recoilPitch",
+          "get.hitPunchPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_hitPunchPitch",
+          "get.camPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_camPitch",
+          "set.recoilPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_recoilPitch",
+          "set.hitPunchPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_hitPunchPitch",
+          "set.camPitch": "$thing:legacy/cam-pitch-springs/legacy-mount/_camPitch"
+        }
+      }
+    }
+  ]
+}
