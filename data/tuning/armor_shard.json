@@ -1,0 +1,54 @@
+{
+  "id": "tuning/armor_shard",
+  "kind": "tuning",
+  "name": "armor-shard-tuning",
+  "facets": [
+    {
+      "name": "tuning",
+      "data": {
+        "collect_dist": 1.2,
+        "magnet_dist": 3.0,
+        "magnet_speed": 9,
+        "spin_x_speed": 1.8,
+        "spin_y_speed": 3.0,
+        "bob_base": 0.5,
+        "bob_amp": 0.12,
+        "bob_period_ms": 260,
+        "spawn_jitter": 1.0,
+        "radius": 0.22,
+        "body_color": 16765286,
+        "emissive_color": 13404160,
+        "emissive_intensity": 0.7,
+        "metalness": 0.6,
+        "roughness": 0.3,
+        "pickup_sfx_freq_1": 880,
+        "pickup_sfx_freq_2": 1100,
+        "pickup_sfx_volume_1": 0.45,
+        "pickup_sfx_volume_2": 0.3,
+        "damage_number_color": "#ffd166",
+        "toast_ms": 1800
+      }
+    },
+    {
+      "name": "provenance",
+      "data": {
+        "source_files": [
+          "src/systems/armor_shard_tick.js",
+          "src/systems/drop_spawner.js"
+        ],
+        "migrated_iter": 713,
+        "migrated_at": "2026-05-23",
+        "do_not_optimize": true,
+        "notes": [
+          "COLLECT_DIST=1.2, MAGNET_DIST=3.0, MAGNET_SPEED=9 from armor_shard_tick.js lines 1–3",
+          "spin_x_speed=1.8, spin_y_speed=3.0 from rotation tick — lines 21–22 (note: x and y SWAPPED vs health)",
+          "bob_base=0.5, bob_amp=0.12, bob_period_ms=260 from line 23",
+          "spawn_jitter=1.0 from drop_spawner.js spawnArmorShard off() = (rand-0.5)*1.0",
+          "Mesh: TetrahedronGeometry(0.22, 0), color 0xffd166 (16765286), emissive 0xcc8800 (13404160), intensity 0.7, metalness 0.6, roughness 0.3 — drop_spawner.js",
+          "Dual-tone pickup sfx: 880Hz @ 0.45 + 1100Hz @ 0.3, both triangle wave — armor_shard_tick.js lines 16–17",
+          "Damage number '+N ARM' in #ffd166, toast 1800ms — lines 18–19"
+        ]
+      }
+    }
+  ]
+}

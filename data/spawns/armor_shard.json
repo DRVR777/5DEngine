@@ -1,0 +1,38 @@
+{
+  "id": "spawns/armor_shard",
+  "kind": "spawn-set",
+  "name": "Default armor shards",
+  "facets": [
+    { "name": "for-kind", "data": "armor-shard" },
+    { "name": "comment",  "data": "3 default armor shards near origin. Provenance: src/systems/armor_shard_tick.js + drop_spawner.js spawnArmorShard." }
+  ],
+  "children": [
+    { "id": "armor-shard/0", "kind": "armor-shard", "name": "shard_A",
+      "facets": [
+        { "name": "position",      "data": { "x":  5, "y": 0.5, "z":  0 } },
+        { "name": "mesh",          "data": { "factory": "armor-shard" } },
+        { "name": "bob",           "data": { "base": 0.5, "amplitude": 0.12, "period_ms": 260 } },
+        { "name": "spin",          "data": { "x": 1.8, "y": 3.0 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 9 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "give-armor" } }
+      ] },
+    { "id": "armor-shard/1", "kind": "armor-shard", "name": "shard_B",
+      "facets": [
+        { "name": "position",      "data": { "x": -5, "y": 0.5, "z":  0 } },
+        { "name": "mesh",          "data": { "factory": "armor-shard" } },
+        { "name": "bob",           "data": { "base": 0.5, "amplitude": 0.12, "period_ms": 260 } },
+        { "name": "spin",          "data": { "x": 1.8, "y": 3.0 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 9 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "give-armor" } }
+      ] },
+    { "id": "armor-shard/2", "kind": "armor-shard", "name": "shard_C",
+      "facets": [
+        { "name": "position",      "data": { "x":  0, "y": 0.5, "z":  5 } },
+        { "name": "mesh",          "data": { "factory": "armor-shard" } },
+        { "name": "bob",           "data": { "base": 0.5, "amplitude": 0.12, "period_ms": 260 } },
+        { "name": "spin",          "data": { "x": 1.8, "y": 3.0 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 9 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "give-armor" } }
+      ] }
+  ]
+}

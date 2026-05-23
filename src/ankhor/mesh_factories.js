@@ -201,6 +201,25 @@ export const MESH_FACTORIES = {
     return grp;
   },
 
+  // Armor shard — gold tetrahedron with emissive glow, magnetized like coin.
+  // Reference: src/systems/drop_spawner.js spawnArmorShard.
+  "armor-shard"(THREE, fd, thing, registry) {
+    const t = (k, v) => tuned(registry, "armor-shard", k, v);
+    const mesh = new THREE.Mesh(
+      new THREE.TetrahedronGeometry(t("radius", 0.22), 0),
+      new THREE.MeshStandardMaterial({
+        color:             t("body_color",         0xffd166),
+        emissive:          t("emissive_color",     0xcc8800),
+        emissiveIntensity: t("emissive_intensity", 0.7),
+        metalness:         t("metalness",          0.6),
+        roughness:         t("roughness",          0.3),
+      })
+    );
+    mesh.castShadow = true;
+    mesh.name = thing?.id || "armor-shard";
+    return mesh;
+  },
+
   // ── Future factories (add as kinds are migrated per docs/codex/specs/migration-sequence.md):
-  // armorShard, crate, grenadeCrate, hazardZone, bullet, enemy, vehicle, npc, screen, ...
+  // crate, grenadeCrate, hazardZone, bullet, enemy, vehicle, npc, screen, ...
 };

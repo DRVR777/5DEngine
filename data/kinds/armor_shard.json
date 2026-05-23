@@ -3,29 +3,19 @@
   "kind": "kind-def",
   "name": "Kind definition: armor-shard",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "armor-shard"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "armor-shard" },
+    { "name": "required-facets", "data": ["position", "mesh"] },
+    { "name": "optional-facets", "data": ["bob", "spin", "magnet", "pickup-radius", "armor"] },
+    { "name": "defaults", "data": {
+      "bob":           { "base": 0.5, "amplitude": 0.12, "period_ms": 260 },
+      "spin":          { "x": 1.8, "y": 3.0 },
+      "magnet":        { "range": 3.0, "speed": 9 },
+      "pickup-radius": { "radius": 1.2, "on_pickup_action": "give-armor" },
+      "armor":         { "amount": 10 }
+    } },
+    { "name": "absorbs", "data": [
+      "src/systems/armor_shard_tick.js",
+      "src/systems/drop_spawner.js"
+    ] }
   ]
 }
