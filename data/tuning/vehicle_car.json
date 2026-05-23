@@ -36,7 +36,16 @@
       "headlight_radius": 0.13,
       "headlight_y": 0.6,
       "headlight_z": 2.3,
-      "headlight_x_offset": 0.6
+      "headlight_x_offset": 0.6,
+      "acceleration":   12,
+      "reverse_factor": 0.5,
+      "drag":           1.8,
+      "brake_drag":     6.0,
+      "turn_rate_rad":  1.6,
+      "passenger_seat_y": 0.95,
+      "follow_back":     7.5,
+      "follow_up":       3.6,
+      "follow_lookahead": 2.0
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

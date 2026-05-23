@@ -136,10 +136,10 @@ Each game.html system is a `mount*` function call (~135 total).
 
 | game.html system | substrate equiv | status |
 |---|---|---|
-| mountVehiclePhysicsTick | vehicle-drive facet (input + physics) | ❌ |
+| mountVehiclePhysicsTick | vehicle-drive facet (iter 754) — throttle+steering+drag, no suspension | ⚠ |
 | mountVehicleRenderTick | mesh tick (substrate generic) | ✅ |
 | mountVehicleMeshFactory / mountVehicleMeshes | mesh-spec on vehicle-car (iter 727) | ✅ |
-| enter/exit vehicle | enter-vehicle facet | ❌ |
+| enter/exit vehicle | vehicle-enter-prompt facet (iter 754) — E key toggles | ✅ |
 | drone / mech / sidecar variants | variant tunings | ❌ |
 
 ## 7. NPCs / Dialog / Quests / Shop

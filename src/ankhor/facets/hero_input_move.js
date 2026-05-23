@@ -16,6 +16,8 @@
 export default {
   priority: 10,
   tick(thing, _data, dt, registry) {
+    const inv = registry.facetData(thing.id, "inventory");
+    if (inv && inv.in_vehicle_id) return;  // hero drives via vehicle-drive while seated
     const pos = registry.facetData(thing.id, "position");
     if (!pos) return;
 

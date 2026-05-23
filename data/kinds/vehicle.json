@@ -5,8 +5,10 @@
   "facets": [
     { "name": "for-kind",        "data": "vehicle" },
     { "name": "required-facets", "data": ["position", "mesh", "health"] },
-    { "name": "optional-facets", "data": ["input-controller", "rigid-body", "passenger-slot"] },
-    { "name": "defaults",        "data": {} },
+    { "name": "optional-facets", "data": ["vehicle-drive", "rigid-body", "passenger-slot"] },
+    { "name": "defaults", "data": {
+      "vehicle-drive": {}
+    } },
     { "name": "absorbs", "data": [
       "src/systems/vehicle_physics_tick.js",
       "src/systems/vehicle_render_tick.js",

@@ -106,9 +106,10 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
   return registry;
 }
 
-/** Position camera each frame. If a hero Thinga exists with a position
- *  facet, follow it from behind (yaw read from input-state if present),
- *  else fall back to the legacy orbit. All offsets come from world-params. */
+/** Position camera each frame. If a hero Thinga is in a vehicle,
+ *  follow the vehicle from behind using the vehicle's variant tuning
+ *  follow_* keys. Else follow the hero using world-params follow_*.
+ *  No hero → fall back to the legacy orbit. */
 function updateCamera(cam, cp, registry, now) {
   const heroes = registry.byKind("hero");
   if (heroes.length === 0) {
@@ -118,24 +119,59 @@ function updateCamera(cam, cp, registry, now) {
     return;
   }
   const hero = heroes[0];
-  const pos = registry.facetData(hero.id, "position");
-  if (!pos) return;
+  const heroPos = registry.facetData(hero.id, "position");
+  if (!heroPos) return;
+  const inv = registry.facetData(hero.id, "inventory");
+  const ridingVehicleId = inv && inv.in_vehicle_id;
+
+  if (ridingVehicleId) {
+    const v = registry.byKind("vehicle").find(t => t.id === ridingVehicleId);
+    const vPos = v ? registry.facetData(v.id, "position") : null;
+    const vMesh = v ? registry.facetData(v.id, "mesh") : null;
+    const vTuning = vehicleTuning(registry, vMesh?.tuning_ref);
+    if (vPos && vTuning) {
+      const yaw = typeof vPos.heading === "number" ? vPos.heading : 0;
+      const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+      cam.position.set(
+        vPos.x - fx * vTuning.follow_back,
+        vPos.y + vTuning.follow_up,
+        vPos.z - fz * vTuning.follow_back,
+      );
+      cam.lookAt(
+        vPos.x + fx * vTuning.follow_lookahead,
+        vPos.y + cp.follow_eye_height,
+        vPos.z + fz * vTuning.follow_lookahead,
+      );
+      return;
+    }
+  }
 
   const inputs = registry.byKind("input");
-  const yaw = (inputs.length && registry.facetData(inputs[0].id, "input-state")?.yaw) || pos.heading || 0;
-
-  const forwardX = -Math.sin(yaw);
-  const forwardZ = -Math.cos(yaw);
+  const yaw = (inputs.length && registry.facetData(inputs[0].id, "input-state")?.yaw) || heroPos.heading || 0;
+  const forwardX = -Math.sin(yaw), forwardZ = -Math.cos(yaw);
   cam.position.set(
-    pos.x - forwardX * cp.follow_back,
-    pos.y + cp.follow_up,
-    pos.z - forwardZ * cp.follow_back,
+    heroPos.x - forwardX * cp.follow_back,
+    heroPos.y + cp.follow_up,
+    heroPos.z - forwardZ * cp.follow_back,
   );
   cam.lookAt(
-    pos.x + forwardX * cp.follow_lookahead,
-    pos.y + cp.follow_eye_height,
-    pos.z + forwardZ * cp.follow_lookahead,
+    heroPos.x + forwardX * cp.follow_lookahead,
+    heroPos.y + cp.follow_eye_height,
+    heroPos.z + forwardZ * cp.follow_lookahead,
   );
+}
+
+function vehicleTuning(registry, tuningName) {
+  if (!tuningName) return null;
+  for (const t of registry.byKind("tuning")) {
+    if (t.name !== tuningName) continue;
+    const tn = registry.facetData(t.id, "tuning");
+    if (!tn) return null;
+    if (typeof tn.follow_back !== "number" || typeof tn.follow_up !== "number"
+        || typeof tn.follow_lookahead !== "number") return null;
+    return tn;
+  }
+  return null;
 }
 
 /** Merge kind-def defaults into a spawn instance. The instance's facets win;

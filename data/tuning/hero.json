@@ -37,7 +37,9 @@
       "hero_muzzle_forward": 0.9,
       "hero_muzzle_up": 1.45,
       "hero_ammo_item": "pistol_9mm",
-      "hero_starting_ammo": 60
+      "hero_starting_ammo": 60,
+      "interact_range_m": 3.0,
+      "key_interact":     "KeyE"
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",
