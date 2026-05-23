@@ -14,6 +14,8 @@ const KIND_NAMES = [
   "database-row", "nginx-route", "agent", "agent-message", "journal-event",
   // Singleton input device — captures keyboard/mouse, hero reads byKind("input")
   "input",
+  // Singleton DOM overlay — hud-overlay facet owns its container
+  "hud",
   // Composition kinds — everything-is-a-Thinga architecture
   "root", "world", "kind-def", "spawn-set",
   // Meta kinds

@@ -54,6 +54,7 @@
     { "ref": "kinds/agent_message" },
     { "ref": "kinds/smoke_particle" },
     { "ref": "kinds/input" },
+    { "ref": "kinds/hud" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -90,6 +91,7 @@
     { "ref": "tuning/database_default" },
     { "ref": "tuning/agent_message_default" },
     { "ref": "tuning/input_default" },
+    { "ref": "tuning/hud_default" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
@@ -112,6 +114,7 @@
     { "ref": "spawns/http_request" },
     { "ref": "spawns/database" },
     { "ref": "spawns/agent_message" },
-    { "ref": "spawns/input" }
+    { "ref": "spawns/input" },
+    { "ref": "spawns/hud" }
   ]
 }

@@ -1,0 +1,15 @@
+{
+  "id": "spawns/hud",
+  "kind": "spawn-set",
+  "name": "Default HUD",
+  "facets": [
+    { "name": "for-kind", "data": "hud" },
+    { "name": "comment",  "data": "Singleton HUD overlay. Its hud-overlay facet's init() creates a DOM container appended to document.body and styles it from hud-default-tuning. Each tick the facet reads byKind('hero')[0].health + byKind('enemy').length + hero-shoot._seq, paints HP bar + kill count + shots-fired counter. Subsequent iters split widgets into discrete facets but this shell proves the pattern: a Thinga owns its DOM and paints from registry state with zero cross-cutting wiring." }
+  ],
+  "children": [
+    { "id": "hud/main", "kind": "hud", "name": "primary_hud",
+      "facets": [
+        { "name": "hud-overlay", "data": {} }
+      ] }
+  ]
+}

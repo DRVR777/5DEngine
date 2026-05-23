@@ -21,6 +21,7 @@ import heroShoot      from "./hero_shoot.js";
 import enemyDeathCleanup from "./enemy_death_cleanup.js";
 import dropOnDeath    from "./drop_on_death.js";
 import heroRespawn    from "./hero_respawn.js";
+import hudOverlay     from "./hud_overlay.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -45,6 +46,7 @@ export const FACET_HANDLERS = {
   "enemy-death-cleanup": enemyDeathCleanup,
   "drop-on-death":       dropOnDeath,
   "hero-respawn":        heroRespawn,
+  "hud-overlay":         hudOverlay,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

@@ -53,7 +53,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountEnemyBulletTick | enemy-shoot facet (sniper, robot, poisoner-ranged) | ❌ |
 | mountWeaponAmmo | ammo-state facet on hero + per-weapon | ❌ |
 | mountWeaponSelector | weapon-picker UI Thinga | ❌ |
-| mountWeaponHudTick | hud Thinga showing weapon+ammo | ❌ |
+| mountWeaponHudTick | shots-fired counter inside hud-overlay (iter 743); real ammo pending | ⚠ |
 | mountFpGunPosTick | fp-gun-position facet (gun in front of cam) | ❌ |
 | mountAmmoReloadTick | reload-state facet | ❌ |
 | mountBulletGeo | already in bullet tunings (iter 720) | ✅ |
@@ -93,10 +93,10 @@ Each game.html system is a `mount*` function call (~135 total).
 
 | game.html system | substrate equiv | status |
 |---|---|---|
-| mountHudTemplate / mountHudElements | hud Thinga + DOM-render facets | ❌ |
-| mountCrosshairTick | crosshair-hud facet | ❌ |
+| mountHudTemplate / mountHudElements | hud kind + hud-overlay facet (iter 743) | ⚠ (shell — widgets pending) |
+| mountCrosshairTick | painted inside hud-overlay (iter 743) | ⚠ |
 | mountCombatHudTick | combat-state hud | ❌ |
-| mountStatBarsTick | hp/armor/stamina bar facets | ❌ |
+| mountStatBarsTick | HP bar inside hud-overlay (iter 743); armor/stamina pending | ⚠ |
 | mountBossBarTick | boss-bar facet | ❌ |
 | mountComboHudTick | combo-counter hud | ❌ |
 | mountComboAnnouncer | combo-announcer (sfx) | ❌ |

@@ -1,0 +1,21 @@
+{
+  "id": "kinds/hud",
+  "kind": "kind-def",
+  "name": "Kind definition: hud",
+  "facets": [
+    { "name": "for-kind",        "data": "hud" },
+    { "name": "required-facets", "data": ["hud-overlay"] },
+    { "name": "optional-facets", "data": [] },
+    { "name": "defaults", "data": {
+      "hud-overlay": { "_installed": false, "_lastEnemyCount": null, "kills": 0 }
+    } },
+    { "name": "absorbs", "data": [
+      "game.html — mountHudTemplate (line 250), mountHudElements (line 164), mountStatBarsTick, mountWeaponHudTick, mountCrosshairTick, mountCombatHudTick, mountClockHudTick, mountVignetteTick, mountComboHudTick, mountBossBarTick, mountWaveHudTick, mountDebugHudTick. Each is a discrete game.html HUD; this iter does the bare-minimum shell (HP bar + kill count + ammo). Subsequent iters split into per-widget facets once the shell proves out."
+    ] },
+    { "name": "variants", "data": {
+      "comment": "Singleton overlay. The hud Thinga owns its DOM container; widget facets paint into it. Future variants: minimalist-hud, debug-hud, builder-hud — each with its own tuning + facet set.",
+      "available": ["hud-default-tuning"],
+      "queued":    ["hud-minimalist-tuning", "hud-debug-tuning"]
+    } }
+  ]
+}

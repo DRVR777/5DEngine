@@ -1,0 +1,47 @@
+{
+  "id": "tuning/hud_default",
+  "kind": "tuning",
+  "name": "hud-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "container_z_index":      "1000",
+      "container_pointer_events": "none",
+      "font_family":            "Consolas, 'Courier New', monospace",
+      "font_size_px":           14,
+      "hp_x_px":                12,
+      "hp_y_px":                12,
+      "hp_width_px":            240,
+      "hp_height_px":           18,
+      "hp_bg_color":            "rgba(10,12,20,0.78)",
+      "hp_border_color":        "rgba(255,255,255,0.25)",
+      "hp_fill_color_high":     "#34d27a",
+      "hp_fill_color_mid":      "#e3c44b",
+      "hp_fill_color_low":      "#d44757",
+      "hp_label_color":         "#e8eef8",
+      "hp_mid_threshold":       0.5,
+      "hp_low_threshold":       0.25,
+      "kills_x_px":             12,
+      "kills_y_px":             40,
+      "kills_color":            "#e8eef8",
+      "kills_label":            "kills",
+      "ammo_right_px":          12,
+      "ammo_bottom_px":         12,
+      "ammo_color":             "#e8eef8",
+      "ammo_label":             "shots fired",
+      "crosshair_size_px":      10,
+      "crosshair_color":        "rgba(255,255,255,0.85)",
+      "crosshair_thickness_px": 2
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["game.html mountHudTemplate (line 250) — DOM-overlay style emulated; values chosen for legibility, not legacy-extracted"],
+      "migrated_iter": 743,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": false,
+      "notes": [
+        "First-pass HUD tuning — values were chosen for readability on a dark scene, not extracted from any specific legacy file. do_not_optimize false because tuning these is part of playtest, not provenance preservation.",
+        "Three-stop HP color (>50% green, >25% yellow, else red) matches the common shooter convention.",
+        "Pointer-events: none on the container so the overlay never eats clicks meant for canvas."
+      ]
+    }}
+  ]
+}
