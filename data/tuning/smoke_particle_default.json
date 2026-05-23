@@ -1,0 +1,29 @@
+{
+  "id": "tuning/smoke_particle_default",
+  "kind": "tuning",
+  "name": "smoke-particle-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "radius": 0.35,
+      "segments_w": 6,
+      "segments_h": 6,
+      "color": 13948116,
+      "emissive": 5526612,
+      "emissive_intensity": 0.25,
+      "opacity": 0.55,
+      "ttl_default": 2.2
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "sphere", "args": [0.35, 6, 6] },
+      "material": { "kind": "standard", "color": 13948116, "emissive": 5526612, "emissive_intensity": 0.25, "transparent": true, "opacity": 0.55 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/systems/smoke_zone_tick.js — SPAWN_PROB 0.8, Y_BASE 0.5, Y_RAND_SCALE 1.5 (legacy emission params consumed by hazard-zone-smoke tuning, not this particle tuning)"],
+      "migrated_iter": 736,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": ["Soft grey puff (color 0xd4d4d4 = 13948116, emissive 0x545454 = 5526612 intensity 0.25). Translucent, lo-poly (6×6 segments). Default ttl 2.2s — long enough to drift into a cloud, short enough that the emitter keeps churn going."]
+    }}
+  ]
+}

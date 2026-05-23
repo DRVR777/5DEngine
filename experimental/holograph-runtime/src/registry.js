@@ -7,6 +7,8 @@ const KIND_NAMES = [
   "armor-shard", "armor-vest", "grenade-crate",
   // Combat extensions
   "mine", "turret", "grenade",
+  // Ephemeral particles spawned by particle-emitter facet
+  "smoke-particle",
   // Server / 7D kinds
   "server-process", "docker-container", "http-request", "database",
   "database-row", "nginx-route", "agent", "agent-message", "journal-event",

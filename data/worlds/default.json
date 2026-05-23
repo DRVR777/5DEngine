@@ -48,6 +48,7 @@
     { "ref": "kinds/http_request" },
     { "ref": "kinds/database" },
     { "ref": "kinds/agent_message" },
+    { "ref": "kinds/smoke_particle" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -62,6 +63,8 @@
     { "ref": "tuning/grenade_crate" },
     { "ref": "tuning/hazard_zone_fire" },
     { "ref": "tuning/hazard_zone_poison" },
+    { "ref": "tuning/hazard_zone_smoke" },
+    { "ref": "tuning/smoke_particle_default" },
     { "ref": "tuning/bullet_hero" },
     { "ref": "tuning/bullet_enemy" },
     { "ref": "tuning/enemy_grunt" },

@@ -38,6 +38,21 @@
         { "name": "ttl",           "data": { "remaining": 600 } },
         { "name": "status-zone",   "data": { "radius": 1.2, "status_name": "poisoned", "interval_seconds": 0.8 } },
         { "name": "opacity-pulse", "data": { "base": 0.5, "amplitude": 0.15, "period_ms": 200, "fade_from_ttl_window": 1.0 } }
+      ] },
+    { "id": "hazard-zone/smoke-0", "kind": "hazard-zone", "name": "smoke_NE_corner",
+      "facets": [
+        { "name": "position",         "data": { "x":  10, "y": 0, "z":  10 } },
+        { "name": "mesh",             "data": { "tuning_ref": "hazard-zone-smoke-tuning" } },
+        { "name": "ttl",              "data": { "remaining": 600 } },
+        { "name": "particle-emitter", "data": {
+          "particle_kind":       "smoke-particle",
+          "particle_tuning_ref": "smoke-particle-default-tuning",
+          "radius":              1.5,
+          "y_base":              0.5,
+          "y_jitter":            1.5,
+          "spawn_probability":   0.6,
+          "particle_ttl":        2.2
+        } }
       ] }
   ]
 }

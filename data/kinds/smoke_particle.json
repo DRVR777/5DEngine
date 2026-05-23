@@ -1,0 +1,17 @@
+{
+  "id": "kinds/smoke_particle",
+  "kind": "kind-def",
+  "name": "Kind definition: smoke-particle",
+  "facets": [
+    { "name": "for-kind",        "data": "smoke-particle" },
+    { "name": "required-facets", "data": ["position", "mesh", "ttl"] },
+    { "name": "optional-facets", "data": ["bob"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": ["src/systems/smoke_zone_tick.js (emit side; particle render is new substrate primitive)"] },
+    { "name": "variants", "data": {
+      "comment": "Ephemeral white-grey puff spawned by particle-emitter facets (smoke hazard-zone today; future: dust, steam, sparks via per-variant tuning). Despawns via ttl. The smoke-particle kind is what makes hazard-zone-smoke render — smoke zones are invisible emitters, only their particles are seen.",
+      "available": ["smoke-particle-default-tuning"],
+      "queued":    []
+    } }
+  ]
+}

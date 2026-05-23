@@ -1,0 +1,31 @@
+{
+  "id": "tuning/hazard_zone_smoke",
+  "kind": "tuning",
+  "name": "hazard-zone-smoke-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "emit_radius": 1.5,
+      "emit_y_base": 0.5,
+      "emit_y_jitter": 1.5,
+      "spawn_probability_per_tick": 0.6,
+      "particle_ttl_seconds": 2.2,
+      "duration_seconds": 6.0
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": []
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["src/systems/smoke_zone_tick.js — SPAWN_PROB=0.8, Y_BASE=0.5, Y_RAND_SCALE=1.5; default duration 6.0s from hazard_zones.js legacy"],
+      "migrated_iter": 736,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Smoke zone has NO mesh of its own — the parent zone is invisible; only its emitted smoke-particle Things render. mesh-spec is an empty group for consistency with the hazard-zone kind-def's mesh requirement.",
+        "spawn_probability_per_tick lowered from legacy 0.8 → 0.6 because the legacy tick was ~5s coarse; the substrate ticks per-frame so even 0.6 produces visible thickness.",
+        "particle_ttl 2.2s matches smoke-particle-default-tuning's ttl_default — particles drift then fade.",
+        "duration 6.0s preserved from legacy hazard_zones.js; configured on the spawn's ttl facet."
+      ]
+    }}
+  ]
+}

@@ -5,16 +5,17 @@
   "facets": [
     { "name": "for-kind",        "data": "hazard-zone" },
     { "name": "required-facets", "data": ["position", "mesh", "ttl"] },
-    { "name": "optional-facets", "data": ["damage-zone", "status-zone", "opacity-pulse"] },
+    { "name": "optional-facets", "data": ["damage-zone", "status-zone", "opacity-pulse", "particle-emitter"] },
     { "name": "defaults", "data": {} },
     { "name": "absorbs", "data": [
       "src/systems/fire_patch_tick.js",
       "src/systems/poison_puddle_tick.js",
+      "src/systems/smoke_zone_tick.js",
       "src/systems/hazard_zones.js"
     ] },
     { "name": "variants", "data": {
-      "comment": "hazard-zone has multiple per-variant tunings; the spawn's mesh facet uses `tuning_ref` to pick. Defaults differ per variant so no kind-level defaults apply.",
-      "available": ["hazard-zone-fire-tuning", "hazard-zone-poison-tuning"]
+      "comment": "hazard-zone has multiple per-variant tunings; the spawn's mesh facet uses `tuning_ref` to pick. Smoke zone uses particle-emitter (added iter 736) to spawn smoke-particle Things; fire/poison use damage-zone/status-zone with ground-decal meshes.",
+      "available": ["hazard-zone-fire-tuning", "hazard-zone-poison-tuning", "hazard-zone-smoke-tuning"]
     } }
   ]
 }
