@@ -1,7 +1,16 @@
 {
   "kind": "coin-drop",
-  "required_facets": [],
-  "optional_facets": [],
-  "defaults": {},
-  "status": "cataloged-for-registry-adoption"
+  "required_facets": ["position", "mesh"],
+  "optional_facets": ["bob", "spin", "magnet", "pickup-radius", "value"],
+  "defaults": {
+    "bob":           { "base": 0.5, "amplitude": 0.08, "period_ms": 310 },
+    "spin":          { "speed": 2.8 },
+    "magnet":        { "range": 3.0, "speed": 9 },
+    "pickup-radius": { "radius": 1.2, "on_pickup_action": "score-add" },
+    "value":         { "amount": 1 }
+  },
+  "absorbs": [
+    "src/systems/coin_drop_tick.js",
+    "src/systems/drop_spawner.js"
+  ]
 }

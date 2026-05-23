@@ -108,7 +108,24 @@ export const MESH_FACTORIES = {
     return mesh;
   },
 
+  // Coin drop — small gold sphere with subtle emissive.
+  // Reference: src/systems/drop_spawner.js spawnCoinDrop (gold SphereGeometry).
+  "coin-drop"(THREE, fd, thing, registry) {
+    const t = (k, v) => tuned(registry, "coin-drop", k, v);
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(t("radius", 0.18), 8, 8),
+      new THREE.MeshStandardMaterial({
+        color:     t("body_color",     0xffd700),
+        emissive:  t("emissive_color", 0x554400),
+        metalness: t("metalness",      0.7),
+        roughness: t("roughness",      0.2),
+      })
+    );
+    mesh.name = thing?.id || "coin-drop";
+    return mesh;
+  },
+
   // ── Future factories (add as kinds are migrated per docs/codex/specs/migration-sequence.md):
-  // coinDrop, healthPickup, ammoPickup, weaponPickup, armorShard,
+  // healthPickup, ammoPickup, weaponPickup, armorShard,
   // crate, grenadeCrate, hazardZone, bullet, enemy, vehicle, npc, screen, ...
 };

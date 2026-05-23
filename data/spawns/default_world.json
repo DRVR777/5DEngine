@@ -106,6 +106,39 @@
         { "name": "emissive-pulse",  "data": { "base": 0.7, "amplitude": 0.3, "period_ms": 120 } },
         { "name": "pickup-radius",   "data": { "radius": 1.2, "on_pickup_action": "speed-boost" } }
       ]
+    },
+    {
+      "id": "coin-drop/0", "kind": "coin-drop", "name": "coin_A",
+      "facets": [
+        { "name": "position",      "data": { "x":  2, "y": 0.5, "z":  0 } },
+        { "name": "mesh",          "data": { "factory": "coin-drop" } },
+        { "name": "bob",           "data": { "base": 0.5, "amplitude": 0.08, "period_ms": 310 } },
+        { "name": "spin",          "data": { "speed": 2.8 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 9 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "score-add" } }
+      ]
+    },
+    {
+      "id": "coin-drop/1", "kind": "coin-drop", "name": "coin_B",
+      "facets": [
+        { "name": "position",      "data": { "x": -2, "y": 0.5, "z":  2 } },
+        { "name": "mesh",          "data": { "factory": "coin-drop" } },
+        { "name": "bob",           "data": { "base": 0.5, "amplitude": 0.08, "period_ms": 310 } },
+        { "name": "spin",          "data": { "speed": 2.8 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 9 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "score-add" } }
+      ]
+    },
+    {
+      "id": "coin-drop/2", "kind": "coin-drop", "name": "coin_C",
+      "facets": [
+        { "name": "position",      "data": { "x":  0, "y": 0.5, "z": -2 } },
+        { "name": "mesh",          "data": { "factory": "coin-drop" } },
+        { "name": "bob",           "data": { "base": 0.5, "amplitude": 0.08, "period_ms": 310 } },
+        { "name": "spin",          "data": { "speed": 2.8 } },
+        { "name": "magnet",        "data": { "range": 3.0, "speed": 9 } },
+        { "name": "pickup-radius", "data": { "radius": 1.2, "on_pickup_action": "score-add" } }
+      ]
     }
   ]
 }
