@@ -20,6 +20,7 @@ const HERO_CONSUMERS = [
   "respawn-on-collect",
   "chase-target",
   "attack-target",
+  "enemy-shoot",
 ];
 
 export default {

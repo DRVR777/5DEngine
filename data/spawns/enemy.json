@@ -49,9 +49,10 @@
       ] },
     { "id": "enemy/robot-0", "kind": "enemy", "name": "robot_E",
       "facets": [
-        { "name": "position", "data": { "x":  16, "y": 0, "z":  16 } },
-        { "name": "mesh",     "data": { "tuning_ref": "enemy-robot-tuning" } },
-        { "name": "health",   "data": { "hp": 350, "maxHp": 350 } }
+        { "name": "position",    "data": { "x":  16, "y": 0, "z":  16 } },
+        { "name": "mesh",        "data": { "tuning_ref": "enemy-robot-tuning" } },
+        { "name": "health",      "data": { "hp": 350, "maxHp": 350 } },
+        { "name": "enemy-shoot", "data": {} }
       ] },
     { "id": "enemy/boss-0", "kind": "enemy", "name": "boss_far_N",
       "facets": [
@@ -61,9 +62,10 @@
       ] },
     { "id": "enemy/sniper-0", "kind": "enemy", "name": "sniper_far_W",
       "facets": [
-        { "name": "position", "data": { "x": -22, "y": 0, "z":  -2 } },
-        { "name": "mesh",     "data": { "tuning_ref": "enemy-sniper-tuning" } },
-        { "name": "health",   "data": { "hp": 55, "maxHp": 55 } }
+        { "name": "position",    "data": { "x": -22, "y": 0, "z":  -2 } },
+        { "name": "mesh",        "data": { "tuning_ref": "enemy-sniper-tuning" } },
+        { "name": "health",      "data": { "hp": 55, "maxHp": 55 } },
+        { "name": "enemy-shoot", "data": {} }
       ] }
   ]
 }

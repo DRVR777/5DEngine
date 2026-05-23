@@ -12,7 +12,15 @@
       "gem_radius": 0.16, "gem_y_offset": 2.1,
       "gem_intensity": 0.8, "gem_opacity": 0.92,
       "capsule_cap_segments": 4, "capsule_radial_segments": 12,
-      "bob_amplitude": 0.035
+      "bob_amplitude": 0.035,
+      "ranged_attack_range":      20,
+      "ranged_attack_interval":   2.6,
+      "ranged_damage":            45,
+      "ranged_bullet_speed":      32,
+      "ranged_bullet_ttl":        2.0,
+      "ranged_bullet_hit_radius": 0.55,
+      "ranged_muzzle_y":          1.6,
+      "ranged_muzzle_forward":    0.7
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

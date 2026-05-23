@@ -15,6 +15,7 @@ import kineticHit      from "./kinetic_hit.js";
 import particleEmitter from "./particle_emitter.js";
 import chaseTarget    from "./chase_target.js";
 import attackTarget   from "./attack_target.js";
+import enemyShoot     from "./enemy_shoot.js";
 import inputState     from "./input_state.js";
 import heroInputMove  from "./hero_input_move.js";
 import heroShoot      from "./hero_shoot.js";
@@ -41,6 +42,7 @@ export const FACET_HANDLERS = {
   "particle-emitter":    particleEmitter,
   "chase-target":        chaseTarget,
   "attack-target":       attackTarget,
+  "enemy-shoot":         enemyShoot,
   "input-state":         inputState,
   "hero-input-move":     heroInputMove,
   "hero-shoot":          heroShoot,

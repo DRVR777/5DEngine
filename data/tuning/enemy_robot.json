@@ -10,7 +10,15 @@
       "color": 4482730,
       "body_color": 3359829, "body_metalness": 0.9, "body_roughness": 0.2,
       "accent_color": 16720384, "accent_emissive": 16711680, "accent_emissive_intensity": 1.2,
-      "bob_amplitude": 0.035
+      "bob_amplitude": 0.035,
+      "ranged_attack_range":      12,
+      "ranged_attack_interval":   0.55,
+      "ranged_damage":            12,
+      "ranged_bullet_speed":      26,
+      "ranged_bullet_ttl":        1.4,
+      "ranged_bullet_hit_radius": 0.5,
+      "ranged_muzzle_y":          2.02,
+      "ranged_muzzle_forward":    0.5
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

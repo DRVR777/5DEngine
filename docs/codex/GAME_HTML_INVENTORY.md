@@ -50,7 +50,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountBulletWorldHitTick | bullet vs collider via kinetic-hit.stop_on_collider (iter 746) | ✅ |
 | mountBulletEnemyKillTick | enemy-death-cleanup facet (iter 742) | ✅ |
 | mountBulletEnemyHitFeedbackTick | hit-flash + damage numbers | ❌ |
-| mountEnemyBulletTick | enemy-shoot facet (sniper, robot, poisoner-ranged) | ❌ |
+| mountEnemyBulletTick | enemy-shoot facet (iter 747) — sniper+robot wired; poisoner pending | ⚠ |
 | mountWeaponAmmo | ammo-state facet on hero + per-weapon | ❌ |
 | mountWeaponSelector | weapon-picker UI Thinga | ❌ |
 | mountWeaponHudTick | shots-fired counter inside hud-overlay (iter 743); real ammo pending | ⚠ |
@@ -73,7 +73,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountEnemyRegenTick | enemy hp-regen | ❌ |
 | mountEnemySepTick | enemy-separation facet (don't overlap) | ❌ |
 | mountEnemyRobotEmpTick | robot ranged EMP attack | ❌ |
-| mountEnemyRobotPlasmaTick | robot plasma bullet | ❌ |
+| mountEnemyRobotPlasmaTick | enemy-shoot via robot tuning (iter 747) — fast bullets | ⚠ (no plasma VFX) |
 | mountEnemyHeavyGrenadeTick | heavy throws grenades | ❌ |
 | mountEnemyBossRockTick | boss rock throw | ❌ |
 | mountEnemyBossSlamTick | boss ground slam (AOE) | ❌ |
@@ -81,7 +81,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountEnemyPoisonerRangedSpitTick | poisoner ranged | ❌ |
 | mountEnemyIncendiaryTick | incendiary fire attack | ❌ |
 | mountEnemyFastChargeTick | fast charge attack | ❌ |
-| mountEnemySniperTick | sniper aim + shot | ❌ |
+| mountEnemySniperTick | enemy-shoot via sniper tuning (iter 747) — simple ranged | ⚠ (no aim windup, no sway) |
 | mountEnemyStrafeMeleeTick | strafe-while-meleeing | ❌ |
 | `wander` AI when no target | wander facet | ❌ |
 | `flinch` on hit | flinch-spring facet | ❌ |
