@@ -151,6 +151,7 @@ function makeGetter(spec, registry) {
   if (resolver.kind === "input-yaw")        return () => readInputState(registry)?.yaw || 0;
   if (resolver.kind === "input-pointerlock") return () => typeof document !== "undefined" && !!document.pointerLockElement;
   if (resolver.kind === "kind-pos")         return resolver.get;
+  if (resolver.kind === "input-keys")       return () => readInputState(registry)?.keys || {};
   return noop;
 }
 
@@ -209,6 +210,7 @@ function makeAction(spec, registry) {
     const fd = registry.facetData(id, resolver.facet);
     if (fd) fd[resolver.field] = v;
   };
+  if (resolver.kind === "write-pos") return resolver.write;
   return () => {};
 }
 
@@ -255,6 +257,7 @@ function resolveAtBuildTime(value, registry) {
   if (r.kind === "input-yaw")        return readInputState(registry)?.yaw || 0;
   if (r.kind === "input-pointerlock") return typeof document !== "undefined" && !!document.pointerLockElement;
   if (r.kind === "kind-pos")         return r.get();
+  if (r.kind === "input-keys")       return readInputState(registry)?.keys || {};
   return null;
 }
 
@@ -278,6 +281,8 @@ function parseSpec(spec, registry) {
   if (spec === "$pointerHeld")   return { kind: "input-mouse" };
   if (spec === "$pointerLocked") return { kind: "input-pointerlock" };
   if (spec === "$inputYaw")      return { kind: "input-yaw" };
+  if (spec === "$inputKeys")     return { kind: "input-keys" };
+  if (spec.startsWith("$writePos:")) return parseWritePos(spec.slice(10), registry);
   if (spec.startsWith("$log:"))      return { kind: "log",      prefix: spec.slice(5) };
   if (spec.startsWith("$const:"))    return parseConst(spec.slice(7));
   if (spec.startsWith("$global:"))   return { kind: "global",   expr:    spec.slice(8) };
@@ -307,6 +312,32 @@ function parseKindPos(rest, registry) {
       const pos = registry.facetData(list[idx].id, "position");
       if (!pos) return null;
       return { u: pos.x, y: pos.y, v: pos.z };
+    },
+  };
+}
+
+/** $writePos:<kind>[<i>] — action atom that writes a Thing's position,
+ *  accepting the legacy 5-arg shape `(x, y, z, u, v)`. The substrate
+ *  uses {x, y, z}; the legacy code's (x,y,z) and (u,v) refer to the
+ *  SAME 2D place from different schemas. Most callers pass either
+ *  3D world (x,z) OR 5D phase (u,v), not both. Prefer (u,v) when set,
+ *  fall back to (x,z). y always passes through. */
+function parseWritePos(rest, registry) {
+  const m = rest.match(/^([^\/\[]+)(?:\[(\d+)\])?$/);
+  if (!m) { console.warn(`${LEGACY_NS} bad $writePos spec: ${rest}`); return null; }
+  const kindName = m[1], idx = m[2] ? Number(m[2]) : 0;
+  return {
+    kind: "write-pos",
+    write: (x, y, z, u, v) => {
+      const list = registry.byKind(kindName);
+      if (!list[idx]) return;
+      const pos = registry.facetData(list[idx].id, "position");
+      if (!pos) return;
+      const writeX = (typeof u === "number") ? u : x;
+      const writeZ = (typeof v === "number") ? v : z;
+      if (typeof writeX === "number") pos.x = writeX;
+      if (typeof y      === "number") pos.y = y;
+      if (typeof writeZ === "number") pos.z = writeZ;
     },
   };
 }

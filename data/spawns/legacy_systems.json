@@ -179,6 +179,39 @@
             "actions.heroShowDeathScreen": "$log:[hero death]"
           }
         } }
+      ] },
+
+    { "id": "legacy/crouch-speed", "kind": "legacy-system", "name": "legacy_crouch_speed",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/crouch_speed_tick.js",
+          "export":     "mountCrouchSpeedTick",
+          "tick_args":  ["@dt", { "keys": "$inputKeys", "buildMode": "$const:false", "inCar": "$const:false", "computerOpen": "$const:false", "heroDead": "$const:false", "aiming": "$const:false", "isSprinting": "$input:ShiftLeft", "isMoving": "$inputAny:KeyW,KeyA,KeyS,KeyD", "pointerLocked": "$pointerLocked" }],
+          "bindings": {
+            "actions.spawnSprintTrail": "$emit:{\"id\":\"decal-particle/sprint-trail-<seq>\",\"kind\":\"decal-particle\",\"name\":\"sprint_trail_<seq>\",\"facets\":[{\"name\":\"position\",\"data\":{\"x\":0,\"y\":0.08,\"z\":0}},{\"name\":\"mesh\",\"data\":{\"tuning_ref\":\"decal-particle-impact-tuning\"}},{\"name\":\"ttl\",\"data\":{\"remaining\":0.2}},{\"name\":\"expand-fade\",\"data\":{}}]}"
+          }
+        } }
+      ] },
+
+    { "id": "legacy/hero-knockback", "kind": "legacy-system", "name": "legacy_hero_knockback",
+      "facets": [
+        { "name": "legacy-mount", "data": {
+          "module_url": "./src/systems/hero_knockback_tick.js",
+          "export":     "mountHeroKnockbackTick",
+          "tick_args":  ["@dt"],
+          "_kbT": 0, "_kbU": 0, "_kbV": 0,
+          "bindings": {
+            "get.kbT":            "$thing:legacy/hero-knockback/legacy-mount/_kbT",
+            "set.kbT":            "$thing:legacy/hero-knockback/legacy-mount/_kbT",
+            "get.kbU":            "$thing:legacy/hero-knockback/legacy-mount/_kbU",
+            "set.kbU":            "$thing:legacy/hero-knockback/legacy-mount/_kbU",
+            "get.kbV":            "$thing:legacy/hero-knockback/legacy-mount/_kbV",
+            "set.kbV":            "$thing:legacy/hero-knockback/legacy-mount/_kbV",
+            "actions.getPos":     "$kindPos:hero",
+            "actions.setPos":     "$writePos:hero",
+            "actions.resolveMove": "$noop"
+          }
+        } }
       ] }
   ]
 }
