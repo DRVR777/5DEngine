@@ -6,18 +6,20 @@ import spin          from "./spin.js";
 import emissivePulse from "./emissive_pulse.js";
 import opacityPulse  from "./opacity_pulse.js";
 import magnet        from "./magnet.js";
-import pickupRadius  from "./pickup_radius.js";
-import ttl           from "./ttl.js";
+import pickupRadius    from "./pickup_radius.js";
+import respawnOnCollect from "./respawn_on_collect.js";
+import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
-  "position":       position,
-  "bob":            bob,
-  "spin":           spin,
-  "emissive-pulse": emissivePulse,
-  "opacity-pulse":  opacityPulse,
-  "magnet":         magnet,
-  "pickup-radius":  pickupRadius,
-  "ttl":            ttl,
+  "position":            position,
+  "bob":                 bob,
+  "spin":                spin,
+  "emissive-pulse":      emissivePulse,
+  "opacity-pulse":       opacityPulse,
+  "magnet":              magnet,
+  "pickup-radius":       pickupRadius,
+  "respawn-on-collect":  respawnOnCollect,
+  "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },

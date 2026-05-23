@@ -1,0 +1,23 @@
+{
+  "id": "spawns/grenade_crate",
+  "kind": "spawn-set",
+  "name": "Default grenade crates",
+  "facets": [
+    { "name": "for-kind", "data": "grenade-crate" },
+    { "name": "comment",  "data": "4 default grenade caches at fixed map positions. Provenance: src/systems/static_supply.js line 6." }
+  ],
+  "children": [
+    { "id": "grenade-crate/0", "kind": "grenade-crate", "name": "grenade_SE",
+      "facets": [ { "name": "position", "data": { "x":  10, "y": 0.2, "z": -10 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "grenade-crate/1", "kind": "grenade-crate", "name": "grenade_NW",
+      "facets": [ { "name": "position", "data": { "x": -10, "y": 0.2, "z":  10 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "grenade-crate/2", "kind": "grenade-crate", "name": "grenade_N",
+      "facets": [ { "name": "position", "data": { "x":   0, "y": 0.2, "z":  18 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "grenade-crate/3", "kind": "grenade-crate", "name": "grenade_SW",
+      "facets": [ { "name": "position", "data": { "x": -14, "y": 0.2, "z":  -4 } },
+                  { "name": "mesh",     "data": {} } ] }
+  ]
+}

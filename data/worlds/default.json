@@ -35,6 +35,7 @@
     { "ref": "kinds/weapon_pickup" },
     { "ref": "kinds/armor_shard" },
     { "ref": "kinds/crate" },
+    { "ref": "kinds/grenade_crate" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -44,6 +45,7 @@
     { "ref": "tuning/weapon_pickup" },
     { "ref": "tuning/armor_shard" },
     { "ref": "tuning/crate" },
+    { "ref": "tuning/grenade_crate" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
@@ -52,6 +54,7 @@
     { "ref": "spawns/ammo_pickup" },
     { "ref": "spawns/weapon_pickup" },
     { "ref": "spawns/armor_shard" },
-    { "ref": "spawns/crate" }
+    { "ref": "spawns/crate" },
+    { "ref": "spawns/grenade_crate" }
   ]
 }

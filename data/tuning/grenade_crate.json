@@ -1,0 +1,65 @@
+{
+  "id": "tuning/grenade_crate",
+  "kind": "tuning",
+  "name": "grenade-crate-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "collect_dist": 1.3,
+      "restock_amount": 3,
+      "max_grenades": 9,
+      "respawn_seconds": 30,
+      "spin_speed": 0.8,
+      "bob_base": 0.2,
+      "bob_amp": 0.04,
+      "bob_period_ms": 700,
+      "body_w": 0.5,
+      "body_h": 0.4,
+      "body_d": 0.5,
+      "body_y": 0.2,
+      "body_color": 3368499,
+      "body_metalness": 0.3,
+      "body_roughness": 0.6,
+      "stripe_w": 0.52,
+      "stripe_h": 0.08,
+      "stripe_d": 0.12,
+      "stripe_color": 65348,
+      "stripe_emissive": 43554,
+      "stripe_emissive_intensity": 0.6,
+      "pickup_sfx_freq": 550,
+      "pickup_sfx_duration_ms": 100,
+      "pickup_sfx_volume": 0.5,
+      "toast_ms": 1500
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "box", "args": [0.5, 0.4, 0.5] },
+          "material": { "kind": "standard", "color": 3368499, "metalness": 0.3, "roughness": 0.6 },
+          "position": { "y": 0.2 }, "cast_shadow": true },
+        { "name": "stripe",
+          "geometry": { "kind": "box", "args": [0.52, 0.08, 0.12] },
+          "material": { "kind": "standard", "color": 65348, "emissive": 43554, "emissive_intensity": 0.6 },
+          "position": { "y": 0.2 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/systems/grenade_crate_tick.js",
+        "src/systems/static_supply.js"
+      ],
+      "migrated_iter": 718,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "COLLECT_DIST=1.3, RESTOCK_AMT=3, MAX_GRENADES=9, RESPAWN_DUR=30 from grenade_crate_tick.js lines 1–4",
+        "SPIN_SPEED=0.8, BOB_BASE=0.2, BOB_AMP=0.04, BOB_PERIOD=700 from lines 5–8",
+        "Body: BoxGeometry(0.5, 0.4, 0.5), color 0x336633 (3368499), metalness 0.3, roughness 0.6 — static_supply.js lines 7–8",
+        "Stripe: BoxGeometry(0.52, 0.08, 0.12), color 0x00ff44 (65348), emissive 0x00aa22 (43554), intensity 0.6 — line 9, 13",
+        "Pickup sfx 'tone:550:100:sine' @ 0.5, toast 1500ms — grenade_crate_tick.js lines 24–25",
+        "Stripe was child of body at y=0 relative in legacy; mesh-spec keeps both at y=0.2 absolute (visually identical)",
+        "Respawn is handled by `respawn-on-collect` facet new in iter 718 — Thing persists, mesh.visible toggles, cooldown_until tracks the 30s window"
+      ]
+    }}
+  ]
+}
