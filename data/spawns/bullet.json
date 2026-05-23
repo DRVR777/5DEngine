@@ -1,29 +1,32 @@
 {
   "id": "spawns/bullet",
   "kind": "spawn-set",
-  "name": "Demo bullets in motion",
+  "name": "Demo bullets in motion (now with kinetic-hit)",
   "facets": [
     { "name": "for-kind", "data": "bullet" },
-    { "name": "comment",  "data": "Substrate demonstration: 2 hero bullets and 1 enemy bullet flying in straight lines. position.velocity is integrated by the position handler; ttl despawns each after its lifetime. Real bullet spawning is runtime (a weapon facet fires them) — that lands once weapon kind is migrated. Demo bullets here loop the visual proof that velocity + ttl produce projectiles." }
+    { "name": "comment",  "data": "Substrate demonstration. Hero bullets carry kinetic-hit against enemy kind, enemy bullets against hero. Real bullet spawning is runtime (a weapon facet fires them). Bullets that find a target apply damage to its health facet and despawn. Lift-ready: the damage delivery is an envelope variable in kinetic-hit, mechanically convertible to actor emit." }
   ],
   "children": [
     { "id": "bullet/demo-hero-0", "kind": "bullet", "name": "demo_hero_east",
       "facets": [
-        { "name": "position", "data": { "x": -20, "y": 1.0, "z":  0, "velocity": { "x": 8, "y": 0, "z": 0 } } },
-        { "name": "mesh",     "data": { "tuning_ref": "bullet-hero-tuning" } },
-        { "name": "ttl",      "data": { "remaining": 5 } }
+        { "name": "position",     "data": { "x": -20, "y": 1.0, "z":  5, "velocity": { "x": 8, "y": 0, "z": 0 } } },
+        { "name": "mesh",         "data": { "tuning_ref": "bullet-hero-tuning" } },
+        { "name": "ttl",          "data": { "remaining": 5 } },
+        { "name": "kinetic-hit",  "data": { "radius": 0.6, "damage": 20, "target_kind": "enemy", "despawn_on_hit": true } }
       ] },
     { "id": "bullet/demo-hero-1", "kind": "bullet", "name": "demo_hero_north",
       "facets": [
-        { "name": "position", "data": { "x":  0, "y": 1.0, "z": -20, "velocity": { "x": 0, "y": 0, "z": 8 } } },
-        { "name": "mesh",     "data": { "tuning_ref": "bullet-hero-tuning" } },
-        { "name": "ttl",      "data": { "remaining": 5 } }
+        { "name": "position",     "data": { "x":  0, "y": 1.0, "z": -20, "velocity": { "x": 0, "y": 0, "z": 8 } } },
+        { "name": "mesh",         "data": { "tuning_ref": "bullet-hero-tuning" } },
+        { "name": "ttl",          "data": { "remaining": 5 } },
+        { "name": "kinetic-hit",  "data": { "radius": 0.6, "damage": 20, "target_kind": "enemy", "despawn_on_hit": true } }
       ] },
     { "id": "bullet/demo-enemy-0", "kind": "bullet", "name": "demo_enemy_diagonal",
       "facets": [
-        { "name": "position", "data": { "x":  16, "y": 1.5, "z":  16, "velocity": { "x": -5, "y": 0, "z": -5 } } },
-        { "name": "mesh",     "data": { "tuning_ref": "bullet-enemy-tuning" } },
-        { "name": "ttl",      "data": { "remaining": 5 } }
+        { "name": "position",     "data": { "x":  16, "y": 1.5, "z":  16, "velocity": { "x": -5, "y": 0, "z": -5 } } },
+        { "name": "mesh",         "data": { "tuning_ref": "bullet-enemy-tuning" } },
+        { "name": "ttl",          "data": { "remaining": 5 } },
+        { "name": "kinetic-hit",  "data": { "radius": 0.6, "damage": 12, "target_kind": "hero", "despawn_on_hit": true } }
       ] }
   ]
 }

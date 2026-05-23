@@ -5,7 +5,7 @@
   "facets": [
     { "name": "for-kind",        "data": "bullet" },
     { "name": "required-facets", "data": ["position", "mesh", "ttl"] },
-    { "name": "optional-facets", "data": ["damage-on-hit"] },
+    { "name": "optional-facets", "data": ["kinetic-hit"] },
     { "name": "defaults",        "data": {} },
     { "name": "absorbs", "data": [
       "src/systems/bullet_physics_tick.js",
@@ -16,7 +16,7 @@
       "src/combat/shoot_system.js"
     ] },
     { "name": "variants", "data": {
-      "comment": "bullet has per-variant tunings; spawn picks via mesh.tuning_ref. Movement = position.velocity (the position handler integrates). ttl despawns. Collision-sphere + damage-on-hit facets will be added when enemy + barrel kinds are wired for cross-Thing detection (iter 721+).",
+      "comment": "bullet has per-variant tunings; spawn picks via mesh.tuning_ref. Movement = position.velocity (the position handler integrates). ttl despawns. As of iter 726 the `kinetic-hit` facet lands: detects any Thing of `target_kind` within `radius`, builds a {to,message} damage envelope (lift-ready per docs/ACTOR_TRAJECTORY.md), applies hp damage, despawns. Hero bullets target_kind=enemy; enemy bullets target_kind=hero.",
       "available": ["bullet-hero-tuning", "bullet-enemy-tuning"]
     } }
   ]
