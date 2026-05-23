@@ -3,29 +3,21 @@
   "kind": "kind-def",
   "name": "Kind definition: enemy",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "enemy"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "enemy" },
+    { "name": "required-facets", "data": ["position", "mesh", "health"] },
+    { "name": "optional-facets", "data": ["ai-fsm", "drop-on-death", "alert-bubble", "health-display"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "src/config/enemy_types.js",
+      "src/render/enemy_mesh.js",
+      "src/systems/enemy_mesh_tick.js",
+      "src/systems/enemy_ai_scaffold_tick.js",
+      "src/systems/enemy_footstep_tick.js"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "enemy has 8 variants. Each lives in its own tuning Thinga selected by `mesh.tuning_ref` per spawn. Migrated one variant per iter so AI/visual behavior moves cleanly. Current: grunt only.",
+      "available": ["enemy-grunt-tuning"],
+      "queued":    ["enemy-heavy-tuning", "enemy-fast-tuning", "enemy-poisoner-tuning", "enemy-incendiary-tuning", "enemy-robot-tuning", "enemy-boss-tuning", "enemy-sniper-tuning"]
+    } }
   ]
 }

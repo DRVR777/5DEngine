@@ -35,7 +35,14 @@
 |  9 |  718 | grenade-crate   | DONE 2026-05-23 | Green ammo box (BoxGeometry 0.5×0.4×0.5) with emissive stripe. NEW `respawn-on-collect` facet (priority 41): permanent infrastructure pickup that hides mesh on collection and reveals after `cooldown_seconds`. Used for grenade caches (30s respawn, +3 grenades up to 9). Pure visibility toggle — the Thing persists; pickup-radius's despawn semantics are unaffected. 4 default spawns. |
 | 10 |  719 | hazard-zone     | DONE 2026-05-23 (fire+poison; smoke deferred) | ONE kind, per-variant tunings (hazard-zone-fire-tuning, hazard-zone-poison-tuning) selected by `mesh.tuning_ref` per spawn. CircleGeometry ground decals (color/radius/segments per variant). NEW facets: `damage-zone` (priority 42; records pending_hits at interval), `status-zone` (priority 43; records pending_statuses). Extended `opacity-pulse` with optional `fade_from_ttl_window` — opacity scales linearly as ttl.remaining → 0. 4 default spawns (2 fire + 2 poison) with ttl 600s for demo persistence. Smoke variant deferred — its emitter-only mechanic doesn't fit the mesh-spec mold cleanly. |
 | 11 |  720 | bullet          | DONE 2026-05-23 (movement+lifetime; hit-detection deferred) | ONE kind, per-variant tunings (bullet-hero-tuning, bullet-enemy-tuning). Sphere mesh per variant (yellow emissive hero, red emissive enemy). Movement via position.velocity (existing position handler integrates) + existing ttl despawn. 3 demo spawns prove the substrate produces real projectiles with zero new handler code. Hit detection (collision-sphere, damage-on-hit) deferred to iter 721+ alongside enemy migration. |
-| 12 |    ? | enemy           | pending        | 8 enemy types (grunt/heavy/fast/poisoner/incendiary/robot/boss/sniper) |
+| 12a|  721 | enemy (grunt)   | DONE 2026-05-23 | First of 8 variants. kind-def `enemy` (required position/mesh/health; optional ai-fsm/drop-on-death/alert-bubble/health-display). tuning `enemy-grunt-tuning` with mesh-spec (CapsuleGeometry 0.4×1.1, color 0xff0044, dark emissive) + stats from src/config/enemy_types.js line 4. Added capsule/circle/ring/torus to build_mesh.js GEOMETRY map. 2 demo grunts. AI behavior + HP-bar render + drops queued for iter 722+. |
+| 12b|    ? | enemy (heavy)   | pending        | stats + mesh per legacy ENEMY_TYPES row 2; capsule 0.55×1.5 |
+| 12c|    ? | enemy (fast)    | pending        | capsule 0.28×0.9, fast move + charge ai |
+| 12d|    ? | enemy (poisoner)| pending        | capsule 0.4×1.1 + poison-spit ai |
+| 12e|    ? | enemy (incendiary)| pending      | capsule 0.4×1.1 + fire-bomb ai |
+| 12f|    ? | enemy (robot)   | pending        | bespoke box-group mesh (torso/head/legs); EMP + plasma ai |
+| 12g|    ? | enemy (boss)    | pending        | capsule 0.9×2.6; rock-throw + ground-slam ai |
+| 12h|    ? | enemy (sniper)  | pending        | capsule 0.4×1.1 + aim+fire ai (long range) |
 | 13 |    ? | vehicle         | pending        | cars; physics, suspension, drive controls |
 | 14 |    ? | npc             | pending        | dialog + ai facets |
 | 15 |    ? | screen          | pending        | screen-render facet — visual surfaces in 3D |

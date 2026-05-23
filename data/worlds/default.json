@@ -38,6 +38,7 @@
     { "ref": "kinds/grenade_crate" },
     { "ref": "kinds/hazard_zone" },
     { "ref": "kinds/bullet" },
+    { "ref": "kinds/enemy" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -52,6 +53,7 @@
     { "ref": "tuning/hazard_zone_poison" },
     { "ref": "tuning/bullet_hero" },
     { "ref": "tuning/bullet_enemy" },
+    { "ref": "tuning/enemy_grunt" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
@@ -63,6 +65,7 @@
     { "ref": "spawns/crate" },
     { "ref": "spawns/grenade_crate" },
     { "ref": "spawns/hazard_zone" },
-    { "ref": "spawns/bullet" }
+    { "ref": "spawns/bullet" },
+    { "ref": "spawns/enemy" }
   ]
 }

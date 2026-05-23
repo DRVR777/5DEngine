@@ -1,0 +1,57 @@
+{
+  "id": "tuning/enemy_grunt",
+  "kind": "tuning",
+  "name": "enemy-grunt-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 80,
+      "max_hp": 80,
+      "move_speed": 2.4,
+      "wander_speed": 1.0,
+      "damage": 6,
+      "attack_range": 1.6,
+      "sight_range": 12,
+      "drop_ammo": "pistol_9mm",
+      "drop_qty": 12,
+      "drop_health": 0,
+      "color": 16711748,
+      "emissive": 1114112,
+      "body_radius": 0.4,
+      "body_height": 1.1,
+      "body_y_offset": 0.55,
+      "capsule_cap_segments": 4,
+      "capsule_radial_segments": 12,
+      "bob_amplitude": 0.035,
+      "bob_freq_multiplier": 3.5
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "capsule", "args": [0.4, 1.1, 4, 12] },
+      "material": { "kind": "standard", "color": 16711748, "emissive": 1114112 },
+      "position": { "y": 0.95 },
+      "cast_shadow": true
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "src/config/enemy_types.js",
+        "src/render/enemy_mesh.js",
+        "src/systems/enemy_mesh_tick.js"
+      ],
+      "migrated_iter": 721,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Stats from src/config/enemy_types.js line 4 (the grunt row of ENEMY_TYPES)",
+        "hp=80, moveSpeed=2.4, damage=6, attackRange=1.6, sightRange=12, dropAmmo=pistol_9mm, dropQty=12, dropHealth=0, wanderSpeed=1.0, color=0xff0044 (16711748)",
+        "Body: CapsuleGeometry(0.4, 1.1, 4, 12) — enemy_mesh.js lines 17–18 + 51",
+        "Material: color from eDef.color (=0xff0044 for grunt), emissive=0x110000 (1114112) — line 52",
+        "body.position.y = bodyHeight * 0.5 + bodyRadius = 1.1*0.5 + 0.4 = 0.95 — line 54",
+        "Bob amplitude for grunt (non-special) = BOB_AMP_DEFAULT = 0.035 — enemy_mesh_tick.js line 13",
+        "BOB_FREQ_MUL = 3.5 — line 7. Walk-bob uses |sin(phase)| not signed sin — line 32",
+        "Grunt is the only enemy type WITHOUT a type-gem (line 55 skips it for grunt)",
+        "HP bar planes + alert sprite NOT in mesh-spec — they require dynamic content (bar shrinks with hp, sprite is canvas-textured). Will add via health-display + alert-bubble facets in future iters.",
+        "AI behavior (chase/attack/wander/flinch) NOT in this iter — needs ai-fsm facet (iter 722+) and hero-as-Thing to chase"
+      ]
+    }}
+  ]
+}

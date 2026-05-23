@@ -20,6 +20,10 @@ const GEOMETRY = {
   icosahedron:  (THREE, a) => new THREE.IcosahedronGeometry(...a),
   cone:         (THREE, a) => new THREE.ConeGeometry       (...a),
   plane:        (THREE, a) => new THREE.PlaneGeometry      (...a),
+  capsule:      (THREE, a) => new THREE.CapsuleGeometry    (...a),
+  circle:       (THREE, a) => new THREE.CircleGeometry     (...a),
+  ring:         (THREE, a) => new THREE.RingGeometry       (...a),
+  torus:        (THREE, a) => new THREE.TorusGeometry      (...a),
 };
 
 const MATERIAL = {
