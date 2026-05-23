@@ -1,0 +1,75 @@
+{
+  "id": "tuning/crate",
+  "kind": "tuning",
+  "name": "crate-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "hp": 35,
+      "max_hp": 35,
+      "body_size": 0.9,
+      "body_y": 0.45,
+      "body_color": 9133088,
+      "body_roughness": 0.85,
+      "body_metalness": 0.05,
+      "slat_width": 0.92,
+      "slat_height": 0.06,
+      "slat_color": 5913104,
+      "slat_roughness": 0.9,
+      "slat_metalness": 0.0,
+      "slat_y_low": 0.18,
+      "slat_y_mid": 0.45,
+      "slat_y_top": 0.72,
+      "break_particle_count": 20,
+      "break_particle_color": "orange",
+      "break_particle_size": 6,
+      "break_particle_life": 0.55,
+      "break_sfx_freq": 180,
+      "break_sfx_duration_ms": 80,
+      "break_sfx_volume": 0.35,
+      "loot_table": ["ammo", "health", "coin", "coin", "ammo"],
+      "loot_ammo_qty": 20,
+      "loot_health_amount": 25,
+      "loot_coin_amount": 2,
+      "damage_number_text": "CRACK!",
+      "damage_number_color": "#cc8833"
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "group",
+      "parts": [
+        { "name": "body",
+          "geometry": { "kind": "box", "args": [0.9, 0.9, 0.9] },
+          "material": { "kind": "standard", "color": 9133088, "roughness": 0.85, "metalness": 0.05 },
+          "position": { "y": 0.45 }, "cast_shadow": true },
+        { "name": "slat_low",
+          "geometry": { "kind": "box", "args": [0.92, 0.06, 0.92] },
+          "material": { "kind": "standard", "color": 5913104, "roughness": 0.9, "metalness": 0 },
+          "position": { "y": 0.18 } },
+        { "name": "slat_mid",
+          "geometry": { "kind": "box", "args": [0.92, 0.06, 0.92] },
+          "material": { "kind": "standard", "color": 5913104, "roughness": 0.9, "metalness": 0 },
+          "position": { "y": 0.45 } },
+        { "name": "slat_top",
+          "geometry": { "kind": "box", "args": [0.92, 0.06, 0.92] },
+          "material": { "kind": "standard", "color": 5913104, "roughness": 0.9, "metalness": 0 },
+          "position": { "y": 0.72 } }
+      ]
+    }},
+    { "name": "provenance", "data": {
+      "source_file": "src/systems/crate_system.js",
+      "source_iter_extracted_from": 541,
+      "migrated_iter": 717,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "hp/maxHp=35 from makeCrate return — line 21",
+        "Body: BoxGeometry(0.9,0.9,0.9), color 0x8b5c20 (9133088), roughness 0.85, metalness 0.05 — lines 4–5",
+        "Slat edge: BoxGeometry(0.92,0.06,0.92), color 0x5a3a10 (5913104), roughness 0.9, metalness 0 — lines 6–7",
+        "3 slats at y = 0.18, 0.45, 0.72 — line 14",
+        "Loot table on break — line 8 (2:1:2 ammo/health/coin weighting)",
+        "Break: 20 orange particles + tone:180:80:square @ 0.35 — lines 26–27",
+        "Loot quantities: 20 ammo, 25 health, 2 coins — lines 29–31",
+        "Random initial y-rotation per crate — line 19 (pre-baked per-instance in spawn facets)"
+      ]
+    }}
+  ]
+}

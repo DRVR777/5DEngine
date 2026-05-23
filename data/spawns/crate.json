@@ -1,0 +1,35 @@
+{
+  "id": "spawns/crate",
+  "kind": "spawn-set",
+  "name": "Default crates",
+  "facets": [
+    { "name": "for-kind", "data": "crate" },
+    { "name": "comment",  "data": "8 default loot crates at the inner ring (6m) + outer corners (14/8m). Provenance: src/systems/crate_system.js line 35–38. Per-crate heading values vary so the visual matches the legacy random rotation without runtime randomness." }
+  ],
+  "children": [
+    { "id": "crate/0", "kind": "crate", "name": "crate_NE_in",
+      "facets": [ { "name": "position", "data": { "x":  6, "y": 0, "z":  6, "heading": 0.5 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "crate/1", "kind": "crate", "name": "crate_NW_in",
+      "facets": [ { "name": "position", "data": { "x": -6, "y": 0, "z":  6, "heading": 1.7 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "crate/2", "kind": "crate", "name": "crate_SE_in",
+      "facets": [ { "name": "position", "data": { "x":  6, "y": 0, "z": -6, "heading": 2.9 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "crate/3", "kind": "crate", "name": "crate_SW_in",
+      "facets": [ { "name": "position", "data": { "x": -6, "y": 0, "z": -6, "heading": 4.1 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "crate/4", "kind": "crate", "name": "crate_NE_out",
+      "facets": [ { "name": "position", "data": { "x": 14, "y": 0, "z":  8, "heading": 5.3 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "crate/5", "kind": "crate", "name": "crate_NW_out",
+      "facets": [ { "name": "position", "data": { "x":-14, "y": 0, "z":  8, "heading": 0.8 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "crate/6", "kind": "crate", "name": "crate_SE_out",
+      "facets": [ { "name": "position", "data": { "x":  8, "y": 0, "z":-14, "heading": 3.6 } },
+                  { "name": "mesh",     "data": {} } ] },
+    { "id": "crate/7", "kind": "crate", "name": "crate_NW_far",
+      "facets": [ { "name": "position", "data": { "x": -8, "y": 0, "z": 14, "heading": 2.1 } },
+                  { "name": "mesh",     "data": {} } ] }
+  ]
+}
