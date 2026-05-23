@@ -26,6 +26,7 @@ import hudOverlay     from "./hud_overlay.js";
 import damageFlash    from "./damage_flash.js";
 import healthDisplay  from "./health_display.js";
 import aabbCollision  from "./aabb_collision.js";
+import expandFade     from "./expand_fade.js";
 import ttl             from "./ttl.js";
 
 export const FACET_HANDLERS = {
@@ -55,6 +56,7 @@ export const FACET_HANDLERS = {
   "damage-flash":        damageFlash,
   "health-display":      healthDisplay,
   "aabb-collision":      aabbCollision,
+  "expand-fade":         expandFade,
   "ttl":                 ttl,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },

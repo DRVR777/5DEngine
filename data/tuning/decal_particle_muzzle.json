@@ -1,0 +1,30 @@
+{
+  "id": "tuning/decal_particle_muzzle",
+  "kind": "tuning",
+  "name": "decal-particle-muzzle-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "ttl_default":          0.07,
+      "scale_start":          0.22,
+      "scale_end":            0.42,
+      "opacity_start":        1.0,
+      "opacity_end":          0.0
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "sphere", "args": [1.0, 8, 8] },
+      "material": { "kind": "basic",  "color": 16769024, "transparent": true, "opacity": 1.0 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["game.html mountShootSystem (line 1711) — muzzle flash emulated by short-lived sphere"],
+      "migrated_iter": 751,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": false,
+      "notes": [
+        "Bright yellow-orange (0xffe600 = 16769024) lo-poly sphere. 70ms life.",
+        "Geometry built at unit radius; the expand-fade facet scales it from scale_start to scale_end over its ttl.",
+        "Basic material so it doesn't react to lights — pure flash color."
+      ]
+    }}
+  ]
+}

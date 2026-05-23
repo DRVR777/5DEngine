@@ -9,6 +9,8 @@ const KIND_NAMES = [
   "mine", "turret", "grenade",
   // Ephemeral particles spawned by particle-emitter facet
   "smoke-particle",
+  // Short-lived expanding-fading particle (muzzle flash, impact puff, etc.)
+  "decal-particle",
   // Server / 7D kinds
   "server-process", "docker-container", "http-request", "database",
   "database-row", "nginx-route", "agent", "agent-message", "journal-event",

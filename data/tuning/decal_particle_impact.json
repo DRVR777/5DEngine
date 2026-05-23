@@ -1,0 +1,29 @@
+{
+  "id": "tuning/decal_particle_impact",
+  "kind": "tuning",
+  "name": "decal-particle-impact-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "ttl_default":          0.18,
+      "scale_start":          0.18,
+      "scale_end":            0.65,
+      "opacity_start":        0.95,
+      "opacity_end":          0.0
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "sphere", "args": [1.0, 8, 8] },
+      "material": { "kind": "basic",  "color": 16737095, "transparent": true, "opacity": 0.95 }
+    }},
+    { "name": "provenance", "data": {
+      "source_files": ["game.html mountBulletWorldHitTick (line 1843) — _spawnParticles(u, y, v, 4, 'cyan'|'white', 3, ...)"],
+      "migrated_iter": 751,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": false,
+      "notes": [
+        "Orange-red (0xff5547 = 16737095) puff. 180ms life — visible long enough to register a hit, short enough not to clutter.",
+        "Sphere placeholder; future variant will be a flat decal stuck to the surface (scorch)."
+      ]
+    }}
+  ]
+}

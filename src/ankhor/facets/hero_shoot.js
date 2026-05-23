@@ -68,8 +68,36 @@ export default {
     } catch (e) {
       console.warn(`[ankhor] hero-shoot spawn ${envelope.to}:`, e.message);
     }
+
+    spawnDecal(registry, `decal-particle/muzzle-${thing.id.replace(/[/]/g, "_")}-${seq}`,
+               pos.x + fwdX * tuning.muzzle_forward,
+               pos.y + tuning.muzzle_up,
+               pos.z + fwdZ * tuning.muzzle_forward,
+               "decal-particle-muzzle-tuning");
   }
 };
+
+function spawnDecal(registry, id, x, y, z, tuningName) {
+  let ttl_default = 0;
+  for (const t of registry.byKind("tuning")) {
+    if (t.name !== tuningName) continue;
+    const tn = registry.facetData(t.id, "tuning");
+    if (tn && typeof tn.ttl_default === "number") ttl_default = tn.ttl_default;
+    break;
+  }
+  if (ttl_default <= 0) return;
+  try {
+    registry.spawn({
+      id, kind: "decal-particle", name: id,
+      facets: [
+        { name: "position",    data: { x, y, z } },
+        { name: "mesh",        data: { tuning_ref: tuningName } },
+        { name: "ttl",         data: { remaining: ttl_default } },
+        { name: "expand-fade", data: {} },
+      ],
+    });
+  } catch (e) { console.warn(`[ankhor] spawn ${id}:`, e.message); }
+}
 
 function resolveHeroTuning(registry) {
   const empty = { fire_interval: 0, bullet_speed: 0, bullet_damage: 0,

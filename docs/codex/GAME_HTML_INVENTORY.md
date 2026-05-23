@@ -58,7 +58,7 @@ Each game.html system is a `mount*` function call (~135 total).
 | mountAmmoReloadTick | reload-state facet | ❌ |
 | mountBulletGeo | already in bullet tunings (iter 720) | ✅ |
 | mountGadgetSystem | gadget Things (mines, turrets, etc.) | ❌ |
-| mountDecalSystem | wall-decal facet (bullet scorches) | ❌ |
+| mountDecalSystem | decal-particle kind + impact decal via kinetic-hit (iter 751) | ⚠ (expanding sphere; flat scorch pending) |
 | mountGrenadePhysicsTick / mountGrenadeArcTick / mountGrenadeWarnTick | grenade kind + grenade-physics facet + warn-overlay | ❌ |
 
 ## 3. Enemy AI — per-variant behaviors

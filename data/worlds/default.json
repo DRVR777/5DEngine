@@ -53,6 +53,7 @@
     { "ref": "kinds/database" },
     { "ref": "kinds/agent_message" },
     { "ref": "kinds/smoke_particle" },
+    { "ref": "kinds/decal_particle" },
     { "ref": "kinds/input" },
     { "ref": "kinds/hud" },
 
@@ -71,6 +72,8 @@
     { "ref": "tuning/hazard_zone_poison" },
     { "ref": "tuning/hazard_zone_smoke" },
     { "ref": "tuning/smoke_particle_default" },
+    { "ref": "tuning/decal_particle_muzzle" },
+    { "ref": "tuning/decal_particle_impact" },
     { "ref": "tuning/bullet_hero" },
     { "ref": "tuning/bullet_enemy" },
     { "ref": "tuning/enemy_grunt" },

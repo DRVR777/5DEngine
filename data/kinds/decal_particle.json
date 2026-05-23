@@ -1,0 +1,19 @@
+{
+  "id": "kinds/decal_particle",
+  "kind": "kind-def",
+  "name": "Kind definition: decal-particle",
+  "facets": [
+    { "name": "for-kind",        "data": "decal-particle" },
+    { "name": "required-facets", "data": ["position", "mesh", "ttl", "expand-fade"] },
+    { "name": "optional-facets", "data": [] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "game.html — mountDecalSystem (line 192), and the legacy _spawnParticles() bullet-impact calls scattered through mountBulletWorldHitTick (line 1843), mountEnemyBulletTick, mountShootSystem (line 1711). Substrate replaces them with one kind: a short-lived expanding-fading sphere spawned at the relevant point."
+    ] },
+    { "name": "variants", "data": {
+      "comment": "Two variants today: muzzle (bright yellow flash at gun) and impact (orange/red puff at bullet endpoint). Future: blood, sparks, debris, dust, scorch — same kind, different tuning.",
+      "available": ["decal-particle-muzzle-tuning", "decal-particle-impact-tuning"],
+      "queued":    ["decal-particle-blood-tuning", "decal-particle-scorch-tuning"]
+    } }
+  ]
+}
