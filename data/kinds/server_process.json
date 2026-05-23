@@ -3,29 +3,18 @@
   "kind": "kind-def",
   "name": "Kind definition: server-process",
   "facets": [
-    {
-      "name": "for-kind",
-      "data": "server-process"
-    },
-    {
-      "name": "required-facets",
-      "data": []
-    },
-    {
-      "name": "optional-facets",
-      "data": []
-    },
-    {
-      "name": "defaults",
-      "data": {}
-    },
-    {
-      "name": "absorbs",
-      "data": []
-    },
-    {
-      "name": "status",
-      "data": "cataloged-for-registry-adoption"
-    }
+    { "name": "for-kind",        "data": "server-process" },
+    { "name": "required-facets", "data": ["position", "mesh", "process-observer"] },
+    { "name": "optional-facets", "data": ["label-sprite", "cpu-color"] },
+    { "name": "defaults",        "data": {} },
+    { "name": "absorbs", "data": [
+      "experimental/holograph-runtime/adapters/process_adapter.py",
+      "experimental/holograph-runtime/src/handlers.js (process-observer stub)"
+    ] },
+    { "name": "variants", "data": {
+      "comment": "server-process is the FIRST 7D-bridge kind. Adapter on quandaleServer (Python /proc scanner) publishes spawn/despawn events into the registry over a WebSocket bridge — that wiring lands in a separate iter. Today: kind-def + visual tile + a few demo placeholder spawns so a screen can byKind() them.",
+      "available": ["server-process-default-tuning"],
+      "queued":    []
+    } }
   ]
 }

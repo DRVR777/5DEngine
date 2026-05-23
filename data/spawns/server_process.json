@@ -1,0 +1,35 @@
+{
+  "id": "spawns/server_process",
+  "kind": "spawn-set",
+  "name": "Demo server processes",
+  "facets": [
+    { "name": "for-kind", "data": "server-process" },
+    { "name": "comment",  "data": "4 demo server-process Things lined up next to the east screen monitors. Fixed pid/name placeholders. The real Python process_adapter on quandaleServer will publish actual /proc entries into the registry once the WebSocket bridge lands; demo spawns are placeholder so a screen can byKind() them in the meantime." }
+  ],
+  "children": [
+    { "id": "server-process/demo-node", "kind": "server-process", "name": "node",
+      "facets": [
+        { "name": "position",         "data": { "x":  8, "y": 0, "z": -3 } },
+        { "name": "mesh",             "data": { "tuning_ref": "server-process-default-tuning" } },
+        { "name": "process-observer", "data": { "pid": 12345, "name": "node",   "cpu_pct": 4.2, "mem_mb": 218, "uptime_s": 3420, "lastSeen": null } }
+      ] },
+    { "id": "server-process/demo-vscode", "kind": "server-process", "name": "vscode",
+      "facets": [
+        { "name": "position",         "data": { "x":  8, "y": 0, "z": -1 } },
+        { "name": "mesh",             "data": { "tuning_ref": "server-process-default-tuning" } },
+        { "name": "process-observer", "data": { "pid": 23456, "name": "vscode", "cpu_pct": 2.1, "mem_mb": 384, "uptime_s": 9810, "lastSeen": null } }
+      ] },
+    { "id": "server-process/demo-chrome", "kind": "server-process", "name": "chrome",
+      "facets": [
+        { "name": "position",         "data": { "x":  8, "y": 0, "z":  1 } },
+        { "name": "mesh",             "data": { "tuning_ref": "server-process-default-tuning" } },
+        { "name": "process-observer", "data": { "pid": 34567, "name": "chrome", "cpu_pct": 11.6, "mem_mb": 612, "uptime_s": 1280, "lastSeen": null } }
+      ] },
+    { "id": "server-process/demo-claude", "kind": "server-process", "name": "claude",
+      "facets": [
+        { "name": "position",         "data": { "x":  8, "y": 0, "z":  3 } },
+        { "name": "mesh",             "data": { "tuning_ref": "server-process-default-tuning" } },
+        { "name": "process-observer", "data": { "pid": 45678, "name": "claude", "cpu_pct": 1.4, "mem_mb": 146, "uptime_s": 240,  "lastSeen": null } }
+      ] }
+  ]
+}

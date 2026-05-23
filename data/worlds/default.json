@@ -43,6 +43,7 @@
     { "ref": "kinds/vehicle" },
     { "ref": "kinds/npc" },
     { "ref": "kinds/screen" },
+    { "ref": "kinds/server_process" },
 
     { "ref": "tuning/barrel" },
     { "ref": "tuning/speed_orb" },
@@ -69,6 +70,7 @@
     { "ref": "tuning/vehicle_car" },
     { "ref": "tuning/npc_default" },
     { "ref": "tuning/screen_monitor" },
+    { "ref": "tuning/server_process_default" },
 
     { "ref": "spawns/barrel" },
     { "ref": "spawns/speed_orb" },
@@ -85,6 +87,7 @@
     { "ref": "spawns/hero" },
     { "ref": "spawns/vehicle" },
     { "ref": "spawns/npc" },
-    { "ref": "spawns/screen" }
+    { "ref": "spawns/screen" },
+    { "ref": "spawns/server_process" }
   ]
 }

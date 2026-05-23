@@ -1,0 +1,43 @@
+{
+  "id": "tuning/server_process_default",
+  "kind": "tuning",
+  "name": "server-process-default-tuning",
+  "facets": [
+    { "name": "tuning", "data": {
+      "tile_color": 2304,
+      "tile_emissive": 2304,
+      "tile_emissive_intensity": 0.5,
+      "tile_w": 0.6,
+      "tile_h": 0.3,
+      "tile_d": 0.05,
+      "tile_y": 0.15,
+      "label_color": 16777215,
+      "label_offset_y": 0.4,
+      "stale_seconds_until_despawn": 30,
+      "cpu_color_low": 65316,
+      "cpu_color_med": 16753920,
+      "cpu_color_high": 16729156
+    }},
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "box", "args": [0.6, 0.3, 0.05] },
+      "material": { "kind": "standard", "color": 2304, "emissive": 2304, "emissive_intensity": 0.5, "metalness": 0.6, "roughness": 0.4 },
+      "position": { "y": 0.15 }, "cast_shadow": true
+    }},
+    { "name": "provenance", "data": {
+      "source_files": [
+        "experimental/holograph-runtime/adapters/process_adapter.py — emits {pid, name, cpu_pct, mem_mb} per /proc entry every 5s",
+        "experimental/holograph-runtime/src/handlers.js — process-observer was the original stub facet"
+      ],
+      "migrated_iter": 730,
+      "migrated_at": "2026-05-23",
+      "do_not_optimize": true,
+      "notes": [
+        "Tile mesh: small green-emissive box (0x000900 = 2304). One tile per server-process Thing. cpu_color_low/med/high (green/orange/red) reserved for the future cpu-color-driven render that paints tile material by cpu_pct.",
+        "stale_seconds_until_despawn = 30 — matches the process-observer stub's 30s stale-cutoff. The real wewon/quandaleServer adapter will publish lastSeen every ~5s; if lastSeen > now-30s, despawn (process died).",
+        "label rendering deferred — needs a future label-sprite facet that places a CanvasTexture sprite above the tile with the process name.",
+        "For substrate today: demo spawns are fixed pid/name placeholders. The real /proc feed lands when the WebSocket bridge from quandaleServer publishes process-adapter events into the in-browser registry."
+      ]
+    }}
+  ]
+}
