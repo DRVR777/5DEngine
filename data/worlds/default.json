@@ -131,7 +131,6 @@
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" },
 
-    { "ref": "legacy/cam-shake" },
     { "ref": "legacy/cam-pitch-springs" },
     { "ref": "legacy/clock-hud" },
     { "ref": "legacy/vignette" },
