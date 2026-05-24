@@ -43,7 +43,9 @@
       "stamina_max":      100,
       "stamina_drain":    25,
       "stamina_regen":    18,
-      "stamina_lockout":  20
+      "stamina_lockout":  20,
+      "speed_boost_trail_period": 0.08,
+      "speed_boost_mul":          1.5
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

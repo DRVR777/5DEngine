@@ -328,4 +328,59 @@ if (burnSpec) {
   console.log(`[test] PASS — native stamina reproduces legacy mountStaminaTick math (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native speed-boost parity test (iter 773) ----------
+ * Mirrors the iter-760 legacy speed-boost semantic phase: with the
+ * boost active and KeyW held, tick 6×0.05s = 0.30s. TRAIL_PERIOD
+ * is 0.08, so we expect 3 decals (at 0.00, 0.08, 0.16, 0.24).
+ * Uses ONLY the native facet (no legacy spec).
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const speedBoostFacet = (await import("../src/ankhor/facets/speed_boost.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("speed-boost", speedBoostFacet);
+  reg.registerFacetHandler("inventory",   { priority: 24 });
+  reg.registerFacetHandler("tuning",      { priority: 41 });
+  reg.registerFacetHandler("input-state", { priority: 2 });
+  reg.registerFacetHandler("position",    { priority: 10 });
+  reg.registerFacetHandler("mesh",        { priority: 70 });
+  reg.registerFacetHandler("ttl",         { priority: 80 });
+  reg.registerFacetHandler("expand-fade", { priority: 60 });
+
+  const nowSec = Date.now() / 1000;
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",    data: { x: 0, y: 0, z: 0 } },
+      { name: "inventory",   data: { speed_boost_until_sec: nowSec + 5, speed_trail_t: 0, items: {}, score: 0 } },
+      { name: "speed-boost", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      speed_boost_trail_period: 0.08, speed_boost_mul: 1.5,
+    } }],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: { KeyW: true }, mouseHeld: false, yaw: 0 } }],
+  });
+
+  const before = reg.byKind("decal-particle").length;
+  for (let i = 0; i < 6; i++) reg.tick(0.05);
+  const after = reg.byKind("decal-particle").length;
+  console.log(`[test] native speed-boost: decals ${before}→${after} after 0.30s W+boost`);
+  if (after <= before) {
+    console.log(`[test] FAIL — native speed-boost did not spawn trail decals.`);
+    process.exit(1);
+  }
+  const mul = reg.facetData("hero/main", "inventory").speed_boost_mul;
+  if (Math.abs(mul - 1.5) > 0.001) {
+    console.log(`[test] FAIL — speed_boost_mul did not become 1.5 (got ${mul}).`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native speed-boost emitted ${after - before} trail decal(s) + exposed speed_boost_mul=${mul} (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

@@ -29,8 +29,9 @@
   ],
   "migration": {
     "legacy_mount": "mountSpeedBoostTick",
-    "status": "HOSTED_SEMANTIC_PROVEN",
+    "status": "NATIVE_VERIFIED",
     "semantic_test": "3 decal-particles emitted via actions.spawnTrail $emit in 0.30s W+boost (test_legacy_bridge.mjs phase 4)",
-    "native_target": "speed-boost"
+    "native_target": "speed-boost",
+    "parity_test": "tools/test_legacy_bridge.mjs native speed-boost parity — 3 trail decals + mul=1.5 over 0.30s W+boost"
   }
 }
