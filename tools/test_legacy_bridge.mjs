@@ -760,6 +760,47 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native cam-shake matches legacy decay + offset + clamp math (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native vignette parity test (iter 791) ----------
+ * Legacy mountVignetteTick: low HP drives a sine pulse target, then
+ * springs vignetteAmt toward it by min(1, dt*6), writing opacity to
+ * the DOM element when present.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const vignetteFacet = (await import("../src/ankhor/facets/vignette.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("vignette", vignetteFacet);
+  reg.registerFacetHandler("health",   { priority: 25 });
+
+  const el = { style: {} };
+  reg.spawn({
+    id: "world/default", kind: "world", name: "default-world",
+    facets: [{ name: "vignette", data: { amount: 0.1, nowMs: 0, el } }],
+  });
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [{ name: "health", data: { hp: 20, maxHp: 100 } }],
+  });
+
+  reg.tick(0.1);
+  const data = reg.facetData("world/default", "vignette");
+  const expectedLow = 0.1 + (0.22 - 0.1) * 0.6;
+  console.log(`[test] native vignette low-hp: amount=${data.amount.toFixed(3)} opacity=${el.style.opacity}`);
+  if (Math.abs(data.amount - expectedLow) > 0.0001 || el.style.opacity !== "0.172") {
+    console.log(`[test] FAIL — native vignette low-hp spring/opacity drifted from legacy math.`);
+    process.exit(1);
+  }
+
+  reg.facetData("hero/main", "health").hp = 80;
+  reg.tick(0.1);
+  const expectedHigh = expectedLow + (0 - expectedLow) * 0.6;
+  if (Math.abs(data.amount - expectedHigh) > 0.0001 || el.style.opacity !== "0.069") {
+    console.log(`[test] FAIL — native vignette high-hp return spring drifted from legacy math.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native vignette matches legacy low-hp pulse + spring + opacity write (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native burn parity test (iter 775) ----------
  * Legacy mountBurnTick: while heroFireT > 0, every BURN_DMG_PERIOD
  * (0.5s) deal BURN_DMG (3) and spawn 2 particle decals.

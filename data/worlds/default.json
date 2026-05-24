@@ -29,7 +29,8 @@
       "grid_color_major":    2241348,
       "grid_color_minor":    1251360
     }},
-    { "name": "cam-shake", "data": { "amount": 0 } }
+    { "name": "cam-shake", "data": { "amount": 0 } },
+    { "name": "vignette", "data": { "amount": 0 } }
   ],
   "children": [
     { "ref": "kinds/barrel" },

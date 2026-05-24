@@ -20,6 +20,7 @@ import inputState     from "./input_state.js";
 import heroInputMove  from "./hero_input_move.js";
 import heroShoot      from "./hero_shoot.js";
 import camShake       from "./cam_shake.js";
+import vignette       from "./vignette.js";
 import footstepSound  from "./footstep_sound.js";
 import heartbeat      from "./heartbeat.js";
 import heroRegen     from "./hero_regen.js";
@@ -61,6 +62,7 @@ export const FACET_HANDLERS = {
   "hero-input-move":     heroInputMove,
   "hero-shoot":          heroShoot,
   "cam-shake":           camShake,
+  "vignette":            vignette,
   "footstep-sound":      footstepSound,
   "heartbeat":           heartbeat,
   "hero-regen":          heroRegen,
