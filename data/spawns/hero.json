@@ -15,6 +15,7 @@
         { "name": "hero-broadcaster",  "data": {} },
         { "name": "hero-input-move",   "data": {} },
         { "name": "hero-shoot",        "data": {} },
+        { "name": "heartbeat",         "data": {} },
         { "name": "hero-regen",        "data": {} },
         { "name": "stamina",           "data": {} },
         { "name": "speed-boost",       "data": {} },

@@ -295,6 +295,72 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — heartbeat threshold gate + reset formula + clamp verified through cloned mountHeartbeat (SEMANTIC_PROVEN).`);
 }
 
+/* ---------- native heartbeat parity test (iter 778) ----------
+ * Mirrors the iter-777 legacy heartbeat semantic phase using ONLY the
+ * native heartbeat facet. State is lifted from legacy/heartbeat
+ * _heartbeatT scratch into hero.inventory.heartbeatT.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const heartbeatFacet = (await import("../src/ankhor/facets/heartbeat.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("heartbeat", heartbeatFacet);
+  reg.registerFacetHandler("health",    { priority: 25 });
+  reg.registerFacetHandler("inventory", { priority: 24 });
+  reg.registerFacetHandler("tuning",    { priority: 41 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "health",    data: { hp: 20, maxHp: 100 } },
+      { name: "inventory", data: { heartbeatT: 0, items: {}, score: 0 } },
+      { name: "heartbeat", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      heartbeat_threshold_frac: 0.3,
+      heartbeat_min_period: 0.38,
+      heartbeat_period_range: 0.82,
+      heartbeat_sfx_id: "tone:42:95:sine",
+      heartbeat_sfx_base_volume: 0.30,
+      heartbeat_sfx_volume_range: 0.18,
+    } }],
+  });
+
+  reg.tick(0.1);
+  const inv = reg.facetData("hero/main", "inventory");
+  const expectedFire = 0.38 + (20 / 30) * 0.82;
+  console.log(`[test] native heartbeat: low-hp fire -> heartbeatT = ${inv.heartbeatT.toFixed(4)} (expected ${expectedFire.toFixed(4)})`);
+  if (Math.abs(inv.heartbeatT - expectedFire) > 0.001) {
+    console.log(`[test] FAIL — native heartbeat gate-fire math drifted from legacy formula.`);
+    process.exit(1);
+  }
+  const expectedVol = 0.30 + (1 - (20 / 30)) * 0.18;
+  if (!inv.lastHeartbeatSfx || inv.lastHeartbeatSfx.id !== "tone:42:95:sine" || Math.abs(inv.lastHeartbeatSfx.volume - expectedVol) > 0.001) {
+    console.log(`[test] FAIL — native heartbeat did not reproduce SFX action payload.`);
+    process.exit(1);
+  }
+
+  reg.tick(0.5);
+  const expectedDecayed = expectedFire - 0.5;
+  console.log(`[test] native heartbeat: countdown -> heartbeatT = ${inv.heartbeatT.toFixed(4)} (expected ${expectedDecayed.toFixed(4)})`);
+  if (Math.abs(inv.heartbeatT - expectedDecayed) > 0.001) {
+    console.log(`[test] FAIL — native heartbeat countdown math drifted.`);
+    process.exit(1);
+  }
+
+  reg.updateFacet("hero/main", "health", { hp: 80, maxHp: 100 });
+  reg.tick(0.1);
+  console.log(`[test] native heartbeat: hp above threshold -> heartbeatT = ${inv.heartbeatT}`);
+  if (inv.heartbeatT !== 0) {
+    console.log(`[test] FAIL — native heartbeat did not clamp heartbeatT to 0 above threshold.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native heartbeat reproduces threshold gate + reset formula + clamp (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native hero-regen parity test (iter 769) ----------
  * Mirrors the iter-757 legacy hero-regen test: same hero hp=60 +
  * tuning regen_rate=10/s, tick 5×0.5s, assert hp == 85.
