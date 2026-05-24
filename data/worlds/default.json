@@ -135,7 +135,6 @@
     { "ref": "legacy/cam-shake" },
     { "ref": "legacy/cam-pitch-springs" },
     { "ref": "legacy/vignette" },
-    { "ref": "legacy/stamina" },
     { "ref": "legacy/footstep-sound" },
     { "ref": "legacy/speed-boost" },
     { "ref": "legacy/burn" },
