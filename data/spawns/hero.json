@@ -14,6 +14,7 @@
         { "name": "health",            "data": { "hp": 100, "maxHp": 100 } },
         { "name": "hero-broadcaster",  "data": {} },
         { "name": "hero-input-move",   "data": {} },
+        { "name": "hero-face",         "data": {} },
         { "name": "hero-shoot",        "data": {} },
         { "name": "footstep-sound",    "data": {} },
         { "name": "heartbeat",         "data": {} },

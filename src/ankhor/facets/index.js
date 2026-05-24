@@ -18,6 +18,7 @@ import attackTarget   from "./attack_target.js";
 import enemyShoot     from "./enemy_shoot.js";
 import inputState     from "./input_state.js";
 import heroInputMove  from "./hero_input_move.js";
+import heroFace       from "./hero_face.js";
 import heroShoot      from "./hero_shoot.js";
 import camShake       from "./cam_shake.js";
 import vignette       from "./vignette.js";
@@ -60,6 +61,7 @@ export const FACET_HANDLERS = {
   "enemy-shoot":         enemyShoot,
   "input-state":         inputState,
   "hero-input-move":     heroInputMove,
+  "hero-face":           heroFace,
   "hero-shoot":          heroShoot,
   "cam-shake":           camShake,
   "vignette":            vignette,

@@ -29,8 +29,8 @@
   ],
   "migration": {
     "legacy_mount": "mountHeroFaceTick",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "NATIVE_VERIFIED",
+    "semantic_test": "With yaw=PI/2 and aiming held, native hero-face turns rotY/heading from 0 to PI/2 in one 0.1s tick, matching legacy dt*25 clamp; with KeyD movement and no aim, it turns toward right-vector heading with dt*10 clamp (test_legacy_bridge.mjs iter-793 phase).",
     "native_target": "hero-face"
   }
 }

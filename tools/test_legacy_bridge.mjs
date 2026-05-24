@@ -801,6 +801,58 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native vignette matches legacy low-hp pulse + spring + opacity write (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native hero-face parity test (iter 793) ----------
+ * Legacy mountHeroFaceTick chooses camYaw while aiming, otherwise the
+ * movement vector heading, then turns by min(1, dt*turnRate) with
+ * wrapped angle diff.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const heroFace = (await import("../src/ankhor/facets/hero_face.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("hero-face", heroFace);
+  reg.registerFacetHandler("position",   { priority: 10 });
+  reg.registerFacetHandler("mesh",       { priority: 70 });
+  reg.registerFacetHandler("input-state", { priority: 2 });
+
+  const threeObj = { rotation: { y: 0 } };
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",  data: { x: 0, y: 0, z: 0, heading: 0 } },
+      { name: "mesh",      data: { threeObj } },
+      { name: "hero-face", data: { rotY: 0 } },
+    ],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: {}, mouseHeld: true, yaw: Math.PI / 2 } }],
+  });
+
+  reg.tick(0.1);
+  const pos = reg.facetData("hero/main", "position");
+  const face = reg.facetData("hero/main", "hero-face");
+  if (Math.abs(face.rotY - Math.PI / 2) > 0.0001 || Math.abs(pos.heading - Math.PI / 2) > 0.0001 || Math.abs(threeObj.rotation.y - Math.PI / 2) > 0.0001) {
+    console.log(`[test] FAIL — native hero-face aiming turn did not clamp to camYaw like legacy.`);
+    process.exit(1);
+  }
+
+  face.rotY = 0;
+  pos.heading = 0;
+  const input = reg.facetData("input/main", "input-state");
+  input.mouseHeld = false;
+  input.yaw = 0;
+  input.keys = { KeyD: true };
+  reg.tick(0.05);
+  const expected = Math.PI / 2 * 0.5;
+  console.log(`[test] native hero-face: strafe-right heading=${face.rotY.toFixed(4)} expected=${expected.toFixed(4)}`);
+  if (Math.abs(face.rotY - expected) > 0.0001) {
+    console.log(`[test] FAIL — native hero-face movement-vector turn drifted from legacy math.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native hero-face matches legacy aiming + movement heading interpolation (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native burn parity test (iter 775) ----------
  * Legacy mountBurnTick: while heroFireT > 0, every BURN_DMG_PERIOD
  * (0.5s) deal BURN_DMG (3) and spawn 2 particle decals.
