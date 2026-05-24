@@ -30,7 +30,8 @@
       "grid_color_minor":    1251360
     }},
     { "name": "cam-shake", "data": { "amount": 0 } },
-    { "name": "vignette", "data": { "amount": 0 } }
+    { "name": "vignette", "data": { "amount": 0 } },
+    { "name": "scope-fov", "data": { "aimAmt": 0, "sprintFovAmt": 0, "wasSniperScope": false, "sniperSavedCamDist": 6, "camDist": 6 } }
   ],
   "children": [
     { "ref": "kinds/barrel" },

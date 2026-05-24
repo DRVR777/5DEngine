@@ -22,6 +22,7 @@ import heroFace       from "./hero_face.js";
 import heroShoot      from "./hero_shoot.js";
 import camShake       from "./cam_shake.js";
 import vignette       from "./vignette.js";
+import scopeFov       from "./scope_fov.js";
 import footstepSound  from "./footstep_sound.js";
 import heartbeat      from "./heartbeat.js";
 import heroRegen     from "./hero_regen.js";
@@ -65,6 +66,7 @@ export const FACET_HANDLERS = {
   "hero-shoot":          heroShoot,
   "cam-shake":           camShake,
   "vignette":            vignette,
+  "scope-fov":           scopeFov,
   "footstep-sound":      footstepSound,
   "heartbeat":           heartbeat,
   "hero-regen":          heroRegen,

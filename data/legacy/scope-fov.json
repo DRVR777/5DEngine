@@ -45,8 +45,8 @@
   ],
   "migration": {
     "legacy_mount": "mountScopeFovTick",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "NATIVE_VERIFIED",
+    "semantic_test": "Native scope-fov matches legacy aim spring, sprint FOV spring, sniper scope camDist save/restore, FOV 20/60+spring*8, and projection update side effect (test_legacy_bridge.mjs iter-795 phase).",
     "native_target": "scope-fov"
   }
 }

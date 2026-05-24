@@ -853,6 +853,54 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native hero-face matches legacy aiming + movement heading interpolation (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native scope-fov parity test (iter 795) ----------
+ * Legacy mountScopeFovTick springs aim/sprint FOV amounts, sets sniper
+ * scope distance while scoped, restores saved distance when leaving, and
+ * writes camera fov + projection update.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const scopeFov = (await import("../src/ankhor/facets/scope_fov.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("scope-fov",      scopeFov);
+  reg.registerFacetHandler("input-state",    { priority: 2 });
+  reg.registerFacetHandler("render-context", { priority: 1 });
+  reg.registerFacetHandler("inventory",      { priority: 24 });
+
+  let projectionUpdates = 0;
+  const camera = { fov: 60, updateProjectionMatrix: () => { projectionUpdates++; } };
+  reg.spawn({
+    id: "world/default", kind: "world", name: "default-world",
+    facets: [{ name: "scope-fov", data: { aimAmt: 0, sprintFovAmt: 0, wasSniperScope: false, sniperSavedCamDist: 6, camDist: 6, currentWeaponId: "sniper" } }],
+  });
+  reg.spawn({
+    id: "render/context", kind: "render-context", name: "render-context",
+    facets: [{ name: "render-context", data: { camera } }],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: {}, mouseHeld: true, yaw: 0 } }],
+  });
+
+  reg.tick(0.1);
+  const data = reg.facetData("world/default", "scope-fov");
+  if (Math.abs(data.aimAmt - 1) > 0.0001 || data.camDist !== 0.01 || data.sniperSavedCamDist !== 6 || camera.fov !== 20 || projectionUpdates !== 1) {
+    console.log(`[test] FAIL — native scope-fov sniper enter drifted from legacy.`);
+    process.exit(1);
+  }
+
+  const input = reg.facetData("input/main", "input-state");
+  input.mouseHeld = false;
+  input.keys = { ShiftLeft: true };
+  reg.tick(0.1);
+  const expectedSprint = 0.8;
+  if (data.wasSniperScope !== false || data.camDist !== 6 || Math.abs(data.sprintFovAmt - expectedSprint) > 0.0001 || Math.abs(camera.fov - 66.4) > 0.0001) {
+    console.log(`[test] FAIL — native scope-fov sniper exit/sprint fov drifted from legacy.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native scope-fov matches legacy aim/sprint/sniper FOV and camDist transitions (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native burn parity test (iter 775) ----------
  * Legacy mountBurnTick: while heroFireT > 0, every BURN_DMG_PERIOD
  * (0.5s) deal BURN_DMG (3) and spawn 2 particle decals.
