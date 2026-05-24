@@ -26,8 +26,8 @@
   ],
   "migration": {
     "legacy_mount": "mountFpsTick",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "HOSTED_SEMANTIC_PROVEN",
+    "semantic_test": "One-second window update through bridge: _frames=9 and _windowT=performance.now()-1000, tick once, display becomes about 10 FPS, _frames resets to 0, _windowT advances; next short tick increments _frames to 1 without changing display (test_legacy_bridge.mjs iter-780 phase).",
     "native_target": "fps-tick"
   }
 }

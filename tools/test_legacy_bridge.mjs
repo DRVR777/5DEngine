@@ -242,6 +242,42 @@ if (burnSpec) {
   console.log(`[test] PASS — $kindPos + $emit ($arg0/$arg1/$arg2) drove burn DOT + particle spawn through cloned mountBurnTick.`);
 }
 
+/* ---------- fps window semantic test (iter 780) ----------
+ * Promotes legacy/fps-tick from HOSTED_BIND_ONLY to HOSTED_SEMANTIC_PROVEN.
+ *
+ * Force the bridged mount into a completed one-second FPS window:
+ * _frames=9, _windowT=performance.now()-1000, then tick. The mount
+ * increments to 10 frames, computes roughly 10 FPS, resets _frames,
+ * advances _windowT, and leaves the display stable on the next short tick.
+ */
+const fpsSpec = specs.find((s) => s.id === "legacy/fps-tick");
+if (fpsSpec) {
+  const fd = batchRegistry.facetData("legacy/fps-tick", "legacy-mount");
+  const oldWindow = performance.now() - 1000;
+  fd._frames = 9;
+  fd._windowT = oldWindow;
+  fd._display = 0;
+
+  batchRegistry.tick(0.016);
+  const display = fd._display;
+  console.log(`[test] fps-tick: display=${display}, frames=${fd._frames}, windowT advanced=${fd._windowT > oldWindow}`);
+  if (display < 9 || display > 11) {
+    console.log(`[test] FAIL — fps-tick display did not land near 10 FPS after forced one-second window.`);
+    process.exit(1);
+  }
+  if (fd._frames !== 0 || fd._windowT <= oldWindow) {
+    console.log(`[test] FAIL — fps-tick did not reset frame counter and advance window timestamp.`);
+    process.exit(1);
+  }
+
+  batchRegistry.tick(0.016);
+  if (fd._frames !== 1 || fd._display !== display) {
+    console.log(`[test] FAIL — fps-tick short-window frame accumulation drifted.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — fps-tick window update + reset + short-window accumulation verified through cloned mountFpsTick (SEMANTIC_PROVEN).`);
+}
+
 /* ---------- heartbeat threshold-gate test (iter 777) ----------
  * Promotes legacy/heartbeat from HOSTED_BIND_ONLY to HOSTED_SEMANTIC_PROVEN.
  *
