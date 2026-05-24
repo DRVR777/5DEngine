@@ -18,6 +18,7 @@
         { "name": "hero-regen",        "data": {} },
         { "name": "stamina",           "data": {} },
         { "name": "speed-boost",       "data": {} },
+        { "name": "burn",              "data": {} },
         { "name": "hero-respawn",      "data": {} },
         { "name": "inventory",         "data": { "items": { "pistol_9mm": 60 }, "score": 0, "in_vehicle_id": null } },
         { "name": "aabb-collision",    "data": {} },

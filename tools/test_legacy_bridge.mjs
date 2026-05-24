@@ -383,4 +383,67 @@ if (burnSpec) {
   console.log(`[test] PASS — native speed-boost emitted ${after - before} trail decal(s) + exposed speed_boost_mul=${mul} (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native burn parity test (iter 775) ----------
+ * Legacy mountBurnTick: while heroFireT > 0, every BURN_DMG_PERIOD
+ * (0.5s) deal BURN_DMG (3) and spawn 2 particle decals.
+ *
+ * Native: with heroFireT = 1.2 + heroFireDmgT = 0.5, ticking 6×0.2s
+ * (= 1.2s) fires the damage gate twice before clamping. Hp
+ * goes 60 → 57 → 54. Decals ≥ 4 (2 per gate × 2 gates).
+ * Uses ONLY the native facet (no legacy spec).
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const burnFacet = (await import("../src/ankhor/facets/burn.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("burn",        burnFacet);
+  reg.registerFacetHandler("inventory",   { priority: 24 });
+  reg.registerFacetHandler("health",      { priority: 25 });
+  reg.registerFacetHandler("tuning",      { priority: 41 });
+  reg.registerFacetHandler("position",    { priority: 10 });
+  reg.registerFacetHandler("mesh",        { priority: 70 });
+  reg.registerFacetHandler("ttl",         { priority: 80 });
+  reg.registerFacetHandler("expand-fade", { priority: 60 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",  data: { x: 0, y: 0, z: 0 } },
+      { name: "health",    data: { hp: 60, maxHp: 100 } },
+      { name: "inventory", data: { heroFireT: 1.2, heroFireDmgT: 0.5, items: {}, score: 0 } },
+      { name: "burn",      data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      burn_dmg: 3, burn_dmg_period: 0.5,
+      burn_particle_count: 2, burn_particle_y_base: 0.8,
+      burn_particle_y_jitter: 0.8, burn_particle_xz_jitter: 0.6,
+    } }],
+  });
+
+  const hpBefore     = reg.facetData("hero/main", "health").hp;
+  const decalsBefore = reg.byKind("decal-particle").length;
+  for (let i = 0; i < 6; i++) reg.tick(0.2);
+  const hpAfter     = reg.facetData("hero/main", "health").hp;
+  const decalsAfter = reg.byKind("decal-particle").length;
+
+  console.log(`[test] native burn: hp ${hpBefore}→${hpAfter} + decals ${decalsBefore}→${decalsAfter} after 6×0.2s with heroFireT=1.2`);
+  if (hpAfter !== 54) {
+    console.log(`[test] FAIL — expected hp=54 after two burn-dmg gates of 3 dmg, got ${hpAfter}.`);
+    process.exit(1);
+  }
+  if (decalsAfter - decalsBefore < 4) {
+    console.log(`[test] FAIL — expected ≥4 burn decals (2 per damage gate × 2 gates), got ${decalsAfter - decalsBefore}.`);
+    process.exit(1);
+  }
+  const invFinal = reg.facetData("hero/main", "inventory");
+  if (Math.abs(invFinal.heroFireT) > 1e-9) {
+    console.log(`[test] FAIL — heroFireT should be effectively 0 after running out, got ${invFinal.heroFireT}.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native burn dealt ${hpBefore - hpAfter} dmg + spawned ${decalsAfter - decalsBefore} decals + clamped heroFireT (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

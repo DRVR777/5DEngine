@@ -30,8 +30,10 @@
   ],
   "migration": {
     "legacy_mount": "mountBurnTick",
-    "status": "HOSTED_SEMANTIC_PROVEN",
+    "status": "NATIVE_VERIFIED",
     "semantic_test": "DOT damages hero hp 60 -> 57 + 7 decals via $kindPos + $emit $arg0/1/2 (test_legacy_bridge.mjs phase 5)",
-    "native_target": "burn"
+    "native_target": "burn",
+    "native_test": "src/ankhor/facets/burn.js reproduces mountBurnTick: hp 60->54 over 1.2s with heroFireT=1.2 + ≥4 decals + heroFireT clamp (test_legacy_bridge.mjs native phase 4)",
+    "native_iter": 775
   }
 }
