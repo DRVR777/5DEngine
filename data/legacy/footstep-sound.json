@@ -29,8 +29,8 @@
   ],
   "migration": {
     "legacy_mount": "mountFootstepSound",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "HOSTED_SEMANTIC_PROVEN",
+    "semantic_test": "With synthetic KeyW+ShiftLeft input and a fake pointer lock, _footstepT=0 fires immediately and rearms to sprint interval 0.26; the next 0.1s tick decays it to 0.16. Above conditions false clamps _footstepT to 0 (test_legacy_bridge.mjs iter-783 phase).",
     "native_target": "footstep-sound"
   }
 }

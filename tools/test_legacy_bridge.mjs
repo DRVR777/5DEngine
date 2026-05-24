@@ -278,6 +278,43 @@ if (fpsSpec) {
   console.log(`[test] PASS — fps-tick window update + reset + short-window accumulation verified through cloned mountFpsTick (SEMANTIC_PROVEN).`);
 }
 
+/* ---------- footstep timer semantic test (iter 783) ----------
+ * Promotes legacy/footstep-sound from HOSTED_BIND_ONLY to
+ * HOSTED_SEMANTIC_PROVEN. With W+Shift held and pointer lock faked,
+ * the timer should fire immediately from 0, rearm to sprint interval
+ * 0.26, then decay by dt on the next tick.
+ */
+const footstepSpec = specs.find((s) => s.id === "legacy/footstep-sound");
+if (footstepSpec) {
+  const oldDocument = globalThis.document;
+  globalThis.document = { pointerLockElement: {} };
+  const fd = batchRegistry.facetData("legacy/footstep-sound", "legacy-mount");
+  fd._footstepT = 0;
+
+  batchRegistry.tick(0.01);
+  console.log(`[test] footstep: immediate sprint rearm -> _footstepT=${fd._footstepT.toFixed(3)} (expected 0.260)`);
+  if (Math.abs(fd._footstepT - 0.26) > 0.001) {
+    console.log(`[test] FAIL — footstep did not rearm to sprint interval.`);
+    process.exit(1);
+  }
+
+  batchRegistry.tick(0.1);
+  console.log(`[test] footstep: countdown -> _footstepT=${fd._footstepT.toFixed(3)} (expected 0.160)`);
+  if (Math.abs(fd._footstepT - 0.16) > 0.001) {
+    console.log(`[test] FAIL — footstep countdown drifted.`);
+    process.exit(1);
+  }
+
+  globalThis.document = { pointerLockElement: null };
+  batchRegistry.tick(0.01);
+  if (fd._footstepT !== 0) {
+    console.log(`[test] FAIL — footstep did not clamp to 0 when pointer lock is absent.`);
+    process.exit(1);
+  }
+  globalThis.document = oldDocument;
+  console.log(`[test] PASS — footstep sprint interval + countdown + inactive clamp verified through cloned mountFootstepSound (SEMANTIC_PROVEN).`);
+}
+
 /* ---------- native fps-tick parity test (iter 781) ----------
  * Mirrors the iter-780 legacy fps window proof using ONLY the native
  * fps-tick facet on a synthetic hud Thinga.
