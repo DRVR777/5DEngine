@@ -21,8 +21,8 @@
   ],
   "migration": {
     "legacy_mount": "mountCamShakeTick",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "NATIVE_VERIFIED",
+    "semantic_test": "With camShakeAmt=1 and dt=0.1, native cam-shake matches legacy decay exp(-1.4), applies deterministic camera offset, and clamps sub-threshold shake to 0 (test_legacy_bridge.mjs iter-789 phase).",
     "native_target": "cam-shake"
   }
 }

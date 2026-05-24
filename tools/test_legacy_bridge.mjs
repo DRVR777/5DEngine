@@ -710,6 +710,56 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native speed-boost emitted ${after - before} trail decal(s) + exposed speed_boost_mul=${mul} (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native cam-shake parity test (iter 789) ----------
+ * Legacy mountCamShakeTick decays camShakeAmt by exp(-dt*14), offsets
+ * camera x/y by two random signed impulses scaled by amt*0.18, and
+ * clamps sub-threshold shake to 0. Use deterministic Math.random so the
+ * native test proves exact offset math.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const camShakeFacet = (await import("../src/ankhor/facets/cam_shake.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("cam-shake",      camShakeFacet);
+  reg.registerFacetHandler("render-context", { priority: 1 });
+
+  reg.spawn({
+    id: "world/default", kind: "world", name: "default-world",
+    facets: [{ name: "cam-shake", data: { amount: 1 } }],
+  });
+  const camera = { position: { x: 10, y: 20, z: 30 } };
+  reg.spawn({
+    id: "render/context", kind: "render-context", name: "render-context",
+    facets: [{ name: "render-context", data: { camera } }],
+  });
+
+  const oldRandom = Math.random;
+  const seq = [1, 0];
+  Math.random = () => seq.shift() ?? 0.5;
+  reg.tick(0.1);
+  Math.random = oldRandom;
+
+  const data = reg.facetData("world/default", "cam-shake");
+  const expectedAmt = Math.exp(-1.4);
+  console.log(`[test] native cam-shake: amount 1→${data.amount.toFixed(4)} camera=(${camera.position.x.toFixed(3)},${camera.position.y.toFixed(3)})`);
+  if (Math.abs(data.amount - expectedAmt) > 0.0001) {
+    console.log(`[test] FAIL — native cam-shake decay drifted from legacy exp(-dt*14).`);
+    process.exit(1);
+  }
+  if (Math.abs(camera.position.x - 10.09) > 0.0001 || Math.abs(camera.position.y - 19.91) > 0.0001) {
+    console.log(`[test] FAIL — native cam-shake deterministic camera offset drifted.`);
+    process.exit(1);
+  }
+
+  data.amount = 0.004;
+  reg.tick(0.016);
+  if (data.amount !== 0) {
+    console.log(`[test] FAIL — native cam-shake did not clamp sub-threshold amount to 0.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native cam-shake matches legacy decay + offset + clamp math (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native burn parity test (iter 775) ----------
  * Legacy mountBurnTick: while heroFireT > 0, every BURN_DMG_PERIOD
  * (0.5s) deal BURN_DMG (3) and spawn 2 particle decals.
