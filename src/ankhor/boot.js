@@ -60,12 +60,27 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
   });
   await stage("installMeshHandler", () => installMeshHandler(registry, { THREE, scene }));
 
+  // Spawn the render-context Thinga with EMPTY facet data, then
+  // attach the THREE/scene/camera refs directly to the stored facet
+  // data after the fact. Reason: registry.spawn() emits a spawn event
+  // whose payload is JSON.parse(JSON.stringify(thing)). THREE.Scene
+  // and PerspectiveCamera are Object3Ds with circular parent/child
+  // refs that crash JSON.stringify — that was the iter-757 black-
+  // screen culprit ("Cannot read properties of undefined (reading
+  // 'length')" was thrown deep inside Three's Object3D.toJSON walk).
+  // Direct mutation of facetData bypasses the clone path entirely.
   await stage("spawn render-context", () => registry.spawn({
     id: "render-context/main",
     kind: "render-context",
     name: "render_context",
-    facets: [{ name: "render-context", data: { THREE, scene, camera: cam } }],
+    facets: [{ name: "render-context", data: {} }],
   }));
+  await stage("attach render-context refs", () => {
+    const ctx = registry.facetData("render-context/main", "render-context");
+    ctx.THREE  = THREE;
+    ctx.scene  = scene;
+    ctx.camera = cam;
+  });
 
   // PASS 1: kind-def Thingas → registry.registerKind (capture defaults too).
   const kindDefaults = new Map();
