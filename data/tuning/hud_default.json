@@ -41,7 +41,12 @@
       "enemy_hp_bar_color_full":    3461210,
       "enemy_hp_bar_color_low":     13911895,
       "enemy_hp_bar_color_threshold": 0.5,
-      "fps_window_ms":              1000
+      "fps_window_ms":              1000,
+      "clock_right_px":             12,
+      "clock_top_px":               40,
+      "clock_day_color":            "#ffd166",
+      "clock_night_color":          "#6699cc",
+      "clock_fallback_day_mix":     0.8
     }},
     { "name": "provenance", "data": {
       "source_files": ["game.html mountHudTemplate (line 250) — DOM-overlay style emulated; values chosen for legibility, not legacy-extracted"],

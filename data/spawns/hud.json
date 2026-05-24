@@ -11,7 +11,8 @@
       "facets": [
         { "name": "hud-overlay",  "data": {} },
         { "name": "damage-flash", "data": {} },
-        { "name": "fps-tick",     "data": {} }
+        { "name": "fps-tick",     "data": {} },
+        { "name": "clock-hud",    "data": {} }
       ] }
   ]
 }

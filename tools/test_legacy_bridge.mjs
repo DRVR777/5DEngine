@@ -342,6 +342,50 @@ if (clockHudSpec) {
   console.log(`[test] PASS — clock-hud DayNight + fallback DOM paint verified through cloned mountClockHudTick (SEMANTIC_PROVEN).`);
 }
 
+/* ---------- native clock-hud parity test (iter 797) ----------
+ * Mirrors the iter-786 semantic phase using ONLY the native clock-hud
+ * facet: hour=13.5 must paint 01:30 PM and day color; null hour must
+ * exercise the fallback formatted clock path.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const clockHud = (await import("../src/ankhor/facets/clock_hud.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("clock-hud", clockHud);
+  reg.registerFacetHandler("tuning",    { priority: 41 });
+
+  reg.spawn({
+    id: "hud/main", kind: "hud", name: "primary_hud",
+    facets: [{ name: "clock-hud", data: { hour: 13.5, _el: { textContent: "", style: {} } } }],
+  });
+  reg.spawn({
+    id: "tuning/hud", kind: "tuning", name: "hud-default-tuning",
+    facets: [{ name: "tuning", data: {
+      clock_right_px: 12,
+      clock_top_px: 40,
+      clock_day_color: "#ffd166",
+      clock_night_color: "#6699cc",
+      clock_fallback_day_mix: 0.8,
+    } }],
+  });
+
+  reg.tick(0.016);
+  const data = reg.facetData("hud/main", "clock-hud");
+  console.log(`[test] native clock-hud: hour=13.5 -> "${data.text}" color=${data.color}`);
+  if (!data.text.includes("01:30 PM") || data.color !== "#ffd166") {
+    console.log(`[test] FAIL — native clock-hud did not format DayNight hour into expected PM text/color.`);
+    process.exit(1);
+  }
+
+  data.hour = null;
+  reg.tick(0.016);
+  if (!/\d\d:\d\d (AM|PM)$/.test(data.text)) {
+    console.log(`[test] FAIL — native clock-hud fallback path did not write formatted AM/PM text.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native clock-hud reproduces legacy DayNight + fallback DOM paint (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native footstep-sound parity test (iter 784) ----------
  * Mirrors the iter-783 legacy footstep semantic phase using ONLY the
  * native footstep-sound facet.
