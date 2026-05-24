@@ -242,6 +242,59 @@ if (burnSpec) {
   console.log(`[test] PASS — $kindPos + $emit ($arg0/$arg1/$arg2) drove burn DOT + particle spawn through cloned mountBurnTick.`);
 }
 
+/* ---------- heartbeat threshold-gate test (iter 777) ----------
+ * Promotes legacy/heartbeat from HOSTED_BIND_ONLY to HOSTED_SEMANTIC_PROVEN.
+ *
+ * Legacy mountHeartbeat: when heroHp < maxHp*0.3 AND !heroDead, count
+ * heartbeatT down each frame; when it hits ≤0, reset to
+ *   0.38 + (heroHp/threshold) * 0.82
+ * and fire the SFX action. Above threshold, heartbeatT clamps to 0.
+ *
+ * Semantic verification (single registry-resolved bind chain):
+ *   1. Drop hero hp to 20 (threshold = 100 * 0.3 = 30, so hp < threshold).
+ *   2. Tick 1×0.1s: _heartbeatT starts at 0 → next = -0.1 → fires →
+ *      _heartbeatT = 0.38 + (20/30)*0.82 = 0.38 + 0.54666… = 0.92666…
+ *   3. Tick 1×0.5s: countdown only, no fire → _heartbeatT = 0.42666…
+ *   4. Raise hp to 80 (above threshold). Tick 1× → _heartbeatT clamps to 0.
+ */
+const heartbeatSpec = specs.find((s) => s.id === "legacy/heartbeat");
+if (heartbeatSpec) {
+  const hd = batchRegistry.facetData("legacy/heartbeat", "legacy-mount");
+  hd._heartbeatT = 0;
+  batchRegistry.updateFacet("hero/main", "health", { hp: 20, maxHp: 100 });
+
+  batchRegistry.tick(0.1);
+  const fireValue = hd._heartbeatT;
+  const expectedFire = 0.38 + (20 / 30) * 0.82;
+  console.log(`[test] heartbeat: low-hp fire → _heartbeatT = ${fireValue.toFixed(4)} (expected ${expectedFire.toFixed(4)})`);
+  if (Math.abs(fireValue - expectedFire) > 0.001) {
+    console.log(`[test] FAIL — heartbeat gate-fire math drifted from legacy formula.`);
+    process.exit(1);
+  }
+
+  batchRegistry.tick(0.5);
+  const decayed = hd._heartbeatT;
+  const expectedDecayed = expectedFire - 0.5;
+  console.log(`[test] heartbeat: countdown → _heartbeatT = ${decayed.toFixed(4)} (expected ${expectedDecayed.toFixed(4)})`);
+  if (Math.abs(decayed - expectedDecayed) > 0.001) {
+    console.log(`[test] FAIL — heartbeat countdown math drifted.`);
+    process.exit(1);
+  }
+
+  batchRegistry.updateFacet("hero/main", "health", { hp: 80, maxHp: 100 });
+  batchRegistry.tick(0.1);
+  const cleared = hd._heartbeatT;
+  console.log(`[test] heartbeat: hp above threshold → _heartbeatT = ${cleared}`);
+  if (cleared !== 0) {
+    console.log(`[test] FAIL — heartbeat did not clamp _heartbeatT to 0 above threshold.`);
+    process.exit(1);
+  }
+  // Restore hero hp so downstream phases see the original fixture.
+  batchRegistry.updateFacet("hero/main", "health", { hp: 60, maxHp: 100 });
+
+  console.log(`[test] PASS — heartbeat threshold gate + reset formula + clamp verified through cloned mountHeartbeat (SEMANTIC_PROVEN).`);
+}
+
 /* ---------- native hero-regen parity test (iter 769) ----------
  * Mirrors the iter-757 legacy hero-regen test: same hero hp=60 +
  * tuning regen_rate=10/s, tick 5×0.5s, assert hp == 85.

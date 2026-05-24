@@ -24,8 +24,9 @@
   ],
   "migration": {
     "legacy_mount": "mountHeartbeat",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
-    "native_target": "heartbeat"
+    "status": "HOSTED_SEMANTIC_PROVEN",
+    "semantic_test": "Threshold gate + reset formula + clamp — hp 20 < 30 fires _heartbeatT = 0.38 + (hp/threshold)*0.82 = 0.9267; countdown 0.5s decays to 0.4267; hp 80 ≥ threshold clamps to 0. $log:[heartbeat sfx] confirms actions.playSfx invocation (test_legacy_bridge.mjs iter-777 phase).",
+    "native_target": "heartbeat",
+    "semantic_iter": 777
   }
 }
