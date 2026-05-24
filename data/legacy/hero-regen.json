@@ -30,8 +30,8 @@
   ],
   "migration": {
     "legacy_mount": "mountHeroRegenTick",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "HOSTED_SEMANTIC_PROVEN",
+    "semantic_test": "hp 60 -> 85 after 5x0.5s @ regen_rate 10/s (test_legacy_bridge.mjs phase 1)",
     "native_target": "hero-regen"
   }
 }

@@ -86,8 +86,17 @@ function inventoryMounts() {
  *  substrate coverage (per CLAUDE.md the bridge IS the substrate path
  *  until a native facet supersedes it). */
 function legacyHosts() {
-  if (!existsSync(LEGACY_DIR)) return new Set();
-  const set = new Set();
+  // Returns Map<mountExportName, { status, semantic_test, native_target, slug }>
+  // status is one of:
+  //   HOSTED_BIND_ONLY        binds + ticks (default)
+  //   HOSTED_SEMANTIC_PROVEN  test_legacy_bridge.mjs has a phase that
+  //                           observably changes state correctly
+  //   NATIVE_BUILT            src/ankhor/facets/<slug>.js shipped but
+  //                           legacy spec still present (shadow)
+  //   NATIVE_VERIFIED         native passes parity test; ready to flip
+  // (DONE is inferred from absence — when the legacy file is deleted.)
+  if (!existsSync(LEGACY_DIR)) return new Map();
+  const map = new Map();
   for (const f of readdirSync(LEGACY_DIR)) {
     if (!f.endsWith(".json")) continue;
     let parsed;
@@ -96,19 +105,26 @@ function legacyHosts() {
     for (const facet of parsed.facets || []) {
       if (facet.name !== "legacy-mount") continue;
       const name = facet.data?.export;
-      if (typeof name === "string" && name) set.add(name);
+      if (typeof name !== "string" || !name) continue;
+      const m = parsed.migration || {};
+      map.set(name, {
+        status:        typeof m.status === "string" ? m.status : "HOSTED_BIND_ONLY",
+        semantic_test: m.semantic_test || null,
+        native_target: m.native_target || f.replace(/\.json$/, ""),
+        slug:          f.replace(/\.json$/, ""),
+      });
     }
   }
-  return set;
+  return map;
 }
 
-function classify(mountName, facetSlugs, kindSlugs, invMentions, hosts) {
+function classify(mountName, facetSlugs, kindSlugs, invMentions, hostsMap) {
   const { snake } = mountToSlugs(mountName);
   const facetHit  = [...facetSlugs].some((f) => f === snake || snake.includes(f) || f.includes(snake));
   const kindHit   = [...kindSlugs].some((k)  => k === snake || snake.includes(k) || k.includes(snake));
   const invHit    = invMentions.has(mountName);
-  const hostedHit = hosts.has(mountName);
-  return { facetHit, kindHit, invHit, hostedHit };
+  const host      = hostsMap.get(mountName);
+  return { facetHit, kindHit, invHit, hostedHit: !!host, hostStatus: host?.status, hostSemantic: host?.semantic_test };
 }
 
 function main() {
@@ -117,37 +133,55 @@ function main() {
   const facets = listDirBaseNames(FACETS_DIR, ".js");
   const kinds  = listDirBaseNames(KINDS_DIR,  ".json");
   const invMentions = inventoryMounts();
-  const hosts  = legacyHosts();
+  const hostsMap = legacyHosts();
 
   const rows = mounts.map((m) => {
-    const c = classify(m, facets, kinds, invMentions, hosts);
+    const c = classify(m, facets, kinds, invMentions, hostsMap);
+    // Status precedence: NATIVE > HOSTED_SEMANTIC_PROVEN > HOSTED_BIND_ONLY
+    //                  > DONE (legacy bridge native+doc) > FACET > DOC > MISSING.
     let status;
-    if (c.hostedHit) status = "HOSTED";
-    else if (c.facetHit && c.invHit) status = "DONE";
-    else if (c.facetHit || c.kindHit) status = "FACET";
-    else if (c.invHit) status = "DOC";
-    else status = "MISSING";
+    if (c.hostedHit) {
+      // Honor the explicit migration.status on the spec.
+      status = c.hostStatus === "NATIVE_VERIFIED" ? "NATIVE_VERIFIED"
+            : c.hostStatus === "NATIVE_BUILT"     ? "NATIVE_BUILT"
+            : c.hostStatus === "HOSTED_SEMANTIC_PROVEN" ? "HOSTED_SEMANTIC_PROVEN"
+            : "HOSTED_BIND_ONLY";
+    } else if (c.facetHit && c.invHit) status = "DONE";
+    else if (c.facetHit || c.kindHit)  status = "FACET";
+    else if (c.invHit)                 status = "DOC";
+    else                                status = "MISSING";
     return { mount: m, ...c, status };
   });
 
   const tally = rows.reduce((acc, r) => { acc[r.status] = (acc[r.status] || 0) + 1; return acc; }, {});
   const total = rows.length;
 
-  const covered = (tally.HOSTED || 0) + (tally.DONE || 0);
+  const semantic = tally.HOSTED_SEMANTIC_PROVEN || 0;
+  const bindOnly = tally.HOSTED_BIND_ONLY || 0;
+  const native   = (tally.DONE || 0) + (tally.NATIVE_BUILT || 0) + (tally.NATIVE_VERIFIED || 0);
+  const covered  = semantic + bindOnly + native;
 
   if (update) {
     rewriteInventoryAuditBlock(rows, tally, total);
-    console.log(`[audit] inventory updated. ${covered}/${total} subsystems covered (${tally.HOSTED || 0} HOSTED + ${tally.DONE || 0} DONE).`);
+    console.log(`[audit] inventory updated. ${covered}/${total} covered (${semantic} SEMANTIC_PROVEN + ${bindOnly} BIND_ONLY + ${native} native).`);
     process.exit(0);
   }
 
   console.log(`game.html mount* subsystems: ${total}`);
-  console.log(`covered (HOSTED + DONE): ${covered}/${total}`);
-  for (const [k, v] of Object.entries(tally)) console.log(`  ${k.padEnd(8)} ${v}`);
+  console.log(`covered: ${covered}/${total}  (${semantic} SEMANTIC_PROVEN + ${bindOnly} BIND_ONLY + ${native} native)`);
+  for (const [k, v] of Object.entries(tally)) console.log(`  ${k.padEnd(24)} ${v}`);
   console.log("");
   for (const r of rows) {
-    const mark = r.status === "HOSTED" ? "HOST " : r.status === "DONE" ? "OK   " : r.status === "FACET" ? "FACET" : r.status === "DOC" ? "DOC  " : "MISS ";
-    console.log(`  ${mark}  ${r.mount}`);
+    const mark = r.status === "HOSTED_SEMANTIC_PROVEN" ? "SEM  "
+              : r.status === "HOSTED_BIND_ONLY"        ? "HOST "
+              : r.status === "NATIVE_VERIFIED"         ? "VER  "
+              : r.status === "NATIVE_BUILT"            ? "BUILT"
+              : r.status === "DONE"                    ? "OK   "
+              : r.status === "FACET"                   ? "FACET"
+              : r.status === "DOC"                     ? "DOC  "
+              :                                          "MISS ";
+    const tail = r.hostSemantic ? `  — ${r.hostSemantic}` : "";
+    console.log(`  ${mark}  ${r.mount}${tail}`);
   }
 
   const gaps = (tally.MISSING || 0) + (tally.DOC || 0) + (tally.FACET || 0);
@@ -159,25 +193,31 @@ function rewriteInventoryAuditBlock(rows, tally, total) {
   const start = "<!-- BEGIN_AUDIT -->";
   const end   = "<!-- END_AUDIT -->";
   const ts = new Date().toISOString().slice(0, 19) + "Z";
-  const covered = (tally.HOSTED || 0) + (tally.DONE || 0);
+  const semantic = tally.HOSTED_SEMANTIC_PROVEN || 0;
+  const bindOnly = tally.HOSTED_BIND_ONLY || 0;
+  const native   = (tally.DONE || 0) + (tally.NATIVE_BUILT || 0) + (tally.NATIVE_VERIFIED || 0);
+  const covered  = semantic + bindOnly + native;
   const lines = [
     start,
     "",
     `_Generated by \`tools/audit_migration.mjs --update\` on ${ts}._`,
     "",
-    `**Coverage:** ${covered}/${total} (${tally.HOSTED || 0} HOSTED via legacy-mount bridge + ${tally.DONE || 0} DONE via native facets).`,
+    `**Coverage:** ${covered}/${total} — ${semantic} SEMANTIC_PROVEN + ${bindOnly} BIND_ONLY + ${native} native (${tally.DONE || 0} DONE, ${tally.NATIVE_BUILT || 0} NATIVE_BUILT, ${tally.NATIVE_VERIFIED || 0} NATIVE_VERIFIED).`,
     `Remaining: ${tally.FACET || 0} FACET-only / ${tally.DOC || 0} DOC-only / ${tally.MISSING || 0} MISSING.`,
     "",
-    "Status legend:",
-    "  - **HOSTED**: legacy module bound via `legacy-mount` bridge — `data/spawns/legacy_systems.json` carries a spec for it.",
-    "  - **DONE**: native Ankhor facet/kind covers this AND the inventory doc names it.",
+    "Status legend (migration state machine — see docs/COMPATIBILITY_KERNEL.md):",
+    "  - **HOSTED_SEMANTIC_PROVEN**: legacy spec hosted via bridge AND a tools/test_legacy_bridge.mjs phase observably changes state correctly.",
+    "  - **HOSTED_BIND_ONLY**: legacy spec hosted via bridge, binds + ticks but no semantic test yet.",
+    "  - **NATIVE_BUILT**: src/ankhor/facets/<slug>.js shipped but legacy spec still present (shadow).",
+    "  - **NATIVE_VERIFIED**: native passes parity test; legacy spec ready to delete.",
+    "  - **DONE**: native Ankhor facet/kind covers this AND inventory doc names it (legacy file absent).",
     "  - **FACET**: native facet/kind exists by name match but inventory hasn't been annotated.",
     "  - **DOC**: inventory mentions the mount but no matching facet/kind.",
     "  - **MISSING**: neither.",
     "",
-    "| Mount call | facet hit | kind hit | inv hit | hosted | status |",
-    "|---|---|---|---|---|---|",
-    ...rows.map((r) => `| \`${r.mount}\` | ${r.facetHit ? "yes" : "—"} | ${r.kindHit ? "yes" : "—"} | ${r.invHit ? "yes" : "—"} | ${r.hostedHit ? "yes" : "—"} | ${r.status} |`),
+    "| Mount call | facet hit | kind hit | inv hit | hosted | status | semantic proof |",
+    "|---|---|---|---|---|---|---|",
+    ...rows.map((r) => `| \`${r.mount}\` | ${r.facetHit ? "yes" : "—"} | ${r.kindHit ? "yes" : "—"} | ${r.invHit ? "yes" : "—"} | ${r.hostedHit ? "yes" : "—"} | ${r.status} | ${r.hostSemantic || "—"} |`),
     "",
     end,
   ];

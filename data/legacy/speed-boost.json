@@ -29,8 +29,8 @@
   ],
   "migration": {
     "legacy_mount": "mountSpeedBoostTick",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "HOSTED_SEMANTIC_PROVEN",
+    "semantic_test": "3 decal-particles emitted via actions.spawnTrail $emit in 0.30s W+boost (test_legacy_bridge.mjs phase 4)",
     "native_target": "speed-boost"
   }
 }

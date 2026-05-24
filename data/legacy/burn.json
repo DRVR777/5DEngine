@@ -30,8 +30,8 @@
   ],
   "migration": {
     "legacy_mount": "mountBurnTick",
-    "status": "HOSTED_BIND_ONLY",
-    "semantic_test": null,
+    "status": "HOSTED_SEMANTIC_PROVEN",
+    "semantic_test": "DOT damages hero hp 60 -> 57 + 7 decals via $kindPos + $emit $arg0/1/2 (test_legacy_bridge.mjs phase 5)",
     "native_target": "burn"
   }
 }
