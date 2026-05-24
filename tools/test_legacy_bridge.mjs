@@ -236,4 +236,45 @@ if (burnSpec) {
   console.log(`[test] PASS — $kindPos + $emit ($arg0/$arg1/$arg2) drove burn DOT + particle spawn through cloned mountBurnTick.`);
 }
 
+/* ---------- native hero-regen parity test (iter 769) ----------
+ * Mirrors the iter-757 legacy hero-regen test: same hero hp=60 +
+ * tuning regen_rate=10/s, tick 5×0.5s, assert hp == 85.
+ * Uses ONLY the native facet (no legacy spec) — clean registry.
+ *
+ * If math drifts vs the legacy module, the flip stalls. Lockstep
+ * parity is the gate for promoting NATIVE_BUILT → NATIVE_VERIFIED.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const heroRegen = (await import("../src/ankhor/facets/hero_regen.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("hero-regen", heroRegen);
+  reg.registerFacetHandler("health",     { priority: 25 });
+  reg.registerFacetHandler("tuning",     { priority: 41 });
+  reg.registerFacetHandler("inventory",  { priority: 24 });
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "health",     data: { hp: 60, maxHp: 100, lastDamageT: 0 } },
+      { name: "hero-regen", data: {} },
+      { name: "inventory",  data: { items: {}, score: 0 } },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: { regen_delay_seconds: 0, regen_rate_per_second: 10 } }],
+  });
+
+  const hp0 = reg.facetData("hero/main", "health").hp;
+  for (let i = 0; i < 5; i++) reg.tick(0.5);
+  const hp1 = reg.facetData("hero/main", "health").hp;
+  const expected = Math.min(100, hp0 + 10 * 0.5 * 5);
+  console.log(`[test] native hero-regen: hp ${hp0}→${hp1} (expected ${expected})`);
+  if (Math.abs(hp1 - expected) > 0.01) {
+    console.log(`[test] FAIL — native hero-regen drifted from legacy math.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native hero-regen reproduces legacy mountHeroRegenTick math (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);
