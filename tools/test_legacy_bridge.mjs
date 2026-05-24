@@ -30,6 +30,12 @@ registry.registerFacetHandler("tuning",       { priority: 41 });
 
 // scaffold: one hero with health, one tuning Thinga with regen params,
 // then one legacy-system that hosts hero-regen.
+//
+// Note (iter 770): the data/legacy/hero-regen.json spec was deleted
+// — hero-regen is now a native facet. This phase remains as a bridge
+// regression test, building an inline spec from src/systems/hero_regen_tick.js
+// (the legacy module file is still present, game.html still imports it).
+// The canonical proof for the NATIVE facet is the parity phase further below.
 registry.spawn({
   id: "hero/main", kind: "hero", name: "hero",
   facets: [{ name: "health", data: { hp: 60, maxHp: 100 } }],

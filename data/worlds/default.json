@@ -130,7 +130,6 @@
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" },
 
-    { "ref": "legacy/hero-regen" },
     { "ref": "legacy/heartbeat" },
     { "ref": "legacy/fps-tick" },
     { "ref": "legacy/cam-shake" },
