@@ -130,7 +130,6 @@
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" },
 
-    { "ref": "legacy/fps-tick" },
     { "ref": "legacy/cam-shake" },
     { "ref": "legacy/cam-pitch-springs" },
     { "ref": "legacy/vignette" },
