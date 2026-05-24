@@ -315,6 +315,72 @@ if (footstepSpec) {
   console.log(`[test] PASS — footstep sprint interval + countdown + inactive clamp verified through cloned mountFootstepSound (SEMANTIC_PROVEN).`);
 }
 
+/* ---------- native footstep-sound parity test (iter 784) ----------
+ * Mirrors the iter-783 legacy footstep semantic phase using ONLY the
+ * native footstep-sound facet.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const footstepSound = (await import("../src/ankhor/facets/footstep_sound.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("footstep-sound", footstepSound);
+  reg.registerFacetHandler("inventory",      { priority: 24 });
+  reg.registerFacetHandler("input-state",    { priority: 2 });
+  reg.registerFacetHandler("tuning",         { priority: 41 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "inventory",      data: { footstepT: 0, items: {}, score: 0 } },
+      { name: "footstep-sound", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: { KeyW: true, ShiftLeft: true }, mouseHeld: false, yaw: 0 } }],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      footstep_interval_sprint: 0.26,
+      footstep_interval_walk: 0.38,
+      footstep_interval_crouch: 0.55,
+      footstep_freq_base: 80,
+      footstep_freq_jitter: 40,
+      footstep_sfx_volume: 0.08,
+    } }],
+  });
+
+  const oldDocument = globalThis.document;
+  globalThis.document = { pointerLockElement: {} };
+  const inv = reg.facetData("hero/main", "inventory");
+  reg.tick(0.01);
+  console.log(`[test] native footstep: immediate sprint rearm -> footstepT=${inv.footstepT.toFixed(3)} (expected 0.260)`);
+  if (Math.abs(inv.footstepT - 0.26) > 0.001) {
+    console.log(`[test] FAIL — native footstep did not rearm to sprint interval.`);
+    process.exit(1);
+  }
+  if (!inv.lastFootstepSfx || !/^tone:\d+:30:triangle$/.test(inv.lastFootstepSfx.id) || inv.lastFootstepSfx.volume !== 0.08) {
+    console.log(`[test] FAIL — native footstep did not reproduce SFX action payload.`);
+    process.exit(1);
+  }
+
+  reg.tick(0.1);
+  if (Math.abs(inv.footstepT - 0.16) > 0.001) {
+    console.log(`[test] FAIL — native footstep countdown drifted.`);
+    process.exit(1);
+  }
+
+  globalThis.document = { pointerLockElement: null };
+  reg.tick(0.01);
+  if (inv.footstepT !== 0) {
+    console.log(`[test] FAIL — native footstep did not clamp to 0 when pointer lock is absent.`);
+    process.exit(1);
+  }
+  globalThis.document = oldDocument;
+  console.log(`[test] PASS — native footstep reproduces sprint interval + countdown + inactive clamp (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native fps-tick parity test (iter 781) ----------
  * Mirrors the iter-780 legacy fps window proof using ONLY the native
  * fps-tick facet on a synthetic hud Thinga.

@@ -29,8 +29,10 @@
   ],
   "migration": {
     "legacy_mount": "mountFootstepSound",
-    "status": "HOSTED_SEMANTIC_PROVEN",
+    "status": "NATIVE_VERIFIED",
     "semantic_test": "With synthetic KeyW+ShiftLeft input and a fake pointer lock, _footstepT=0 fires immediately and rearms to sprint interval 0.26; the next 0.1s tick decays it to 0.16. Above conditions false clamps _footstepT to 0 (test_legacy_bridge.mjs iter-783 phase).",
-    "native_target": "footstep-sound"
+    "native_target": "footstep-sound",
+    "native_test": "src/ankhor/facets/footstep_sound.js reproduces sprint interval rearm, countdown, inactive clamp, and SFX action payload on hero.inventory state (test_legacy_bridge.mjs native footstep phase).",
+    "native_iter": 784
   }
 }
