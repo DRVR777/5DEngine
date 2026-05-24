@@ -133,7 +133,6 @@
     { "ref": "legacy/cam-shake" },
     { "ref": "legacy/cam-pitch-springs" },
     { "ref": "legacy/vignette" },
-    { "ref": "legacy/footstep-sound" },
     { "ref": "legacy/crouch-speed" },
     { "ref": "legacy/hero-knockback" },
     { "ref": "legacy/freecam" },
