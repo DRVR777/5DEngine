@@ -26,8 +26,10 @@
   ],
   "migration": {
     "legacy_mount": "mountFpsTick",
-    "status": "HOSTED_SEMANTIC_PROVEN",
+    "status": "NATIVE_VERIFIED",
     "semantic_test": "One-second window update through bridge: _frames=9 and _windowT=performance.now()-1000, tick once, display becomes about 10 FPS, _frames resets to 0, _windowT advances; next short tick increments _frames to 1 without changing display (test_legacy_bridge.mjs iter-780 phase).",
-    "native_target": "fps-tick"
+    "native_target": "fps-tick",
+    "native_test": "src/ankhor/facets/fps_tick.js reproduces one-second window display update, frame reset, window reset, and short-window accumulation against hud-default-tuning.fps_window_ms (test_legacy_bridge.mjs native fps phase).",
+    "native_iter": 781
   }
 }

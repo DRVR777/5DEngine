@@ -10,7 +10,8 @@
     { "id": "hud/main", "kind": "hud", "name": "primary_hud",
       "facets": [
         { "name": "hud-overlay",  "data": {} },
-        { "name": "damage-flash", "data": {} }
+        { "name": "damage-flash", "data": {} },
+        { "name": "fps-tick",     "data": {} }
       ] }
   ]
 }

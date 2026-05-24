@@ -5,10 +5,11 @@
   "facets": [
     { "name": "for-kind",        "data": "hud" },
     { "name": "required-facets", "data": ["hud-overlay"] },
-    { "name": "optional-facets", "data": ["damage-flash"] },
+    { "name": "optional-facets", "data": ["damage-flash", "fps-tick"] },
     { "name": "defaults", "data": {
       "hud-overlay":  { "_installed": false, "_lastEnemyCount": null, "kills": 0 },
-      "damage-flash": {}
+      "damage-flash": {},
+      "fps-tick":     {}
     } },
     { "name": "absorbs", "data": [
       "game.html — mountHudTemplate (line 250), mountHudElements (line 164), mountStatBarsTick, mountWeaponHudTick, mountCrosshairTick, mountCombatHudTick, mountClockHudTick, mountVignetteTick, mountComboHudTick, mountBossBarTick, mountWaveHudTick, mountDebugHudTick. Each is a discrete game.html HUD; this iter does the bare-minimum shell (HP bar + kill count + ammo). Subsequent iters split into per-widget facets once the shell proves out."

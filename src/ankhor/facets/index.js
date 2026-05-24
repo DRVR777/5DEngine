@@ -28,6 +28,7 @@ import dropOnDeath    from "./drop_on_death.js";
 import heroRespawn    from "./hero_respawn.js";
 import hudOverlay     from "./hud_overlay.js";
 import damageFlash    from "./damage_flash.js";
+import fpsTick        from "./fps_tick.js";
 import healthDisplay  from "./health_display.js";
 import aabbCollision  from "./aabb_collision.js";
 import expandFade     from "./expand_fade.js";
@@ -66,6 +67,7 @@ export const FACET_HANDLERS = {
   "hero-respawn":        heroRespawn,
   "hud-overlay":         hudOverlay,
   "damage-flash":        damageFlash,
+  "fps-tick":            fpsTick,
   "health-display":      healthDisplay,
   "aabb-collision":      aabbCollision,
   "expand-fade":         expandFade,

@@ -40,7 +40,8 @@
       "enemy_hp_bar_padding":       0.6,
       "enemy_hp_bar_color_full":    3461210,
       "enemy_hp_bar_color_low":     13911895,
-      "enemy_hp_bar_color_threshold": 0.5
+      "enemy_hp_bar_color_threshold": 0.5,
+      "fps_window_ms":              1000
     }},
     { "name": "provenance", "data": {
       "source_files": ["game.html mountHudTemplate (line 250) — DOM-overlay style emulated; values chosen for legibility, not legacy-extracted"],

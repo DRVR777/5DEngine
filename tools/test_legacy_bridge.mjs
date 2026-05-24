@@ -278,6 +278,48 @@ if (fpsSpec) {
   console.log(`[test] PASS — fps-tick window update + reset + short-window accumulation verified through cloned mountFpsTick (SEMANTIC_PROVEN).`);
 }
 
+/* ---------- native fps-tick parity test (iter 781) ----------
+ * Mirrors the iter-780 legacy fps window proof using ONLY the native
+ * fps-tick facet on a synthetic hud Thinga.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const fpsTick = (await import("../src/ankhor/facets/fps_tick.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("fps-tick", fpsTick);
+  reg.registerFacetHandler("tuning",   { priority: 41 });
+
+  const oldWindow = performance.now() - 1000;
+  reg.spawn({
+    id: "hud/main", kind: "hud", name: "primary_hud",
+    facets: [{ name: "fps-tick", data: { frames: 9, windowT: oldWindow, display: 0 } }],
+  });
+  reg.spawn({
+    id: "tuning/hud_default", kind: "tuning", name: "hud-default-tuning",
+    facets: [{ name: "tuning", data: { fps_window_ms: 1000 } }],
+  });
+
+  const fd = reg.facetData("hud/main", "fps-tick");
+  reg.tick(0.016);
+  console.log(`[test] native fps-tick: display=${fd.display}, frames=${fd.frames}, windowT advanced=${fd.windowT > oldWindow}`);
+  if (fd.display < 9 || fd.display > 11) {
+    console.log(`[test] FAIL — native fps-tick display did not land near 10 FPS after forced one-second window.`);
+    process.exit(1);
+  }
+  if (fd.frames !== 0 || fd.windowT <= oldWindow) {
+    console.log(`[test] FAIL — native fps-tick did not reset frame counter and advance window timestamp.`);
+    process.exit(1);
+  }
+
+  const display = fd.display;
+  reg.tick(0.016);
+  if (fd.frames !== 1 || fd.display !== display) {
+    console.log(`[test] FAIL — native fps-tick short-window frame accumulation drifted.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native fps-tick reproduces window update + reset + short-window accumulation (NATIVE_VERIFIED).`);
+}
+
 /* ---------- heartbeat threshold-gate test (iter 777) ----------
  * Promotes legacy/heartbeat from HOSTED_BIND_ONLY to HOSTED_SEMANTIC_PROVEN.
  *
