@@ -34,8 +34,9 @@
   ],
   "migration": {
     "legacy_mount": "mountStaminaTick",
-    "status": "HOSTED_SEMANTIC_PROVEN",
+    "status": "NATIVE_VERIFIED",
     "semantic_test": "drain 100 -> 90 over 0.4s with W+Shift held @ STAMINA_DRAIN 25/s (test_legacy_bridge.mjs phase 3)",
-    "native_target": "stamina"
+    "native_target": "stamina",
+    "parity_test": "tools/test_legacy_bridge.mjs native stamina parity — 100→90 over 0.4s W+Shift identical to legacy"
   }
 }

@@ -39,7 +39,11 @@
       "hero_ammo_item": "pistol_9mm",
       "hero_starting_ammo": 60,
       "interact_range_m": 3.0,
-      "key_interact":     "KeyE"
+      "key_interact":     "KeyE",
+      "stamina_max":      100,
+      "stamina_drain":    25,
+      "stamina_regen":    18,
+      "stamina_lockout":  20
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

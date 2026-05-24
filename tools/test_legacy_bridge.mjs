@@ -283,4 +283,49 @@ if (burnSpec) {
   console.log(`[test] PASS — native hero-regen reproduces legacy mountHeroRegenTick math (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native stamina parity test (iter 771) ----------
+ * Mirrors the iter-759 legacy stamina semantic phase: synthetic
+ * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
+ * drained 100 → 90 (matches STAMINA_DRAIN 25/s × 0.4s).
+ * Uses ONLY the native facet (no legacy spec).
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const staminaFacet = (await import("../src/ankhor/facets/stamina.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("stamina",     staminaFacet);
+  reg.registerFacetHandler("inventory",   { priority: 24 });
+  reg.registerFacetHandler("tuning",      { priority: 41 });
+  reg.registerFacetHandler("input-state", { priority: 2 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "inventory", data: { stamina: 100, heroEmpT: 0, items: {}, score: 0 } },
+      { name: "stamina",   data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      stamina_max: 100, stamina_drain: 25, stamina_regen: 18, stamina_lockout: 20,
+    } }],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: { KeyW: true, ShiftLeft: true }, mouseHeld: false, yaw: 0 } }],
+  });
+
+  const s0 = reg.facetData("hero/main", "inventory").stamina;
+  for (let i = 0; i < 4; i++) reg.tick(0.1);  // 0.4s W+Shift
+  const s1 = reg.facetData("hero/main", "inventory").stamina;
+  const expected = 100 - 25 * 0.4;
+  console.log(`[test] native stamina: ${s0}→${s1.toFixed(2)} (expected ${expected})`);
+  if (Math.abs(s1 - expected) > 0.5) {
+    console.log(`[test] FAIL — native stamina drifted from legacy math.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native stamina reproduces legacy mountStaminaTick math (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

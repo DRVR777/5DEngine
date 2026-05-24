@@ -5,11 +5,12 @@
   "facets": [
     { "name": "for-kind",        "data": "hero" },
     { "name": "required-facets", "data": ["position", "mesh", "health", "hero-broadcaster"] },
-    { "name": "optional-facets", "data": ["armor", "inventory", "hero-input-move", "hero-shoot", "hero-regen", "hero-respawn", "aabb-collision", "vehicle-enter-prompt"] },
+    { "name": "optional-facets", "data": ["armor", "inventory", "hero-input-move", "hero-shoot", "hero-regen", "stamina", "hero-respawn", "aabb-collision", "vehicle-enter-prompt"] },
     { "name": "defaults", "data": {
       "hero-input-move":      {},
       "hero-shoot":           {},
       "hero-regen":           {},
+      "stamina":              {},
       "hero-respawn":         {},
       "inventory":            { "items": {}, "score": 0 },
       "aabb-collision":       {},
