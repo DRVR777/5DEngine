@@ -31,6 +31,13 @@ export function createServer7dBridge({ registry = installDefaultHandlers(createD
   return { registry, state, connect, applyFrame, close: () => socket?.close() };
 }
 
+// Legacy game.html imports `mountServer7dBridge` via src/engine_modules.js.
+// Keep the old mount-style export as a compatibility alias for the newer
+// createServer7dBridge factory.
+export function mountServer7dBridge(options = {}) {
+  return createServer7dBridge(options);
+}
+
 function defaultUrl() {
   if (typeof location !== "undefined") {
     const scheme = location.protocol === "https:" ? "wss" : "ws";

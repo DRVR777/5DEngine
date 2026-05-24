@@ -79,6 +79,18 @@ function inventoryMounts() {
   return set;
 }
 
+function acknowledgedKindCoverage() {
+  if (!existsSync(INVENTORY)) return new Set();
+  const txt = readFileSync(INVENTORY, "utf8");
+  const m = txt.match(/## Audit Coverage Acknowledgements[\s\S]*?\n---/);
+  if (!m) return new Set();
+  const re = /\bmount[A-Z][A-Za-z0-9_]+/g;
+  const set = new Set();
+  let hit;
+  while ((hit = re.exec(m[0]))) set.add(hit[0]);
+  return set;
+}
+
 /** Names of mount* exports HOSTED by the legacy-mount bridge —
  *  scans data/legacy/*.json (one standalone legacy-system Thinga per
  *  file, post the iter-764.5 split). Each file declares one legacy-
@@ -118,13 +130,14 @@ function legacyHosts() {
   return map;
 }
 
-function classify(mountName, facetSlugs, kindSlugs, invMentions, hostsMap) {
+function classify(mountName, facetSlugs, kindSlugs, invMentions, kindAcks, hostsMap) {
   const { snake } = mountToSlugs(mountName);
   const facetHit  = [...facetSlugs].some((f) => f === snake || snake.includes(f) || f.includes(snake));
   const kindHit   = [...kindSlugs].some((k)  => k === snake || snake.includes(k) || k.includes(snake));
   const invHit    = invMentions.has(mountName);
+  const kindAck    = kindAcks.has(mountName);
   const host      = hostsMap.get(mountName);
-  return { facetHit, kindHit, invHit, hostedHit: !!host, hostStatus: host?.status, hostSemantic: host?.semantic_test };
+  return { facetHit, kindHit, invHit, kindAck, hostedHit: !!host, hostStatus: host?.status, hostSemantic: host?.semantic_test };
 }
 
 function main() {
@@ -133,10 +146,11 @@ function main() {
   const facets = listDirBaseNames(FACETS_DIR, ".js");
   const kinds  = listDirBaseNames(KINDS_DIR,  ".json");
   const invMentions = inventoryMounts();
+  const kindAcks = acknowledgedKindCoverage();
   const hostsMap = legacyHosts();
 
   const rows = mounts.map((m) => {
-    const c = classify(m, facets, kinds, invMentions, hostsMap);
+    const c = classify(m, facets, kinds, invMentions, kindAcks, hostsMap);
     // Status precedence: NATIVE > HOSTED_SEMANTIC_PROVEN > HOSTED_BIND_ONLY
     //                  > DONE (legacy bridge native+doc) > FACET > DOC > MISSING.
     let status;
@@ -146,7 +160,7 @@ function main() {
             : c.hostStatus === "NATIVE_BUILT"     ? "NATIVE_BUILT"
             : c.hostStatus === "HOSTED_SEMANTIC_PROVEN" ? "HOSTED_SEMANTIC_PROVEN"
             : "HOSTED_BIND_ONLY";
-    } else if (c.facetHit && c.invHit) status = "DONE";
+    } else if ((c.facetHit && c.invHit) || (c.kindHit && c.kindAck)) status = "DONE";
     else if (c.facetHit || c.kindHit)  status = "FACET";
     else if (c.invHit)                 status = "DOC";
     else                                status = "MISSING";

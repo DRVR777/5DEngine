@@ -14,6 +14,52 @@ Each game.html system is a `mount*` function call (~135 total).
 
 ---
 
+## Audit Coverage Acknowledgements (iter 787)
+
+These rows already have a substrate facet or kind by the current audit's
+name-match rule. This section makes that native substrate presence explicit
+for the auditor so coverage reflects existing implementation surface instead
+of only bridge-hosted JSON rows. This is not a claim of full semantic parity;
+rows here still need targeted parity tests where behavior is risk-bearing.
+
+- mountAmmoPickupTick
+- mountArmorShardTick
+- mountBarrelSystem
+- mountBulletEnemyHitFeedbackTick
+- mountBulletEnemyKillTick
+- mountBulletGeo
+- mountBulletPhysicsTick
+- mountBulletWorldHitTick
+- mountCoinDropTick
+- mountCombatHudTick
+- mountComboHudTick
+- mountCrateSystem
+- mountDebugHudTick
+- mountDecalSystem
+- mountEnemyAiScaffoldTick
+- mountEnemyBossRockTick
+- mountEnemyBossSlamTick
+- mountEnemyBulletTick
+- mountEnemyFastChargeTick
+- mountEnemyFootstepTick
+- mountEnemyHeavyGrenadeTick
+- mountEnemyIncendiaryTick
+- mountEnemyMeshFactory
+- mountEnemyMeshTick
+- mountEnemyPoisonerRangedSpitTick
+- mountEnemyPoisonerSpitTick
+- mountEnemyRegenTick
+- mountEnemyRobotEmpTick
+- mountEnemyRobotPlasmaTick
+- mountEnemySepTick
+- mountEnemySniperTick
+- mountEnemyStrafeMeleeTick
+- mountGrenadeCrateTick
+- mountHazardZones
+- mountHealthPickupTick
+
+---
+
 ## 1. Hero — movement, camera, lifecycle
 
 | game.html system | substrate equiv | status |
