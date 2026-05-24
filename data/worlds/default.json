@@ -134,7 +134,6 @@
 
     { "ref": "legacy/cam-pitch-springs" },
     { "ref": "legacy/clock-hud" },
-    { "ref": "legacy/vignette" },
     { "ref": "legacy/crouch-speed" },
     { "ref": "legacy/hero-knockback" },
     { "ref": "legacy/freecam" },
