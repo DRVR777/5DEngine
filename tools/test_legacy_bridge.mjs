@@ -315,6 +315,33 @@ if (footstepSpec) {
   console.log(`[test] PASS — footstep sprint interval + countdown + inactive clamp verified through cloned mountFootstepSound (SEMANTIC_PROVEN).`);
 }
 
+/* ---------- clock HUD semantic test (iter 786) ----------
+ * Brings mountClockHudTick from UNHOSTED into HOSTED_SEMANTIC_PROVEN.
+ * The synthetic element proves DOM text/style side effects through the
+ * bridge without needing a browser.
+ */
+const clockHudSpec = specs.find((s) => s.id === "legacy/clock-hud");
+if (clockHudSpec) {
+  const cd = batchRegistry.facetData("legacy/clock-hud", "legacy-mount");
+  cd._hour = 13.5;
+  cd._el = { textContent: "", style: {} };
+
+  batchRegistry.tick(0.016);
+  console.log(`[test] clock-hud: hour=13.5 -> "${cd._el.textContent}" color=${cd._el.style.color}`);
+  if (!cd._el.textContent.includes("01:30 PM") || cd._el.style.color !== "#ffd166") {
+    console.log(`[test] FAIL — clock-hud did not format DayNight hour into expected PM text/color.`);
+    process.exit(1);
+  }
+
+  cd._hour = null;
+  batchRegistry.tick(0.016);
+  if (!/\d\d:\d\d (AM|PM)$/.test(cd._el.textContent)) {
+    console.log(`[test] FAIL — clock-hud fallback path did not write formatted AM/PM text.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — clock-hud DayNight + fallback DOM paint verified through cloned mountClockHudTick (SEMANTIC_PROVEN).`);
+}
+
 /* ---------- native footstep-sound parity test (iter 784) ----------
  * Mirrors the iter-783 legacy footstep semantic phase using ONLY the
  * native footstep-sound facet.
