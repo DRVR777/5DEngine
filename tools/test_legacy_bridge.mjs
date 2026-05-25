@@ -1857,4 +1857,47 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — weapon-pickup composition (bob+spin+opacity-pulse+pickup-radius) reproduces mountWeaponPickupTick visuals + collect dispatch (NATIVE_VERIFIED via composition).`);
 }
 
+/* ---------- speed-orb spawner config parity (iter 810) ----------
+ * PARITY: mountSpeedOrbSpawner
+ *
+ * Legacy mountSpeedOrbSpawner literal config:
+ *   geo = DodecahedronGeometry(0.22, 0)
+ *   mat = MeshStandardMaterial({ color: 0xffdd00, emissive: 0xffa500,
+ *                                 emissiveIntensity: 0.9, metalness: 0.2 })
+ *   mesh.position.set(u, 0.7, v)        // bob base
+ *
+ * Substrate data/tuning/speed_orb.json mesh-spec must declare these
+ * exact values for the spawn to render identically. This is a static
+ * config-parity assertion: reads the tuning JSON and asserts every
+ * literal matches the legacy source. No runtime tick needed — the
+ * spawner is config-only in both legacy and substrate.
+ */
+{
+  const { readFileSync: rfs } = await import("node:fs");
+  const { fileURLToPath: fU } = await import("node:url");
+  const tuningPath = fU(new URL("../data/tuning/speed_orb.json", import.meta.url));
+  const tuning = JSON.parse(rfs(tuningPath, "utf8"));
+  const tn = tuning.facets.find((f) => f.name === "tuning")?.data;
+  const ms = tuning.facets.find((f) => f.name === "mesh-spec")?.data;
+  if (!tn || !ms) { console.log(`[test] FAIL — speed-orb tuning missing tuning or mesh-spec facet.`); process.exit(1); }
+
+  // Geometry: DodecahedronGeometry(0.22, 0)
+  if (ms.geometry?.kind !== "dodecahedron") { console.log(`[test] FAIL — speed-orb geometry kind: expected dodecahedron, got ${ms.geometry?.kind}.`); process.exit(1); }
+  const [radius, detail] = ms.geometry.args || [];
+  if (radius !== 0.22 || detail !== 0)      { console.log(`[test] FAIL — speed-orb geometry args: expected [0.22, 0], got [${radius}, ${detail}].`); process.exit(1); }
+
+  // Material: color 0xffdd00 (16768256), emissive 0xffa500 (16753920),
+  //           intensity 0.9, metalness 0.2
+  if (ms.material?.color !== 0xffdd00)               { console.log(`[test] FAIL — speed-orb material.color: expected 16768256, got ${ms.material?.color}.`); process.exit(1); }
+  if (ms.material?.emissive !== 0xffa500)            { console.log(`[test] FAIL — speed-orb material.emissive: expected 16753920, got ${ms.material?.emissive}.`); process.exit(1); }
+  if (Math.abs(ms.material?.emissive_intensity - 0.9) > 1e-9) { console.log(`[test] FAIL — speed-orb material.emissive_intensity: expected 0.9, got ${ms.material?.emissive_intensity}.`); process.exit(1); }
+  if (Math.abs(ms.material?.metalness - 0.2) > 1e-9)          { console.log(`[test] FAIL — speed-orb material.metalness: expected 0.2, got ${ms.material?.metalness}.`); process.exit(1); }
+
+  // bob_base = 0.7 (legacy spawn placed mesh at y=0.7)
+  if (Math.abs(tn.bob_base - 0.7) > 1e-9)   { console.log(`[test] FAIL — speed-orb bob_base: expected 0.7, got ${tn.bob_base}.`); process.exit(1); }
+
+  console.log(`[test] speed-orb spawner config: geo dodecahedron[0.22,0], color 0xffdd00, emissive 0xffa500, intensity 0.9, metalness 0.2, y=0.7 — all match.`);
+  console.log(`[test] PASS — substrate data/tuning/speed_orb.json reproduces mountSpeedOrbSpawner literal config (NATIVE_VERIFIED via static parity).`);
+}
+
 process.exit(0);
