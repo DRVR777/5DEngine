@@ -135,7 +135,6 @@
 
     { "ref": "legacy/sniper-sway" },
     { "ref": "legacy/motion-springs" },
-    { "ref": "legacy/jump-gravity" },
-    { "ref": "legacy/layer-transition" }
+    { "ref": "legacy/jump-gravity" }
   ]
 }

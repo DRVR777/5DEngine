@@ -26,6 +26,7 @@ import heroKnockback  from "./hero_knockback.js";
 import dodge          from "./dodge.js";
 import crouchSpeed    from "./crouch_speed.js";
 import freecam        from "./freecam.js";
+import layerTransition from "./layer_transition.js";
 import vignette       from "./vignette.js";
 import scopeFov       from "./scope_fov.js";
 import clockHud       from "./clock_hud.js";
@@ -76,6 +77,7 @@ export const FACET_HANDLERS = {
   "dodge":               dodge,
   "crouch-speed":        crouchSpeed,
   "freecam":             freecam,
+  "layer-transition":    layerTransition,
   "vignette":            vignette,
   "scope-fov":           scopeFov,
   "clock-hud":           clockHud,

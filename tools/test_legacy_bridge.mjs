@@ -1355,4 +1355,44 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native freecam reproduces legacy mountFreecamTick math: build_mode gate, forward fast move, yaw-rotated strafe (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native layer-transition parity test (iter 804) ----------
+ * Legacy mountLayerTransitionTick: with boundaryAt → null (no buildings),
+ * targetLayer always = 1; the transition condition only fires when
+ * layer_id != 1. Native facet snaps inv.layer_id back to OUTSIDE (1)
+ * when no boundary contains hero.
+ *
+ * Test 1 (default): inv.layer_id undefined → initialized to 1, no change.
+ * Test 2 (forced wrong): inv.layer_id = 2 → tick snaps it back to 1.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const layerTransitionFacet = (await import("../src/ankhor/facets/layer_transition.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("layer-transition", layerTransitionFacet);
+  reg.registerFacetHandler("inventory", { priority: 24 });
+  reg.registerFacetHandler("position",  { priority: 10 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",         data: { x: 5, y: 0, z: -3 } },
+      { name: "inventory",        data: { items: {}, score: 0 } },
+      { name: "layer-transition", data: {} },
+    ],
+  });
+
+  reg.tick(0.1);
+  let inv = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native layer-transition default: layer_id=${inv.layer_id} expected 1`);
+  if (inv.layer_id !== 1) { console.log(`[test] FAIL — default layer_id should init to 1, got ${inv.layer_id}.`); process.exit(1); }
+
+  inv.layer_id = 2;
+  reg.tick(0.1);
+  inv = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native layer-transition reset: layer_id=${inv.layer_id} expected 1`);
+  if (inv.layer_id !== 1) { console.log(`[test] FAIL — should snap back to 1 with no buildings, got ${inv.layer_id}.`); process.exit(1); }
+
+  console.log(`[test] PASS — native layer-transition reproduces legacy mountLayerTransitionTick no-boundary path: defaults to layer 1, snaps back when no building contains hero (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);
