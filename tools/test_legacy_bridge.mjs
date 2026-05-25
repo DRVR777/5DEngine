@@ -723,6 +723,22 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native coin-drop reproduces mountCoinDropTick (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native fire-patch parity test (iter 832) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const fp = (await import("../src/ankhor/facets/fire_patch.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("fire-patch", fp);
+  reg.spawn({ id: "hazards/fire", kind: "hazard", name: "fire", facets: [{ name: "fire-patch", data: {
+    patches: [{ u: 0, v: 0, radius: 2, timeLeft: 5, dmgT: 0 }], heroU: 0, heroV: 0, heroHp: 100
+  }}] });
+  for (let i = 0; i < 5; i++) reg.tick(0.5);
+  const fd = reg.facetData("hazards/fire", "fire-patch");
+  const hp = fd.heroHp, ft = fd.heroFireT;
+  if (hp >= 94 || ft !== 2.5) { console.log(`[test] FAIL fire-patch: hp=${hp} fireT=${ft}`); process.exit(1); }
+  console.log(`[test] PASS — native fire-patch reproduces hero damage (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
