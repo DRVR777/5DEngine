@@ -1937,4 +1937,80 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountVehicleDashTick legacy regression: km/h = abs(speed)*3.6 rounded, gear D amber + R red, drone shows ALT Xm cyan, hidden when inactive (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- vehicle-render legacy regression parity (iter 812) ----------
+ * PARITY: mountVehicleRenderTick
+ *
+ * Pins the ground/drone rotation formulas with stubbed three.js
+ * objects (plain JS with position.set + rotation.x/y/z). Substrate
+ * tuning data/tuning/vehicle_car.json declares wheel_radius=0.35,
+ * matching the legacy WHEEL_RADIUS const. Verifies:
+ *   • ground: wheel spin delta = (speed / WHEEL_RADIUS) * dt
+ *             tick at speed 7, dt=0.1 → delta = 7/0.35*0.1 = 2.0
+ *   • drone:  rotor.rotation.y += rotSpd*dt; speed>0.5 → 28; else 12
+ *   • position+heading from state regardless of type
+ */
+{
+  const { mountVehicleRenderTick } = await import("../src/systems/vehicle_render_tick.js");
+  const { readFileSync: rfsV } = await import("node:fs");
+  const { fileURLToPath: fUV } = await import("node:url");
+  const vTun = JSON.parse(rfsV(fUV(new URL("../data/tuning/vehicle_car.json", import.meta.url)), "utf8"))
+    .facets.find((f) => f.name === "tuning").data;
+  if (Math.abs(vTun.wheel_radius - 0.35) > 1e-9) {
+    console.log(`[test] FAIL — substrate wheel_radius drifted from legacy WHEEL_RADIUS=0.35, got ${vTun.wheel_radius}.`);
+    process.exit(1);
+  }
+
+  const mockVec = () => ({ x: 0, y: 0, z: 0, set(x, y, z) { this.x = x; this.y = y; this.z = z; } });
+  const mkGrp = (extras = {}) => ({ position: mockVec(), rotation: mockVec(), visible: false, ...extras });
+  const toRenderPos = (_id) => ({ x: 10, y: 0.5, z: -4 });
+  const { tick } = mountVehicleRenderTick();
+
+  const wheels = [0, 1, 2, 3].map(() => ({ rotation: mockVec() }));
+  const groundGrp = mkGrp({ _wheels: wheels });
+  tick(0.1, {
+    vehicleDefs:    [{ id: "car/0", type: "car" }],
+    vehicleMeshes:  new Map([["car/0", groundGrp]]),
+    vehicleStates:  new Map([["car/0", { heading: Math.PI / 4, speed: 7 }]]),
+    activeVehicleId: "car/0", inCar: true, keys: {}, toRenderPos,
+  });
+  if (Math.abs(groundGrp.position.x - 10) > 1e-9)        { console.log(`[test] FAIL — ground pos.x: expected 10, got ${groundGrp.position.x}.`); process.exit(1); }
+  if (Math.abs(groundGrp.rotation.y - Math.PI / 4) > 1e-9){ console.log(`[test] FAIL — ground rotation.y: expected π/4, got ${groundGrp.rotation.y}.`); process.exit(1); }
+  if (!groundGrp.visible)                                 { console.log(`[test] FAIL — ground visible should be true.`); process.exit(1); }
+  for (let i = 0; i < 4; i++) {
+    if (Math.abs(wheels[i].rotation.x - (-2.0)) > 1e-9) {
+      console.log(`[test] FAIL — wheel ${i} rotation.x: expected -2.0, got ${wheels[i].rotation.x}.`);
+      process.exit(1);
+    }
+  }
+  console.log(`[test] vehicle-render ground: 4 wheels spun -2.0 (speed 7 / 0.35 * 0.1).`);
+
+  const rotors = [0, 1, 2, 3].map(() => ({ rotation: mockVec() }));
+  const droneGrp = mkGrp({ _rotors: rotors });
+  tick(0.1, {
+    vehicleDefs:   [{ id: "drone/0", type: "drone" }],
+    vehicleMeshes: new Map([["drone/0", droneGrp]]),
+    vehicleStates: new Map([["drone/0", { heading: 0, speed: 1 }]]),
+    activeVehicleId: "drone/0", inCar: true, keys: {}, toRenderPos,
+  });
+  if (Math.abs(rotors[0].rotation.y - 2.8) > 1e-9) {
+    console.log(`[test] FAIL — drone rotor fast spin: expected 2.8 (28*0.1), got ${rotors[0].rotation.y}.`);
+    process.exit(1);
+  }
+
+  // Drone idle: speed < 0.5 → rotSpd = 12; rotor.y += 12*0.1.
+  tick(0.1, {
+    vehicleDefs:   [{ id: "drone/0", type: "drone" }],
+    vehicleMeshes: new Map([["drone/0", droneGrp]]),
+    vehicleStates: new Map([["drone/0", { heading: 0, speed: 0 }]]),
+    activeVehicleId: "drone/0", inCar: true, keys: {}, toRenderPos,
+  });
+  const expectedIdle = 2.8 + 1.2;
+  if (Math.abs(rotors[0].rotation.y - expectedIdle) > 1e-9) {
+    console.log(`[test] FAIL — drone rotor idle: expected ${expectedIdle}, got ${rotors[0].rotation.y}.`);
+    process.exit(1);
+  }
+
+  console.log(`[test] PASS — mountVehicleRenderTick legacy regression: wheel spin = speed/0.35*dt, drone rotor 28/12 rad/s fast/idle, position+heading written each tick (NATIVE_VERIFIED via legacy anchor; substrate wheel_radius cross-checked).`);
+}
+
 process.exit(0);
