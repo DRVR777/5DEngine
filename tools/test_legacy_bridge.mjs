@@ -708,6 +708,21 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native ammo-pickup reproduces legacy mountAmmoPickupTick (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native coin-drop parity test (iter 831) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const coinDrop = (await import("../src/ankhor/facets/coin_drop.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("coin-drop", coinDrop);
+  reg.spawn({ id: "pickups/coin", kind: "pickup", name: "coin", facets: [{ name: "coin-drop", data: {
+    pickups: [{ u: 0, v: 0, value: 50 }], heroU: 0, heroV: 0.3
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("pickups/coin", "coin-drop");
+  if (fd.pickups.length !== 0 || fd.score !== 50) { console.log(`[test] FAIL coin-drop`); process.exit(1); }
+  console.log(`[test] PASS — native coin-drop reproduces mountCoinDropTick (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
