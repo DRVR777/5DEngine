@@ -2334,4 +2334,87 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountWeaponHudTick legacy regression: name+ammo+reserve text, lowAmmoThresh = max(1, floor(magCap*0.25)), sfx fires once per crossing then latches, mag-bar fills cells (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- cam-dist snap+entry legacy regression (iter 818) ----------
+ * PARITY: mountCamDistTick
+ *
+ * Pins snap-zoom lerp + computer-entry smoothstep math via stubbed
+ * get/set/actions.
+ *   • snap zoom: if |newDist - snapTarget| < 0.05 → snap + clear;
+ *     else write newDist
+ *   • computer entry smoothstep: ease = t² * (3 - 2t);
+ *     camDist = camDistBeforeEntry * (1 - ease) + 0.35 * ease
+ *   • entry t >= 1 → t=1, finishComputerEntry()
+ */
+{
+  const { mountCamDistTick } = await import("../src/systems/cam_dist_tick.js");
+
+  const makeMount = (init = {}) => {
+    const s = {
+      camDist: 10, snapZoomTarget: null,
+      computerEntering: false, computerEntryT: 0, computerEntryDur: 0.5,
+      camDistBeforeEntry: 10, finishCalled: false, ...init,
+    };
+    const get = {
+      camDist: () => s.camDist, snapZoomTarget: () => s.snapZoomTarget,
+      computerEntering: () => s.computerEntering,
+      computerEntryT: () => s.computerEntryT,
+      computerEntryDur: () => s.computerEntryDur,
+      camDistBeforeEntry: () => s.camDistBeforeEntry,
+    };
+    const set = {
+      camDist: (v) => { s.camDist = v; },
+      snapZoomTarget: (v) => { s.snapZoomTarget = v; },
+      computerEntryT: (v) => { s.computerEntryT = v; },
+    };
+    const actions = {
+      // Linear lerp stub: returns current + (target-current)*0.5 per call.
+      // The legacy real impl is in a separate module; we just need the
+      // gate logic (|diff|<0.05 → snap) to be testable.
+      lerpZoom: (cur, target, _dt, _rate) => cur + (target - cur) * 0.5,
+      finishComputerEntry: () => { s.finishCalled = true; },
+    };
+    return { s, mount: mountCamDistTick({ get, set, actions }) };
+  };
+
+  // Test 1 — snap zoom mid: target=3, camDist=10 → lerp returns 6.5 (diff 3.5 > 0.05).
+  {
+    const { s, mount } = makeMount({ camDist: 10, snapZoomTarget: 3 });
+    mount.tick(0.016);
+    if (Math.abs(s.camDist - 6.5) > 1e-9) { console.log(`[test] FAIL — snap mid camDist: expected 6.5, got ${s.camDist}.`); process.exit(1); }
+    if (s.snapZoomTarget !== 3)            { console.log(`[test] FAIL — snapTarget should not clear yet, got ${s.snapZoomTarget}.`); process.exit(1); }
+  }
+
+  // Test 2 — snap zoom close: camDist=3.04, target=3 → lerp returns 3.02, diff 0.02 < 0.05 → snap.
+  {
+    const { s, mount } = makeMount({ camDist: 3.04, snapZoomTarget: 3 });
+    mount.tick(0.016);
+    if (s.camDist !== 3)              { console.log(`[test] FAIL — snap close camDist: expected 3, got ${s.camDist}.`); process.exit(1); }
+    if (s.snapZoomTarget !== null)    { console.log(`[test] FAIL — snapTarget should clear, got ${s.snapZoomTarget}.`); process.exit(1); }
+  }
+
+  // Test 3 — computer entry mid: entryT=0, dt=0.1, dur=0.5 → t=0.2
+  //   ease = 0.2² * (3 - 0.4) = 0.04 * 2.6 = 0.104
+  //   camDist = 10*(1-0.104) + 0.35*0.104 = 8.96 + 0.0364 = 8.9964
+  {
+    const { s, mount } = makeMount({ computerEntering: true, camDistBeforeEntry: 10, computerEntryDur: 0.5 });
+    mount.tick(0.1);
+    const expectedEase = 0.2 * 0.2 * (3 - 0.4);
+    const expectedDist = 10 * (1 - expectedEase) + 0.35 * expectedEase;
+    if (Math.abs(s.computerEntryT - 0.2) > 1e-9) { console.log(`[test] FAIL — entryT: expected 0.2, got ${s.computerEntryT}.`); process.exit(1); }
+    if (Math.abs(s.camDist - expectedDist) > 1e-9) { console.log(`[test] FAIL — entry camDist: expected ${expectedDist}, got ${s.camDist}.`); process.exit(1); }
+    if (s.finishCalled)                          { console.log(`[test] FAIL — finishComputerEntry fired too early.`); process.exit(1); }
+  }
+
+  // Test 4 — computer entry complete: entryT=0.95, dt=0.1, dur=0.5 → t=1.15 ≥ 1
+  //   → entryT clamped to 1, finishComputerEntry called.
+  {
+    const { s, mount } = makeMount({ computerEntering: true, computerEntryT: 0.95, computerEntryDur: 0.5 });
+    mount.tick(0.1);
+    if (s.computerEntryT !== 1) { console.log(`[test] FAIL — entryT should clamp at 1, got ${s.computerEntryT}.`); process.exit(1); }
+    if (!s.finishCalled)        { console.log(`[test] FAIL — finishComputerEntry should fire when entryT >= 1.`); process.exit(1); }
+  }
+
+  console.log(`[test] PASS — mountCamDistTick legacy regression: snap-zoom lerp gate (|diff|<0.05), computer-entry smoothstep ease (t²(3-2t)), entry completion clamp + callback (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
