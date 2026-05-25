@@ -2181,4 +2181,86 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountHeroMoveTick legacy regression: slide trigger (SLIDE_DUR=0.6, SLIDE_MULT=1.5), decay-driven slideMove, gating on heroDead/buildMode/ctrl-rising-edge (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- npc-move flee legacy regression (iter 816) ----------
+ * PARITY: mountNpcMoveTick
+ *
+ * Flee constants (FLEE_RANGE=8, FLEE_DUR=2.5, FLEE_SPEED=7) pinned
+ * via stubbed actions. Verifies:
+ *   • flee trigger: nowSec - lastHeroShotT < 0.12 AND
+ *     hypot(np.u - heroU, np.v - heroV) < 8 → set _fleeT=2.5,
+ *     _fleeAng = atan2(np.u - heroU, np.v - heroV)
+ *   • flee tick: _fleeT decays, setPos shifts by sin(ang)*7*dt /
+ *     cos(ang)*7*dt in u/v
+ *   • dialogOpen suppresses both flee + wander
+ */
+{
+  const { mountNpcMoveTick } = await import("../src/systems/npc_move_tick.js");
+
+  let writtenPos = null;
+  let clamped = false;
+  const npcPositions = new Map([["n0", { x: 0, y: 0, z: 0, u: 5, v: 5 }]]);
+  const actions = {
+    getPos: (id) => npcPositions.get(id),
+    setPos: (id, x, y, z, u, v) => {
+      const p = npcPositions.get(id);
+      if (p) { p.x = x; p.y = y; p.z = z; p.u = u; p.v = v; }
+      writtenPos = { id, x, y, z, u, v };
+    },
+    wanderStep: (id, heading, _wanderSpeed, _dt) => heading + 0.01,
+    clampToArena: () => { clamped = true; },
+    toRenderPos: (id) => ({ x: 0, y: 0, z: 0 }),
+  };
+
+  const { tick } = mountNpcMoveTick({ actions });
+  const n0 = { id: "n0", wanderSpeed: 2.2 };
+  const m0 = { heading: 0, group: { position: { set() {} }, rotation: {} } };
+  const npcMeshes = new Map([["n0", m0]]);
+
+  // Test 1: flee trigger. Hero at (2,2), NPC at (5,5), distance ≈ 4.24 < 8.
+  // lastHeroShotT just now → diff = 0 < 0.12.
+  const nowMs = 1000;
+  const lastShotT = nowMs / 1000 - 0.05;
+  tick(0.1, {
+    nowMs, heroU: 2, heroV: 2,
+    npcDefs: [n0], npcMeshes,
+    dialogOpen: false, lastHeroShotT: lastShotT,
+  });
+  if (Math.abs(n0._fleeT - (2.5 - 0.1)) > 1e-9) {
+    console.log(`[test] FAIL — flee _fleeT after tick: expected ${2.5 - 0.1}, got ${n0._fleeT}.`);
+    process.exit(1);
+  }
+  const expectedAng = Math.atan2(5 - 2, 5 - 2);  // π/4
+  if (Math.abs(n0._fleeAng - expectedAng) > 1e-9) {
+    console.log(`[test] FAIL — flee _fleeAng: expected ${expectedAng}, got ${n0._fleeAng}.`);
+    process.exit(1);
+  }
+  // Position shift: sin(π/4)*7*0.1, cos(π/4)*7*0.1
+  const expectedU = 5 + Math.sin(expectedAng) * 7 * 0.1;
+  const expectedV = 5 + Math.cos(expectedAng) * 7 * 0.1;
+  if (Math.abs(writtenPos.u - expectedU) > 1e-9) { console.log(`[test] FAIL — flee setPos.u: expected ${expectedU}, got ${writtenPos.u}.`); process.exit(1); }
+  if (Math.abs(writtenPos.v - expectedV) > 1e-9) { console.log(`[test] FAIL — flee setPos.v: expected ${expectedV}, got ${writtenPos.v}.`); process.exit(1); }
+  if (Math.abs(m0.heading - expectedAng) > 1e-9) { console.log(`[test] FAIL — m.heading should = flee angle.`); process.exit(1); }
+  if (!clamped) { console.log(`[test] FAIL — clampToArena should fire.`); process.exit(1); }
+
+  // Test 2: dialogOpen suppresses flee movement (heading unchanged after first run).
+  const headingBefore = m0.heading;
+  const uBefore = npcPositions.get("n0").u;
+  tick(0.1, {
+    nowMs: nowMs + 100, heroU: 2, heroV: 2,
+    npcDefs: [n0], npcMeshes,
+    dialogOpen: true, lastHeroShotT: 0,
+  });
+  // dialogOpen blocks both flee and wander branches; pos.u must stay put.
+  if (Math.abs(npcPositions.get("n0").u - uBefore) > 1e-9) {
+    console.log(`[test] FAIL — dialogOpen should suppress position change, u changed from ${uBefore} to ${npcPositions.get("n0").u}.`);
+    process.exit(1);
+  }
+  if (m0.heading !== headingBefore) {
+    console.log(`[test] FAIL — dialogOpen should suppress heading change.`);
+    process.exit(1);
+  }
+
+  console.log(`[test] PASS — mountNpcMoveTick legacy regression: flee trigger (FLEE_RANGE=8, FLEE_DUR=2.5, FLEE_SPEED=7), atan2 flee-angle, position shift via sin/cos, dialogOpen suppress, clampToArena (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
