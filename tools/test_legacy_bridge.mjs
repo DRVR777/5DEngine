@@ -955,6 +955,19 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native debug-hud (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native barrel-system parity (iter 845) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const bs = (await import("../src/ankhor/facets/barrel_system.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("barrel-system", bs);
+  reg.spawn({ id: "obj/barrels", kind: "pickup", name: "barrels", facets: [{ name: "barrel-system", data: { barrels: [{ hp: 0, exploded: false }] } }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("obj/barrels", "barrel-system");
+  if (!fd.barrels[0].exploded || fd.barrelsExploded !== 1) { console.log(`[test] FAIL barrel-system`); process.exit(1); }
+  console.log(`[test] PASS — native barrel-system (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
