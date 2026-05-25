@@ -739,6 +739,20 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native fire-patch reproduces hero damage (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native grenade-physics parity (iter 833) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const gp = (await import("../src/ankhor/facets/grenade_physics.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("grenade-physics", gp);
+  const g = { fuse: 3, velY: 0, velU: 2, velV: 0, u: 0, y: 2, v: 0, data: {} };
+  reg.spawn({ id: "proj/grenade", kind: "pickup", name: "grenade", facets: [{ name: "grenade-physics", data: { grenades: [g], gravity: -9.8 } }] });
+  for (let i = 0; i < 10; i++) reg.tick(0.1);
+  const fd = reg.facetData("proj/grenade", "grenade-physics");
+  if (fd.grenades.length !== 0 || !g.data.exploded) { console.log(`[test] FAIL grenade-physics: len=${fd.grenades.length} expl=${g.data.exploded}`); process.exit(1); }
+  console.log(`[test] PASS — native grenade-physics fuse + gravity (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
