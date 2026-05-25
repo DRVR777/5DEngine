@@ -14,6 +14,10 @@
     { "name": "portal_gen", "data": {} },
     { "name": "city_gen", "data": {} },
     { "name": "world_layout", "data": {} },
+    { "name": "world_data", "data": {} },
+    { "name": "world_graph", "data": {} },
+    { "name": "city_traffic", "data": {} },
+    { "name": "settings_panel", "data": {} },
     { "name": "world-params", "data": {
       "background_color":    724242,
       "fog_density":         0.018,
