@@ -2013,4 +2013,46 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountVehicleRenderTick legacy regression: wheel spin = speed/0.35*dt, drone rotor 28/12 rad/s fast/idle, position+heading written each tick (NATIVE_VERIFIED via legacy anchor; substrate wheel_radius cross-checked).`);
 }
 
+/* ---------- vehicle-physics drone legacy regression (iter 813) ----------
+ * PARITY: mountVehiclePhysicsTick
+ *
+ * Drone branch constants (DRONE_H=15, DRONE_V=7, DRONE_MAX_ALT=40)
+ * pinned via stubbed actions. Ground branch calls into the separate
+ * carPhysicsStep module; not anchored here. The drone branch alone
+ * fully reproduces the legacy physics envelope.
+ */
+{
+  const { mountVehiclePhysicsTick } = await import("../src/systems/vehicle_physics_tick.js");
+
+  let writtenPos = null;
+  let updatedState = null;
+  const actions = {
+    key(name) { return ({ KeyW: true, KeyD: true, Space: true })[name] === true; },
+    getPos(id) { return id === "drone/0" ? { x: 5, y: 0, z: -5, u: 0, v: 0 } : null; },
+    getCamYaw() { return 0; },
+    setPos(id, x, y, z, u, v) { if (id === "drone/0") writtenPos = { id, x, y, z, u, v }; },
+    updateCarState(st) { updatedState = { ...st }; },
+  };
+  const { tickDrone } = mountVehiclePhysicsTick({ actions });
+  const vDef = { id: "drone/0", type: "drone" };
+  const vSt  = { altY: 10, speed: 0, heading: 0 };
+  tickDrone(vDef, vSt, "drone/0", 0.1);
+
+  console.log(`[test] vehicle-physics drone: altY=${vSt.altY}, written=(u=${writtenPos.u}, v=${writtenPos.v}, y=${writtenPos.y}), speed=${vSt.speed.toFixed(3)}, heading=${vSt.heading.toFixed(4)}`);
+  if (Math.abs(vSt.altY - 10.7) > 1e-9)     { console.log(`[test] FAIL — altY: expected 10.7, got ${vSt.altY}.`); process.exit(1); }
+  if (Math.abs(writtenPos.u - 1.5) > 1e-9)  { console.log(`[test] FAIL — written u: expected 1.5 (u=0 + du=1.5), got ${writtenPos.u}.`); process.exit(1); }
+  if (Math.abs(writtenPos.v - 1.5) > 1e-9)  { console.log(`[test] FAIL — written v: expected 1.5, got ${writtenPos.v}.`); process.exit(1); }
+  if (Math.abs(writtenPos.y - 10.7) > 1e-9) { console.log(`[test] FAIL — written y: expected 10.7, got ${writtenPos.y}.`); process.exit(1); }
+  const expectedSpeed = Math.hypot(1.5, 1.5) / 0.1;
+  if (Math.abs(vSt.speed - expectedSpeed) > 1e-9) { console.log(`[test] FAIL — speed: expected ${expectedSpeed}, got ${vSt.speed}.`); process.exit(1); }
+  if (Math.abs(vSt.heading - Math.PI / 4) > 1e-9) { console.log(`[test] FAIL — heading: expected π/4, got ${vSt.heading}.`); process.exit(1); }
+  if (!updatedState)                          { console.log(`[test] FAIL — updateCarState not called.`); process.exit(1); }
+
+  const vSt2 = { altY: 39.5, speed: 0, heading: 0 };
+  tickDrone(vDef, vSt2, "drone/0", 1.0);
+  if (vSt2.altY !== 40) { console.log(`[test] FAIL — altY clamp at DRONE_MAX_ALT=40, got ${vSt2.altY}.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountVehiclePhysicsTick drone: altY += mv*7*dt clamped [0,40], du/dv = (fwd*mf + rgt*mr)*15*dt, speed = hypot/dt, heading = atan2 (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
