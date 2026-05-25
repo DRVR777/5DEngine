@@ -1009,6 +1009,20 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native bullet-physics (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native combat-hud parity (iter 849) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const ch = (await import("../src/ankhor/facets/combat_hud.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("combat-hud", ch);
+  reg.spawn({ id: "hud/combat", kind: "pickup", name: "combat", facets: [{ name: "combat-hud", data: { hitMarkerUntil: Date.now() + 1000, killMarkerUntil: Date.now() + 500, killMarkerHs: true, moveSpread: 0 } }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("hud/combat", "combat-hud");
+  if (!fd.hitNow || fd.crosshairScale !== 1.5) { console.log(`[test] FAIL combat-hud hit`); process.exit(1); }
+  if (fd.killBg !== "#ffd166" || fd.killFade <= 0) { console.log(`[test] FAIL combat-hud kill marker`); process.exit(1); }
+  console.log(`[test] PASS — native combat-hud (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
