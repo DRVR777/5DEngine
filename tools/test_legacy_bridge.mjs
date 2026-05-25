@@ -779,6 +779,25 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native camera-pos preserves magic numbers (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native grenade-warn parity (iter 835) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const gw = (await import("../src/ankhor/facets/grenade_warn.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("grenade-warn", gw);
+  reg.spawn({ id: "hud/warn", kind: "pickup", name: "warn", facets: [{ name: "grenade-warn", data: {
+    grenades: [{ u: 0, v: 0, fuse: 0.5 }], heroU: 0, heroV: 0
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("hud/warn", "grenade-warn");
+  if (!fd.warnVisible) { console.log(`[test] FAIL grenade-warn not visible`); process.exit(1); }
+  // Move hero far away — warn should hide
+  fd.heroU = 10; fd.heroV = 0;
+  reg.tick(0.016);
+  if (fd.warnVisible) { console.log(`[test] FAIL grenade-warn should hide at distance`); process.exit(1); }
+  console.log(`[test] PASS — native grenade-warn (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
