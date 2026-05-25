@@ -657,6 +657,39 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native hero-regen reproduces legacy mountHeroRegenTick math (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native ammo-reload parity test (iter 829) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const ammoReload = (await import("../src/ankhor/facets/ammo_reload.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("ammo-reload", ammoReload);
+  reg.registerFacetHandler("inventory", { priority: 24 });
+  reg.spawn({
+    id: "weapon/pistol", kind: "weapon", name: "pistol",
+    facets: [
+      { name: "ammo-reload", data: {} },
+      { name: "inventory", data: { items: {} } },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/ammo", kind: "tuning", name: "ammo-tuning",
+    facets: [{ name: "tuning", data: { reloadDurationMs: 1500, magCapacity: 17 } }],
+  });
+  // State lives in facet data — set reloading state on the thing via inventory facet
+  const fd = reg.facetData("weapon/pistol", "ammo-reload");
+  fd.reloading = true;
+  fd.reloadStart = Date.now() - 1600;
+  fd.pistolAmmo = 5;
+  fd.inventoryAmmo = 50;
+  reg.tick(0.016);
+  console.log(`[test] native ammo-reload: reloading=${fd.reloading} ammo=${fd.pistolAmmo} inv=${fd.inventoryAmmo}`);
+  if (fd.reloading !== false || fd.pistolAmmo !== 17 || fd.inventoryAmmo !== 38) {
+    console.log(`[test] FAIL — native ammo-reload drifted (expected reloading=false, ammo=17, inv=38)`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native ammo-reload reproduces legacy mountAmmoReloadTick math (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
