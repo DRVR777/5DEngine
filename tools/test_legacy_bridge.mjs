@@ -832,6 +832,48 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native legacy-pickup (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native hero-inventory parity (iter 838) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const hi = (await import("../src/ankhor/facets/hero_inventory.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("hero-inventory", hi);
+  reg.spawn({ id: "hero/player", kind: "hero", name: "player", facets: [{ name: "hero-inventory", data: {
+    weapons: [{ id: "pistol", ammoItem: "pistol_9mm", magCap: 17 }], heroMaxHp: 100
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("hero/player", "hero-inventory");
+  if (fd.items.medkit !== 2) { console.log(`[test] FAIL inv medkits: ${fd.items.medkit}`); process.exit(1); }
+  if (fd.items.gun_pistol !== 1) { console.log(`[test] FAIL inv pistol: ${fd.items.gun_pistol}`); process.exit(1); }
+  if (fd.items.pistol_9mm !== 68) { console.log(`[test] FAIL inv ammo: ${fd.items.pistol_9mm}`); process.exit(1); }
+  if (fd.hp !== 100) { console.log(`[test] FAIL inv hp: ${fd.hp}`); process.exit(1); }
+  console.log(`[test] PASS — native hero-inventory (NATIVE_VERIFIED).`);
+}
+
+/* ---------- native proximity parity (iter 839) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const px = (await import("../src/ankhor/facets/proximity.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("proximity", px);
+  reg.spawn({ id: "sensors/prox", kind: "pickup", name: "prox", facets: [{ name: "proximity", data: {
+    heroU: 0, heroV: 0, compU: 1, compV: 0, npcDefs: [{ id: "npc1", u: 1, v: 0 }]
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("sensors/prox", "proximity");
+  if (!fd.nearComputer) { console.log(`[test] FAIL proximity computer not near`); process.exit(1); }
+  if (!fd.nearNpc) { console.log(`[test] FAIL proximity npc not found`); process.exit(1); }
+  // Move hero far away
+  fd.heroU = 10; fd.heroV = 10;
+  reg.tick(0.016);
+  if (fd.nearComputer) { console.log(`[test] FAIL proximity should lose computer`); process.exit(1); }
+  // Dialog open blocks NPC proximity
+  fd.heroU = 0; fd.heroV = 0; fd.dialogOpen = true;
+  reg.tick(0.016);
+  if (fd.nearNpc) { console.log(`[test] FAIL proximity npc should be blocked by dialog`); process.exit(1); }
+  console.log(`[test] PASS — native proximity (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
