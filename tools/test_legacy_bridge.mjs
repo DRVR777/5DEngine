@@ -1900,4 +1900,41 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — substrate data/tuning/speed_orb.json reproduces mountSpeedOrbSpawner literal config (NATIVE_VERIFIED via static parity).`);
 }
 
+/* ---------- vehicle-dash legacy regression parity (iter 811) ----------
+ * PARITY: mountVehicleDashTick
+ *
+ * Pins down the legacy DOM-update formulas precisely so a future
+ * substrate vehicle-dash facet can be verified 1:1. Uses hand-stubbed
+ * DOM elements (style + textContent) since the function is pure-text-
+ * update over passed `els`.
+ */
+{
+  const { mountVehicleDashTick } = await import("../src/systems/vehicle_dash_tick.js");
+  const dash  = { style: { display: "" } };
+  const speed = { textContent: "" };
+  const gear  = { textContent: "", style: { color: "" } };
+  const els   = { vehicleDash: dash, vdSpeed: speed, vdGear: gear };
+  const { tick } = mountVehicleDashTick();
+
+  tick(false, null, false, els);
+  if (dash.style.display !== "none") { console.log(`[test] FAIL — vehicle-dash inactive: expected display=none, got ${dash.style.display}.`); process.exit(1); }
+
+  tick(true, { speed: 8.333333, gearName: "D" }, false, els);
+  if (dash.style.display !== "block") { console.log(`[test] FAIL — active dash should be block, got ${dash.style.display}.`); process.exit(1); }
+  if (speed.textContent !== "30")     { console.log(`[test] FAIL — speed text: expected "30", got "${speed.textContent}".`); process.exit(1); }
+  if (gear.textContent !== "D")       { console.log(`[test] FAIL — gear text: expected "D", got "${gear.textContent}".`); process.exit(1); }
+  if (gear.style.color !== "#ffd166") { console.log(`[test] FAIL — gear color (D): expected amber #ffd166, got ${gear.style.color}.`); process.exit(1); }
+
+  tick(true, { speed: -2.5, gearName: "R" }, false, els);
+  if (speed.textContent !== "9")       { console.log(`[test] FAIL — reverse km/h: expected "9", got "${speed.textContent}".`); process.exit(1); }
+  if (gear.style.color !== "#ff4466")  { console.log(`[test] FAIL — gear color (R): expected red #ff4466, got ${gear.style.color}.`); process.exit(1); }
+
+  tick(true, { speed: 5, altY: 12.5 }, true, els);
+  if (speed.textContent !== "18 km/h") { console.log(`[test] FAIL — drone speed: expected "18 km/h", got "${speed.textContent}".`); process.exit(1); }
+  if (gear.textContent !== "ALT 12.5m"){ console.log(`[test] FAIL — drone gear: expected "ALT 12.5m", got "${gear.textContent}".`); process.exit(1); }
+  if (gear.style.color !== "#00bbff")  { console.log(`[test] FAIL — drone gear color: expected cyan #00bbff, got ${gear.style.color}.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountVehicleDashTick legacy regression: km/h = abs(speed)*3.6 rounded, gear D amber + R red, drone shows ALT Xm cyan, hidden when inactive (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
