@@ -1053,6 +1053,23 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native boss-slam (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native enemy-bullet parity (iter 852) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const eb = (await import("../src/ankhor/facets/enemy_bullet.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("enemy-bullet", eb);
+  reg.spawn({ id: "proj/ebullet", kind: "pickup", name: "ebullet", facets: [{ name: "enemy-bullet", data: {
+    heroU: 0, heroV: 0, heroY: 0, heroHp: 100,
+    bullets: [{ posU: 0, posV: 0.3, posY: 0, dirU: 0, dirV: 0, speed: 0, damage: 25, traveled: 0 }]
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("proj/ebullet", "enemy-bullet");
+  if (!fd.hit) { console.log(`[test] FAIL enemy-bullet: should hit at 0.3m`); process.exit(1); }
+  if (fd.heroHp !== 75) { console.log(`[test] FAIL enemy-bullet hp: ${fd.heroHp}`); process.exit(1); }
+  console.log(`[test] PASS — native enemy-bullet (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
