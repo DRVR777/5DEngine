@@ -2601,4 +2601,48 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountArmorVestTick legacy regression: SPIN_SPEED=1.2 + BOB_PERIOD=500, COLLECT_DIST=1.3, GAIN_AMT=25 (capped at maxArmor), RESPAWN_DUR=60 (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- boss-bar legacy regression (iter 824) ----------
+ * PARITY: mountBossBarTick
+ *
+ * Pins HP fill width + gradient threshold + pulse shadow gate.
+ *   • width = (hp/maxHp * 100).toFixed(1) + "%"
+ *   • gradient: >0.5 HIGH (cc0000→ff4400), >0.25 MID (aa0000→ff2200),
+ *     else LOW (660000→cc0000)
+ *   • shadow: <0.3 pulsing (sin-based), else steady
+ *   • dead or null liveBoss → hidden
+ */
+{
+  const { mountBossBarTick } = await import("../src/systems/boss_bar_tick.js");
+  const { tick } = mountBossBarTick();
+  const bossBar    = { style: { display: "" } };
+  const fillParent = { style: { boxShadow: "" } };
+  const bossHpFill = { style: { width: "", background: "" }, parentElement: fillParent };
+  const bossHpVal  = { textContent: "" };
+  const bossName   = { textContent: "" };
+  const els = { bossBar, bossHpFill, bossHpVal, bossName };
+
+  tick(1000, { hp: 80, maxHp: 100, dead: false }, els);
+  if (bossBar.style.display !== "block")                { console.log(`[test] FAIL — boss bar should show.`); process.exit(1); }
+  if (bossHpFill.style.width !== "80.0%")               { console.log(`[test] FAIL — fill width: got ${bossHpFill.style.width}.`); process.exit(1); }
+  if (!bossHpFill.style.background.includes("#cc0000")) { console.log(`[test] FAIL — high gradient: got ${bossHpFill.style.background}.`); process.exit(1); }
+  if (bossHpVal.textContent !== "80 / 100")             { console.log(`[test] FAIL — hp text: got ${bossHpVal.textContent}.`); process.exit(1); }
+  if (bossName.textContent !== "☠ BOSS")                { console.log(`[test] FAIL — boss name.`); process.exit(1); }
+  if (!fillParent.style.boxShadow.includes("0.3"))      { console.log(`[test] FAIL — steady shadow at high HP (0.3 opacity).`); process.exit(1); }
+
+  tick(1000, { hp: 40, maxHp: 100, dead: false }, els);
+  if (!bossHpFill.style.background.includes("#aa0000")) { console.log(`[test] FAIL — mid gradient.`); process.exit(1); }
+
+  tick(1000, { hp: 20, maxHp: 100, dead: false }, els);
+  if (!bossHpFill.style.background.includes("#660000")) { console.log(`[test] FAIL — low gradient.`); process.exit(1); }
+  if (!fillParent.style.boxShadow.includes("0.7"))      { console.log(`[test] FAIL — pulsing shadow at low HP (0.7 opacity).`); process.exit(1); }
+
+  tick(1000, { hp: 0, maxHp: 100, dead: true }, els);
+  if (bossBar.style.display !== "none") { console.log(`[test] FAIL — dead boss should hide bar.`); process.exit(1); }
+
+  tick(1000, null, els);
+  if (bossBar.style.display !== "none") { console.log(`[test] FAIL — null boss should hide bar.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountBossBarTick legacy regression: HP fraction width%, HIGH/MID/LOW gradients (>0.5, >0.25, else), pulse shadow <0.3, hide on dead/null (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
