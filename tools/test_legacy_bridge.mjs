@@ -2443,4 +2443,44 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountCamVectors legacy regression: 5 distinct Vector3 under {_camTarget, _camOff, _camLook, _camAimTarget, _camBuildLook} (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- crosshair-tick legacy regression (iter 820) ----------
+ * PARITY: mountCrosshairTick
+ *
+ * Pins crosshair bloom + visibility math.
+ *   • bloom = (aiming ? 10 : 16) + moveSpread * 26
+ *   • isSniperScope → scope shown, crosshair hidden
+ *   • heroDead → opacity 0
+ *   • heroApexMode → APEX gold border, else base cyan
+ */
+{
+  const { mountCrosshairTick } = await import("../src/systems/crosshair_tick.js");
+  const { tick } = mountCrosshairTick();
+  const scope = { style: {} };
+  const crh   = { style: {} };
+
+  tick(scope, crh, { isSniperScope: false, aiming: false, moveSpread: 0,
+                     heroDead: false, heroApexMode: false });
+  if (scope.style.display !== "none")     { console.log(`[test] FAIL — scope should hide without sniper.`); process.exit(1); }
+  if (crh.style.visibility !== "visible") { console.log(`[test] FAIL — crosshair should be visible.`); process.exit(1); }
+  if (crh.style.width !== "16.0px")       { console.log(`[test] FAIL — bloom hipfire/no-spread: expected 16.0px, got ${crh.style.width}.`); process.exit(1); }
+  if (crh.style.opacity !== "1")          { console.log(`[test] FAIL — alive opacity should be 1.`); process.exit(1); }
+  if (!crh.style.borderColor.includes("0,200,255")) { console.log(`[test] FAIL — base border (cyan): got ${crh.style.borderColor}.`); process.exit(1); }
+
+  tick(scope, crh, { isSniperScope: false, aiming: true, moveSpread: 0.5,
+                     heroDead: false, heroApexMode: false });
+  if (crh.style.width !== "23.0px") { console.log(`[test] FAIL — bloom aiming+spread: expected 23.0px (10+0.5*26), got ${crh.style.width}.`); process.exit(1); }
+
+  tick(scope, crh, { isSniperScope: true, aiming: false, moveSpread: 0,
+                     heroDead: false, heroApexMode: false });
+  if (scope.style.display !== "block")    { console.log(`[test] FAIL — sniper scope: expected block.`); process.exit(1); }
+  if (crh.style.visibility !== "hidden")  { console.log(`[test] FAIL — sniper crosshair hide expected.`); process.exit(1); }
+
+  tick(scope, crh, { isSniperScope: false, aiming: false, moveSpread: 0,
+                     heroDead: true, heroApexMode: true });
+  if (crh.style.opacity !== "0")                       { console.log(`[test] FAIL — dead opacity 0 expected.`); process.exit(1); }
+  if (!crh.style.borderColor.includes("255,210,0"))    { console.log(`[test] FAIL — apex gold border: got ${crh.style.borderColor}.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountCrosshairTick legacy regression: bloom = (aim?10:16) + spread*26, scope/crosshair toggle, opacity 0 dead, APEX gold vs base cyan (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
