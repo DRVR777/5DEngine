@@ -23,6 +23,7 @@ import heroShoot      from "./hero_shoot.js";
 import camShake       from "./cam_shake.js";
 import camPitchSprings from "./cam_pitch_springs.js";
 import heroKnockback  from "./hero_knockback.js";
+import dodge          from "./dodge.js";
 import vignette       from "./vignette.js";
 import scopeFov       from "./scope_fov.js";
 import clockHud       from "./clock_hud.js";
@@ -70,6 +71,7 @@ export const FACET_HANDLERS = {
   "cam-shake":           camShake,
   "cam-pitch-springs":   camPitchSprings,
   "hero-knockback":      heroKnockback,
+  "dodge":               dodge,
   "vignette":            vignette,
   "scope-fov":           scopeFov,
   "clock-hud":           clockHud,

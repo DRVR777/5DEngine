@@ -1150,4 +1150,67 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native hero-knockback reproduces legacy mountHeroKnockbackTick math: velocity decay, position delta, inactive gate (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native dodge parity test (iter 801) ----------
+ * Legacy mountDodgeTick:
+ *   - dodge_cooldown counts down each tick (when > 0)
+ *   - while dodge_t > 0: pos += dodge_vel * dt; spawn trail decal
+ *   - when dodge_t <= 0: bash_done resets to false
+ *
+ * Test 1 (active): dodge_t=0.3, vel=(8,-4), cooldown=0.5, dt=0.1, hero.pos=(0,1,0)
+ *   cooldown → 0.4
+ *   dodge_t → 0.2
+ *   pos.x → 0.8, pos.z → -0.4
+ *   trail decal count → 1
+ *
+ * Test 2 (cooldown expires after dodge ends): dodge_t=0, bash_done=true
+ *   tick → bash_done resets to false, no position change, no new decal
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const dodgeFacet = (await import("../src/ankhor/facets/dodge.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("dodge",        dodgeFacet);
+  reg.registerFacetHandler("inventory",    { priority: 24 });
+  reg.registerFacetHandler("position",     { priority: 10 });
+  reg.registerFacetHandler("tuning",       { priority: 41 });
+  reg.registerFacetHandler("mesh",         { priority: 70 });
+  reg.registerFacetHandler("ttl",          { priority: 80 });
+  reg.registerFacetHandler("expand-fade",  { priority: 60 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",  data: { x: 0, y: 1, z: 0 } },
+      { name: "inventory", data: { dodge_t: 0.3, dodge_vel_x: 8, dodge_vel_z: -4, dodge_cooldown: 0.5, dodge_bash_done: false, items: {}, score: 0 } },
+      { name: "dodge",     data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: { dodge_trail_ttl: 0.18 } }],
+  });
+
+  const decalsBefore = reg.byKind("decal-particle").length;
+  reg.tick(0.1);
+  const inv = reg.facetData("hero/main", "inventory");
+  const pos = reg.facetData("hero/main", "position");
+  const decalsAfter = reg.byKind("decal-particle").length;
+  console.log(`[test] native dodge active: pos=(${pos.x.toFixed(3)}, ${pos.z.toFixed(3)}), dodge_t=${inv.dodge_t.toFixed(3)}, cooldown=${inv.dodge_cooldown.toFixed(3)}, decals ${decalsBefore}→${decalsAfter}`);
+  if (Math.abs(pos.x - 0.8) > 1e-9)             { console.log(`[test] FAIL — dodge pos.x: expected 0.8, got ${pos.x}.`); process.exit(1); }
+  if (Math.abs(pos.z + 0.4) > 1e-9)             { console.log(`[test] FAIL — dodge pos.z: expected -0.4, got ${pos.z}.`); process.exit(1); }
+  if (Math.abs(inv.dodge_t - 0.2) > 1e-9)       { console.log(`[test] FAIL — dodge_t countdown: expected 0.2, got ${inv.dodge_t}.`); process.exit(1); }
+  if (Math.abs(inv.dodge_cooldown - 0.4) > 1e-9){ console.log(`[test] FAIL — cooldown: expected 0.4, got ${inv.dodge_cooldown}.`); process.exit(1); }
+  if (decalsAfter - decalsBefore !== 1)         { console.log(`[test] FAIL — expected 1 trail decal, got ${decalsAfter - decalsBefore}.`); process.exit(1); }
+
+  // Test 2: dodge_t=0 + bash_done=true → reset, no position change, no new decal.
+  inv.dodge_t = 0; inv.dodge_bash_done = true; pos.x = 5; pos.z = 5;
+  const decalsBefore2 = reg.byKind("decal-particle").length;
+  reg.tick(0.1);
+  const decalsAfter2 = reg.byKind("decal-particle").length;
+  if (inv.dodge_bash_done !== false) { console.log(`[test] FAIL — bash_done should reset to false when dodge_t<=0.`); process.exit(1); }
+  if (pos.x !== 5 || pos.z !== 5)    { console.log(`[test] FAIL — inactive dodge moved hero.`); process.exit(1); }
+  if (decalsAfter2 !== decalsBefore2){ console.log(`[test] FAIL — inactive dodge spawned trail decals.`); process.exit(1); }
+  console.log(`[test] PASS — native dodge reproduces legacy mountDodgeTick math: cooldown countdown, position delta, trail spawn, bash_done reset (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);
