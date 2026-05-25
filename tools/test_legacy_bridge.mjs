@@ -2791,4 +2791,58 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountCombatAmbientTick legacy regression: AMBIENT_INTERVAL=1.0 throttle, 6 setAmbient layers (wind/calm/calm2/tension/tension2/bossRumble), calmVol gated on calm scenario, tensionVol=min(0.055, chasing*0.010), boss tension freq 38 + rumble 0.018 (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- camera-zone legacy regression (iter 828) ----------
+ * PARITY: mountCameraZoneTick
+ *
+ * Pins zone-driven camera distance + visibility gates.
+ *   • aimMul = 1 - 0.4 * aimAmt
+ *   • dist = inCar ? max(camDist, 6) : camDist * aimMul
+ *   • firstPerson = !inCar && (spine.zone in [INSIDE, FIRST_PERSON] || dist<0.5)
+ *   • heroVisible logic + shadow-blob + fp-gun visibility writes
+ *   • return { firstPerson, spineZone, dist, spine, fpGunActive }
+ */
+{
+  const { mountCameraZoneTick } = await import("../src/systems/camera_zone_tick.js");
+  const s = { camDist: 8, aimAmt: 0.5, camDistMax: 12 };
+  const vis = { heroGroup: null, shadowBlob: null, fpGun: null };
+  const m = mountCameraZoneTick({
+    get: { camDist: () => s.camDist, aimAmt: () => s.aimAmt, camDistMax: () => s.camDistMax },
+    actions: {
+      evaluateSpine: (zoom, max) => ({ zone: "OUTSIDE", params: { heroVisible: true } }),
+      isActiveDrone: (inCar) => false,
+      setHeroGroupVisible:   (v) => { vis.heroGroup   = v; },
+      setShadowBlobVisible:  (v) => { vis.shadowBlob  = v; },
+      setFpGunGroupVisible:  (v) => { vis.fpGun       = v; },
+    },
+  });
+
+  // Test 1: third-person aiming, not in car. aimMul = 1 - 0.4*0.5 = 0.8.
+  // dist = 8 * 0.8 = 6.4. firstPerson = false (zone OUTSIDE, dist>=0.5).
+  const r1 = m.tick(0.016, { buildMode: false, inCar: false, computerOpen: false, heroDead: false });
+  if (Math.abs(r1.dist - 6.4) > 1e-9)   { console.log(`[test] FAIL — dist (TP+aim): expected 6.4, got ${r1.dist}.`); process.exit(1); }
+  if (r1.firstPerson !== false)         { console.log(`[test] FAIL — firstPerson should be false at OUTSIDE zone + dist=6.4.`); process.exit(1); }
+  if (vis.heroGroup !== true)           { console.log(`[test] FAIL — heroGroup visible expected true.`); process.exit(1); }
+  if (vis.shadowBlob !== true)          { console.log(`[test] FAIL — shadowBlob visible (TP, not buildMode, not inCar).`); process.exit(1); }
+  if (vis.fpGun !== false)              { console.log(`[test] FAIL — fpGun should be hidden in TP.`); process.exit(1); }
+
+  // Test 2: inCar enforces dist=max(camDist, 6). Reset camDist=4 → dist=6.
+  s.camDist = 4; s.aimAmt = 0;
+  const r2 = m.tick(0.016, { buildMode: false, inCar: true, computerOpen: false, heroDead: false });
+  if (r2.dist !== 6)                    { console.log(`[test] FAIL — inCar dist min: expected 6, got ${r2.dist}.`); process.exit(1); }
+  if (vis.shadowBlob !== false)         { console.log(`[test] FAIL — shadowBlob hidden inCar.`); process.exit(1); }
+
+  // Test 3: FP_DIST_THRESH gate — small dist forces firstPerson.
+  s.camDist = 0.3; s.aimAmt = 0;
+  const r3 = m.tick(0.016, { buildMode: false, inCar: false, computerOpen: false, heroDead: false });
+  if (r3.firstPerson !== true)          { console.log(`[test] FAIL — firstPerson should trigger at dist=0.3 (<0.5).`); process.exit(1); }
+  if (vis.fpGun !== true)               { console.log(`[test] FAIL — fpGun should be active in firstPerson.`); process.exit(1); }
+  if (vis.shadowBlob !== false)         { console.log(`[test] FAIL — shadowBlob hidden in FP.`); process.exit(1); }
+
+  // Test 4: heroDead suppresses fpGun.
+  const r4 = m.tick(0.016, { buildMode: false, inCar: false, computerOpen: false, heroDead: true });
+  if (vis.fpGun !== false)              { console.log(`[test] FAIL — fpGun should hide when heroDead.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountCameraZoneTick legacy regression: aimMul=1-0.4*aimAmt, inCar dist min=6, FP_DIST_THRESH=0.5, hero/shadow/fpGun visibility writes (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
