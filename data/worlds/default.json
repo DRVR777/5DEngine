@@ -6,6 +6,7 @@
   "facets": [
     { "name": "skybox", "data": {} },
     { "name": "day-night", "data": {} },
+    { "name": "lighting", "data": {} },
     { "name": "world-params", "data": {
       "background_color":    724242,
       "fog_density":         0.018,
