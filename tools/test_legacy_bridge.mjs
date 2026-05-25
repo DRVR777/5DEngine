@@ -2417,4 +2417,30 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountCamDistTick legacy regression: snap-zoom lerp gate (|diff|<0.05), computer-entry smoothstep ease (t²(3-2t)), entry completion clamp + callback (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- cam-vectors legacy regression (iter 819) ----------
+ * PARITY: mountCamVectors
+ *
+ * Trivial allocator: returns { _camTarget, _camOff, _camLook,
+ * _camAimTarget, _camBuildLook } — 5 distinct Vector3 instances.
+ * Stubbed THREE.Vector3 confirms shape contract.
+ */
+{
+  const { mountCamVectors } = await import("../src/render/cam_vectors.js");
+  let allocCount = 0;
+  const fakeTHREE = { Vector3: function Vector3() { allocCount++; this._id = allocCount; } };
+  const out = mountCamVectors({ THREE: fakeTHREE });
+  const keys = ["_camTarget", "_camOff", "_camLook", "_camAimTarget", "_camBuildLook"];
+  for (const k of keys) {
+    if (!out[k] || typeof out[k]._id !== "number") {
+      console.log(`[test] FAIL — cam-vectors missing ${k} or not Vector3-shaped.`);
+      process.exit(1);
+    }
+  }
+  if (allocCount !== 5) { console.log(`[test] FAIL — cam-vectors should allocate 5 Vector3, got ${allocCount}.`); process.exit(1); }
+  const ids = new Set(keys.map((k) => out[k]._id));
+  if (ids.size !== 5) { console.log(`[test] FAIL — cam-vectors keys should be distinct instances.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountCamVectors legacy regression: 5 distinct Vector3 under {_camTarget, _camOff, _camLook, _camAimTarget, _camBuildLook} (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
