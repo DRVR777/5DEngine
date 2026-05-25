@@ -690,6 +690,24 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native ammo-reload reproduces legacy mountAmmoReloadTick math (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native ammo-pickup parity test (iter 830) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const ammoPickup = (await import("../src/ankhor/facets/ammo_pickup.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("ammo-pickup", ammoPickup);
+  reg.spawn({ id: "pickups/ammo", kind: "pickup", name: "ammo-pickup", facets: [{ name: "ammo-pickup", data: {
+    pickups: [{ u: 0, v: 0, qty: 10 }], heroU: 0, heroV: 0.5
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("pickups/ammo", "ammo-pickup");
+  // pickup at dist 0.5 < 1.2 should be collected
+  const collected = fd.pickups.length === 0 && fd.collectedAmmo === 10;
+  console.log(`[test] native ammo-pickup: pickups=${fd.pickups.length} collected=${fd.collectedAmmo} (expected 0/10)`);
+  if (!collected) { console.log(`[test] FAIL — ammo pickup not collected at close range`); process.exit(1); }
+  console.log(`[test] PASS — native ammo-pickup reproduces legacy mountAmmoPickupTick (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
