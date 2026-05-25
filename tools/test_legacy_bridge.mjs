@@ -1039,6 +1039,20 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native combo-hud (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native boss-slam parity (iter 851) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const bs = (await import("../src/ankhor/facets/boss_slam.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("boss-slam", bs);
+  reg.spawn({ id: "boss/slam", kind: "pickup", name: "slam", facets: [{ name: "boss-slam", data: { type: "boss", dist: 2, enraged: false } }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("boss/slam", "boss-slam");
+  if (!fd.slamFired) { console.log(`[test] FAIL boss-slam not fired`); process.exit(1); }
+  if (fd.slamDmg !== 30) { console.log(`[test] FAIL boss-slam dmg: ${fd.slamDmg} (expected 30 = 50*(1-2/5))`); process.exit(1); }
+  console.log(`[test] PASS — native boss-slam (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
