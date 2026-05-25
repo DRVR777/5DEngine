@@ -2055,4 +2055,38 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountVehiclePhysicsTick drone: altY += mv*7*dt clamped [0,40], du/dv = (fwd*mf + rgt*mr)*15*dt, speed = hypot/dt, heading = atan2 (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- vehicle-meshes legacy regression (iter 814) ----------
+ * PARITY: mountVehicleMeshes
+ *
+ * Trivial setup: build Map<id, group> via makeVehicleMesh and
+ * scene.add each. carGroup = vehicleMeshes.get(first.id), carBody =
+ * group._bodyMesh. Verifies invariants under stubs.
+ */
+{
+  const { mountVehicleMeshes } = await import("../src/render/vehicle_meshes.js");
+  const addedToScene = [];
+  const fakeTHREE = { Group: function Group() { return { _isGroup: true }; } };
+  const scene = { add: (g) => addedToScene.push(g) };
+  const makeVehicleMesh = (vDef) => ({ _vDef: vDef.id, _bodyMesh: { _is: "body" } });
+
+  const vehicleDefs = [
+    { id: "car/0", type: "car" },
+    { id: "drone/0", type: "drone" },
+    { id: "mech/0", type: "mech" },
+  ];
+  const { vehicleMeshes, carGroup, carBody } = mountVehicleMeshes({
+    THREE: fakeTHREE, scene, vehicleDefs, makeVehicleMesh,
+  });
+
+  if (vehicleMeshes.size !== 3)                          { console.log(`[test] FAIL — expected 3 meshes, got ${vehicleMeshes.size}.`); process.exit(1); }
+  if (addedToScene.length !== 3)                         { console.log(`[test] FAIL — expected scene.add ×3, got ${addedToScene.length}.`); process.exit(1); }
+  if (vehicleMeshes.get("car/0")?._vDef !== "car/0")     { console.log(`[test] FAIL — car/0 missing.`); process.exit(1); }
+  if (vehicleMeshes.get("drone/0")?._vDef !== "drone/0") { console.log(`[test] FAIL — drone/0 missing.`); process.exit(1); }
+  if (vehicleMeshes.get("mech/0")?._vDef !== "mech/0")   { console.log(`[test] FAIL — mech/0 missing.`); process.exit(1); }
+  if (carGroup?._vDef !== "car/0")                       { console.log(`[test] FAIL — carGroup should be car/0, got ${carGroup?._vDef}.`); process.exit(1); }
+  if (carBody?._is !== "body")                           { console.log(`[test] FAIL — carBody should be group._bodyMesh.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountVehicleMeshes legacy regression: Map<id,group> via makeVehicleMesh, scene.add each, carGroup=first, carBody=group._bodyMesh (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
