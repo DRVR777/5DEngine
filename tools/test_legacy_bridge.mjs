@@ -747,10 +747,36 @@ if (heartbeatSpec) {
   reg.registerFacetHandler("grenade-physics", gp);
   const g = { fuse: 3, velY: 0, velU: 2, velV: 0, u: 0, y: 2, v: 0, data: {} };
   reg.spawn({ id: "proj/grenade", kind: "pickup", name: "grenade", facets: [{ name: "grenade-physics", data: { grenades: [g], gravity: -9.8 } }] });
-  for (let i = 0; i < 10; i++) reg.tick(0.1);
+  for (let i = 0; i < 50; i++) reg.tick(0.1);  // 5s — fuse runs out
   const fd = reg.facetData("proj/grenade", "grenade-physics");
   if (fd.grenades.length !== 0 || !g.data.exploded) { console.log(`[test] FAIL grenade-physics: len=${fd.grenades.length} expl=${g.data.exploded}`); process.exit(1); }
   console.log(`[test] PASS — native grenade-physics fuse + gravity (NATIVE_VERIFIED).`);
+}
+
+/* ---------- native camera-pos parity test (iter 834) — MAGIC NUMBERS PINNED ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const cp = (await import("../src/ankhor/facets/camera_pos.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("camera-pos", cp);
+  reg.spawn({ id: "cam/main", kind: "hero", name: "camera", facets: [{ name: "camera-pos", data: {
+    firstPerson: false, buildMode: false, crouchAmt: 0, aiming: false, canSprint: false, camSide: 0, strafeRollAmt: 0,
+    heroU: 0, heroY: 0, heroV: 0, camYaw: 0, camPitch: 0, dist: 6, gunBobPhase: 0
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("cam/main", "camera-pos");
+  // Third person, no crouch: eyeH = 1.20, camTarget.y = 0 + 1.20
+  // camPos.y = 0 + sin(-0)*6 + 1.2 = 1.2
+  if (fd.camTarget.y !== 1.20 || fd.camPos.y !== 1.2) { console.log(`[test] FAIL camera-pos TP: target.y=${fd.camTarget.y} pos.y=${fd.camPos.y}`); process.exit(1); }
+  // First person test
+  fd.firstPerson = true;
+  reg.tick(0.016);
+  if (fd.camTarget.y !== 1.78) { console.log(`[test] FAIL camera-pos FP: target.y=${fd.camTarget.y} expected 1.78`); process.exit(1); }
+  // Crouch test — FP crouch factor 0.75
+  fd.crouchAmt = 1; fd.firstPerson = true;
+  reg.tick(0.016);
+  if (fd.camTarget.y !== 1.03) { console.log(`[test] FAIL camera-pos crouch FP: target.y=${fd.camTarget.y} expected 1.03 (1.78-0.75)`); process.exit(1); }
+  console.log(`[test] PASS — native camera-pos preserves magic numbers (NATIVE_VERIFIED).`);
 }
 
 /* ---------- native stamina parity test (iter 771) ----------
