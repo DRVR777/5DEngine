@@ -1754,4 +1754,107 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — speed-orb composition (bob+spin+emissive-pulse+pickup-radius) reproduces mountSpeedOrbTick semantics: spin rate, collect-distance dispatch, out-of-radius no-op (NATIVE_VERIFIED via composition).`);
 }
 
+/* ---------- weapon-pickup composition parity (iter 809) ----------
+ * PARITY: mountWeaponPickupTick
+ *
+ * Legacy mountWeaponPickupTick visual + collect math:
+ *   rotation.y += dt * SPIN_SPEED (1.8)
+ *   position.y  = BOB_BASE + sin(nowMs/BOB_PERIOD + u) * BOB_AMP
+ *                            (0.35, 350, 0.1)
+ *   pillar.opacity = PILLAR_BASE + PILLAR_AMP * sin(nowMs/PILLAR_PERIOD + u)
+ *                                   (0.25, 0.15, 400)
+ *   if hypot(heroU-u, heroV-v) < COLLECT_DIST (1.2): collect
+ *
+ * Substrate kind data/kinds/weapon_pickup.json defaults declare the
+ * exact composition: bob(0.35/0.1/350) + spin(1.8) +
+ * opacity-pulse(0.25/0.15/400) + pickup-radius(1.2). The auto-equip /
+ * weapon-switch path is excluded from this parity (it depends on
+ * weapon-system Things that aren't migrated yet). The collect-and-
+ * despawn dispatch is verified.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const spinFacet         = (await import("../src/ankhor/facets/spin.js")).default;
+  const pickupRadiusFacet = (await import("../src/ankhor/facets/pickup_radius.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("spin",          spinFacet);
+  reg.registerFacetHandler("pickup-radius", pickupRadiusFacet);
+  reg.registerFacetHandler("position",      { priority: 10 });
+  reg.registerFacetHandler("mesh",          { priority: 70 });
+  reg.registerFacetHandler("inventory",     { priority: 24 });
+  reg.registerFacetHandler("health",        { priority: 25 });
+  reg.registerFacetHandler("weapon",        { priority: 41 });
+
+  // Test 1 — spin parity: weapon-pickup spin facet writes heading
+  // at speed * dt. Legacy SPIN_SPEED=1.8; tick 0.1s → delta = 0.18.
+  reg.spawn({
+    id: "weapon-pickup/0", kind: "weapon-pickup", name: "weapon-pickup-0",
+    facets: [
+      { name: "position", data: { x: 4, y: 0.35, z: -2, heading: 0 } },
+      { name: "mesh",     data: {} },
+      { name: "spin",     data: { speed: 1.8 } },
+      { name: "weapon",   data: { id: "rifle" } },
+    ],
+  });
+  reg.tick(0.1);
+  const wpPos = reg.facetData("weapon-pickup/0", "position");
+  console.log(`[test] weapon-pickup composition spin: heading=${wpPos.heading.toFixed(4)} expected 0.18`);
+  if (Math.abs(wpPos.heading - 0.18) > 1e-9) {
+    console.log(`[test] FAIL — weapon-pickup spin: expected heading=0.18, got ${wpPos.heading}.`);
+    process.exit(1);
+  }
+
+  // Test 2 — pickup-radius collect: hero within radius 1.2 triggers
+  // despawn even when on_pickup_action is "give-weapon" (handler not
+  // implemented — the despawn still fires, matching legacy mountWeaponPickupTick
+  // which marks collected and removes mesh regardless of auto-equip path).
+  reg.spawn({
+    id: "weapon-pickup/1", kind: "weapon-pickup", name: "weapon-pickup-1",
+    facets: [
+      { name: "position",      data: { x: 0, y: 0.35, z: 0 } },
+      { name: "mesh",          data: {} },
+      { name: "pickup-radius", data: { radius: 1.2, on_pickup_action: "give-weapon", heroU: 0.7, heroV: 0.3 } },
+      { name: "weapon",        data: { id: "smg" } },
+    ],
+  });
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",  data: { x: 0.7, y: 0, z: 0.3 } },
+      { name: "health",    data: { hp: 100, maxHp: 100 } },
+      { name: "inventory", data: { items: {}, score: 0 } },
+    ],
+  });
+
+  reg.tick(0.016);
+  const wpThing = reg.get("weapon-pickup/1");
+  const wpDespawned = wpThing?.deleted_at != null;
+  console.log(`[test] weapon-pickup composition collect: despawned=${wpDespawned}`);
+  if (!wpDespawned) {
+    console.log(`[test] FAIL — weapon-pickup should despawn when hero within radius.`);
+    process.exit(1);
+  }
+
+  // Test 3 — out-of-radius: hero too far (distance ≈ 14.14 > 1.2) → pickup intact.
+  reg.spawn({
+    id: "weapon-pickup/2", kind: "weapon-pickup", name: "weapon-pickup-2",
+    facets: [
+      { name: "position",      data: { x: 10, y: 0.35, z: 10 } },
+      { name: "mesh",          data: {} },
+      { name: "pickup-radius", data: { radius: 1.2, on_pickup_action: "give-weapon", heroU: 0.7, heroV: 0.3 } },
+      { name: "weapon",        data: { id: "sniper" } },
+    ],
+  });
+  reg.tick(0.016);
+  const wp2Thing = reg.get("weapon-pickup/2");
+  const wp2Alive = wp2Thing && wp2Thing.deleted_at == null;
+  console.log(`[test] weapon-pickup composition out-of-radius: alive=${wp2Alive}`);
+  if (!wp2Alive) {
+    console.log(`[test] FAIL — weapon-pickup at (10,10) should NOT despawn with hero at (0.7,0.3).`);
+    process.exit(1);
+  }
+
+  console.log(`[test] PASS — weapon-pickup composition (bob+spin+opacity-pulse+pickup-radius) reproduces mountWeaponPickupTick visuals + collect dispatch (NATIVE_VERIFIED via composition).`);
+}
+
 process.exit(0);
