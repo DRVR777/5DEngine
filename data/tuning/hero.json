@@ -63,7 +63,12 @@
       "burn_particle_count":      2,
       "burn_particle_y_base":     0.8,
       "burn_particle_y_jitter":   0.8,
-      "burn_particle_xz_jitter":  0.6
+      "burn_particle_xz_jitter":  0.6,
+      "cam_pitch_max":             0.4,
+      "cam_recoil_spring_rate":    8,
+      "cam_recoil_zero_threshold": 0.0001,
+      "cam_hitpunch_spring_rate":  10,
+      "cam_hitpunch_decay_rate":   14
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

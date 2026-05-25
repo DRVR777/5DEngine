@@ -1008,4 +1008,89 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native burn dealt ${hpBefore - hpAfter} dmg + spawned ${decalsAfter - decalsBefore} decals + clamped heroFireT (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native cam-pitch-springs parity test (iter 799) ----------
+ * Legacy mountCamPitchSprings:
+ *   recoil branch: camPitch += recoilPitch * dt * 8;
+ *                  recoilPitch = recoilPitch + (0 - recoilPitch) * min(1, dt*8);
+ *                  zero out if |next| < 0.0001
+ *   hitpunch branch (when hitPunchPitch > 0.0001):
+ *                  camPitch = min(camPitchMax, camPitch + hitPunchPitch * dt * 10)
+ *                  decayed = hitPunchPitch * exp(-dt * 14)
+ *                  hitPunchPitch = decayed < 0.0001 ? 0 : decayed
+ *
+ * Test 1 — recoil flush: recoil_pitch=0.5, cam_pitch=0, dt=0.125.
+ *   cam_pitch += 0.5 * 0.125 * 8 = 0.5
+ *   next = 0.5 + (-0.5) * min(1, 1.0) = 0.0 → recoil_pitch = 0
+ * Test 2 — hitpunch decay: hit_punch_pitch=0.3, cam_pitch=0, dt=0.1.
+ *   cam_pitch = min(0.4, 0 + 0.3*0.1*10) = min(0.4, 0.3) = 0.3
+ *   decayed = 0.3 * exp(-1.4) ≈ 0.07398 (kept, > 0.0001)
+ * Test 3 — hitpunch cap: hit_punch_pitch=2.0, cam_pitch=0.1, dt=0.1.
+ *   cam_pitch = min(0.4, 0.1 + 2.0*0.1*10) = min(0.4, 2.1) = 0.4
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const camPitchSpringsFacet = (await import("../src/ankhor/facets/cam_pitch_springs.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("cam-pitch-springs", camPitchSpringsFacet);
+  reg.registerFacetHandler("inventory",         { priority: 24 });
+  reg.registerFacetHandler("tuning",            { priority: 41 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "inventory",         data: { cam_pitch: 0, recoil_pitch: 0.5, hit_punch_pitch: 0, items: {}, score: 0 } },
+      { name: "cam-pitch-springs", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      cam_pitch_max: 0.4,
+      cam_recoil_spring_rate: 8,
+      cam_recoil_zero_threshold: 0.0001,
+      cam_hitpunch_spring_rate: 10,
+      cam_hitpunch_decay_rate: 14,
+    } }],
+  });
+
+  reg.tick(0.125);
+  const invAfterRecoil = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native cam-pitch-springs recoil: cam_pitch=${invAfterRecoil.cam_pitch.toFixed(4)}, recoil_pitch=${invAfterRecoil.recoil_pitch}`);
+  if (Math.abs(invAfterRecoil.cam_pitch - 0.5) > 1e-9) {
+    console.log(`[test] FAIL — recoil cam_pitch math: expected 0.5, got ${invAfterRecoil.cam_pitch}.`);
+    process.exit(1);
+  }
+  if (invAfterRecoil.recoil_pitch !== 0) {
+    console.log(`[test] FAIL — recoil_pitch should clamp to 0, got ${invAfterRecoil.recoil_pitch}.`);
+    process.exit(1);
+  }
+
+  // Reset for hitpunch decay test.
+  invAfterRecoil.cam_pitch = 0;
+  invAfterRecoil.recoil_pitch = 0;
+  invAfterRecoil.hit_punch_pitch = 0.3;
+  reg.tick(0.1);
+  const expectedDecayed = 0.3 * Math.exp(-1.4);
+  console.log(`[test] native cam-pitch-springs hitpunch decay: cam_pitch=${invAfterRecoil.cam_pitch.toFixed(4)}, hit_punch_pitch=${invAfterRecoil.hit_punch_pitch.toFixed(5)} (expected ${expectedDecayed.toFixed(5)})`);
+  if (Math.abs(invAfterRecoil.cam_pitch - 0.3) > 1e-9) {
+    console.log(`[test] FAIL — hitpunch cam_pitch: expected 0.3, got ${invAfterRecoil.cam_pitch}.`);
+    process.exit(1);
+  }
+  if (Math.abs(invAfterRecoil.hit_punch_pitch - expectedDecayed) > 1e-6) {
+    console.log(`[test] FAIL — hitpunch decay math: expected ${expectedDecayed}, got ${invAfterRecoil.hit_punch_pitch}.`);
+    process.exit(1);
+  }
+
+  // Reset for cap test.
+  invAfterRecoil.cam_pitch = 0.1;
+  invAfterRecoil.hit_punch_pitch = 2.0;
+  reg.tick(0.1);
+  console.log(`[test] native cam-pitch-springs cap: cam_pitch=${invAfterRecoil.cam_pitch.toFixed(4)} (expected 0.4)`);
+  if (Math.abs(invAfterRecoil.cam_pitch - 0.4) > 1e-9) {
+    console.log(`[test] FAIL — cam_pitch_max cap: expected 0.4, got ${invAfterRecoil.cam_pitch}.`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native cam-pitch-springs reproduces legacy mountCamPitchSprings math: recoil flush, hitpunch decay, cam_pitch_max cap (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

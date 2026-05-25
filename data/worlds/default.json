@@ -133,7 +133,6 @@
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" },
 
-    { "ref": "legacy/cam-pitch-springs" },
     { "ref": "legacy/crouch-speed" },
     { "ref": "legacy/hero-knockback" },
     { "ref": "legacy/freecam" },
