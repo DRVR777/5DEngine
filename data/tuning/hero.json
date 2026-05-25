@@ -68,7 +68,8 @@
       "cam_recoil_spring_rate":    8,
       "cam_recoil_zero_threshold": 0.0001,
       "cam_hitpunch_spring_rate":  10,
-      "cam_hitpunch_decay_rate":   14
+      "cam_hitpunch_decay_rate":   14,
+      "knockback_decay_rate":      8
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

@@ -1093,4 +1093,61 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native cam-pitch-springs reproduces legacy mountCamPitchSprings math: recoil flush, hitpunch decay, cam_pitch_max cap (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native hero-knockback parity test (iter 800) ----------
+ * Legacy mountHeroKnockbackTick decay: knockback velocity vector
+ * decays by * max(0, 1 - dt*8) each tick, position += vel*dt, timer
+ * counts down by dt. Active only while kb_t > 0.
+ *
+ * Test: kb_t=0.5, kb_x=10, kb_z=-6, hero.position=(0,0,0), dt=0.1.
+ *   kb_t → 0.4
+ *   pos.x → 0 + 10 * 0.1 = 1.0
+ *   pos.z → 0 + (-6) * 0.1 = -0.6
+ *   decay factor = 1 - 0.1*8 = 0.2
+ *   kb_x → 10 * 0.2 = 2.0
+ *   kb_z → -6 * 0.2 = -1.2
+ *
+ * Test 2 (inactive): kb_t=0 → tick is no-op, position unchanged.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const heroKnockbackFacet = (await import("../src/ankhor/facets/hero_knockback.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("hero-knockback", heroKnockbackFacet);
+  reg.registerFacetHandler("inventory",      { priority: 24 });
+  reg.registerFacetHandler("position",       { priority: 10 });
+  reg.registerFacetHandler("tuning",         { priority: 41 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",       data: { x: 0, y: 0, z: 0 } },
+      { name: "inventory",      data: { kb_t: 0.5, kb_x: 10, kb_z: -6, items: {}, score: 0 } },
+      { name: "hero-knockback", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: { knockback_decay_rate: 8 } }],
+  });
+
+  reg.tick(0.1);
+  const inv = reg.facetData("hero/main", "inventory");
+  const pos = reg.facetData("hero/main", "position");
+  console.log(`[test] native hero-knockback active: pos=(${pos.x.toFixed(3)}, ${pos.z.toFixed(3)}), kb=(${inv.kb_x.toFixed(3)}, ${inv.kb_z.toFixed(3)}), kb_t=${inv.kb_t.toFixed(3)}`);
+  if (Math.abs(pos.x - 1.0) > 1e-9) { console.log(`[test] FAIL — kb pos.x: expected 1.0, got ${pos.x}.`); process.exit(1); }
+  if (Math.abs(pos.z + 0.6) > 1e-9) { console.log(`[test] FAIL — kb pos.z: expected -0.6, got ${pos.z}.`); process.exit(1); }
+  if (Math.abs(inv.kb_x - 2.0) > 1e-9) { console.log(`[test] FAIL — kb_x decay: expected 2.0, got ${inv.kb_x}.`); process.exit(1); }
+  if (Math.abs(inv.kb_z + 1.2) > 1e-9) { console.log(`[test] FAIL — kb_z decay: expected -1.2, got ${inv.kb_z}.`); process.exit(1); }
+  if (Math.abs(inv.kb_t - 0.4) > 1e-9) { console.log(`[test] FAIL — kb_t countdown: expected 0.4, got ${inv.kb_t}.`); process.exit(1); }
+
+  // Reset to inactive.
+  inv.kb_t = 0; inv.kb_x = 99; inv.kb_z = 99; pos.x = 5; pos.z = 5;
+  reg.tick(0.1);
+  if (pos.x !== 5 || pos.z !== 5) {
+    console.log(`[test] FAIL — inactive kb_t should leave pos unchanged, got pos=(${pos.x}, ${pos.z}).`);
+    process.exit(1);
+  }
+  console.log(`[test] PASS — native hero-knockback reproduces legacy mountHeroKnockbackTick math: velocity decay, position delta, inactive gate (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);
