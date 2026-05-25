@@ -817,6 +817,21 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native fp-gun-pos preserves magic numbers (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native legacy-pickup parity (iter 837) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const lp = (await import("../src/ankhor/facets/legacy_pickup.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("legacy-pickup", lp);
+  reg.spawn({ id: "pickups/test", kind: "pickup", name: "lp", facets: [{ name: "legacy-pickup", data: { pickups: [{ u: 1, collected: false }] } }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("pickups/test", "legacy-pickup");
+  const pk = fd.pickups[0];
+  if (pk.spin <= 0) { console.log(`[test] FAIL legacy-pickup no spin`); process.exit(1); }
+  if (pk.bobY < 0.9 || pk.bobY > 1.2) { console.log(`[test] FAIL legacy-pickup bob range: ${pk.bobY}`); process.exit(1); }
+  console.log(`[test] PASS — native legacy-pickup (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
