@@ -2089,4 +2089,96 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountVehicleMeshes legacy regression: Map<id,group> via makeVehicleMesh, scene.add each, carGroup=first, carBody=group._bodyMesh (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- hero-move slide legacy regression (iter 815) ----------
+ * PARITY: mountHeroMoveTick
+ *
+ * Slide trigger + decay constants (SLIDE_DUR=0.6, SLIDE_MULT=1.5)
+ * pinned via stubbed get/set/actions. Verifies:
+ *   • slide trigger: ctrl edge rising + canSprint + isMoving sets
+ *     slideT to SLIDE_DUR, slideDU/DV to normalized*sprintSpeed*1.5
+ *   • slide tick: slideT decays by dt; slideMove called with
+ *     slideDU * decay * dt, slideDV * decay * dt
+ *   • no slide while heroDead or buildMode
+ */
+{
+  const { mountHeroMoveTick } = await import("../src/systems/hero_move_tick.js");
+
+  // Per-test state container; get/set close over this.
+  const makeMount = () => {
+    const s = { ctrlWasDown: false, slideT: 0, slideDU: 0, slideDV: 0 };
+    const calls = { slideMove: [], spawnTrail: 0, applyMove: [], playSlideSound: 0 };
+    const get = {
+      ctrlWasDown: () => s.ctrlWasDown,
+      slideT: () => s.slideT, slideDU: () => s.slideDU, slideDV: () => s.slideDV,
+    };
+    const set = {
+      ctrlWasDown: (v) => { s.ctrlWasDown = v; },
+      slideT: (v) => { s.slideT = v; },
+      slideDU: (v) => { s.slideDU = v; },
+      slideDV: (v) => { s.slideDV = v; },
+    };
+    const actions = {
+      playSlideSound: () => { calls.playSlideSound++; },
+      slideMove: (du, dv, blockers) => { calls.slideMove.push({ du, dv }); },
+      spawnTrail: () => { calls.spawnTrail++; },
+      applyMove: (...args) => { calls.applyMove.push(args); },
+    };
+    return { s, calls, mount: mountHeroMoveTick({ get, set, actions }) };
+  };
+
+  // Test 1: slide trigger. forward=(0,1), inputF=1 → slideDV = 1*10*1.5 = 15.
+  {
+    const { s, calls, mount } = makeMount();
+    mount.tick(0.016, {
+      inputF: 1, inputR: 0,
+      forward: { x: 0, z: 1 }, right: { x: 1, z: 0 },
+      speed: 5, sprintSpeed: 10,
+      canSprint: true, isMoving: true,
+      heroDead: false, buildMode: false,
+      ctrlDown: true, blockers: [],
+    });
+    // Same-tick: trigger sets slideT=0.6, then the if-slideT>0 branch
+    // decrements by dt=0.016 → slideT ends at 0.584.
+    if (Math.abs(s.slideT - 0.584) > 1e-9) { console.log(`[test] FAIL — slide trigger+decay slideT: expected 0.584 (0.6 - 0.016), got ${s.slideT}.`); process.exit(1); }
+    if (Math.abs(s.slideDU - 0) > 1e-9)  { console.log(`[test] FAIL — slide trigger slideDU: expected 0, got ${s.slideDU}.`); process.exit(1); }
+    if (Math.abs(s.slideDV - 15) > 1e-9) { console.log(`[test] FAIL — slide trigger slideDV: expected 15, got ${s.slideDV}.`); process.exit(1); }
+    if (calls.playSlideSound !== 1)      { console.log(`[test] FAIL — playSlideSound should fire once, got ${calls.playSlideSound}.`); process.exit(1); }
+    if (calls.slideMove.length !== 1)    { console.log(`[test] FAIL — slideMove should fire during slide tick, got ${calls.slideMove.length}.`); process.exit(1); }
+    // First-frame slide tick: slideT becomes 0.6 then -= 0.016 = 0.584; decay = 0.584/0.6 ≈ 0.973333
+    const decay = (0.6 - 0.016) / 0.6;
+    const expectedDU = 0 * decay * 0.016;
+    const expectedDV = 15 * decay * 0.016;
+    if (Math.abs(calls.slideMove[0].dv - expectedDV) > 1e-6) {
+      console.log(`[test] FAIL — slideMove dv: expected ${expectedDV}, got ${calls.slideMove[0].dv}.`);
+      process.exit(1);
+    }
+  }
+
+  // Test 2: heroDead suppresses slide trigger.
+  {
+    const { s, calls, mount } = makeMount();
+    mount.tick(0.016, {
+      inputF: 1, inputR: 0, forward: { x: 0, z: 1 }, right: { x: 1, z: 0 },
+      speed: 5, sprintSpeed: 10, canSprint: true, isMoving: true,
+      heroDead: true, buildMode: false, ctrlDown: true, blockers: [],
+    });
+    if (s.slideT !== 0) { console.log(`[test] FAIL — slide should not trigger while heroDead, got slideT=${s.slideT}.`); process.exit(1); }
+    if (calls.playSlideSound !== 0) { console.log(`[test] FAIL — playSlideSound fired while heroDead.`); process.exit(1); }
+  }
+
+  // Test 3: ctrlDown without rising edge (already held) does not re-trigger.
+  {
+    const { s, calls, mount } = makeMount();
+    s.ctrlWasDown = true;
+    mount.tick(0.016, {
+      inputF: 1, inputR: 0, forward: { x: 0, z: 1 }, right: { x: 1, z: 0 },
+      speed: 5, sprintSpeed: 10, canSprint: true, isMoving: true,
+      heroDead: false, buildMode: false, ctrlDown: true, blockers: [],
+    });
+    if (s.slideT !== 0) { console.log(`[test] FAIL — slide should not re-trigger without ctrl edge, got slideT=${s.slideT}.`); process.exit(1); }
+  }
+
+  console.log(`[test] PASS — mountHeroMoveTick legacy regression: slide trigger (SLIDE_DUR=0.6, SLIDE_MULT=1.5), decay-driven slideMove, gating on heroDead/buildMode/ctrl-rising-edge (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
