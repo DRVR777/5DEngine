@@ -1395,4 +1395,76 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native layer-transition reproduces legacy mountLayerTransitionTick no-boundary path: defaults to layer 1, snaps back when no building contains hero (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native motion-springs parity test (iter 805) ----------
+ * Legacy mountMotionSprings: three spring/decay equations.
+ *
+ * Test 1 — move_spread snap (dt=0.2 → dt*5=1.0):
+ *   inv.move_spread_target=1, inv.move_spread=0
+ *   → 0 + (1-0)*1 = 1
+ * Test 2 — gun_bob_phase sprint (KeyW + ShiftLeft, dt=0.2):
+ *   inv.gun_bob_phase=0 → 0 + 11*0.2 = 2.2
+ * Test 3 — gun_bob_phase decay (no movement, dt=0.1):
+ *   inv.gun_bob_phase=10 → 10 * exp(-0.8) ≈ 4.4933
+ * Test 4 — strafe_roll snap to aiming (dt=0.125 → dt*8=1.0):
+ *   inv.input_r=2, inv.aiming=true, inv.strafe_roll_amt=0
+ *   → 0 + (2*0.3 - 0)*1 = 0.6
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const motionSpringsFacet = (await import("../src/ankhor/facets/motion_springs.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("motion-springs", motionSpringsFacet);
+  reg.registerFacetHandler("inventory",      { priority: 24 });
+  reg.registerFacetHandler("input-state",    { priority: 2 });
+  reg.registerFacetHandler("tuning",         { priority: 41 });
+
+  const tuning = {
+    move_spread_spring_rate: 5,
+    gun_bob_phase_sprint_rate: 11, gun_bob_phase_walk_rate: 7,
+    gun_bob_decay_rate: 8,
+    strafe_roll_aiming_mul: 0.3, strafe_roll_normal_mul: 1.0,
+    strafe_roll_spring_rate: 8,
+  };
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: tuning }],
+  });
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "inventory",      data: { move_spread_target: 1, items: {}, score: 0 } },
+      { name: "motion-springs", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: { KeyW: true, ShiftLeft: true }, mouseHeld: false, yaw: 0 } }],
+  });
+
+  reg.tick(0.2);  // dt*5 = 1 → spring snaps; dt*11 = 2.2 added to gun_bob
+  let inv = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native motion-springs sprint: move_spread=${inv.move_spread.toFixed(4)}, gun_bob_phase=${inv.gun_bob_phase.toFixed(4)}, strafe_roll=${inv.strafe_roll_amt.toFixed(4)}`);
+  if (Math.abs(inv.move_spread - 1) > 1e-9)     { console.log(`[test] FAIL — move_spread snap: expected 1, got ${inv.move_spread}.`); process.exit(1); }
+  if (Math.abs(inv.gun_bob_phase - 2.2) > 1e-9) { console.log(`[test] FAIL — gun_bob_phase sprint: expected 2.2, got ${inv.gun_bob_phase}.`); process.exit(1); }
+
+  // Test 3 — decay: clear keys (no movement), set gun_bob to 10, dt=0.1 → 10*exp(-0.8)
+  const inputSt = reg.facetData("input/main", "input-state");
+  inputSt.keys = {};
+  inv.gun_bob_phase = 10;
+  inv.move_spread_target = 0;
+  inv.move_spread = 0;  // freeze spring (target == current)
+  reg.tick(0.1);
+  const expectedDecay = 10 * Math.exp(-0.8);
+  console.log(`[test] native motion-springs decay: gun_bob_phase=${inv.gun_bob_phase.toFixed(5)} (expected ${expectedDecay.toFixed(5)})`);
+  if (Math.abs(inv.gun_bob_phase - expectedDecay) > 1e-6) { console.log(`[test] FAIL — gun_bob_phase decay: expected ${expectedDecay}, got ${inv.gun_bob_phase}.`); process.exit(1); }
+
+  // Test 4 — strafe_roll with aiming: input_r=2, aiming=true, dt=0.125, strafe_roll_amt=0.
+  inv.input_r = 2; inv.aiming = true; inv.strafe_roll_amt = 0;
+  reg.tick(0.125);  // dt*8 = 1 → spring snaps
+  console.log(`[test] native motion-springs strafe_roll aiming: amt=${inv.strafe_roll_amt.toFixed(4)} expected 0.6`);
+  if (Math.abs(inv.strafe_roll_amt - 0.6) > 1e-9) { console.log(`[test] FAIL — strafe_roll aiming snap: expected 0.6, got ${inv.strafe_roll_amt}.`); process.exit(1); }
+
+  console.log(`[test] PASS — native motion-springs reproduces legacy mountMotionSprings math: move_spread spring, gun_bob_phase sprint/decay, strafe_roll aiming (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

@@ -82,7 +82,14 @@
       "sprint_trail_ttl":          0.2,
       "sprint_trail_y":            0.08,
       "freecam_speed":             8,
-      "freecam_speed_fast":        24
+      "freecam_speed_fast":        24,
+      "move_spread_spring_rate":   5,
+      "gun_bob_phase_sprint_rate": 11,
+      "gun_bob_phase_walk_rate":   7,
+      "gun_bob_decay_rate":        8,
+      "strafe_roll_aiming_mul":    0.3,
+      "strafe_roll_normal_mul":    1.0,
+      "strafe_roll_spring_rate":   8
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

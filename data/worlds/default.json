@@ -134,7 +134,6 @@
     { "ref": "spawns/legacy_systems" },
 
     { "ref": "legacy/sniper-sway" },
-    { "ref": "legacy/motion-springs" },
     { "ref": "legacy/jump-gravity" }
   ]
 }
