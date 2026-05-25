@@ -31,11 +31,11 @@ export default {
               data.kills = data.kills || [];
               data.kills.push({ enemyId: en.id, u: en.u, v: en.v });
             }
-            if (b._pierced) {
-              hitEnemy = true; break;
-            } else {
+            if (b.weaponId === "sniper" && !b._pierced) {
               b._pierced = true;
               data.pierce = { u: en.u, y: (b.y || 0) + 1.4, v: en.v };
+            } else {
+              hitEnemy = true; break;
             }
           }
         }
