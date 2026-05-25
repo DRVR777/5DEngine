@@ -133,7 +133,6 @@
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" },
 
-    { "ref": "legacy/freecam" },
     { "ref": "legacy/sniper-sway" },
     { "ref": "legacy/motion-springs" },
     { "ref": "legacy/jump-gravity" },

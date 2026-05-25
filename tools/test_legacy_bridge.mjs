@@ -1283,4 +1283,76 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native crouch-speed reproduces legacy mountCrouchSpeedTick math: spring+mul, sprint/walk/walk-crouch/idle branches (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native freecam parity test (iter 803) ----------
+ * Legacy mountFreecamTick gates on buildMode; off → no-op. On →
+ * computes forward + right vectors from yaw/pitch and applies the
+ * key-driven delta to the camera.
+ *
+ * Test 1 (build_mode=false): camera should not move.
+ * Test 2 (build_mode=true, yaw=0, KeyW+ShiftLeft, dt=0.1):
+ *   spd=24, fwd=(0,0,1) → camera.z += 2.4
+ * Test 3 (yaw=π/2, KeyD, no shift, dt=0.1):
+ *   spd=8, rgt=(0,0,-1) → camera.z -= 0.8
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const freecamFacet = (await import("../src/ankhor/facets/freecam.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("freecam",     freecamFacet);
+  reg.registerFacetHandler("inventory",   { priority: 24 });
+  reg.registerFacetHandler("position",    { priority: 10 });
+  reg.registerFacetHandler("input-state", { priority: 2 });
+  reg.registerFacetHandler("tuning",      { priority: 41 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "inventory", data: { build_mode: false, freecam_yaw: 0, freecam_pitch: 0, items: {}, score: 0 } },
+      { name: "freecam",   data: {} },
+    ],
+  });
+  // Stub render-context with a camera-like object the facet can mutate.
+  reg.registerFacetHandler("render-context", { priority: 1 });
+  const camStub = { position: { x: 0, y: 5, z: 0 } };
+  reg.spawn({
+    id: "render-context/main", kind: "render-context", name: "primary_render_context",
+    facets: [{ name: "render-context", data: { camera: camStub } }],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: { freecam_speed: 8, freecam_speed_fast: 24 } }],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: { KeyW: true, ShiftLeft: true }, mouseHeld: false, yaw: 0 } }],
+  });
+
+  reg.tick(0.1);
+  let camPos = camStub.position;
+  if (camPos.x !== 0 || camPos.y !== 5 || camPos.z !== 0) {
+    console.log(`[test] FAIL — freecam off should not move camera, got (${camPos.x},${camPos.y},${camPos.z}).`);
+    process.exit(1);
+  }
+  console.log(`[test] native freecam gate: build_mode=false → camera stays at (0,5,0)`);
+
+  const inv = reg.facetData("hero/main", "inventory");
+  inv.build_mode = true;
+  reg.tick(0.1);
+  camPos = camStub.position;
+  console.log(`[test] native freecam fwd-fast: camera=(${camPos.x.toFixed(3)}, ${camPos.y.toFixed(3)}, ${camPos.z.toFixed(3)}) expected z=2.4`);
+  if (Math.abs(camPos.z - 2.4) > 1e-9) { console.log(`[test] FAIL — expected camera.z=2.4, got ${camPos.z}.`); process.exit(1); }
+
+  inv.freecam_yaw = Math.PI / 2;
+  const inputSt = reg.facetData("input/main", "input-state");
+  inputSt.keys = { KeyD: true };
+  const z2 = camPos.z;
+  reg.tick(0.1);
+  camPos = camStub.position;
+  const dz = camPos.z - z2;
+  console.log(`[test] native freecam strafe-right: dz=${dz.toFixed(4)} expected -0.8`);
+  if (Math.abs(dz - (-0.8)) > 1e-9) { console.log(`[test] FAIL — expected dz=-0.8, got ${dz}.`); process.exit(1); }
+
+  console.log(`[test] PASS — native freecam reproduces legacy mountFreecamTick math: build_mode gate, forward fast move, yaw-rotated strafe (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

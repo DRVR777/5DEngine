@@ -25,6 +25,7 @@ import camPitchSprings from "./cam_pitch_springs.js";
 import heroKnockback  from "./hero_knockback.js";
 import dodge          from "./dodge.js";
 import crouchSpeed    from "./crouch_speed.js";
+import freecam        from "./freecam.js";
 import vignette       from "./vignette.js";
 import scopeFov       from "./scope_fov.js";
 import clockHud       from "./clock_hud.js";
@@ -74,6 +75,7 @@ export const FACET_HANDLERS = {
   "hero-knockback":      heroKnockback,
   "dodge":               dodge,
   "crouch-speed":        crouchSpeed,
+  "freecam":             freecam,
   "vignette":            vignette,
   "scope-fov":           scopeFov,
   "clock-hud":           clockHud,

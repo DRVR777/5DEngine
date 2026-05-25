@@ -80,7 +80,9 @@
       "move_spread_idle":          0,
       "sprint_trail_chance":       0.45,
       "sprint_trail_ttl":          0.2,
-      "sprint_trail_y":            0.08
+      "sprint_trail_y":            0.08,
+      "freecam_speed":             8,
+      "freecam_speed_fast":        24
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",
