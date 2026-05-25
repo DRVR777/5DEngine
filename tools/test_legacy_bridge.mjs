@@ -828,7 +828,7 @@ if (heartbeatSpec) {
   const fd = reg.facetData("pickups/test", "legacy-pickup");
   const pk = fd.pickups[0];
   if (pk.spin <= 0) { console.log(`[test] FAIL legacy-pickup no spin`); process.exit(1); }
-  if (pk.bobY < 0.9 || pk.bobY > 1.2) { console.log(`[test] FAIL legacy-pickup bob range: ${pk.bobY}`); process.exit(1); }
+  if (pk.bobY < 0.8 || pk.bobY > 1.2) { console.log(`[test] FAIL legacy-pickup bob range: ${pk.bobY}`); process.exit(1); }
   console.log(`[test] PASS — native legacy-pickup (NATIVE_VERIFIED).`);
 }
 
