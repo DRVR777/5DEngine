@@ -2483,4 +2483,57 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountCrosshairTick legacy regression: bloom = (aim?10:16) + spread*26, scope/crosshair toggle, opacity 0 dead, APEX gold vs base cyan (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- combo-announcer legacy regression (iter 821) ----------
+ * PARITY: mountComboAnnouncer
+ *
+ * Milestones [2,4,6,8] → DOUBLE/QUAD/RAMPAGE/GODLIKE. Each fires
+ * once when crossed (announcedMul latches). Decay: nowSec -
+ * comboLastT > DECAY → reset comboCount + announcedMul.
+ */
+{
+  const { mountComboAnnouncer } = await import("../src/systems/combo_announcer.js");
+  const s = { comboCount: 0, comboAnnouncedMul: 0, comboLastT: 0 };
+  const toasts = [], sfx = [];
+  const mount = mountComboAnnouncer({
+    DECAY: 2.0,
+    get: {
+      comboCount: () => s.comboCount,
+      comboAnnouncedMul: () => s.comboAnnouncedMul,
+      comboLastT: () => s.comboLastT,
+    },
+    set: {
+      comboCount: (v) => { s.comboCount = v; },
+      comboAnnouncedMul: (v) => { s.comboAnnouncedMul = v; },
+    },
+    actions: {
+      showToast: (...a) => toasts.push(a),
+      playSfx: (...a) => sfx.push(a),
+    },
+  });
+
+  s.comboCount = 2; s.comboLastT = 100;
+  mount.tick(100.5);
+  if (s.comboAnnouncedMul !== 2)          { console.log(`[test] FAIL — milestone 2 fire.`); process.exit(1); }
+  if (toasts[0][0] !== "DOUBLE KILL! x2") { console.log(`[test] FAIL — toast label: ${toasts[0][0]}`); process.exit(1); }
+  if (sfx.length !== 2)                   { console.log(`[test] FAIL — 2 sfx expected, got ${sfx.length}.`); process.exit(1); }
+  if (sfx[0][0] !== "tone:660:80:sine")   { console.log(`[test] FAIL — first sfx: ${sfx[0][0]}.`); process.exit(1); }
+  if (sfx[1][0] !== "tone:990:60:sine")   { console.log(`[test] FAIL — second sfx (660*1.5=990): ${sfx[1][0]}.`); process.exit(1); }
+
+  const t0 = toasts.length;
+  mount.tick(100.6);
+  if (toasts.length !== t0)               { console.log(`[test] FAIL — re-tick at same milestone re-announced.`); process.exit(1); }
+
+  s.comboCount = 6;
+  mount.tick(100.7);
+  if (s.comboAnnouncedMul !== 6)                       { console.log(`[test] FAIL — milestone 6 fire.`); process.exit(1); }
+  if (toasts[toasts.length-1][0] !== "RAMPAGE! x6")    { console.log(`[test] FAIL — RAMPAGE label.`); process.exit(1); }
+
+  s.comboCount = 4; s.comboAnnouncedMul = 4; s.comboLastT = 200;
+  mount.tick(202.5);
+  if (s.comboCount !== 0)        { console.log(`[test] FAIL — decay reset comboCount.`); process.exit(1); }
+  if (s.comboAnnouncedMul !== 0) { console.log(`[test] FAIL — decay reset announcedMul.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountComboAnnouncer legacy regression: milestones [2,4,6,8] (DOUBLE/QUAD/RAMPAGE/GODLIKE), 2 sfx per (base + base*1.5), decay zeros state (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
