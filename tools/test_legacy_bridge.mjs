@@ -2756,7 +2756,7 @@ if (heartbeatSpec) {
   if (tensionCall[3] !== 0) { console.log(`[test] FAIL — tension vol: expected 0, got ${tensionCall[3]}.`); process.exit(1); }
   // bossRumble = 0 (no boss)
   const rumbleCall = calls.find((c) => c[0] === "bossRumble");
-  if (rumbleCall[4] !== 0) { console.log(`[test] FAIL — bossRumble vol: expected 0, got ${rumbleCall[4]}.`); process.exit(1); }
+  if (rumbleCall[3] !== 0) { console.log(`[test] FAIL — bossRumble vol (args[3]): expected 0, got ${rumbleCall[3]}.`); process.exit(1); }
 
   // Re-tick at 100.5 (< 1.0 interval): suppressed.
   calls.length = 0;
@@ -2784,7 +2784,7 @@ if (heartbeatSpec) {
   calls.length = 0;
   m.tick(120, [], true, false);
   const rCall = calls.find((c) => c[0] === "bossRumble");
-  if (rCall[4] !== 0.018) { console.log(`[test] FAIL — boss rumble vol: expected 0.018, got ${rCall[4]}.`); process.exit(1); }
+  if (rCall[3] !== 0.018) { console.log(`[test] FAIL — boss rumble vol (args[3]): expected 0.018, got ${rCall[3]}.`); process.exit(1); }
   const tCall2 = calls.find((c) => c[0] === "tension");
   if (tCall2[1] !== 38) { console.log(`[test] FAIL — boss tension freq: expected 38, got ${tCall2[1]}.`); process.exit(1); }
 
