@@ -2645,4 +2645,78 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountBossBarTick legacy regression: HP fraction width%, HIGH/MID/LOW gradients (>0.5, >0.25, else), pulse shadow <0.3, hide on dead/null (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- damage-feedback legacy regression (iter 825) ----------
+ * PARITY: mountDamageFeedback
+ *
+ * Returns flashDamage() + applyScreenShake(intensity).
+ *   flashDamage:
+ *     • waveChallengeNoDmg=false
+ *     • vignetteAmt=1.0
+ *     • playSfx tone:90:35:sawtooth (0.18)
+ *     • hitPunchPitch += 0.05+random*0.04 (capped at 0.12)
+ *     • if hp ∈ (0,10] && !nearDeathFired → 2 sfx + toast + nearDeath
+ *   applyScreenShake: camShakeAmt = min(1, current + intensity)
+ */
+{
+  const { mountDamageFeedback } = await import("../src/systems/damage_feedback.js");
+  const s = {
+    waveChallengeNoDmg: true, vignetteAmt: 0, hitPunchPitch: 0,
+    heroHp: 50, nearDeathFired: false, bulletTimeLeft: 0, camShakeAmt: 0,
+  };
+  const sfx = [], toasts = [];
+  const m = mountDamageFeedback({
+    get: {
+      hitPunchPitch: () => s.hitPunchPitch, heroHp: () => s.heroHp,
+      nearDeathFired: () => s.nearDeathFired, bulletTimeLeft: () => s.bulletTimeLeft,
+      camShakeAmt: () => s.camShakeAmt,
+    },
+    set: {
+      waveChallengeNoDmg: (v) => { s.waveChallengeNoDmg = v; },
+      vignetteAmt: (v) => { s.vignetteAmt = v; },
+      hitPunchPitch: (v) => { s.hitPunchPitch = v; },
+      nearDeathFired: (v) => { s.nearDeathFired = v; },
+      bulletTimeLeft: (v) => { s.bulletTimeLeft = v; },
+      camShakeAmt: (v) => { s.camShakeAmt = v; },
+    },
+    actions: {
+      playSfx: (...a) => sfx.push(a),
+      showToast: (...a) => toasts.push(a),
+    },
+  });
+
+  // Healthy hp=50: flashDamage updates state but no critical branch.
+  m.flashDamage();
+  if (s.waveChallengeNoDmg !== false)   { console.log(`[test] FAIL — waveChallengeNoDmg should be false.`); process.exit(1); }
+  if (s.vignetteAmt !== 1.0)            { console.log(`[test] FAIL — vignetteAmt should be 1.0.`); process.exit(1); }
+  if (sfx.length !== 1)                 { console.log(`[test] FAIL — healthy flashDamage: expected 1 sfx, got ${sfx.length}.`); process.exit(1); }
+  if (sfx[0][0] !== "tone:90:35:sawtooth") { console.log(`[test] FAIL — sfx tone: got ${sfx[0][0]}.`); process.exit(1); }
+  if (s.hitPunchPitch < 0.05 || s.hitPunchPitch > 0.12) {
+    console.log(`[test] FAIL — hitPunchPitch should be in [0.05, 0.12], got ${s.hitPunchPitch}.`);
+    process.exit(1);
+  }
+  if (s.nearDeathFired)                 { console.log(`[test] FAIL — nearDeathFired should not fire at hp 50.`); process.exit(1); }
+
+  // Critical hp=5: full critical branch fires.
+  s.heroHp = 5; s.nearDeathFired = false; s.bulletTimeLeft = 0; sfx.length = 0; toasts.length = 0;
+  m.flashDamage();
+  if (!s.nearDeathFired)                { console.log(`[test] FAIL — nearDeathFired should fire at hp 5.`); process.exit(1); }
+  if (s.bulletTimeLeft !== 0.45)        { console.log(`[test] FAIL — bulletTimeLeft should be 0.45.`); process.exit(1); }
+  if (sfx.length !== 3)                 { console.log(`[test] FAIL — critical flashDamage: expected 3 sfx (1 hit + 2 critical), got ${sfx.length}.`); process.exit(1); }
+  if (toasts.length !== 1 || toasts[0][0] !== "CRITICAL!") { console.log(`[test] FAIL — CRITICAL toast missing.`); process.exit(1); }
+
+  // Re-trigger critical: nearDeathFired latches, no new toast.
+  const t1 = toasts.length;
+  m.flashDamage();
+  if (toasts.length !== t1)             { console.log(`[test] FAIL — nearDeathFired latch should prevent re-trigger.`); process.exit(1); }
+
+  // applyScreenShake.
+  s.camShakeAmt = 0.3;
+  m.applyScreenShake(0.4);
+  if (Math.abs(s.camShakeAmt - 0.7) > 1e-9) { console.log(`[test] FAIL — shake add: expected 0.7, got ${s.camShakeAmt}.`); process.exit(1); }
+  m.applyScreenShake(0.5);  // 0.7 + 0.5 = 1.2, clamped to 1.0
+  if (s.camShakeAmt !== 1)              { console.log(`[test] FAIL — shake clamp: expected 1.0, got ${s.camShakeAmt}.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountDamageFeedback legacy regression: flashDamage state writes + hit sfx, critical-hp branch (2 extra sfx + CRITICAL toast, nearDeathFired latch, bulletTimeLeft=0.45), applyScreenShake additive+clamp to 1 (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
