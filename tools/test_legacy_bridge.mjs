@@ -902,6 +902,25 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native crate-system (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native bullet-world-hit parity (iter 842) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const bwh = (await import("../src/ankhor/facets/bullet_world_hit.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("bullet-world-hit", bwh);
+  reg.spawn({ id: "proj/bullet", kind: "pickup", name: "bullet", facets: [{ name: "bullet-world-hit", data: {
+    bullets: [{ posU: 0, posV: 0, posY: 0.2, damage: 10, range: 50, traveled: 5 }],
+    barrels: [{ u: 0.2, v: 0, hp: 20, exploded: false }],
+    crates: []
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("proj/bullet", "bullet-world-hit");
+  // Barrel at dist 0.2, dist²=0.04 < 0.18, y=0.2 < 0.95 → hit
+  if (fd.bullets.length !== 0) { console.log(`[test] FAIL bullet-world-hit: bullet not removed`); process.exit(1); }
+  if (fd.barrels[0].hp !== 10) { console.log(`[test] FAIL bullet-world-hit: barrel hp=${fd.barrels[0].hp}`); process.exit(1); }
+  console.log(`[test] PASS — native bullet-world-hit (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
