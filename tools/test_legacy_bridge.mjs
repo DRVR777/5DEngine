@@ -921,6 +921,23 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native bullet-world-hit (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native bullet-hit-feedback parity (iter 843) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const bhf = (await import("../src/ankhor/facets/bullet_hit_feedback.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("bullet-hit-feedback", bhf);
+  reg.spawn({ id: "enemy/test", kind: "pickup", name: "en", facets: [{ name: "bullet-hit-feedback", data: {
+    u: 0, v: 0, bulletU: 1, bulletV: 0, headshot: true, dmg: 40, maxHp: 100, hp: 60, type: "normal"
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("enemy/test", "bullet-hit-feedback");
+  if (fd.flinchX !== -0.6) { console.log(`[test] FAIL hit-feedback flinch: ${fd.flinchX}`); process.exit(1); }
+  if (fd.staggerT !== 0.6) { console.log(`[test] FAIL hit-feedback stagger: ${fd.staggerT}`); process.exit(1); }
+  if (fd.kbT !== 0.1) { console.log(`[test] FAIL hit-feedback kbT: ${fd.kbT}`); process.exit(1); }
+  console.log(`[test] PASS — native bullet-hit-feedback (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
