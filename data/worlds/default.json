@@ -5,6 +5,7 @@
   "comment": "Composes the engine by referencing kind-defs, tuning Things, and spawn-sets via {ref}. All scene + camera + grid params live in the world-params facet below — boot.js reads them with no fallback.",
   "facets": [
     { "name": "skybox", "data": {} },
+    { "name": "day-night", "data": {} },
     { "name": "world-params", "data": {
       "background_color":    724242,
       "fog_density":         0.018,
