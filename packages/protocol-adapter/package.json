@@ -1,0 +1,12 @@
+{
+  "name": "@7d/protocol-adapter",
+  "version": "1.0.0",
+  "description": "dwrld protocol events → 7D Thing graph adapter",
+  "type": "module",
+  "main": "adapter.js",
+  "exports": {
+    ".": "./adapter.js",
+    "./things": "./things.js",
+    "./recorder": "./recorder.js"
+  }
+}

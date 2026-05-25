@@ -1,0 +1,11 @@
+{
+  "name": "@7d/dwrldctl",
+  "version": "1.0.0",
+  "description": "dwrld protocol health inspector and control CLI",
+  "type": "module",
+  "main": "dwrldctl.js",
+  "bin": { "dwrldctl": "./dwrldctl.js" },
+  "dependencies": {
+    "@7d/protocol-adapter": "file:../protocol-adapter"
+  }
+}
