@@ -133,6 +133,5 @@
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" },
 
-    { "ref": "legacy/jump-gravity" }
   ]
 }

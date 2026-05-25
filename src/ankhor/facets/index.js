@@ -29,6 +29,7 @@ import freecam        from "./freecam.js";
 import layerTransition from "./layer_transition.js";
 import motionSprings  from "./motion_springs.js";
 import sniperSway     from "./sniper_sway.js";
+import jumpGravity    from "./jump_gravity.js";
 import vignette       from "./vignette.js";
 import scopeFov       from "./scope_fov.js";
 import clockHud       from "./clock_hud.js";
@@ -82,6 +83,7 @@ export const FACET_HANDLERS = {
   "layer-transition":    layerTransition,
   "motion-springs":      motionSprings,
   "sniper-sway":         sniperSway,
+  "jump-gravity":        jumpGravity,
   "vignette":            vignette,
   "scope-fov":           scopeFov,
   "clock-hud":           clockHud,

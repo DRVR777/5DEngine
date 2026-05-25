@@ -102,7 +102,14 @@
       "sway_pitch_amp":            0.0025,
       "sway_yaw_freq":             0.6,
       "sway_yaw_amp":              0.002,
-      "sway_yaw_phase":            1.2
+      "sway_yaw_phase":            1.2,
+      "jump_v":                    6.5,
+      "jump_gravity":              -18,
+      "double_jump_v_mul":         0.85,
+      "double_jump_stamina_cost":  20,
+      "jump_ground_y":             0,
+      "jump_support_epsilon":      0.001,
+      "double_jump_fx_ttl":        0.25
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

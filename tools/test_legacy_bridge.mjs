@@ -1548,4 +1548,103 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native sniper-sway reproduces legacy mountSniperSway math: inactive zero, active sin-sway with breath/crouch muls, deactivate refund (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native jump-gravity parity test (iter 807) ----------
+ * Legacy mountJumpGravityTick: gravity integration + jump trigger +
+ * double-jump trigger + ground clamp.
+ *
+ * Test 1 (jump trigger from ground): hero.pos.y=0, velocity_y=0,
+ *   Space=true, dt=0.1. spaceDown && onSupport → velocity_y = 6.5;
+ *   gravity adds: velocity_y = 6.5 + (-18)*0.1 = 4.7; newY = 0 + 4.7*0.1 = 0.47.
+ *   can_double_jump = true.
+ * Test 2 (free fall): hero.pos.y=2, velocity_y=0, Space=false, dt=0.1.
+ *   gravity adds: velocity_y = -1.8; newY = 2 - 0.18 = 1.82. on_ground=false.
+ * Test 3 (ground clamp): hero.pos.y=0.05, velocity_y=-5, Space=false, dt=0.1.
+ *   gravity: velocity_y = -5 + (-18)*0.1 = -6.8; newY = 0.05 - 0.68 = -0.63 → clamped to 0.
+ *   velocity_y reset to 0. on_ground=true.
+ * Test 4 (double-jump in air): hero.pos.y=2, velocity_y=0,
+ *   can_double_jump=true, stamina=50, space_was_down=false, Space=true.
+ *   spaceRising && !onSupport && can_double_jump && stamina>=20 →
+ *   velocity_y = 6.5*0.85 = 5.525; stamina = 30; can_double_jump = false.
+ *   Then gravity: velocity_y = 5.525 - 1.8 = 3.725; newY = 2 + 0.3725 = 2.3725.
+ *   decal-particle spawned (double-jump FX).
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const jumpGravityFacet = (await import("../src/ankhor/facets/jump_gravity.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("jump-gravity", jumpGravityFacet);
+  reg.registerFacetHandler("inventory",    { priority: 24 });
+  reg.registerFacetHandler("position",     { priority: 10 });
+  reg.registerFacetHandler("input-state",  { priority: 2 });
+  reg.registerFacetHandler("tuning",       { priority: 41 });
+  reg.registerFacetHandler("mesh",         { priority: 70 });
+  reg.registerFacetHandler("ttl",          { priority: 80 });
+  reg.registerFacetHandler("expand-fade",  { priority: 60 });
+
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      jump_v: 6.5, jump_gravity: -18,
+      double_jump_v_mul: 0.85, double_jump_stamina_cost: 20,
+      jump_ground_y: 0, jump_support_epsilon: 0.001,
+      double_jump_fx_ttl: 0.25,
+    } }],
+  });
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",     data: { x: 0, y: 0, z: 0 } },
+      { name: "inventory",    data: { stamina: 50, items: {}, score: 0 } },
+      { name: "jump-gravity", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: { Space: true }, mouseHeld: false, yaw: 0 } }],
+  });
+
+  // Test 1: jump from ground.
+  reg.tick(0.1);
+  let inv = reg.facetData("hero/main", "inventory");
+  let pos = reg.facetData("hero/main", "position");
+  console.log(`[test] native jump-gravity jump: y=${pos.y.toFixed(4)}, vy=${inv.velocity_y.toFixed(4)}, can_double=${inv.can_double_jump}`);
+  if (Math.abs(pos.y - 0.47) > 1e-9)         { console.log(`[test] FAIL — jump y: expected 0.47, got ${pos.y}.`); process.exit(1); }
+  if (Math.abs(inv.velocity_y - 4.7) > 1e-9) { console.log(`[test] FAIL — jump vy: expected 4.7, got ${inv.velocity_y}.`); process.exit(1); }
+  if (inv.can_double_jump !== true)          { console.log(`[test] FAIL — can_double_jump should be true after ground jump.`); process.exit(1); }
+
+  // Test 2: free fall.
+  const inputSt = reg.facetData("input/main", "input-state");
+  inputSt.keys = {};
+  pos.y = 2; inv.velocity_y = 0; inv.space_was_down = false;
+  reg.tick(0.1);
+  console.log(`[test] native jump-gravity fall: y=${pos.y.toFixed(4)}, vy=${inv.velocity_y.toFixed(4)}, on_ground=${inv.on_ground}`);
+  if (Math.abs(pos.y - 1.82) > 1e-9)          { console.log(`[test] FAIL — fall y: expected 1.82, got ${pos.y}.`); process.exit(1); }
+  if (Math.abs(inv.velocity_y - (-1.8)) > 1e-9){ console.log(`[test] FAIL — fall vy: expected -1.8, got ${inv.velocity_y}.`); process.exit(1); }
+  if (inv.on_ground !== false)                { console.log(`[test] FAIL — on_ground should be false mid-fall.`); process.exit(1); }
+
+  // Test 3: ground clamp.
+  pos.y = 0.05; inv.velocity_y = -5;
+  reg.tick(0.1);
+  console.log(`[test] native jump-gravity clamp: y=${pos.y.toFixed(4)}, vy=${inv.velocity_y.toFixed(4)}, on_ground=${inv.on_ground}`);
+  if (pos.y !== 0)             { console.log(`[test] FAIL — clamp y: expected 0, got ${pos.y}.`); process.exit(1); }
+  if (inv.velocity_y !== 0)    { console.log(`[test] FAIL — clamp vy: expected 0, got ${inv.velocity_y}.`); process.exit(1); }
+  if (inv.on_ground !== true)  { console.log(`[test] FAIL — on_ground should be true after clamp.`); process.exit(1); }
+
+  // Test 4: double-jump in air.
+  pos.y = 2; inv.velocity_y = 0; inv.can_double_jump = true;
+  inv.stamina = 50; inv.space_was_down = false;
+  inputSt.keys = { Space: true };
+  const decalsBefore = reg.byKind("decal-particle").length;
+  reg.tick(0.1);
+  const decalsAfter = reg.byKind("decal-particle").length;
+  console.log(`[test] native jump-gravity double-jump: y=${pos.y.toFixed(4)}, vy=${inv.velocity_y.toFixed(4)}, stamina=${inv.stamina}, can_double=${inv.can_double_jump}, decals ${decalsBefore}→${decalsAfter}`);
+  if (Math.abs(pos.y - 2.3725) > 1e-9)            { console.log(`[test] FAIL — dj y: expected 2.3725, got ${pos.y}.`); process.exit(1); }
+  if (Math.abs(inv.velocity_y - 3.725) > 1e-9)    { console.log(`[test] FAIL — dj vy: expected 3.725, got ${inv.velocity_y}.`); process.exit(1); }
+  if (inv.stamina !== 30)                         { console.log(`[test] FAIL — dj stamina: expected 30, got ${inv.stamina}.`); process.exit(1); }
+  if (inv.can_double_jump !== false)              { console.log(`[test] FAIL — can_double_jump should reset to false after dj.`); process.exit(1); }
+  if (decalsAfter - decalsBefore !== 1)           { console.log(`[test] FAIL — expected 1 dj fx decal, got ${decalsAfter - decalsBefore}.`); process.exit(1); }
+
+  console.log(`[test] PASS — native jump-gravity reproduces legacy mountJumpGravityTick math: jump, free fall, ground clamp, double-jump (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);
