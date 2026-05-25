@@ -2719,4 +2719,76 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountDamageFeedback legacy regression: flashDamage state writes + hit sfx, critical-hp branch (2 extra sfx + CRITICAL toast, nearDeathFired latch, bulletTimeLeft=0.45), applyScreenShake additive+clamp to 1 (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- combat-ambient legacy regression (iter 826) ----------
+ * PARITY: mountCombatAmbientTick
+ *
+ * Throttle: AMBIENT_INTERVAL=1.0; tick no-ops until nowSec - ambT >= 1.
+ * After throttle pass, calls actions.setAmbient 6 times:
+ *   wind (220, sawtooth, 0.008), calm (110, sine, calmVol),
+ *   calm2 (130.8, sine, calmVol*0.65), tension (38 or 55),
+ *   tension2 (42 or 58), bossRumble (28, square, 0.018 if bossAlive)
+ *
+ * calmVol = (!anyAlive || aliveChasing==0) && !bossAlive && !heroDead ? 0.024 : 0
+ * tensionVol = min(0.055, aliveChasing * 0.010)
+ */
+{
+  const { mountCombatAmbientTick } = await import("../src/systems/combat_ambient_tick.js");
+  let ambT = 0;
+  const calls = [];
+  const m = mountCombatAmbientTick({
+    get: { ambT: () => ambT },
+    set: { ambT: (v) => { ambT = v; } },
+    actions: {
+      isAmbientReady: () => true,
+      setAmbient: (...a) => calls.push(a),
+    },
+  });
+
+  // Throttle: first call when ambT=0 fires (0 > 0 is false, so guard skipped).
+  m.tick(100, [], false, false);
+  if (calls.length !== 6) { console.log(`[test] FAIL — first tick should fire 6 setAmbient calls, got ${calls.length}.`); process.exit(1); }
+  if (ambT !== 100)       { console.log(`[test] FAIL — ambT should latch to 100, got ${ambT}.`); process.exit(1); }
+  // calmVol = 0.024 (no enemies, no boss, hero alive).
+  const calmCall = calls.find((c) => c[0] === "calm");
+  if (calmCall[3] !== 0.024) { console.log(`[test] FAIL — calm vol: expected 0.024 (calm scenario), got ${calmCall[3]}.`); process.exit(1); }
+  // tensionVol = min(0.055, 0 * 0.010) = 0
+  const tensionCall = calls.find((c) => c[0] === "tension");
+  if (tensionCall[3] !== 0) { console.log(`[test] FAIL — tension vol: expected 0, got ${tensionCall[3]}.`); process.exit(1); }
+  // bossRumble = 0 (no boss)
+  const rumbleCall = calls.find((c) => c[0] === "bossRumble");
+  if (rumbleCall[4] !== 0) { console.log(`[test] FAIL — bossRumble vol: expected 0, got ${rumbleCall[4]}.`); process.exit(1); }
+
+  // Re-tick at 100.5 (< 1.0 interval): suppressed.
+  calls.length = 0;
+  m.tick(100.5, [], false, false);
+  if (calls.length !== 0) { console.log(`[test] FAIL — throttle should suppress within interval, got ${calls.length} calls.`); process.exit(1); }
+
+  // Tick at 101.5 (>1.0 since 100): fires again.
+  m.tick(101.5, [], false, false);
+  if (calls.length !== 6) { console.log(`[test] FAIL — throttle should release after 1s interval, got ${calls.length}.`); process.exit(1); }
+
+  // Combat scenario: 3 chasing enemies, no boss.
+  calls.length = 0;
+  const enemies = [
+    { id: "en_spawned_1", dead: false, _wasChasing: true },
+    { id: "en_spawned_2", dead: false, _wasChasing: true },
+    { id: "en_spawned_3", dead: false, _wasChasing: true },
+  ];
+  m.tick(110, enemies, false, false);
+  const tCall = calls.find((c) => c[0] === "tension");
+  if (Math.abs(tCall[3] - 0.030) > 1e-9) { console.log(`[test] FAIL — tension vol with 3 chasing: expected 0.030, got ${tCall[3]}.`); process.exit(1); }
+  const cCall = calls.find((c) => c[0] === "calm");
+  if (cCall[3] !== 0) { console.log(`[test] FAIL — calm vol with combat should be 0, got ${cCall[3]}.`); process.exit(1); }
+
+  // Boss scenario: bossRumble=0.018, tension freq=38.
+  calls.length = 0;
+  m.tick(120, [], true, false);
+  const rCall = calls.find((c) => c[0] === "bossRumble");
+  if (rCall[4] !== 0.018) { console.log(`[test] FAIL — boss rumble vol: expected 0.018, got ${rCall[4]}.`); process.exit(1); }
+  const tCall2 = calls.find((c) => c[0] === "tension");
+  if (tCall2[1] !== 38) { console.log(`[test] FAIL — boss tension freq: expected 38, got ${tCall2[1]}.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountCombatAmbientTick legacy regression: AMBIENT_INTERVAL=1.0 throttle, 6 setAmbient layers (wind/calm/calm2/tension/tension2/bossRumble), calmVol gated on calm scenario, tensionVol=min(0.055, chasing*0.010), boss tension freq 38 + rumble 0.018 (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
