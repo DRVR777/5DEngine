@@ -2263,4 +2263,75 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountNpcMoveTick legacy regression: flee trigger (FLEE_RANGE=8, FLEE_DUR=2.5, FLEE_SPEED=7), atan2 flee-angle, position shift via sin/cos, dialogOpen suppress, clampToArena (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- weapon-hud legacy regression (iter 817) ----------
+ * PARITY: mountWeaponHudTick
+ *
+ * Pins ammo display + low-ammo warning math via stubbed DOM els.
+ *   • wpName.textContent = uppercase weapon name
+ *   • wpAmmo.childNodes[0].textContent = pistolAmmo as number
+ *   • wpReserve.textContent = " / " + reserve
+ *   • lowAmmoThresh = max(1, floor(magCap * 0.25))
+ *   • low-ammo sound fires once per distinct pistolAmmo crossing
+ */
+{
+  const { mountWeaponHudTick } = await import("../src/systems/weapon_hud_tick.js");
+
+  let lowAmmoWarnedAt = -1, lastMagBarAmmo = -1, lastMagBarReloading = false;
+  const sfxCalls = [];
+  const stubText = () => { const o = { textContent: "", childNodes: [{ textContent: "" }] }; return o; };
+  const wpName    = stubText();
+  const wpAmmo    = { childNodes: [{ textContent: "" }], style: { color: "" } };
+  const wpReserve = stubText();
+  const wpMagBar  = { innerHTML: "" };
+  const wpGrenades= { innerHTML: "" };
+  const els = { wpName, wpAmmo, wpReserve, wpMagBar, wpGrenades };
+
+  const { tick } = mountWeaponHudTick({
+    get: {
+      lowAmmoWarnedAt: () => lowAmmoWarnedAt,
+      lastMagBarAmmo:  () => lastMagBarAmmo,
+      lastMagBarReloading: () => lastMagBarReloading,
+    },
+    set: {
+      lowAmmoWarnedAt: (v) => { lowAmmoWarnedAt = v; },
+      lastMagBarAmmo:  (v) => { lastMagBarAmmo = v; },
+      lastMagBarReloading: (v) => { lastMagBarReloading = v; },
+    },
+    actions: {
+      getWeapon:  () => ({ id: "smg", name: "smg", ammoItem: "smg_9mm", magCap: 12 }),
+      getReserve: (_item) => 48,
+      playSfx:    (...args) => sfxCalls.push(args),
+    },
+  });
+
+  // Low-ammo trigger: pistolAmmo=2, magCap=12 → threshold = floor(12*0.25)=3,
+  // 2 <= 3 → isLowAmmo true. Sound fires twice (tone:440 + tone:330).
+  tick(1000, 2, false, { frag: 1, smoke: 0, flash: 0, mines: 0 }, els);
+  if (wpName.textContent !== "SMG")                  { console.log(`[test] FAIL — wpName: expected "SMG", got "${wpName.textContent}".`); process.exit(1); }
+  if (wpAmmo.childNodes[0].textContent !== 2)        { console.log(`[test] FAIL — wpAmmo text: expected 2, got ${wpAmmo.childNodes[0].textContent}.`); process.exit(1); }
+  if (wpReserve.textContent !== " / 48")             { console.log(`[test] FAIL — wpReserve: expected " / 48", got "${wpReserve.textContent}".`); process.exit(1); }
+  if (sfxCalls.length !== 2)                         { console.log(`[test] FAIL — low-ammo should fire 2 sfx, got ${sfxCalls.length}.`); process.exit(1); }
+  if (sfxCalls[0][0] !== "tone:440:60:square")       { console.log(`[test] FAIL — first sfx tone: expected 440, got ${sfxCalls[0][0]}.`); process.exit(1); }
+  if (sfxCalls[1][0] !== "tone:330:45:square")       { console.log(`[test] FAIL — second sfx tone: expected 330, got ${sfxCalls[1][0]}.`); process.exit(1); }
+  if (lowAmmoWarnedAt !== 2)                         { console.log(`[test] FAIL — lowAmmoWarnedAt should latch at 2, got ${lowAmmoWarnedAt}.`); process.exit(1); }
+  if (!wpMagBar.innerHTML.includes("background:#00ccff")) { console.log(`[test] FAIL — magBar should render filled cells in blue.`); process.exit(1); }
+
+  // Idempotent re-tick at same ammo value: sfx must NOT re-fire.
+  const prevCount = sfxCalls.length;
+  tick(1000, 2, false, { frag: 1, smoke: 0, flash: 0, mines: 0 }, els);
+  if (sfxCalls.length !== prevCount) {
+    console.log(`[test] FAIL — sfx re-fired without ammo change (got ${sfxCalls.length}, expected ${prevCount}).`);
+    process.exit(1);
+  }
+
+  // Above-threshold: pistolAmmo=8 → not low. lowAmmoWarnedAt resets to -1.
+  tick(1000, 8, false, { frag: 1, smoke: 0, flash: 0, mines: 0 }, els);
+  if (lowAmmoWarnedAt !== -1) {
+    console.log(`[test] FAIL — lowAmmoWarnedAt should reset to -1 above threshold, got ${lowAmmoWarnedAt}.`);
+    process.exit(1);
+  }
+
+  console.log(`[test] PASS — mountWeaponHudTick legacy regression: name+ammo+reserve text, lowAmmoThresh = max(1, floor(magCap*0.25)), sfx fires once per crossing then latches, mag-bar fills cells (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
