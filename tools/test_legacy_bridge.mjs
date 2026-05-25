@@ -2541,4 +2541,64 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — mountComboAnnouncer legacy regression: milestones [2,4,6,8] (DOUBLE/QUAD/RAMPAGE/GODLIKE), 2 sfx per (base + base*1.5), decay zeros state (NATIVE_VERIFIED via legacy anchor).`);
 }
 
+/* ---------- armor-vest legacy regression (iter 823) ----------
+ * PARITY: mountArmorVestTick
+ *
+ * Pins armor pickup constants + respawn loop.
+ *   • SPIN_SPEED=1.2 → mesh.rotation.y += 1.2*dt
+ *   • COLLECT_DIST=1.3, GAIN_AMT=25, RESPAWN_DUR=60
+ *   • collect: heroArmor < maxArmor + within 1.3 → active=false,
+ *     respawnT=nowSec, armor += min(GAIN, maxArmor-current)
+ *   • respawn: !active + nowSec-respawnT > 60 → active=true
+ */
+{
+  const { mountArmorVestTick } = await import("../src/systems/armor_vest_tick.js");
+
+  let armor = 30, maxArmor = 100;
+  const sfx = [], toasts = [];
+  const mount = mountArmorVestTick({
+    get: { heroArmor: () => armor, maxArmor: () => maxArmor },
+    set: { heroArmor: (v) => { armor = v; } },
+    actions: { playSfx: (...a) => sfx.push(a), showToast: (...a) => toasts.push(a) },
+  });
+
+  const mkPickup = (u, v) => ({
+    u, v, active: true, respawnT: 0,
+    mesh: { visible: true, rotation: { x: 0, y: 0, z: 0 }, position: { x: u, y: 0, z: v } },
+  });
+
+  // Test 1: spin + bob. Tick away from hero so no collect.
+  const av = mkPickup(50, 50);
+  mount.tick(0.1, { pickups: [av], heroU: 0, heroV: 0, nowSec: 10, nowMs: 0 });
+  if (Math.abs(av.mesh.rotation.y - 0.12) > 1e-9) { console.log(`[test] FAIL — spin: expected 0.12 (1.2*0.1), got ${av.mesh.rotation.y}.`); process.exit(1); }
+  const expectedY = 0.3 + Math.sin(0 / 500 + 50) * 0.08;
+  if (Math.abs(av.mesh.position.y - expectedY) > 1e-9) { console.log(`[test] FAIL — bob y: expected ${expectedY}, got ${av.mesh.position.y}.`); process.exit(1); }
+
+  // Test 2: collect (within radius + armor < max).
+  const av2 = mkPickup(0, 0);
+  mount.tick(0.016, { pickups: [av2], heroU: 0.3, heroV: 0.4, nowSec: 20, nowMs: 1000 });
+  if (av2.active !== false)              { console.log(`[test] FAIL — armor pickup should deactivate on collect.`); process.exit(1); }
+  if (av2.respawnT !== 20)               { console.log(`[test] FAIL — respawnT should be nowSec=20.`); process.exit(1); }
+  if (armor !== 55)                      { console.log(`[test] FAIL — armor: expected 55 (30+25), got ${armor}.`); process.exit(1); }
+  if (sfx.length !== 1 || sfx[0][0] !== "tone:880:120:sine") { console.log(`[test] FAIL — armor sfx: got ${sfx[0]?.[0]}.`); process.exit(1); }
+  if (toasts.length !== 1 || toasts[0][0] !== "+25 armor")   { console.log(`[test] FAIL — armor toast: got ${toasts[0]?.[0]}.`); process.exit(1); }
+
+  // Test 3: cap at maxArmor — armor near max gains only the delta.
+  armor = 90;
+  const av3 = mkPickup(0, 0);
+  mount.tick(0.016, { pickups: [av3], heroU: 0.3, heroV: 0.4, nowSec: 21, nowMs: 1000 });
+  if (armor !== 100)                     { console.log(`[test] FAIL — armor should cap at 100, got ${armor}.`); process.exit(1); }
+  // Toast shows the actual gained amount, not GAIN_AMT.
+  if (toasts[toasts.length-1][0] !== "+10 armor") { console.log(`[test] FAIL — armor toast should show actual gained=10, got "${toasts[toasts.length-1][0]}".`); process.exit(1); }
+
+  // Test 4: respawn — !active + nowSec - respawnT > 60 → active.
+  const av4 = mkPickup(0, 0);
+  av4.active = false; av4.respawnT = 100;
+  mount.tick(0.016, { pickups: [av4], heroU: 99, heroV: 99, nowSec: 161, nowMs: 1000 });
+  if (av4.active !== true)               { console.log(`[test] FAIL — armor should respawn after 60s, active=${av4.active}.`); process.exit(1); }
+  if (av4.mesh.visible !== true)         { console.log(`[test] FAIL — respawned armor mesh should be visible.`); process.exit(1); }
+
+  console.log(`[test] PASS — mountArmorVestTick legacy regression: SPIN_SPEED=1.2 + BOB_PERIOD=500, COLLECT_DIST=1.3, GAIN_AMT=25 (capped at maxArmor), RESPAWN_DUR=60 (NATIVE_VERIFIED via legacy anchor).`);
+}
+
 process.exit(0);
