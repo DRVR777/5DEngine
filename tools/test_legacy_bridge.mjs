@@ -874,6 +874,21 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native proximity (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native armor-shard parity (iter 840) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const ash = (await import("../src/ankhor/facets/armor_shard.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("armor-shard", ash);
+  reg.spawn({ id: "pickups/armor", kind: "pickup", name: "armor", facets: [{ name: "armor-shard", data: {
+    pickups: [{ u: 0, v: 0, amount: 25 }], heroU: 0, heroV: 0.3
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("pickups/armor", "armor-shard");
+  if (fd.pickups.length !== 0 || fd.armorGained !== 25) { console.log(`[test] FAIL armor-shard: len=${fd.pickups.length} gained=${fd.armorGained}`); process.exit(1); }
+  console.log(`[test] PASS — native armor-shard (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
