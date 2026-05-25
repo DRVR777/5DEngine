@@ -889,6 +889,19 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native armor-shard (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native crate-system parity (iter 841) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const cs = (await import("../src/ankhor/facets/crate_system.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("crate-system", cs);
+  reg.spawn({ id: "obj/crates", kind: "pickup", name: "crates", facets: [{ name: "crate-system", data: { crates: [{ hp: 0, broken: false }] } }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("obj/crates", "crate-system");
+  if (!fd.crates[0].broken || fd.cratesBroken !== 1) { console.log(`[test] FAIL crate-system`); process.exit(1); }
+  console.log(`[test] PASS — native crate-system (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
