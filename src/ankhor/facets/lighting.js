@@ -1,2 +1,13 @@
-/** lighting — ambInt=0.9, sunInt=1.1, shadow=2048, shadowCam=40, sunPos=(20,30,10) */
-export default { priority: 6, tick(_t,d,_dt,_r){ if(d._init)return; d._init=true; d.ambInt=0.9; d.sunInt=1.1; d.shadowMapSize=2048; d.shadowCamHalf=40; d.sunPos={x:20,y:30,z:10}; } };
+/** lighting — exact constants from mountLighting legacy source */
+export default {
+  priority: 6,
+  init(_t, data) {
+    data.ambColor = 0xffffff;
+    data.ambInt = 0.9;
+    data.sunColor = 0xffffff;
+    data.sunInt = 1.1;
+    data.shadowMapSize = 2048;
+    data.shadowCamHalf = 40;
+    data.sunPos = { x: 20, y: 30, z: 10 };
+  }
+};
