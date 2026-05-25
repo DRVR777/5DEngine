@@ -23,6 +23,7 @@
         { "name": "proximity",         "data": {} },
         { "name": "fire-patch",        "data": {} },
         { "name": "grenade-warn",      "data": {} },
+        { "name": "armor-shard",       "data": {} },
         { "name": "stamina",           "data": {} },
         { "name": "speed-boost",       "data": {} },
         { "name": "burn",              "data": {} },
