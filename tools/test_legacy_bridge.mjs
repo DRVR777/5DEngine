@@ -968,6 +968,21 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native barrel-system (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native enemy-kill parity (iter 846) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const ek = (await import("../src/ankhor/facets/enemy_kill.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("enemy-kill", ek);
+  reg.spawn({ id: "enemy/kill", kind: "pickup", name: "kill", facets: [{ name: "enemy-kill", data: { killed: true, headshot: true, type: "normal" } }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("enemy/kill", "enemy-kill");
+  if (fd.hp !== 0 || !fd.dead) { console.log(`[test] FAIL enemy-kill`); process.exit(1); }
+  if (fd.bulletTimeBonus !== 0.22) { console.log(`[test] FAIL enemy-kill headshot bonus`); process.exit(1); }
+  if (fd.enemyKills !== 1) { console.log(`[test] FAIL enemy-kill count`); process.exit(1); }
+  console.log(`[test] PASS — native enemy-kill (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
