@@ -89,7 +89,20 @@
       "gun_bob_decay_rate":        8,
       "strafe_roll_aiming_mul":    0.3,
       "strafe_roll_normal_mul":    1.0,
-      "strafe_roll_spring_rate":   8
+      "strafe_roll_spring_rate":   8,
+      "breath_hold_cap":           3.0,
+      "breath_release_rate":       2.5,
+      "breath_steady_threshold":   1.5,
+      "breath_steady_min":         0.05,
+      "breath_neutral_mul":        1.0,
+      "breath_overshoot_rate":     2.2,
+      "sway_crouch_mul":           0.25,
+      "sway_stand_mul":            1.0,
+      "sway_pitch_freq":           0.9,
+      "sway_pitch_amp":            0.0025,
+      "sway_yaw_freq":             0.6,
+      "sway_yaw_amp":              0.002,
+      "sway_yaw_phase":            1.2
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",

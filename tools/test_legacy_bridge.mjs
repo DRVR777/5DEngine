@@ -1467,4 +1467,85 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native motion-springs reproduces legacy mountMotionSprings math: move_spread spring, gun_bob_phase sprint/decay, strafe_roll aiming (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native sniper-sway parity test (iter 806) ----------
+ * Legacy mountSniperSway: when is_sniper_scope, advances scope_sway_t,
+ * lerps breath_hold_t, computes breath_mul + sway_mul, applies
+ * camPitch/Yaw += new sway (after subtracting previous). When inactive,
+ * zeros everything and refunds last sway.
+ *
+ * Test 1 (inactive baseline): is_sniper_scope=false → all sway state
+ *   stays at 0 and cam_pitch unchanged.
+ * Test 2 (active, no breath, standing): is_sniper_scope=true, dt=0.1,
+ *   cam_pitch=0.5 (from prior recoil). After 1 tick:
+ *     scope_sway_t = 0.1
+ *     breath_hold_t = 0
+ *     breath_mul = 1.0 (holdingBreath=false; breath_hold_t < 1.5 → 1.0)
+ *     sway_mul = 1.0 * 1.0 = 1.0
+ *     newPitch = sin(0.1*0.9) * 0.0025 * 1 = sin(0.09)*0.0025
+ *     cam_pitch = 0.5 + newPitch
+ * Test 3 (deactivate): is_sniper_scope=false → last sway refunded;
+ *   cam_pitch returns to 0.5, sway state zeroed.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const sniperSwayFacet = (await import("../src/ankhor/facets/sniper_sway.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("sniper-sway", sniperSwayFacet);
+  reg.registerFacetHandler("inventory",   { priority: 24 });
+  reg.registerFacetHandler("input-state", { priority: 2 });
+  reg.registerFacetHandler("tuning",      { priority: 41 });
+
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      breath_hold_cap: 3.0, breath_release_rate: 2.5,
+      breath_steady_threshold: 1.5, breath_steady_min: 0.05,
+      breath_neutral_mul: 1.0, breath_overshoot_rate: 2.2,
+      sway_crouch_mul: 0.25, sway_stand_mul: 1.0,
+      sway_pitch_freq: 0.9, sway_pitch_amp: 0.0025,
+      sway_yaw_freq: 0.6, sway_yaw_amp: 0.002, sway_yaw_phase: 1.2,
+    } }],
+  });
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "inventory",   data: { cam_pitch: 0.5, cam_yaw: 0.1, is_sniper_scope: false, items: {}, score: 0 } },
+      { name: "sniper-sway", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: {}, mouseHeld: false, yaw: 0 } }],
+  });
+
+  reg.tick(0.1);
+  let inv = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native sniper-sway inactive: cam_pitch=${inv.cam_pitch}, scope_t=${inv.scope_sway_t}, last_pitch=${inv.last_sway_pitch}`);
+  if (inv.cam_pitch !== 0.5)        { console.log(`[test] FAIL — inactive: cam_pitch should stay 0.5, got ${inv.cam_pitch}.`); process.exit(1); }
+  if (inv.last_sway_pitch !== 0)    { console.log(`[test] FAIL — inactive: last_sway_pitch should be 0.`); process.exit(1); }
+  if (inv.scope_sway_t !== 0)       { console.log(`[test] FAIL — inactive: scope_sway_t should be 0.`); process.exit(1); }
+
+  inv.is_sniper_scope = true;
+  reg.tick(0.1);
+  const expectedPitch = Math.sin(0.1 * 0.9) * 0.0025 * 1.0;
+  console.log(`[test] native sniper-sway active: cam_pitch=${inv.cam_pitch.toFixed(7)} expected=${(0.5 + expectedPitch).toFixed(7)}, last_pitch=${inv.last_sway_pitch.toFixed(7)}`);
+  if (Math.abs(inv.cam_pitch - (0.5 + expectedPitch)) > 1e-9) {
+    console.log(`[test] FAIL — active cam_pitch: expected ${0.5 + expectedPitch}, got ${inv.cam_pitch}.`);
+    process.exit(1);
+  }
+  if (Math.abs(inv.last_sway_pitch - expectedPitch) > 1e-9) {
+    console.log(`[test] FAIL — active last_sway_pitch: expected ${expectedPitch}, got ${inv.last_sway_pitch}.`);
+    process.exit(1);
+  }
+
+  inv.is_sniper_scope = false;
+  reg.tick(0.1);
+  console.log(`[test] native sniper-sway deactivate: cam_pitch=${inv.cam_pitch} expected 0.5, last=0`);
+  if (Math.abs(inv.cam_pitch - 0.5) > 1e-9) { console.log(`[test] FAIL — deactivate should refund sway, got cam_pitch=${inv.cam_pitch}.`); process.exit(1); }
+  if (inv.last_sway_pitch !== 0)            { console.log(`[test] FAIL — last_sway_pitch should reset to 0.`); process.exit(1); }
+  if (inv.scope_sway_t !== 0)               { console.log(`[test] FAIL — scope_sway_t should reset to 0.`); process.exit(1); }
+
+  console.log(`[test] PASS — native sniper-sway reproduces legacy mountSniperSway math: inactive zero, active sin-sway with breath/crouch muls, deactivate refund (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

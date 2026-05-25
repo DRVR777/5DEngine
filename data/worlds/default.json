@@ -133,7 +133,6 @@
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" },
 
-    { "ref": "legacy/sniper-sway" },
     { "ref": "legacy/jump-gravity" }
   ]
 }
