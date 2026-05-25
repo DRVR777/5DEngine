@@ -996,6 +996,19 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native bullet-geo (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native bullet-physics parity (iter 848) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const bp = (await import("../src/ankhor/facets/bullet_physics.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("bullet-physics", bp);
+  reg.spawn({ id: "phys/bullet", kind: "pickup", name: "bphys", facets: [{ name: "bullet-physics", data: {} }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("phys/bullet", "bullet-physics");
+  if (fd.substeps !== 5 || fd.hitRadius !== 0.6) { console.log(`[test] FAIL bullet-physics`); process.exit(1); }
+  console.log(`[test] PASS — native bullet-physics (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
