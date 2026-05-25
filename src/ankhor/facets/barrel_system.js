@@ -14,7 +14,7 @@ export default {
     for (const b of barrels) {
       if (b.exploded) continue;
       // Check if hp depleted (from fire_patch, bullet hits, etc.)
-      if ((b.hp || 40) <= 0 && !b._exploding) {
+      if ((b.hp ?? 40) <= 0 && !b._exploding) {
         b._exploding = true;
         newExplosions.push({ u: b.u, v: b.v });
 
