@@ -21,6 +21,7 @@
         { "name": "hero-regen",        "data": {} },
         { "name": "camera-pos",        "data": {} },
         { "name": "proximity",         "data": {} },
+        { "name": "fire-patch",        "data": {} },
         { "name": "stamina",           "data": {} },
         { "name": "speed-boost",       "data": {} },
         { "name": "burn",              "data": {} },
