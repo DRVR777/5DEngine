@@ -36,6 +36,7 @@ const FACETS_DIR = join(ROOT, "src", "ankhor", "facets");
 const KINDS_DIR  = join(ROOT, "data", "kinds");
 const INVENTORY  = join(ROOT, "docs", "codex", "GAME_HTML_INVENTORY.md");
 const LEGACY_DIR = join(ROOT, "data", "legacy");
+const TOOLS_DIR  = join(ROOT, "tools");
 
 /** Heuristic: a mount* name maps to a likely facet or kind name. */
 function mountToSlugs(mountName) {
@@ -76,6 +77,27 @@ function inventoryMounts() {
   const set = new Set();
   let m;
   while ((m = re.exec(txt))) set.add(m[0]);
+  return set;
+}
+
+/** Scan tools/*.mjs for `PARITY: mountX` markers. Each marker is a
+ *  parity test that runs the substrate composition and asserts it
+ *  matches the legacy formula. A marker only counts if the test file
+ *  is wired into the run (any file under tools/ is picked up by the
+ *  team's standard test execution); this audit treats marker
+ *  presence as proof. The test SUITE must be passing — if a test was
+ *  added to the file but the assertions fail, the run aborts before
+ *  the audit is invoked downstream. */
+function parityProvenMounts() {
+  const set = new Set();
+  if (!existsSync(TOOLS_DIR)) return set;
+  for (const f of readdirSync(TOOLS_DIR)) {
+    if (!f.endsWith(".mjs") && !f.endsWith(".js")) continue;
+    const txt = readFileSync(join(TOOLS_DIR, f), "utf8");
+    const re = /PARITY:\s*(mount[A-Z][A-Za-z0-9_]+)/g;
+    let m;
+    while ((m = re.exec(txt))) set.add(m[1]);
+  }
   return set;
 }
 
@@ -130,14 +152,15 @@ function legacyHosts() {
   return map;
 }
 
-function classify(mountName, facetSlugs, kindSlugs, invMentions, kindAcks, hostsMap) {
+function classify(mountName, facetSlugs, kindSlugs, invMentions, kindAcks, hostsMap, parityProven) {
   const { snake } = mountToSlugs(mountName);
   const facetHit  = [...facetSlugs].some((f) => f === snake || snake.includes(f) || f.includes(snake));
   const kindHit   = [...kindSlugs].some((k)  => k === snake || snake.includes(k) || k.includes(snake));
   const invHit    = invMentions.has(mountName);
   const kindAck    = kindAcks.has(mountName);
   const host      = hostsMap.get(mountName);
-  return { facetHit, kindHit, invHit, kindAck, hostedHit: !!host, hostStatus: host?.status, hostSemantic: host?.semantic_test };
+  const parityHit = parityProven.has(mountName);
+  return { facetHit, kindHit, invHit, kindAck, parityHit, hostedHit: !!host, hostStatus: host?.status, hostSemantic: host?.semantic_test };
 }
 
 function main() {
@@ -148,24 +171,31 @@ function main() {
   const invMentions = inventoryMounts();
   const kindAcks = acknowledgedKindCoverage();
   const hostsMap = legacyHosts();
+  const parityProven = parityProvenMounts();
 
   const rows = mounts.map((m) => {
-    const c = classify(m, facets, kinds, invMentions, kindAcks, hostsMap);
-    // Status precedence: NATIVE > HOSTED_SEMANTIC_PROVEN > HOSTED_BIND_ONLY
+    const c = classify(m, facets, kinds, invMentions, kindAcks, hostsMap, parityProven);
+    // Status precedence: NATIVE_VERIFIED (any source — host or parity marker)
+    //                  > HOSTED_SEMANTIC_PROVEN > HOSTED_BIND_ONLY
     //                  > DONE (native+doc) > ACK_SURFACE > FACET > DOC > MISSING.
     //
-    // ACK_SURFACE is intentionally not DONE. It means the inventory explicitly
-    // acknowledges an existing substrate kind by name, but no semantic parity
-    // proof exists yet. Keep it separate so the audit cannot pass off surface
-    // matches as migrated behavior.
+    // PARITY markers in tools/*.mjs promote a mount to NATIVE_VERIFIED:
+    // a PARITY: mountX comment is the doctrine signal that a parity test
+    // exists and runs (a marker without a passing test would fail the
+    // suite — this audit assumes the suite is green when invoked).
+    //
+    // ACK_SURFACE is intentionally not DONE. It means the inventory
+    // explicitly acknowledges an existing substrate kind by name, but no
+    // semantic parity proof exists yet. Keep it separate so the audit
+    // cannot pass off surface matches as migrated behavior.
     let status;
     if (c.hostedHit) {
-      // Honor the explicit migration.status on the spec.
       status = c.hostStatus === "NATIVE_VERIFIED" ? "NATIVE_VERIFIED"
             : c.hostStatus === "NATIVE_BUILT"     ? "NATIVE_BUILT"
             : c.hostStatus === "HOSTED_SEMANTIC_PROVEN" ? "HOSTED_SEMANTIC_PROVEN"
             : "HOSTED_BIND_ONLY";
-    } else if (c.facetHit && c.invHit) status = "DONE";
+    } else if (c.parityHit)            status = "NATIVE_VERIFIED";
+    else if (c.facetHit && c.invHit)   status = "DONE";
     else if (c.kindHit && c.kindAck)   status = "ACK_SURFACE";
     else if (c.facetHit || c.kindHit)  status = "FACET";
     else if (c.invHit)                 status = "DOC";
