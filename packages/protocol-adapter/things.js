@@ -1,36 +1,21 @@
-/** Thing type system — every protocol object becomes a Thing */
-
-export type ThingKind =
-  | "network.node" | "network.peer" | "network.route"
-  | "network.relay" | "network.directory"
-  | "crypto.handshake" | "crypto.session" | "crypto.channel"
-  | "message" | "message.envelope" | "message.receipt"
-  | "agent" | "agent.capability"
-  | "work.order" | "work.result"
-  | "trust.event" | "trust.ledger"
-  | "audit.log";
-
-export interface Thing {
-  id: string;
-  kind: ThingKind;
-  label?: string;
-  state: Record<string, unknown>;
-  edges: Edge[];
-  ts: number;
-  version: number;
-}
-
-interface Edge {
-  relation: string;
-  targetId: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface ProtocolEvent {
-  ts: number;
-  node: string;
-  event: string;
-  peer?: string;
-  reason?: string;
-  detail?: Record<string, unknown>;
-}
+// ThingKind constants (used as string values)
+export const ThingKind = {
+  NETWORK_NODE: "network.node",
+  NETWORK_PEER: "network.peer",
+  NETWORK_ROUTE: "network.route",
+  NETWORK_RELAY: "network.relay",
+  NETWORK_DIRECTORY: "network.directory",
+  CRYPTO_HANDSHAKE: "crypto.handshake",
+  CRYPTO_SESSION: "crypto.session",
+  CRYPTO_CHANNEL: "crypto.channel",
+  MESSAGE: "message",
+  MESSAGE_ENVELOPE: "message.envelope",
+  MESSAGE_RECEIPT: "message.receipt",
+  AGENT: "agent",
+  AGENT_CAPABILITY: "agent.capability",
+  WORK_ORDER: "work.order",
+  WORK_RESULT: "work.result",
+  TRUST_EVENT: "trust.event",
+  TRUST_LEDGER: "trust.ledger",
+  AUDIT_LOG: "audit.log",
+};
