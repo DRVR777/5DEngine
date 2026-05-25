@@ -938,6 +938,23 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native bullet-hit-feedback (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native debug-hud parity (iter 844) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const dh = (await import("../src/ankhor/facets/debug_hud.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("debug-hud", dh);
+  reg.spawn({ id: "hud/debug", kind: "pickup", name: "debug", facets: [{ name: "debug-hud", data: { heroHp: 100, heroMaxHp: 100 } }] });
+  reg.tick(0.016);
+  let fd = reg.facetData("hud/debug", "debug-hud");
+  if (fd.hpColor !== "#5dff5d") { console.log(`[test] FAIL debug-hud full: ${fd.hpColor}`); process.exit(1); }
+  fd.heroHp = 40; reg.tick(0.016);
+  if (fd.hpColor !== "#ffd166") { console.log(`[test] FAIL debug-hud mid: ${fd.hpColor}`); process.exit(1); }
+  fd.heroHp = 10; reg.tick(0.016);
+  if (fd.hpColor !== "#ff5d5d") { console.log(`[test] FAIL debug-hud low: ${fd.hpColor}`); process.exit(1); }
+  console.log(`[test] PASS — native debug-hud (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
