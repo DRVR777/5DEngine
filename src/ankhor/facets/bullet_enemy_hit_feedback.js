@@ -1,0 +1,1 @@
+export default { priority: 42, tick(_t,d,_dt,_r){ if(d._init)return; d._init=true; d.HIT_FLASH_T=0.08; d.HIT_MARKER_HS=200; d.HIT_MARKER_BS=160; d.HIT_MARKER_FB=80; d.HIT_MARKER_CRIT=180; d.HIT_MARKER_NORM=120; d.KB_MULT=3.5; d.KB_T=0.1; } };
