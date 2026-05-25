@@ -2523,10 +2523,15 @@ if (heartbeatSpec) {
   mount.tick(100.6);
   if (toasts.length !== t0)               { console.log(`[test] FAIL — re-tick at same milestone re-announced.`); process.exit(1); }
 
+  // Jump to combo=6: loop `break`s after the first unfired milestone,
+  // so this fires QUAD (4), not RAMPAGE (6). RAMPAGE fires next tick.
   s.comboCount = 6;
   mount.tick(100.7);
-  if (s.comboAnnouncedMul !== 6)                       { console.log(`[test] FAIL — milestone 6 fire.`); process.exit(1); }
-  if (toasts[toasts.length-1][0] !== "RAMPAGE! x6")    { console.log(`[test] FAIL — RAMPAGE label.`); process.exit(1); }
+  if (s.comboAnnouncedMul !== 4)                       { console.log(`[test] FAIL — combo 6 + announcedMul=2 should step-fire QUAD (4), got ${s.comboAnnouncedMul}.`); process.exit(1); }
+  if (toasts[toasts.length-1][0] !== "QUAD KILL! x4")  { console.log(`[test] FAIL — QUAD label: got "${toasts[toasts.length-1][0]}".`); process.exit(1); }
+  mount.tick(100.8);
+  if (s.comboAnnouncedMul !== 6)                       { console.log(`[test] FAIL — second tick should fire RAMPAGE, got ${s.comboAnnouncedMul}.`); process.exit(1); }
+  if (toasts[toasts.length-1][0] !== "RAMPAGE! x6")    { console.log(`[test] FAIL — RAMPAGE label: got "${toasts[toasts.length-1][0]}".`); process.exit(1); }
 
   s.comboCount = 4; s.comboAnnouncedMul = 4; s.comboLastT = 200;
   mount.tick(202.5);
