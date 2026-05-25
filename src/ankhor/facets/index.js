@@ -37,6 +37,7 @@ import footstepSound  from "./footstep_sound.js";
 import heartbeat      from "./heartbeat.js";
 import dayNight     from "./day_night.js";
 import lighting     from "./lighting.js";
+import weather      from "./weather.js";
 import heroRegen     from "./hero_regen.js";
 import burn           from "./burn.js";
 import enemyDeathCleanup from "./enemy_death_cleanup.js";
@@ -133,7 +134,7 @@ export const FACET_HANDLERS = {
   "skybox":       { priority: 5, init(_t,d){ d.presets={day:{bg:0x87ceeb,fog:0x87ceeb,fogNear:40,fogFar:140,ambColor:0xffffff,ambInt:0.9,sunColor:0xffffff,sunInt:1.1},sunset:{bg:0xff7744,fog:0xee6633,fogNear:20,fogFar:90,ambColor:0xff9966,ambInt:0.8,sunColor:0xff8800,sunInt:1.4},night:{bg:0x060a1a,fog:0x060a1a,fogNear:15,fogFar:60,ambColor:0x223366,ambInt:0.3,sunColor:0x3366aa,sunInt:0.4},holo:{bg:0x010810,fog:0x010810,fogNear:30,fogFar:100,ambColor:0x00ccff,ambInt:0.4,sunColor:0x00ffaa,sunInt:0.6},space:{bg:0x000008,fog:0x000008,fogNear:60,fogFar:300,ambColor:0x8866ff,ambInt:0.2,sunColor:0xffffff,sunInt:2.0}}; d.current="day"; } },
   "day-night":    dayNight,
   "lighting":     lighting,
-  "weather":      { priority: 9, init(_t,d){ d.current="clear"; d.presets={clear:{vis:1.0,sky:{r:.53,g:.81,b:.92},wind:1.0},light_rain:{vis:.85,sky:{r:.45,g:.55,b:.62},wind:2.5},heavy_rain:{vis:.55,sky:{r:.30,g:.35,b:.42},wind:5.0},storm:{vis:.30,sky:{r:.18,g:.20,b:.25},wind:9.0,lightning:true},snow:{vis:.65,sky:{r:.85,g:.87,b:.90},wind:3.0},fog:{vis:.25,sky:{r:.78,g:.80,b:.82},wind:0.5}}; } },
+  "weather":      weather,
   "fog_of_war":   { priority: 50, init(_t,d){ d.FOW_RADIUS=25; d.FOW_FADE_START=18; d.FOW_OPACITY=0.85; } },
   "rain":         { priority: 12, init(_t,d){ d.rainDrops=true; d.rainIntensity=1; } },
   "world_layout": { priority: 10, init(_t,d){ d.ARENA_HALF=28; d.ARENA_THICK=1.6; d.ARENA_HEIGHT=2.2; } },
