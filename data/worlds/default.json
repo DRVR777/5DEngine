@@ -131,7 +131,6 @@
     { "ref": "spawns/wave_spawner" },
     { "ref": "spawns/arena_walls" },
     { "ref": "spawns/ground" },
-    { "ref": "spawns/legacy_systems" },
-
+    { "ref": "spawns/legacy_systems" }
   ]
 }
