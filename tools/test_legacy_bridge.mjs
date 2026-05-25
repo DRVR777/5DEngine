@@ -1213,4 +1213,74 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native dodge reproduces legacy mountDodgeTick math: cooldown countdown, position delta, trail spawn, bash_done reset (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native crouch-speed parity test (iter 802) ----------
+ * Legacy mountCrouchSpeedTick: spring crouch_amt toward 0/1 by
+ * dt*spring_rate=12, derive crouch_speed_mul = 1 - amt * 0.4,
+ * and branch move_spread_target on (aiming/sprinting/moving/crouching).
+ *
+ * Using dt = 1/12 makes the spring factor exactly 1.0 → snap, which
+ * gives deterministic post-tick values without simulating dozens of
+ * frames.
+ */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const crouchSpeedFacet = (await import("../src/ankhor/facets/crouch_speed.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("crouch-speed", crouchSpeedFacet);
+  reg.registerFacetHandler("inventory",    { priority: 24 });
+  reg.registerFacetHandler("position",     { priority: 10 });
+  reg.registerFacetHandler("input-state",  { priority: 2 });
+  reg.registerFacetHandler("tuning",       { priority: 41 });
+  reg.registerFacetHandler("mesh",         { priority: 70 });
+  reg.registerFacetHandler("ttl",          { priority: 80 });
+  reg.registerFacetHandler("expand-fade",  { priority: 60 });
+
+  reg.spawn({
+    id: "hero/main", kind: "hero", name: "hero",
+    facets: [
+      { name: "position",     data: { x: 0, y: 0, z: 0 } },
+      { name: "inventory",    data: { items: {}, score: 0 } },
+      { name: "crouch-speed", data: {} },
+    ],
+  });
+  reg.spawn({
+    id: "tuning/hero", kind: "tuning", name: "hero-tuning",
+    facets: [{ name: "tuning", data: {
+      crouch_spring_rate: 12, crouch_speed_factor: 0.4,
+      move_spread_aiming: 0, move_spread_sprint: 1,
+      move_spread_walk: 0.45, move_spread_walk_crouch: 0.18,
+      move_spread_idle: 0,
+      sprint_trail_chance: 0.45, sprint_trail_ttl: 0.2, sprint_trail_y: 0.08,
+    } }],
+  });
+  reg.spawn({
+    id: "input/main", kind: "input", name: "primary_input",
+    facets: [{ name: "input-state", data: { keys: { ControlLeft: true, KeyW: true }, mouseHeld: false, yaw: 0, pointer_locked: false } }],
+  });
+
+  reg.tick(1/12);
+  let inv = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native crouch-speed crouch+walk: amt=${inv.crouch_amt.toFixed(4)}, mul=${inv.crouch_speed_mul.toFixed(4)}, spread=${inv.move_spread_target}`);
+  if (Math.abs(inv.crouch_amt - 1) > 1e-9)            { console.log(`[test] FAIL — crouch_amt snap: expected 1, got ${inv.crouch_amt}.`); process.exit(1); }
+  if (Math.abs(inv.crouch_speed_mul - 0.6) > 1e-9)    { console.log(`[test] FAIL — crouch_speed_mul: expected 0.6, got ${inv.crouch_speed_mul}.`); process.exit(1); }
+  if (Math.abs(inv.move_spread_target - 0.18) > 1e-9) { console.log(`[test] FAIL — walk-crouch spread: expected 0.18, got ${inv.move_spread_target}.`); process.exit(1); }
+
+  const inputSt = reg.facetData("input/main", "input-state");
+  inputSt.keys = { ShiftLeft: true, KeyW: true };
+  reg.tick(1/12);
+  inv = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native crouch-speed sprint: amt=${inv.crouch_amt.toFixed(4)}, mul=${inv.crouch_speed_mul.toFixed(4)}, spread=${inv.move_spread_target}`);
+  if (Math.abs(inv.crouch_amt - 0) > 1e-9)         { console.log(`[test] FAIL — crouch_amt should return to 0, got ${inv.crouch_amt}.`); process.exit(1); }
+  if (Math.abs(inv.crouch_speed_mul - 1) > 1e-9)   { console.log(`[test] FAIL — crouch_speed_mul: expected 1, got ${inv.crouch_speed_mul}.`); process.exit(1); }
+  if (Math.abs(inv.move_spread_target - 1) > 1e-9) { console.log(`[test] FAIL — sprint spread: expected 1, got ${inv.move_spread_target}.`); process.exit(1); }
+
+  inputSt.keys = {};
+  reg.tick(1/12);
+  inv = reg.facetData("hero/main", "inventory");
+  console.log(`[test] native crouch-speed idle: amt=${inv.crouch_amt.toFixed(4)}, spread=${inv.move_spread_target}`);
+  if (Math.abs(inv.move_spread_target - 0) > 1e-9) { console.log(`[test] FAIL — idle spread: expected 0, got ${inv.move_spread_target}.`); process.exit(1); }
+
+  console.log(`[test] PASS — native crouch-speed reproduces legacy mountCrouchSpeedTick math: spring+mul, sprint/walk/walk-crouch/idle branches (NATIVE_VERIFIED).`);
+}
+
 process.exit(0);

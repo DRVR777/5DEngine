@@ -70,7 +70,17 @@
       "cam_hitpunch_spring_rate":  10,
       "cam_hitpunch_decay_rate":   14,
       "knockback_decay_rate":      8,
-      "dodge_trail_ttl":           0.18
+      "dodge_trail_ttl":           0.18,
+      "crouch_spring_rate":        12,
+      "crouch_speed_factor":       0.4,
+      "move_spread_aiming":        0,
+      "move_spread_sprint":        1,
+      "move_spread_walk":          0.45,
+      "move_spread_walk_crouch":   0.18,
+      "move_spread_idle":          0,
+      "sprint_trail_chance":       0.45,
+      "sprint_trail_ttl":          0.2,
+      "sprint_trail_y":            0.08
     }},
     { "name": "mesh-spec", "data": {
       "kind": "group",
