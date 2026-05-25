@@ -798,6 +798,25 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native grenade-warn (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native fp-gun-pos parity (iter 836) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const fgp = (await import("../src/ankhor/facets/fp_gun_pos.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("fp-gun-pos", fgp);
+  reg.spawn({ id: "weapon/gun", kind: "pickup", name: "fp-gun", facets: [{ name: "fp-gun-pos", data: {
+    active: true, aiming: false, reloading: false, canSprint: false, gunBobPhase: 0, gunKickZ: 0, gunReloadX: 0, meleeSwing: 0, weaponSwitchT: 0
+  }}] });
+  reg.tick(0.016);
+  const fd = reg.facetData("weapon/gun", "fp-gun-pos");
+  if (fd.gunX !== 0.22 || fd.gunY !== -0.24 || fd.gunZ !== -0.45) { console.log(`[test] FAIL fp-gun default pos: ${fd.gunX}/${fd.gunY}/${fd.gunZ}`); process.exit(1); }
+  // Aiming shifts X by -0.08
+  fd.aiming = true;
+  reg.tick(0.016);
+  if (fd.gunX !== 0.14) { console.log(`[test] FAIL fp-gun aim shift: ${fd.gunX} expected 0.14`); process.exit(1); }
+  console.log(`[test] PASS — native fp-gun-pos preserves magic numbers (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
