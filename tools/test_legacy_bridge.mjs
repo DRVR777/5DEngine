@@ -729,7 +729,7 @@ if (heartbeatSpec) {
   const fp = (await import("../src/ankhor/facets/fire_patch.js")).default;
   const reg = createReg();
   reg.registerFacetHandler("fire-patch", fp);
-  reg.spawn({ id: "hazards/fire", kind: "hazard", name: "fire", facets: [{ name: "fire-patch", data: {
+  reg.spawn({ id: "hazards/fire", kind: "pickup", name: "fire", facets: [{ name: "fire-patch", data: {
     patches: [{ u: 0, v: 0, radius: 2, timeLeft: 5, dmgT: 0 }], heroU: 0, heroV: 0, heroHp: 100
   }}] });
   for (let i = 0; i < 5; i++) reg.tick(0.5);
