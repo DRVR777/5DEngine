@@ -1023,6 +1023,22 @@ if (heartbeatSpec) {
   console.log(`[test] PASS — native combat-hud (NATIVE_VERIFIED).`);
 }
 
+/* ---------- native combo-hud parity (iter 850) ---------- */
+{
+  const { createDefaultRegistry: createReg } = await import("../experimental/holograph-runtime/src/registry.js");
+  const ch = (await import("../src/ankhor/facets/combo_hud.js")).default;
+  const reg = createReg();
+  reg.registerFacetHandler("combo-hud", ch);
+  reg.spawn({ id: "hud/combo", kind: "pickup", name: "combo", facets: [{ name: "combo-hud", data: { comboCount: 6, comboLastT: Date.now() / 1000 } }] });
+  reg.tick(0.016);
+  const fd = reg.facetData("hud/combo", "combo-hud");
+  if (!fd.comboVisible || fd.comboMul !== 6) { console.log(`[test] FAIL combo-hud visible`); process.exit(1); }
+  if (fd.comboHue !== "#ff4466") { console.log(`[test] FAIL combo-hud hue: ${fd.comboHue}`); process.exit(1); }
+  fd.comboCount = 2; reg.tick(0.016);
+  if (fd.comboHue !== "#ffd166") { console.log(`[test] FAIL combo-hud low hue`); process.exit(1); }
+  console.log(`[test] PASS — native combo-hud (NATIVE_VERIFIED).`);
+}
+
 /* ---------- native stamina parity test (iter 771) ----------
  * Mirrors the iter-759 legacy stamina semantic phase: synthetic
  * input with KeyW + ShiftLeft held, tick 4×0.1s, assert stamina
