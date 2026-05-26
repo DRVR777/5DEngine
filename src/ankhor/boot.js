@@ -51,6 +51,7 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
 
   await stage("setPixelRatio",         () => renderer.setPixelRatio(Math.min(devicePixelRatio || 1, need(bootP, "pixel_ratio_cap", B))));
   const scene = await stage("new Scene", () => new THREE.Scene());
+  window._scene = scene;  // expose for debugging
   const cp    = await stage("applyWorldParams", () => applyWorldParams(THREE, scene, worldP));
   const cam   = await stage("new PerspectiveCamera", () => new THREE.PerspectiveCamera(cp.fov, innerWidth / innerHeight, cp.near, cp.far));
   await stage("cam.position.set", () => cam.position.set(cp.init_pos[0], cp.init_pos[1], cp.init_pos[2]));
