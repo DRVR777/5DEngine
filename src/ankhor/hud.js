@@ -20,7 +20,7 @@ export function initHUD(ankhor) {
   // State
   let bobT = 0;
   const stage = document.getElementById('stage');
-  let lastKeys = {};
+  const hudState = { _lastScore: 0 };
 
   function tick(dt) {
     bobT += dt * 7;
@@ -47,21 +47,26 @@ export function initHUD(ankhor) {
     // Crouch
     crouch.style.opacity = keys.CtrlLeft || keys.ControlLeft ? '1' : '0';
 
-    // Ammo warn color
-    const inv = ankhor.facetData(hero.id, 'inventory');
-    const ammo = inv?.items?.pistol_9mm || 0;
-    const ammoEl = document.getElementById('ammo');
-    if (ammoEl) {
-      ammoEl.textContent = ammo + ' / 60';
-      ammoEl.style.color = ammo < 10 ? '#f44' : ammo < 20 ? '#fa0' : '#fff';
+    // Score popup on kill
+    const scoreNow = ankhor.facetData(hero.id, 'inventory')?.score || 0;
+    if (scoreNow > (hudState._lastScore || 0)) {
+      const popup = document.createElement('div');
+      popup.textContent = '+' + (scoreNow - (hudState._lastScore||0)) + ' XP';
+      popup.style.cssText = 'position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);color:#ff0;font:bold 24px monospace;text-shadow:0 0 10px #ff0;pointer-events:none;animation:floatUp 1s ease-out forwards;';
+      document.body.appendChild(popup);
+      setTimeout(()=>popup.remove(), 1000);
     }
+    hudState._lastScore = scoreNow;
 
-    // HP display
-    const hp = ankhor.facetData(hero.id, 'health');
-    const hpEl = document.getElementById('hp');
-    if (hp && hpEl) {
-      hpEl.textContent = 'HP ' + Math.round(hp.hp || 0);
-      hpEl.style.color = hp.hp < 30 ? '#f44' : hp.hp < 60 ? '#fa0' : '#fff';
+    // Kill counter
+    document.getElementById('kills').textContent = ((ankhor.facetData(hero.id, 'enemy-kill')?.enemyKills)||0) + ' kills';
+
+    // Combo
+    const streak = ankhor.facetData(hero.id, 'enemy-kill')?.killStreak || 0;
+    const comboEl = document.getElementById('combo');
+    if (comboEl) {
+      comboEl.textContent = streak > 1 ? streak + 'x COMBO' : '';
+      comboEl.style.opacity = streak > 1 ? '1' : '0';
     }
   }
 
