@@ -9,6 +9,7 @@ import { installFacetHandlers }  from "./facets/index.js";
 import { installMeshHandler }    from "./install_mesh_handler.js";
 import { composeFromRoot, facetMap } from "./compose.js";
 import { applyWorldParams }      from "./world_params.js";
+import { renderAdapter }        from "./adapter_render.js";
 import { requireParam as need }  from "./require_param.js";
 
 const B = "boot-params";
@@ -129,6 +130,8 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
     // or render call would black-screen the whole engine otherwise.
     try { registry.tick(dt); }
     catch (e) { console.error("[boot] registry.tick error (non-fatal):", e); }
+    try { renderAdapter(scene, registry, dt); }
+    catch (e) { console.error("[boot] renderAdapter error (non-fatal):", e); }
     try { updateCamera(cam, cp, registry, now); }
     catch (e) { console.error("[boot] updateCamera error (non-fatal):", e); }
     try { renderer.render(scene, cam); }
