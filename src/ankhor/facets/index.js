@@ -71,6 +71,11 @@ import particleTerrain  from "./particle_terrain.js";
 import camDist          from "./cam_dist.js";
 import cameraZone       from "./camera_zone.js";
 import bulletPhysics     from "./bullet_physics.js";
+import bulletWorldHit   from "./bullet_world_hit.js";
+import barrelSystem     from "./barrel_system.js";
+import enemyKill        from "./enemy_kill.js";
+import grenadePhysics   from "./grenade_physics.js";
+import firePatch        from "./fire_patch.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -141,6 +146,11 @@ export const FACET_HANDLERS = {
   "cam-dist":            camDist,
   "camera-zone":         cameraZone,
   "bullet-physics":       bulletPhysics,
+  "bullet-world-hit":     bulletWorldHit,
+  "barrel-system":        barrelSystem,
+  "enemy-kill":           enemyKill,
+  "grenade-physics":      grenadePhysics,
+  "fire-patch":           firePatch,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
