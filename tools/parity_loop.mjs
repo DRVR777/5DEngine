@@ -13,7 +13,7 @@ async function iteration(n) {
   
   // 1. Boot test
   const boot = execSync('node tools/test_boot_full.mjs', { encoding: 'utf8', cwd: 'C:/Users/Quandale Dingle/5DEngine' });
-  const bootOk = !boot.includes('fatal error');
+  const bootOk = boot.includes('no fatal error');
   const things = (boot.match(/total Things.*?(\d+)/) || ['','?'])[1];
   console.log(`  Boot: ${bootOk?'✅':'❌'} ${things} Things`);
   if (!bootOk) return false;

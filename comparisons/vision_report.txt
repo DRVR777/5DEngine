@@ -1,0 +1,5 @@
+[Size comparison only — no API key]
+Ankhor: 70.3KB
+Legacy: 285.9KB
+Match: 24.6%
+Target: 100%
