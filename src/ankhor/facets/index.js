@@ -57,6 +57,7 @@ import legacyMount    from "./legacy_mount.js";
 import ttl             from "./ttl.js";
 import enemyAiScaffold  from "./enemy_ai_scaffold.js";
 import enemyRegen       from "./enemy_regen.js";
+import enemyRobotEmp   from "./enemy_robot_emp.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -113,6 +114,7 @@ export const FACET_HANDLERS = {
   "ttl":                 ttl,
   "enemy-ai-scaffold":   enemyAiScaffold,
   "enemy-regen":         enemyRegen,
+  "enemy-robot-emp":    enemyRobotEmp,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
