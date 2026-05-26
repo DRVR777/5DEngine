@@ -121,7 +121,11 @@
         { "name": "head",
           "geometry": { "kind": "sphere", "args": [0.22, 12, 12] },
           "material": { "kind": "standard", "color": 7257215, "emissive": 65535, "emissive_intensity": 0.4 },
-          "position": { "y": 1.85 } }
+          "position": { "y": 1.85 } },
+        { "name": "weapon",
+          "geometry": { "kind": "box", "args": [0.06, 0.06, 0.45] },
+          "material": { "kind": "standard", "color": 3355443, "metalness": 0.8, "roughness": 0.3 },
+          "position": { "x": 0.28, "y": 1.35, "z": -0.35 } }
       ]
     }},
     { "name": "provenance", "data": {
