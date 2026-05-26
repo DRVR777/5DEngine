@@ -65,6 +65,8 @@ import enemyIncendiary   from "./enemy_incendiary.js";
 import enemyStrafeMelee  from "./enemy_strafe_melee.js";
 import enemySep          from "./enemy_sep.js";
 import enemyMesh         from "./enemy_mesh.js";
+import bossBar          from "./boss_bar.js";
+import armorVest        from "./armor_vest.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -129,6 +131,8 @@ export const FACET_HANDLERS = {
   "enemy-strafe-melee":  enemyStrafeMelee,
   "enemy-sep":           enemySep,
   "enemy-mesh":          enemyMesh,
+  "boss-bar":            bossBar,
+  "armor-vest":          armorVest,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
