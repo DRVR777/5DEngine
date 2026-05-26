@@ -1,0 +1,13 @@
+{
+  "id": "tuning/arena_wall_default",
+  "kind": "tuning",
+  "name": "arena-wall-default-tuning",
+  "facets": [
+    { "name": "mesh-spec", "data": {
+      "kind": "mesh",
+      "geometry": { "kind": "box", "args": [64, 4, 2] },
+      "material": { "kind": "standard", "color": 8947848, "roughness": 0.9, "metalness": 0.1 },
+      "cast_shadow": true
+    }}
+  ]
+}

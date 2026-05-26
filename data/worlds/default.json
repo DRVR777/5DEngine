@@ -107,6 +107,7 @@
     { "ref": "tuning/enemy_robot" },
     { "ref": "tuning/enemy_boss" },
     { "ref": "tuning/enemy_sniper" },
+    { "ref": "tuning/arena_wall_default" },
     { "ref": "tuning/hero" },
     { "ref": "tuning/vehicle_car" },
     { "ref": "tuning/npc_default" },

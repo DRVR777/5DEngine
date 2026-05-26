@@ -10,22 +10,26 @@
     { "id": "arena-wall/north", "kind": "arena-wall", "name": "wall_north",
       "facets": [
         { "name": "position", "data": { "x": 0, "y": 1, "z":  31 } },
-        { "name": "collider", "data": { "half_x": 32, "half_z": 1 } }
+        { "name": "collider", "data": { "half_x": 32, "half_z": 1 } },
+        { "name": "mesh", "data": { "tuning_ref": "arena-wall-default-tuning" } }
       ] },
     { "id": "arena-wall/south", "kind": "arena-wall", "name": "wall_south",
       "facets": [
         { "name": "position", "data": { "x": 0, "y": 1, "z": -31 } },
-        { "name": "collider", "data": { "half_x": 32, "half_z": 1 } }
+        { "name": "collider", "data": { "half_x": 32, "half_z": 1 } },
+        { "name": "mesh", "data": { "tuning_ref": "arena-wall-default-tuning" } }
       ] },
     { "id": "arena-wall/east", "kind": "arena-wall", "name": "wall_east",
       "facets": [
         { "name": "position", "data": { "x":  31, "y": 1, "z": 0 } },
-        { "name": "collider", "data": { "half_x": 1, "half_z": 32 } }
+        { "name": "collider", "data": { "half_x": 1, "half_z": 32 } },
+        { "name": "mesh", "data": { "tuning_ref": "arena-wall-default-tuning" } }
       ] },
     { "id": "arena-wall/west", "kind": "arena-wall", "name": "wall_west",
       "facets": [
         { "name": "position", "data": { "x": -31, "y": 1, "z": 0 } },
-        { "name": "collider", "data": { "half_x": 1, "half_z": 32 } }
+        { "name": "collider", "data": { "half_x": 1, "half_z": 32 } },
+        { "name": "mesh", "data": { "tuning_ref": "arena-wall-default-tuning" } }
       ] }
   ]
 }
