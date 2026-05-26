@@ -5,3 +5,4 @@ tests/browser-artifacts/
 __pycache__/
 *.pyc
 .env
+nul
