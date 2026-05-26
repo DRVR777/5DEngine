@@ -125,6 +125,12 @@ try {
         const hp = ankhor.facetData(hero.id, "health");
         const inv = ankhor.facetData(hero.id, "inventory");
         if (hp) hpEl.textContent = 'HP ' + Math.round(hp.hp || 0);
+        // Screen shake on damage
+        if (hp.hp < (hp._lastHp || 100)) {
+          document.getElementById('stage').style.transform = 'translate('+(Math.random()*6-3)+'px,'+(Math.random()*6-3)+'px)';
+          setTimeout(()=>document.getElementById('stage').style.transform='',100);
+        }
+        hp._lastHp = hp.hp;
         if (inv) ammoEl.textContent = (inv.items?.pistol_9mm || 0) + ' / 60';
       }
     } catch(e) {}
