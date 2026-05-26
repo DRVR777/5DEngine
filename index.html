@@ -86,7 +86,28 @@ try {
       pitch = Math.max(-1.4, Math.min(0.4, pitch - e.movementY * 0.0035));
     }
   });
-  document.addEventListener('mousedown', e => { if(e.button===0)mouseHeld=true; });
+  document.addEventListener('mousedown', e => {
+    if(e.button===0) {
+      mouseHeld=true;
+      // Direct bullet spawn — bypass facet to prove mesh pipeline
+      const hero = ankhor.byKind('hero')[0];
+      if(hero) {
+        const pos = ankhor.facetData(hero.id,'position');
+        if(pos) {
+          const y = yaw, fx=-Math.sin(y), fz=-Math.cos(y);
+          const bid = 'bullet/direct-'+Date.now();
+          try{
+            ankhor.spawn({id:bid,kind:'bullet',name:bid,facets:[
+              {name:'position',data:{x:pos.x+fx*0.9,y:1.45,z:pos.z+fz*0.9}},
+              {name:'mesh',data:{tuning_ref:'bullet-hero-tuning'}},
+              {name:'ttl',data:{remaining:1.6}}
+            ]});
+            console.log('[direct] bullet spawned:',bid);
+          }catch(err){console.warn('[direct] spawn fail:',err.message);}
+        }
+      }
+    }
+  });
   document.addEventListener('mouseup', e => { if(e.button===0)mouseHeld=false; });
 
   // Feed input-state facet every frame
