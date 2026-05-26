@@ -1,1 +1,2 @@
-export default { priority:50, tick(_t,d,_dt,_r){ if(d._init)return; d._init=true; } };
+/** config_editor — section keys from legacy mountConfigEditor */
+export default { priority: 50, init(_t,d){ d.SECTIONS=[{label:"PLAYER MOVEMENT",keys:["walkSpeed","sprintSpeed","jumpVelocity","gravity"]},{label:"PLAYER HEALTH",keys:["heroMaxHp","heroRegenDelay","heroRegenRate"]},{label:"CAMERA",keys:["camDistMin","camDistMax","camDefaultDist","camAimShrink","camPitchMin","camPitchMax","camLookAheadDist"]}]; } };
