@@ -1,74 +1,96 @@
 /**
- * Render Adapter — world-level effects + debug visuals.
- * Entity meshes handled by existing "mesh" facet handler.
- * This adapter handles: lighting, fog, sky color, ground plane.
+ * Render Adapter — world-level visuals.
+ * Entity meshes: handled by existing "mesh" facet handler.
+ * This adapter: skybox dome, ground, grid, lighting, fog.
  */
 
 import * as THREE from "three";
 
-let _ground = null;
+let _initialized = false;
 
 export function renderAdapter(scene, registry, dt) {
   try {
-    applyWorldEffects(scene, registry);
-    ensureGround(scene);
+    if (!_initialized) {
+      initScene(scene, registry);
+      _initialized = true;
+    }
+    updateSkybox(scene, registry);
   } catch (e) {
     console.warn("[adapter] render error (non-fatal):", e);
   }
 }
 
-function applyWorldEffects(scene, registry) {
-  if (scene._worldApplied) return;
+function initScene(scene, registry) {
+  // --- Ground ---
+  const gGeo = new THREE.PlaneGeometry(60, 60);
+  const gMat = new THREE.MeshStandardMaterial({ color: 0x334433, roughness: 0.85, metalness: 0.05 });
+  const ground = new THREE.Mesh(gGeo, gMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  ground.name = "ground";
+  scene.add(ground);
 
-  // Find world Thing (any kind that might have world facets)
-  const worlds = registry.byKind?.("world") || [];
-  const rootThings = registry.byKind?.("root") || [];
-  const allWp = [...worlds, ...rootThings];
-
-  let lightingApplied = false;
-  for (const wp of allWp) {
-    // Lighting
-    const l = registry.facetData(wp.id, "lighting");
-    if (l && !lightingApplied) {
-      const amb = new THREE.AmbientLight(l.ambColor ?? 0xffffff, l.ambInt ?? 0.9);
-      scene.add(amb);
-      const sun = new THREE.DirectionalLight(l.sunColor ?? 0xffffff, l.sunInt ?? 1.1);
-      sun.position.set(l.sunPos?.x ?? 20, l.sunPos?.y ?? 30, l.sunPos?.z ?? 10);
-      scene.add(sun);
-      lightingApplied = true;
-    }
-
-    // Fog
-    const dn = registry.facetData(wp.id, "day-night");
-    if (dn && !scene.fog) {
-      scene.background = new THREE.Color(dn.skyColor ?? dn.sky ?? 0x87ceeb);
-      scene.fog = new THREE.Fog(dn.fogColor ?? dn.fog ?? 0x87ceeb, 40, 140);
-    }
-  }
-
-  scene._worldApplied = true;
-}
-
-function ensureGround(scene) {
-  if (_ground) return;
-  const geo = new THREE.PlaneGeometry(60, 60);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x334433, roughness: 0.9 });
-  _ground = new THREE.Mesh(geo, mat);
-  _ground.rotation.x = -Math.PI / 2;
-  _ground.position.y = 0;
-  _ground.receiveShadow = true;
-  scene.add(_ground);
-
-  // Grid helper
-  const grid = new THREE.GridHelper(60, 30, 0x336633, 0x224422);
+  // --- Grid ---
+  const grid = new THREE.GridHelper(60, 30, 0x446644, 0x334433);
+  grid.position.y = 0.01;
+  grid.name = "grid";
   scene.add(grid);
 
-  // Visible marker — proves renderer works
-  const marker = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0x331100 })
-  );
-  marker.position.set(0, 1, 0);
-  marker.name = "ankhor-marker";
-  scene.add(marker);
+  // --- Lighting ---
+  const amb = new THREE.AmbientLight(0xffffff, 0.9);
+  scene.add(amb);
+  const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+  sun.position.set(20, 30, 10);
+  sun.castShadow = true;
+  sun.name = "sun";
+  scene.add(sun);
+
+  // --- Sky dome (large inverted sphere) ---
+  const skyGeo = new THREE.SphereGeometry(90, 32, 32);
+  const skyMat = new THREE.MeshBasicMaterial({ color: 0x87ceeb, side: THREE.BackSide });
+  const sky = new THREE.Mesh(skyGeo, skyMat);
+  sky.name = "skydome";
+  sky.renderOrder = -1;
+  scene.add(sky);
+
+  // --- Fog ---
+  scene.background = new THREE.Color(0x87ceeb);
+  scene.fog = new THREE.Fog(0x87ceeb, 40, 140);
+
+  console.log("[adapter] scene init: ground, grid, skydome, lighting, fog");
+}
+
+function updateSkybox(scene, registry) {
+  // Update sky color from day-night facet if available
+  const worlds = (registry.byKind?.("world") || []).concat(registry.byKind?.("root") || []);
+  for (const wp of worlds) {
+    const dn = registry.facetData(wp.id, "day-night");
+    if (!dn || dn.sky === undefined) continue;
+
+    // Update skydome
+    const sky = scene.getObjectByName("skydome");
+    if (sky && sky.material) {
+      sky.material.color.setHex(dn.sky);
+    }
+
+    // Update ambient light from day-night
+    const amb = scene.children.find(c => c.isAmbientLight);
+    if (amb && dn.ambI !== undefined) amb.intensity = dn.ambI;
+
+    // Update sun
+    const sun = scene.getObjectByName("sun");
+    if (sun) {
+      if (dn.sunI !== undefined) sun.intensity = dn.sunI;
+      if (dn.sunColor !== undefined) sun.color.setHex(dn.sunColor);
+      if (dn.sunPos) sun.position.set(dn.sunPos.x, dn.sunPos.y, dn.sunPos.z);
+    }
+
+    // Update fog
+    if (dn.fog !== undefined && scene.fog) {
+      scene.fog.color.setHex(dn.fog);
+      scene.background = new THREE.Color(dn.fog);
+    }
+
+    break;
+  }
 }
