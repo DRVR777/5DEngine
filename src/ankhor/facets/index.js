@@ -68,6 +68,8 @@ import enemyMesh         from "./enemy_mesh.js";
 import bossBar          from "./boss_bar.js";
 import armorVest        from "./armor_vest.js";
 import particleTerrain  from "./particle_terrain.js";
+import camDist          from "./cam_dist.js";
+import cameraZone       from "./camera_zone.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -135,6 +137,8 @@ export const FACET_HANDLERS = {
   "boss-bar":            bossBar,
   "armor-vest":          armorVest,
   "terrain":             particleTerrain,
+  "cam-dist":            camDist,
+  "camera-zone":         cameraZone,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
