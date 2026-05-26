@@ -120,30 +120,17 @@ try {
   });
   document.addEventListener('mouseup', e => { if(e.button===0)mouseHeld=false; });
 
-  // Feed input-state facet every frame
-  const originalTick = ankhor.tick.bind(ankhor);
-  ankhor.tick = function(dt) {
-    const inputs = ankhor.byKind("input");
-    if (inputs.length) {
-      const fd = ankhor.facetData(inputs[0].id, "input-state");
-      if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; fd.mouseHeld = mouseHeld; }
-    }
-    return originalTick(dt);
-  };
-
-  // HUD update wrapper
+  // Single tick wrapper: feed input-state, then HUD update
   const hpEl = document.getElementById("hp");
   const ammoEl = document.getElementById("ammo");
-  const origTick2 = ankhor.tick.bind(ankhor);
+  const realTick = ankhor.tick.bind(ankhor);
   ankhor.tick = function(dt) {
-    // Feed input-state before tick so hero-shoot can read mouseHeld
     const inputs = ankhor.byKind("input");
     if (inputs.length) {
       const fd = ankhor.facetData(inputs[0].id, "input-state");
       if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; fd.mouseHeld = mouseHeld; }
     }
-    const r = origTick2(dt);
-    const r = origTick2(dt);
+    const result = realTick(dt);
     try {
       const hero = ankhor.byKind("hero")[0];
       if (hero) {
@@ -153,7 +140,7 @@ try {
         if (inv) ammoEl.textContent = (inv.items?.pistol_9mm || 0) + ' / 60';
       }
     } catch(e) {}
-    return r;
+    return result;
   };
   // --- End keyboard adapter ---
 } catch (e) {
