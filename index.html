@@ -38,6 +38,16 @@
 <div id="boot">ankhor • boot</div>
 <a id="modeSwitch" href="./game.html" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(20,24,40,0.85);border:1px solid #fa8;border-radius:6px;padding:5px 12px;color:#fc9;font:12px ui-monospace,Menlo,Consolas,monospace;text-decoration:none;letter-spacing:.05em;" title="Switch to legacy playable game (game.html)">⇆ legacy game</a>
 <div id="philo">subtraction. one type. one tick. <a href="./game.html" style="color:#9cf;pointer-events:auto">→ game.html</a></div>
+
+<!-- HUD overlay -->
+<div id="hud" style="position:fixed;inset:0;pointer-events:none;z-index:100;font:16px monospace;color:#fff;">
+  <div id="hp" style="position:absolute;bottom:20px;left:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">HP 100</div>
+  <div id="ammo" style="position:absolute;bottom:20px;right:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">60 / 60</div>
+  <div id="crosshair" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;">
+    <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:#0f0;opacity:0.8;"></div>
+    <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:#0f0;opacity:0.8;"></div>
+  </div>
+</div>
 <script type="importmap">
 {
   "imports": {
@@ -119,6 +129,24 @@ try {
       if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; fd.mouseHeld = mouseHeld; }
     }
     return originalTick(dt);
+  };
+
+  // HUD update wrapper
+  const hpEl = document.getElementById("hp");
+  const ammoEl = document.getElementById("ammo");
+  const origTick2 = ankhor.tick.bind(ankhor);
+  ankhor.tick = function(dt) {
+    const r = origTick2(dt);
+    try {
+      const hero = ankhor.byKind("hero")[0];
+      if (hero) {
+        const hp = ankhor.facetData(hero.id, "health");
+        const inv = ankhor.facetData(hero.id, "inventory");
+        if (hp) hpEl.textContent = 'HP ' + Math.round(hp.hp || 0);
+        if (inv) ammoEl.textContent = (inv.items?.pistol_9mm || 0) + ' / 60';
+      }
+    } catch(e) {}
+    return r;
   };
   // --- End keyboard adapter ---
 } catch (e) {
