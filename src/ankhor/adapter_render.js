@@ -1,126 +1,74 @@
 /**
- * Render Adapter — materializes facet data into Three.js meshes.
- * Hooks between registry.tick() and renderer.render() in boot.js.
- * 
- * Reads authoritative state from facets, creates/updates meshes.
- * No direct window/document/THREE globals in facets — only in adapters.
+ * Render Adapter — world-level effects + debug visuals.
+ * Entity meshes handled by existing "mesh" facet handler.
+ * This adapter handles: lighting, fog, sky color, ground plane.
  */
 
-/**
- * @param {THREE.Scene} scene
- * @param {object} registry - Ankhor registry with byKind/facetData
- * @param {number} dt - frame delta
- */
+import * as THREE from "three";
+
+let _ground = null;
+
 export function renderAdapter(scene, registry, dt) {
   try {
-    renderHeroes(scene, registry, dt);
-    renderEnemies(scene, registry, dt);
-    renderBullets(scene, registry, dt);
-    renderPickups(scene, registry, dt);
-    renderWorld(scene, registry);
+    applyWorldEffects(scene, registry);
+    ensureGround(scene);
   } catch (e) {
     console.warn("[adapter] render error (non-fatal):", e);
   }
 }
 
-// ---- HERO ----
-function renderHeroes(scene, registry, dt) {
-  for (const t of registry.byKind("hero")) {
-    const pos = registry.facetData(t.id, "position");
-    if (!pos) continue;
-    ensureMesh(scene, registry, t, "hero", pos, 0xcccccc);
-  }
-}
+function applyWorldEffects(scene, registry) {
+  if (scene._worldApplied) return;
 
-// ---- ENEMIES ----
-function renderEnemies(scene, registry, dt) {
-  for (const t of registry.byKind("enemy")) {
-    const pos = { x: registry.facetData(t.id, "position")?.x ?? t._u ?? 0, y: 1, z: t._v ?? 0 };
-    const hp = registry.facetData(t.id, "health-display");
-    const color = hp ? hpColor(hp.fraction) : 0xcc2222;
-    ensureMesh(scene, registry, t, "enemy", pos, color);
-  }
-}
+  // Find world Thing (any kind that might have world facets)
+  const worlds = registry.byKind?.("world") || [];
+  const rootThings = registry.byKind?.("root") || [];
+  const allWp = [...worlds, ...rootThings];
 
-function hpColor(frac) {
-  return frac > 0.6 ? 0x00cc44 : frac > 0.3 ? 0xff8800 : 0xff2222;
-}
-
-// ---- BULLETS ----
-function renderBullets(scene, registry, dt) {
-  for (const t of registry.byKind("bullet")) {
-    const pos = { x: t._u ?? 0, y: t._y ?? 1.5, z: t._v ?? 0 };
-    ensureMesh(scene, registry, t, "bullet", pos, 0xffff44, 0.08);
-  }
-}
-
-// ---- PICKUPS ----
-function renderPickups(scene, registry, dt) {
-  for (const t of registry.byKind("pickup")) {
-    const pos = { x: t._u ?? 0, y: t._bobY ?? 0.5, z: t._v ?? 0 };
-    ensureMesh(scene, registry, t, "pickup", pos, 0xffaa00, 0.2);
-  }
-}
-
-// ---- WORLD ----
-function renderWorld(scene, registry) {
-  // Lighting
-  for (const t of registry.byKind("world-params")) {
-    const l = registry.facetData(t.id, "lighting");
-    if (l && !scene._lit) {
-      scene._lit = true;
+  let lightingApplied = false;
+  for (const wp of allWp) {
+    // Lighting
+    const l = registry.facetData(wp.id, "lighting");
+    if (l && !lightingApplied) {
       const amb = new THREE.AmbientLight(l.ambColor ?? 0xffffff, l.ambInt ?? 0.9);
       scene.add(amb);
       const sun = new THREE.DirectionalLight(l.sunColor ?? 0xffffff, l.sunInt ?? 1.1);
       sun.position.set(l.sunPos?.x ?? 20, l.sunPos?.y ?? 30, l.sunPos?.z ?? 10);
       scene.add(sun);
+      lightingApplied = true;
+    }
+
+    // Fog
+    const dn = registry.facetData(wp.id, "day-night");
+    if (dn && !scene.fog) {
+      scene.background = new THREE.Color(dn.skyColor ?? dn.sky ?? 0x87ceeb);
+      scene.fog = new THREE.Fog(dn.fogColor ?? dn.fog ?? 0x87ceeb, 40, 140);
     }
   }
-  // Skybox/Day-night
-  for (const t of registry.byKind("world-params")) {
-    const dn = registry.facetData(t.id, "day-night");
-    if (dn && scene.background !== undefined && scene.fog !== undefined) {
-      scene.background = new THREE.Color(dn.sky ?? 0x87ceeb);
-      scene.fog = new THREE.Fog(dn.fog ?? 0x87ceeb, 40, 140);
-    }
-  }
+
+  scene._worldApplied = true;
 }
 
-// ---- Mesh pool ----
-const _meshes = new Map();
-import * as THREE from "three";
+function ensureGround(scene) {
+  if (_ground) return;
+  const geo = new THREE.PlaneGeometry(60, 60);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x334433, roughness: 0.9 });
+  _ground = new THREE.Mesh(geo, mat);
+  _ground.rotation.x = -Math.PI / 2;
+  _ground.position.y = 0;
+  _ground.receiveShadow = true;
+  scene.add(_ground);
 
-function ensureMesh(scene, registry, thing, kind, pos, color, radius = 0.3) {
-  const key = `${kind}_${thing.id}`;
-  let m = _meshes.get(key);
-  if (!m) {
-    // Find or create mesh
-    const existing = registry._meshes?.get(key);
-    if (existing) {
-      m = existing;
-    } else {
-      const geo = kind === "bullet" 
-        ? new THREE.SphereGeometry(radius || 0.08, 6, 6)
-        : kind === "pickup"
-        ? new THREE.BoxGeometry(radius, radius, radius)
-        : new THREE.CapsuleGeometry(radius, 0.6, 4, 8);
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
-      m = new THREE.Mesh(geo, mat);
-      scene.add(m);
-    }
-    _meshes.set(key, m);
-    if (!registry._meshes) registry._meshes = new Map();
-    registry._meshes.set(key, m);
-  }
-  m.position.set(pos.x, pos.y, pos.z);
-  m.visible = true;
-}
+  // Grid helper
+  const grid = new THREE.GridHelper(60, 30, 0x336633, 0x224422);
+  scene.add(grid);
 
-/** Dispose all meshes on teardown */
-export function disposeAll() {
-  for (const [key, m] of _meshes) {
-    m.geometry?.dispose();
-    m.material?.dispose();
-  }
-  _meshes.clear();
+  // Visible marker — proves renderer works
+  const marker = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0x331100 })
+  );
+  marker.position.set(0, 1, 0);
+  marker.name = "ankhor-marker";
+  scene.add(marker);
 }
