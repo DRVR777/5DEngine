@@ -46,10 +46,13 @@
   <div id="hp" style="position:absolute;bottom:20px;left:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">HP 100</div>
   <div id="ammo" style="position:absolute;bottom:20px;right:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">60 / 60</div>
   <div id="dmg" style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);color:#ff4444;font:bold 28px monospace;text-shadow:0 0 10px #f00;pointer-events:none;transition:opacity 0.3s;"></div>
-  <div id="crosshair" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;">
-    <div style="position:absolute;top:50%;left:0;right:0;height:2px;background:#0f0;opacity:0.8;"></div>
-    <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:#0f0;opacity:0.8;"></div>
+  <div id="crosshair" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;">
+    <div id="ch-top" style="position:absolute;top:0;left:50%;width:2px;height:8px;background:#0f0;opacity:0.8;margin-left:-1px;"></div>
+    <div id="ch-bot" style="position:absolute;bottom:0;left:50%;width:2px;height:8px;background:#0f0;opacity:0.8;margin-left:-1px;"></div>
+    <div id="ch-left" style="position:absolute;left:0;top:50%;width:8px;height:2px;background:#0f0;opacity:0.8;margin-top:-1px;"></div>
+    <div id="ch-right" style="position:absolute;right:0;top:50%;width:8px;height:2px;background:#0f0;opacity:0.8;margin-top:-1px;"></div>
   </div>
+  <div id="weapon" style="position:absolute;bottom:60px;left:20px;color:#aaa;font:12px monospace;background:rgba(0,0,0,0.4);padding:4px 8px;border-radius:3px;">PISTOL</div>
 </div>
 <script type="importmap">
 {
