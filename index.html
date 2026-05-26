@@ -112,7 +112,9 @@ try {
   document.addEventListener('mousedown', e => { if(e.button===0) {
     mouseHeld=true;
     document.getElementById('muzzle').style.opacity='1';
+    document.getElementById('crosshair').style.filter='brightness(2) drop-shadow(0 0 4px red)';
     setTimeout(()=>document.getElementById('muzzle').style.opacity='0',50);
+    setTimeout(()=>document.getElementById('crosshair').style.filter='',100);
   }});
   document.addEventListener('mouseup', e => { if(e.button===0)mouseHeld=false; });
 
