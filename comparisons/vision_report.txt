@@ -1,6 +1,6 @@
 === SIZE COMPARISON ONLY ===
-Ankhor: 261.6KB
+Ankhor: 262.9KB
 Legacy: 285.9KB
-Match: 91.5%
+Match: 91.9%
 Target: 100%
 Images available at: comparisons/ankhor_substrate.png and comparisons/legacy_game.png
