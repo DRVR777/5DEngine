@@ -6,7 +6,8 @@ export default {
     data._initialized = true;
     // Default loadout: 24 slots, default weapons, medkits
     data.slots = data.slots || 24;
-    data.items = { medkit: 2 };
+    data.items = data.items || {};
+    data.items.medkit = (data.items.medkit || 0) + 2;
     for (const w of (data.weapons || [])) {
       data.items["gun_" + w.id] = (data.items["gun_" + w.id] || 0) + 1;
       data.items[w.ammoItem || "pistol_9mm"] = (data.items[w.ammoItem || "pistol_9mm"] || 0) + (w.magCap || 17) * 4;
