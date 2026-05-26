@@ -55,6 +55,8 @@ import vehicleEnterPrompt from "./vehicle_enter_prompt.js";
 import vehicleDrive   from "./vehicle_drive.js";
 import legacyMount    from "./legacy_mount.js";
 import ttl             from "./ttl.js";
+import enemyAiScaffold  from "./enemy_ai_scaffold.js";
+import enemyRegen       from "./enemy_regen.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -109,6 +111,8 @@ export const FACET_HANDLERS = {
   "vehicle-drive":       vehicleDrive,
   "legacy-mount":        legacyMount,
   "ttl":                 ttl,
+  "enemy-ai-scaffold":   enemyAiScaffold,
+  "enemy-regen":         enemyRegen,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
