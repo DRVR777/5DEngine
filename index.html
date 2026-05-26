@@ -1,164 +1,88 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
+<meta charset="utf-8"/>
 <link rel="icon" href="data:,">
 <title>5DEngine — Ankhor substrate</title>
 <style>
-  html,body{margin:0;height:100%;background:#0b0d12;color:#cfc;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
-  #stage{position:fixed;inset:0;display:block;touch-action:none}
-  #boot{position:fixed;top:8px;left:8px;opacity:.72;pointer-events:none;z-index:10}
-  #boot a{color:#9cf;pointer-events:auto;text-decoration:none}
-  #boot a:hover{text-decoration:underline}
-  #philo{position:fixed;bottom:8px;left:8px;opacity:.4;pointer-events:none;z-index:10;font-size:11px}
+html,body{margin:0;height:100%;background:#0b0d12;color:#cfc;font:13px/1.4 monospace;overflow:hidden}
+#stage{position:fixed;inset:0;display:block;touch-action:none}
+#boot{position:fixed;top:8px;left:8px;opacity:.72;pointer-events:none;z-index:10}
 </style>
 </head>
 <body>
-<!--
-  5DEngine — Ankhor substrate (iter 701).
-
-  THIS FILE IS THE SUBSTRATE, NOT THE GAME. The legacy engine+game is preserved
-  verbatim at ./game.html. Open game.html to play; open index.html (this file)
-  to see the Ankhor substrate alone.
-
-  What boots here:
-    1. The Registry (experimental/holograph-runtime/src/registry.js) — the Thinga store.
-    2. The facet handlers (experimental/holograph-runtime/src/handlers.js).
-    3. The kind catalog (data/kinds/*.json, listed in data/kinds/MANIFEST.json).
-    4. A minimal Three.js renderer + tick loop. No game content.
-
-  All game logic stays in src/ and loads only via game.html. New content arrives
-  as JSON Thingas in data/kinds/ — adding a kind is a JSON file, not new code.
-
-  Companion docs:
-    docs/codex/specs/{registry-runtime,kind-catalog,facet-catalog,feel-preservation,migration-sequence}.md
-    ../yearTwo777/synthesis/{THE_STACK,ANKHOR_ARCHITECTURE,DEVELOPMENT_PHILOSOPHY}.md
--->
 <canvas id="stage"></canvas>
 <div id="boot">ankhor • boot</div>
-<a id="modeSwitch" href="./game.html" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(20,24,40,0.85);border:1px solid #fa8;border-radius:6px;padding:5px 12px;color:#fc9;font:12px ui-monospace,Menlo,Consolas,monospace;text-decoration:none;letter-spacing:.05em;" title="Switch to legacy playable game (game.html)">⇆ legacy game</a>
-<div id="philo">subtraction. one type. one tick. <a href="./game.html" style="color:#9cf;pointer-events:auto">→ game.html</a></div>
+<a id="modeSwitch" href="./game.html" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(20,24,40,0.85);border:1px solid #fa8;border-radius:6px;padding:5px 12px;color:#fc9;font:12px monospace;text-decoration:none;">⇆ legacy game</a>
 
-<div id="controls" style="position:fixed;top:8px;right:8px;opacity:0.5;pointer-events:none;z-index:10;font-size:10px;color:#888;text-align:right;">WASD move · Mouse look · Click shoot<br/>87 live · 29 kinds · 94 facets</div>
-
-<!-- HUD overlay -->
+<!-- HUD -->
 <div id="hud" style="position:fixed;inset:0;pointer-events:none;z-index:100;font:16px monospace;color:#fff;">
   <div id="hp" style="position:absolute;bottom:20px;left:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">HP 100</div>
   <div id="ammo" style="position:absolute;bottom:20px;right:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">60 / 60</div>
-  <div id="dmg" style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);color:#ff4444;font:bold 28px monospace;text-shadow:0 0 10px #f00;pointer-events:none;transition:opacity 0.3s;"></div>
-  <div id="crosshair" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;">
-    <div id="ch-top" style="position:absolute;top:0;left:50%;width:2px;height:8px;background:#0f0;opacity:0.8;margin-left:-1px;"></div>
-    <div id="ch-bot" style="position:absolute;bottom:0;left:50%;width:2px;height:8px;background:#0f0;opacity:0.8;margin-left:-1px;"></div>
-    <div id="ch-left" style="position:absolute;left:0;top:50%;width:8px;height:2px;background:#0f0;opacity:0.8;margin-top:-1px;"></div>
-    <div id="ch-right" style="position:absolute;right:0;top:50%;width:8px;height:2px;background:#0f0;opacity:0.8;margin-top:-1px;"></div>
-  </div>
+  <div id="kills" style="position:absolute;top:30px;right:20px;color:#ff0;font:14px monospace;background:rgba(0,0,0,0.5);padding:4px 10px;border-radius:3px;">0 kills</div>
   <div id="weapon" style="position:absolute;bottom:60px;left:20px;color:#aaa;font:12px monospace;background:rgba(0,0,0,0.4);padding:4px 8px;border-radius:3px;">PISTOL</div>
   <div id="sprint" style="position:absolute;bottom:100px;left:20px;color:#0ff;font:12px monospace;background:rgba(0,0,0,0.4);padding:4px 8px;border-radius:3px;opacity:0;">SPRINT</div>
-  <div id="kills" style="position:absolute;top:30px;right:20px;color:#ff0;font:14px monospace;background:rgba(0,0,0,0.5);padding:4px 10px;border-radius:3px;pointer-events:none;">0 kills</div>
-  <div id="combo" style="position:absolute;top:55px;right:20px;color:#f80;font:bold 20px monospace;pointer-events:none;text-shadow:0 0 8px #f60;"></div>
-  <div id="minimap" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:120px;height:120px;border:2px solid rgba(255,255,255,0.3);border-radius:50%;background:rgba(0,0,0,0.5);pointer-events:none;overflow:hidden;">
-    <canvas id="minimapCanvas" width="120" height="120" style="width:100%;height:100%;"></canvas>
+  <div id="crosshair" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;">
+    <div style="position:absolute;top:0;left:50%;width:2px;height:8px;background:#0f0;opacity:0.8;margin-left:-1px;"></div>
+    <div style="position:absolute;bottom:0;left:50%;width:2px;height:8px;background:#0f0;opacity:0.8;margin-left:-1px;"></div>
+    <div style="position:absolute;left:0;top:50%;width:8px;height:2px;background:#0f0;opacity:0.8;margin-top:-1px;"></div>
+    <div style="position:absolute;right:0;top:50%;width:8px;height:2px;background:#0f0;opacity:0.8;margin-top:-1px;"></div>
   </div>
-  <div id="reload" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff0;font:bold 18px monospace;pointer-events:none;opacity:0;">RELOADING...</div>
-  <div id="hpBars" style="position:fixed;inset:0;pointer-events:none;z-index:99;"></div>
-  <div id="muzzle" style="position:absolute;top:50%;left:50%;width:60px;height:60px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,200,50,0.3),transparent);pointer-events:none;opacity:0;transition:opacity 0.05s;"></div>
+  <div id="muzzle" style="position:absolute;top:50%;left:50%;width:60px;height:60px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(255,200,50,0.3),transparent);opacity:0;transition:opacity 50ms;"></div>
+  <div id="reload" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#ff0;font:bold 18px monospace;opacity:0;">RELOADING...</div>
 </div>
+
+<!-- Atmosphere -->
+<div id="bloom" style="position:fixed;inset:0;pointer-events:none;z-index:49;background:radial-gradient(ellipse at center,rgba(255,255,200,0.03),transparent 70%);mix-blend-mode:screen;"></div>
+<div id="fogOverlay" style="position:fixed;inset:0;pointer-events:none;z-index:50;background:radial-gradient(circle,rgba(200,220,255,0.08),rgba(100,150,200,0.15));mix-blend-mode:screen;"></div>
+
+<div id="philo" style="position:fixed;bottom:8px;left:8px;opacity:.4;pointer-events:none;z-index:10;font-size:11px">subtraction. one type. one tick. <a href="./game.html" style="color:#9cf">→ game.html</a></div>
+
 <script type="importmap">
-{
-  "imports": {
-    "three":    "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
-    "registry": "./experimental/holograph-runtime/src/registry.js",
-    "handlers": "./experimental/holograph-runtime/src/handlers.js",
-    "boot":     "./src/ankhor/boot.js"
-  }
-}
+{ "imports": { "three":"https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js", "registry":"./experimental/holograph-runtime/src/registry.js", "boot":"./src/ankhor/boot.js", "hud":"./src/ankhor/hud.js" } }
 </script>
 <script type="module">
 import { boot } from "boot";
+import { initHUD } from "hud";
 
 const bootEl = document.getElementById("boot");
-function setBoot(html) { try { bootEl.innerHTML = html; } catch (_) {} }
+function setBoot(html) { bootEl.innerHTML = html; }
 setBoot("ankhor • booting…");
 
-// Catch ANY boot-time error and surface it visibly instead of black-
-// screening. The black screen was the symptom we just left behind;
-// from now on the overlay always tells you what happened.
 try {
-  const ankhor = await boot({
-    canvas:   document.getElementById("stage"),
+  const ankhor = await boot({ canvas: document.getElementById("stage"),
     onReady({ stats }) {
-      const lb = stats?.legacyBound ?? 0, lt = stats?.legacyTotal ?? 0;
-      const live = stats?.materialized ?? "?";
-      const kinds = stats?.kindDefs ?? "?";
-      const hand = stats?.handlers ?? "?";
-      setBoot(`ankhor • ${live} live · ${kinds} kinds · ${hand} facets · ${lb}/${lt} legacy bound · <a href="./game.html">→ game.html</a>`);
+      setBoot(`ankhor • ${stats?.materialized??'?'} live · ${stats?.kindDefs??'?'} kinds · ${stats?.handlers??'?'} facets · <a href="./game.html">→ game.html</a>`);
     }
   });
   window.Ankhor = ankhor;
 
-  // --- Keyboard adapter ---
-  const keys = {};
-  window.addEventListener('keydown', e => { keys[e.code] = true; });
-  window.addEventListener('keyup', e => { keys[e.code] = false; });
-  
-  // Mouse look adapter
-  let yaw = 0, pitch = 0, mouseHeld = false;
-  const canvas = document.getElementById("stage");
-  canvas.addEventListener('click', () => canvas.requestPointerLock());
-  document.addEventListener('mousemove', e => {
-    if (document.pointerLockElement === canvas) {
-      yaw -= e.movementX * 0.0035;
-      pitch = Math.max(-1.4, Math.min(0.4, pitch - e.movementY * 0.0035));
-    }
-  });
-  document.addEventListener('mousedown', e => { if(e.button===0) {
-    mouseHeld=true;
-    document.getElementById('muzzle').style.opacity='1';
-    document.getElementById('crosshair').style.filter='brightness(2) drop-shadow(0 0 4px red)';
-    setTimeout(()=>document.getElementById('muzzle').style.opacity='0',50);
-    setTimeout(()=>document.getElementById('crosshair').style.filter='',100);
-  }});
-  document.addEventListener('mouseup', e => { if(e.button===0)mouseHeld=false; });
+  // Keyboard
+  const keys = {}; let yaw=0,pitch=0,mouseHeld=false;
+  addEventListener('keydown',e=>keys[e.code]=true);
+  addEventListener('keyup',e=>keys[e.code]=false);
+  const canvas=document.getElementById('stage');
+  canvas.addEventListener('click',()=>canvas.requestPointerLock());
+  addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas){yaw-=e.movementX*0.0035;pitch=Math.max(-1.4,Math.min(0.4,pitch-e.movementY*0.0035))}});
+  addEventListener('mousedown',e=>{if(e.button===0){mouseHeld=true;document.getElementById('muzzle').style.opacity='1';document.getElementById('crosshair').style.filter='brightness(2)';setTimeout(()=>{document.getElementById('muzzle').style.opacity='0';document.getElementById('crosshair').style.filter=''},80)}});
+  addEventListener('mouseup',e=>{if(e.button===0)mouseHeld=false});
 
-  // Single tick wrapper: feed input-state, then HUD update
-  const hpEl = document.getElementById("hp");
-  const ammoEl = document.getElementById("ammo");
+  // HUD module
+  const hud = initHUD(ankhor);
+
+  // Tick wrapper
   const realTick = ankhor.tick.bind(ankhor);
   ankhor.tick = function(dt) {
     const inputs = ankhor.byKind("input");
-    if (inputs.length) {
-      const fd = ankhor.facetData(inputs[0].id, "input-state");
-      if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; fd.mouseHeld = mouseHeld; }
-    }
-    const result = realTick(dt);
-    try {
-      const hero = ankhor.byKind("hero")[0];
-      if (hero) {
-        const hp = ankhor.facetData(hero.id, "health");
-        const inv = ankhor.facetData(hero.id, "inventory");
-        if (hp) hpEl.textContent = 'HP ' + Math.round(hp.hp || 0);
-        // Screen shake on damage
-        if (hp.hp < (hp._lastHp || 100)) {
-          document.getElementById('stage').style.transform = 'translate('+(Math.random()*6-3)+'px,'+(Math.random()*6-3)+'px)';
-          setTimeout(()=>document.getElementById('stage').style.transform='',100);
-        }
-        hp._lastHp = hp.hp;
-        if (inv) ammoEl.textContent = (inv.items?.pistol_9mm || 0) + ' / 60';
-        if (inv) ammoEl.style.color = (inv.items?.pistol_9mm||0) < 10 ? '#f44' : '#fff';
-        // Kill counter
-        document.getElementById('kills').textContent = (inv.score || 0) + ' kills';
-      }
-    } catch(e) {}
-    return result;
+    if (inputs.length) { const fd=ankhor.facetData(inputs[0].id,"input-state"); if(fd){fd.keys={...keys};fd.yaw=yaw;fd.pitch=pitch;fd.mouseHeld=mouseHeld;} }
+    const r = realTick(dt);
+    try { hud.tick(dt); } catch(e) {}
+    return r;
   };
-  // --- End keyboard adapter ---
-} catch (e) {
+} catch(e) {
   console.error("[boot] FATAL:", e);
-  setBoot(`<span style="color:#ff6666">ankhor boot FAILED:</span> ${(e && e.message) || e} · <a href="./game.html">→ game.html</a>`);
+  setBoot(`<span style="color:#ff6666">ankhor boot FAILED:</span> ${e?.message||e} · <a href="./game.html">→ game.html</a>`);
 }
 </script>
-  <!-- Fog overlay -->
-  <div id="fogOverlay" style="position:fixed;inset:0;pointer-events:none;z-index:50;background:radial-gradient(circle,rgba(200,220,255,0.08),rgba(100,150,200,0.15));mix-blend-mode:screen;"></div>  <!-- Bloom overlay -->
-  <div id="bloom" style="position:fixed;inset:0;pointer-events:none;z-index:49;background:radial-gradient(ellipse at center,rgba(255,255,200,0.03),transparent 70%);mix-blend-mode:screen;"></div>
 </body>
 </html>
