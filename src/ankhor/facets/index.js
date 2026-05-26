@@ -58,6 +58,7 @@ import ttl             from "./ttl.js";
 import enemyAiScaffold  from "./enemy_ai_scaffold.js";
 import enemyRegen       from "./enemy_regen.js";
 import enemyRobotEmp   from "./enemy_robot_emp.js";
+import enemyRobotPlasma from "./enemy_robot_plasma.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -115,6 +116,7 @@ export const FACET_HANDLERS = {
   "enemy-ai-scaffold":   enemyAiScaffold,
   "enemy-regen":         enemyRegen,
   "enemy-robot-emp":    enemyRobotEmp,
+  "enemy-robot-plasma": enemyRobotPlasma,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
