@@ -77,7 +77,7 @@ try {
   window.addEventListener('keyup', e => { keys[e.code] = false; });
   
   // Mouse look adapter
-  let yaw = 0, pitch = 0;
+  let yaw = 0, pitch = 0, mouseHeld = false;
   const canvas = document.getElementById("stage");
   canvas.addEventListener('click', () => canvas.requestPointerLock());
   document.addEventListener('mousemove', e => {
@@ -86,6 +86,8 @@ try {
       pitch = Math.max(-1.4, Math.min(0.4, pitch - e.movementY * 0.0035));
     }
   });
+  document.addEventListener('mousedown', e => { if(e.button===0)mouseHeld=true; });
+  document.addEventListener('mouseup', e => { if(e.button===0)mouseHeld=false; });
 
   // Feed input-state facet every frame
   const originalTick = ankhor.tick.bind(ankhor);
@@ -93,7 +95,7 @@ try {
     const inputs = ankhor.byKind("input");
     if (inputs.length) {
       const fd = ankhor.facetData(inputs[0].id, "input-state");
-      if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; }
+      if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; fd.mouseHeld = mouseHeld; }
     }
     return originalTick(dt);
   };
