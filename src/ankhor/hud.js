@@ -47,7 +47,28 @@ export function initHUD(ankhor) {
     // Crouch
     crouch.style.opacity = keys.CtrlLeft || keys.ControlLeft ? '1' : '0';
 
-    // Score popup on kill
+    // Minimap dots
+    const mm = document.getElementById('mm');
+    if (mm) {
+      const ctx = mm.getContext('2d');
+      ctx.clearRect(0,0,100,100);
+      // Hero dot
+      const pos = ankhor.facetData(hero.id, 'position');
+      if (pos) {
+        const hx = 50 + (pos.x||0)/60*50, hy = 50 + (pos.z||0)/60*50;
+        ctx.fillStyle = '#0f0'; ctx.beginPath(); ctx.arc(hx,hy,3,0,Math.PI*2); ctx.fill();
+      }
+      // Enemy dots
+      const enemies = ankhor.byKind('enemy')||[];
+      ctx.fillStyle = '#f44';
+      for(const e of enemies) {
+        const ep = ankhor.facetData(e.id, 'position');
+        if(ep){
+          const ex = 50 + (ep.x||0)/60*50, ey = 50 + (ep.z||0)/60*50;
+          ctx.fillRect(ex-1.5,ey-1.5,3,3);
+        }
+      }
+    }
     const scoreNow = ankhor.facetData(hero.id, 'inventory')?.score || 0;
     if (scoreNow > (hudState._lastScore || 0)) {
       const popup = document.createElement('div');
