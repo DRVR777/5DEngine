@@ -70,6 +70,7 @@ import armorVest        from "./armor_vest.js";
 import particleTerrain  from "./particle_terrain.js";
 import camDist          from "./cam_dist.js";
 import cameraZone       from "./camera_zone.js";
+import bulletPhysics     from "./bullet_physics.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -139,6 +140,7 @@ export const FACET_HANDLERS = {
   "terrain":             particleTerrain,
   "cam-dist":            camDist,
   "camera-zone":         cameraZone,
+  "bullet-physics":       bulletPhysics,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
