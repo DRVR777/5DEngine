@@ -60,7 +60,6 @@ setBoot("ankhor • booting…");
 // from now on the overlay always tells you what happened.
 try {
   const ankhor = await boot({
-    canvas:   document.getElementById("stage"),
     onReady({ stats }) {
       const lb = stats?.legacyBound ?? 0, lt = stats?.legacyTotal ?? 0;
       const live = stats?.materialized ?? "?";
@@ -70,6 +69,34 @@ try {
     }
   });
   window.Ankhor = ankhor;
+
+  // --- Keyboard adapter ---
+  const keys = {};
+  window.addEventListener('keydown', e => { keys[e.code] = true; });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  
+  // Mouse look adapter
+  let yaw = 0, pitch = 0;
+  const canvas = document.getElementById("stage");
+  canvas.addEventListener('click', () => canvas.requestPointerLock());
+  document.addEventListener('mousemove', e => {
+    if (document.pointerLockElement === canvas) {
+      yaw -= e.movementX * 0.0035;
+      pitch = Math.max(-1.4, Math.min(0.4, pitch - e.movementY * 0.0035));
+    }
+  });
+
+  // Feed input-state facet every frame
+  const originalTick = ankhor.tick.bind(ankhor);
+  ankhor.tick = function(dt) {
+    const inputs = ankhor.byKind("input");
+    if (inputs.length) {
+      const fd = ankhor.facetData(inputs[0].id, "input-state");
+      if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; }
+    }
+    return originalTick(dt);
+  };
+  // --- End keyboard adapter ---
 } catch (e) {
   console.error("[boot] FATAL:", e);
   setBoot(`<span style="color:#ff6666">ankhor boot FAILED:</span> ${(e && e.message) || e} · <a href="./game.html">→ game.html</a>`);
