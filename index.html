@@ -60,7 +60,7 @@ setBoot("ankhor • booting…");
 // from now on the overlay always tells you what happened.
 try {
   const ankhor = await boot({
-    canvas:   document.getElementById(\"stage\"),
+    canvas:   document.getElementById("stage"),
     onReady({ stats }) {
       const lb = stats?.legacyBound ?? 0, lt = stats?.legacyTotal ?? 0;
       const live = stats?.materialized ?? "?";
