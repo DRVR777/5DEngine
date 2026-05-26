@@ -136,6 +136,13 @@ try {
   const ammoEl = document.getElementById("ammo");
   const origTick2 = ankhor.tick.bind(ankhor);
   ankhor.tick = function(dt) {
+    // Feed input-state before tick so hero-shoot can read mouseHeld
+    const inputs = ankhor.byKind("input");
+    if (inputs.length) {
+      const fd = ankhor.facetData(inputs[0].id, "input-state");
+      if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; fd.mouseHeld = mouseHeld; }
+    }
+    const r = origTick2(dt);
     const r = origTick2(dt);
     try {
       const hero = ankhor.byKind("hero")[0];
