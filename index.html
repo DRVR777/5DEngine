@@ -105,7 +105,11 @@ try {
       pitch = Math.max(-1.4, Math.min(0.4, pitch - e.movementY * 0.0035));
     }
   });
-  document.addEventListener('mousedown', e => { if(e.button===0) mouseHeld=true; });
+  document.addEventListener('mousedown', e => { if(e.button===0) {
+    mouseHeld=true;
+    document.getElementById('muzzle').style.opacity='1';
+    setTimeout(()=>document.getElementById('muzzle').style.opacity='0',50);
+  }});
   document.addEventListener('mouseup', e => { if(e.button===0)mouseHeld=false; });
 
   // Single tick wrapper: feed input-state, then HUD update
@@ -132,6 +136,9 @@ try {
         }
         hp._lastHp = hp.hp;
         if (inv) ammoEl.textContent = (inv.items?.pistol_9mm || 0) + ' / 60';
+        if (inv) ammoEl.style.color = (inv.items?.pistol_9mm||0) < 10 ? '#f44' : '#fff';
+        // Kill counter
+        document.getElementById('kills').textContent = (inv.score || 0) + ' kills';
       }
     } catch(e) {}
     return result;
