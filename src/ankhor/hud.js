@@ -35,7 +35,15 @@ export function initHUD(ankhor) {
     const moving = keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD;
     const sprinting = keys.ShiftLeft && moving;
 
-    // Weapon bob
+    // CSS particles on hit
+    if (hp && hp._prevHp !== undefined && hp.hp < hp._prevHp) {
+      for(let i=0;i<8;i++){
+        const p=document.createElement('div');
+        p.style.cssText='position:absolute;top:50%;left:50%;width:4px;height:4px;background:#f84;border-radius:50%;pointer-events:none;animation:particleBurst '+(0.3+Math.random()*0.4)+'s ease-out forwards;transform:translate(-50%,-50%) translate('+((Math.random()-0.5)*80)+'px,'+((Math.random()-0.5)*80)+'px);';
+        document.body.appendChild(p);
+        setTimeout(()=>p.remove(),700);
+      }
+    }
     const bobY = moving ? Math.sin(bobT) * 0.012 : 0;
     stage.style.transform = sprinting
       ? `translateY(${bobY * 100}px) scale(1.02)`
