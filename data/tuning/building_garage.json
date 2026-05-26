@@ -1,0 +1,1 @@
+{"id":"tuning/building_garage","kind":"tuning","name":"building-garage","facets":[{"name":"mesh-spec","data":{"kind":"mesh","geometry":{"kind":"box","args":[5,4,6]},"material":{"kind":"standard","color":0x778899,"roughness":0.7,"metalness":0.2},"cast_shadow":true}}]}

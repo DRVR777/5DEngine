@@ -1,0 +1,39 @@
+{
+  "id": "spawns/buildings",
+  "kind": "spawn-set",
+  "name": "Arena buildings",
+  "facets": [
+    { "name": "for-kind", "data": "barrel" },
+    { "name": "comment", "data": "Placeholder buildings using barrel kind + scaled mesh" }
+  ],
+  "children": [
+    { "id": "bldg/shop-0", "kind": "barrel", "name": "building_shop",
+      "facets": [
+        { "name": "position", "data": { "x": -15, "y": 0, "z":  15 } },
+        { "name": "mesh", "data": { "tuning_ref": "building-shop" } },
+        { "name": "collider", "data": { "half_x": 4, "half_z": 4 } }
+      ]
+    },
+    { "id": "bldg/tower-0", "kind": "barrel", "name": "building_tower",
+      "facets": [
+        { "name": "position", "data": { "x":  15, "y": 0, "z": -15 } },
+        { "name": "mesh", "data": { "tuning_ref": "building-tower" } },
+        { "name": "collider", "data": { "half_x": 4, "half_z": 4 } }
+      ]
+    },
+    { "id": "bldg/house-0", "kind": "barrel", "name": "building_house",
+      "facets": [
+        { "name": "position", "data": { "x": -15, "y": 0, "z": -15 } },
+        { "name": "mesh", "data": { "tuning_ref": "building-house" } },
+        { "name": "collider", "data": { "half_x": 3, "half_z": 3 } }
+      ]
+    },
+    { "id": "bldg/garage-0", "kind": "barrel", "name": "building_garage",
+      "facets": [
+        { "name": "position", "data": { "x":  15, "y": 0, "z":  15 } },
+        { "name": "mesh", "data": { "tuning_ref": "building-garage" } },
+        { "name": "collider", "data": { "half_x": 3, "half_z": 3 } }
+      ]
+    }
+  ]
+}

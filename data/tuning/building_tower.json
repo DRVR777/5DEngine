@@ -1,0 +1,1 @@
+{"id":"tuning/building_tower","kind":"tuning","name":"building-tower","facets":[{"name":"mesh-spec","data":{"kind":"mesh","geometry":{"kind":"box","args":[6,20,6]},"material":{"kind":"standard","color":0x666677,"roughness":0.6,"metalness":0.3},"cast_shadow":true}}]}

@@ -1,0 +1,1 @@
+{"id":"tuning/building_house","kind":"tuning","name":"building-house","facets":[{"name":"mesh-spec","data":{"kind":"mesh","geometry":{"kind":"box","args":[6,5,6]},"material":{"kind":"standard","color":0xaa8866,"roughness":0.9},"cast_shadow":true}}]}
