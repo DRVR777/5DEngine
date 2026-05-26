@@ -19,6 +19,12 @@ export function renderAdapter(scene, registry, dt) {
 }
 
 function initScene(scene, registry) {
+  // --- Hero debug: bright emissive point light ---
+  const hLight = new THREE.PointLight(0x00ffff, 5, 10);
+  hLight.position.set(0, 2, 0);
+  hLight.name = "hero-light";
+  scene.add(hLight);
+
   // --- Ground ---
   const gGeo = new THREE.PlaneGeometry(60, 60);
   const gMat = new THREE.MeshStandardMaterial({ color: 0x334433, roughness: 0.85, metalness: 0.05 });
