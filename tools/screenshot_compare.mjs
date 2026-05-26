@@ -27,7 +27,7 @@ async function main() {
   // --- Ankhor substrate ---
   console.log('Opening index.html (Ankhor substrate)...');
   const pageA = await context.newPage();
-  await pageA.goto(`${BASE}/index.html`, { waitUntil: 'networkidle', timeout: 15000 });
+  await pageA.goto(`${BASE}/index.html`, { waitUntil: 'load', timeout: 20000 });
   await pageA.waitForTimeout(2000); // let first frame render
   await pageA.screenshot({ path: 'comparisons/ankhor_substrate.png', fullPage: false });
   console.log('  → comparisons/ankhor_substrate.png');
@@ -35,7 +35,7 @@ async function main() {
   // --- Legacy game ---
   console.log('Opening game.html (legacy game)...');
   const pageG = await context.newPage();
-  await pageG.goto(`${BASE}/game.html`, { waitUntil: 'networkidle', timeout: 15000 });
+  await pageG.goto(`${BASE}/game.html`, { waitUntil: 'load', timeout: 20000 });
   await pageG.waitForTimeout(2000);
   await pageG.screenshot({ path: 'comparisons/legacy_game.png', fullPage: false });
   console.log('  → comparisons/legacy_game.png');
