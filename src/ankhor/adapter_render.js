@@ -6,13 +6,11 @@
 
 import * as THREE from "three";
 
-let _initialized = false;
-
 export function renderAdapter(scene, registry, dt) {
   try {
-    if (!_initialized) {
+    if (!scene.userData._adapterInit) {
       initScene(scene, registry);
-      _initialized = true;
+      scene.userData._adapterInit = true;
     }
     updateSkybox(scene, registry);
   } catch (e) {
