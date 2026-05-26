@@ -67,6 +67,7 @@ import enemySep          from "./enemy_sep.js";
 import enemyMesh         from "./enemy_mesh.js";
 import bossBar          from "./boss_bar.js";
 import armorVest        from "./armor_vest.js";
+import particleTerrain  from "./particle_terrain.js";
 
 export const FACET_HANDLERS = {
   "position":            position,
@@ -133,6 +134,7 @@ export const FACET_HANDLERS = {
   "enemy-mesh":          enemyMesh,
   "boss-bar":            bossBar,
   "armor-vest":          armorVest,
+  "terrain":             particleTerrain,
   // server-side data-container facets (no tick)
   "health":              { priority: 25 },
   "destructible":        { priority: 30 },
@@ -162,7 +164,6 @@ export const FACET_HANDLERS = {
   "fog_of_war":   { priority: 50, init(_t,d){ d.FOW_RADIUS=25; d.FOW_FADE_START=18; d.FOW_OPACITY=0.85; } },
   "rain":         { priority: 12, init(_t,d){ d.rainDrops=true; d.rainIntensity=1; } },
   "world_layout": { priority: 10, init(_t,d){ d.ARENA_HALF=28; d.ARENA_THICK=1.6; d.ARENA_HEIGHT=2.2; } },
-  "terrain":      { priority: 50, init(_t,d){ d.gridSize=100; } },
   "portal_gen":   { priority: 50, init(_t,d){ d.portalTypes=["building","shop","garage"]; } },
   "city_gen":     { priority: 50, init(_t,d){ d.BLDG_HEIGHTS={shop:8,tower:25,house:6,garage:5,diner:7,bank:12,park:4,studio:10}; } },
   "world_data":   { priority: 50 },
