@@ -11,26 +11,42 @@ async function main() {
 
   console.log('Sending to local Gemma 4...');
 
-  const prompt = `[SYSTEM: You are a visual comparison engine. I will show you two game screenshots and ask you to list specific differences.]
+  const prompt = `You are comparing two game screenshots. Image 1 is a work-in-progress clone of Image 2.
 
-IMAGE 1: "Ankhor substrate" — a work-in-progress game scene.
-IMAGE 2: "Legacy game" — the reference target.
+CRITICAL QUESTIONS — answer each with exact numbers and specifics:
 
-Compare them and answer:
-1. LIST every HUD/text element visible in Image 2 that is MISSING from Image 1
-2. LIST every 3D object visible in Image 2 that is MISSING from Image 1
-3. What visible effects (muzzle flash, particles, shadows, fog) are in Image 2 but not Image 1?
-4. What is the dominant color palette difference?
-5. How many enemies/barrels/buildings can you count in each?
+ARE THEY THE SAME? Answer YES or NO first.
 
-Be specific. Short answers only.`;
+HUD DIFFERENCES (exact list):
+- What text/numbers/labels are in Image 2 that are NOT in Image 1? List EVERY one.
+- What UI panels/menus/overlays are in Image 2 missing from Image 1?
+- Position of HP display, ammo counter, minimap, crosshair — list coordinates or positions for BOTH images.
+
+3D OBJECT DIFFERENCES:
+- Count ALL visible 3D objects in Image 1: ___
+- Count ALL visible 3D objects in Image 2: ___
+- What objects exist in Image 2 but NOT Image 1? Name each type.
+- Are enemies visible? How many in each image?
+
+EFFECTS DIFFERENCES:
+- Shadows? YES/NO for each image
+- Muzzle flash? YES/NO
+- Particles/sparks? YES/NO, count if visible
+- Fog/atmosphere? Describe each
+- Screen shake/blur? YES/NO
+
+COLOR DIFFERENCES:
+- Dominant sky color in each
+- Dominant ground color in each
+- Overall saturation: low/medium/high for each
+- Are they visually the same scene?`;
 
   try {
     const res = await fetch('http://localhost:11434/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemma4:e4b',
+        model: 'gemma4:e2b',  // 7.2GB — faster
         messages: [{
           role: 'user',
           content: prompt,
