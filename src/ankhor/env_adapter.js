@@ -29,6 +29,12 @@ function toLayerBoundary(def) {
 
 export function envRenderAdapter(scene, registry, dt) {
   if (!_init) {
+    // Hide mesh-spec ground (mesh handler creates from tuning) — adapter handles it
+    const msGround = scene.getObjectByName("ground/main");
+    if (msGround) msGround.visible = false;
+    const msGrid = scene.getObjectByName("GridHelper");
+    if (msGrid) msGrid.visible = false;
+
     const bldgs = buildings.map(toLayerBoundary);
     const result = mountEnvironment({ THREE, scene, buildings: bldgs });
     _skyUniforms = result.skyUniforms;
