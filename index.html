@@ -43,7 +43,27 @@ try {
   const ankhor = await boot({ canvas: document.getElementById("stage") });
   window.Ankhor = ankhor;
   document.getElementById("boot").textContent = "ankhor · live";
-  document.getElementById("boot").textContent = "ankhor · live";
+
+  // Input adapter — keyboard + mouse
+  const keys = {}; let yaw=0,pitch=0,mouseHeld=false;
+  addEventListener('keydown',e=>keys[e.code]=true);
+  addEventListener('keyup',e=>keys[e.code]=false);
+  const canvas=document.getElementById('stage');
+  canvas.addEventListener('click',()=>canvas.requestPointerLock());
+  addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas){yaw-=e.movementX*0.0035;pitch=Math.max(-1.4,Math.min(0.4,pitch-e.movementY*0.0035))}});
+  addEventListener('mousedown',e=>{if(e.button===0)mouseHeld=true});
+  addEventListener('mouseup',e=>{if(e.button===0)mouseHeld=false});
+
+  // Feed input-state → hero-shoot fires bullets
+  const realTick = ankhor.tick.bind(ankhor);
+  ankhor.tick = function(dt) {
+    const inputs = ankhor.byKind("input");
+    if (inputs.length) {
+      const fd = ankhor.facetData(inputs[0].id, "input-state");
+      if (fd) { fd.keys = {...keys}; fd.yaw = yaw; fd.pitch = pitch; fd.mouseHeld = mouseHeld; }
+    }
+    return realTick(dt);
+  };
 
   // Hide loading screen
   const ls = document.getElementById("loadingScreen");
