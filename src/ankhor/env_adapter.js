@@ -6,6 +6,7 @@
 
 import { mountEnvironment } from "../render/environment.js";
 import { mountPickupMeshes } from "../render/pickup_mesh.js";
+import { init as initVfx, tick as tickVfx } from "../render/vfx.js";
 import * as THREE from "three";
 
 let _skyUniforms, _init;
@@ -46,9 +47,13 @@ export function envRenderAdapter(scene, registry, dt) {
       { id:"pk4", u:-9, v:  6 },
     ];
     mountPickupMeshes({ THREE, scene, pickups });
+    initVfx(THREE, scene, null);
     _init = true;
     window._scene = scene;
   }
+
+  // VFX tick — updates particles, casings, damage numbers, shockwaves
+  tickVfx(dt);
 
   // Day-night sky colors
   if (!_skyUniforms) return;
