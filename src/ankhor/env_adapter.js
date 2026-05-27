@@ -5,6 +5,7 @@
  */
 
 import { mountEnvironment } from "../render/environment.js";
+import { mountPickupMeshes } from "../render/pickup_mesh.js";
 import * as THREE from "three";
 
 let _skyUniforms, _init;
@@ -31,6 +32,14 @@ export function envRenderAdapter(scene, registry, dt) {
     const bldgs = buildings.map(toLayerBoundary);
     const result = mountEnvironment({ THREE, scene, buildings: bldgs });
     _skyUniforms = result.skyUniforms;
+    // Pickup meshes from world_data.js
+    const pickups = [
+      { id:"pk1", u: 3, v:  3 },
+      { id:"pk2", u:-5, v: -4 },
+      { id:"pk3", u: 7, v: -8 },
+      { id:"pk4", u:-9, v:  6 },
+    ];
+    mountPickupMeshes({ THREE, scene, pickups });
     _init = true;
     window._scene = scene;
   }
