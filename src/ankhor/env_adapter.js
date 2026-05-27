@@ -79,6 +79,9 @@ export function envRenderAdapter(scene, registry, dt) {
   if (window.EventBus?.tick) window.EventBus.tick(dt);
   if (window.GTAPhysics?.tick) window.GTAPhysics.tick(dt);
   if (window.GTAInventory?.tick) window.GTAInventory.tick(dt);
+  if (window.WaveManager?.tick) window.WaveManager.tick(dt);
+  if (window.BehaviorTree?.tick) window.BehaviorTree.tick(dt);
+  if (window.StatusEffects?.tick) window.StatusEffects.tick(dt);
 
   // Day-night sky colors
   if (!_skyUniforms) return;
