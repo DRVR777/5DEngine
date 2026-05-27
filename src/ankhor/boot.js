@@ -10,6 +10,7 @@ import { installMeshHandler }    from "./install_mesh_handler.js";
 import { composeFromRoot, facetMap } from "./compose.js";
 import { applyWorldParams }      from "./world_params.js";
 import { heroRenderAdapter }   from "./hero_adapter.js";
+import { enemyRenderAdapter }  from "./enemy_adapter.js";
 import { envRenderAdapter }    from "./env_adapter.js";
 import { requireParam as need }  from "./require_param.js";
 
@@ -136,6 +137,8 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
     catch (e) { console.error("[boot] envAdapter error (non-fatal):", e); }
     try { console.log("[boot] calling heroRenderAdapter..."); heroRenderAdapter(scene, registry, dt); console.log("[boot] heroRenderAdapter OK"); }
     catch (e) { console.error("[boot] heroAdapter error (non-fatal):", e); }
+    try { enemyRenderAdapter(scene, registry, dt); }
+    catch (e) { console.error("[boot] enemyAdapter error (non-fatal):", e); }
     try { updateCamera(cam, cp, registry, now); }
     catch (e) { console.error("[boot] updateCamera error (non-fatal):", e); }
     try { renderer.render(scene, cam); }
