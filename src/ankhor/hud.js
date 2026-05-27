@@ -88,7 +88,7 @@ export function initHUD(ankhor) {
     hudState._lastScore = scoreNow;
 
     // Kill counter
-    document.getElementById('kills').textContent = ((ankhor.facetData(hero.id, 'enemy-kill')?.enemyKills)||0) + ' kills';
+    document.getElementById('kills').textContent = 0 + ' kills';
 
     // Combo
     const streak = ankhor.facetData(hero.id, 'enemy-kill')?.killStreak || 0;
