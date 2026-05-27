@@ -6,7 +6,6 @@
 
 import { mountEnvironment } from "../render/environment.js";
 import { mountPickupMeshes } from "../render/pickup_mesh.js";
-import { mountLighting }    from "../render/lighting.js";
 import * as THREE from "three";
 
 let _skyUniforms, _init;
@@ -41,7 +40,6 @@ export function envRenderAdapter(scene, registry, dt) {
       { id:"pk4", u:-9, v:  6 },
     ];
     mountPickupMeshes({ THREE, scene, pickups });
-    mountLighting({ THREE, scene, renderer: null });
     _init = true;
     window._scene = scene;
   }
