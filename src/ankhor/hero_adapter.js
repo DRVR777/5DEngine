@@ -10,6 +10,8 @@ let _heroGroup = null;
 let _shadowBlob = null;
 let _walkState = { t: 0 };
 let _limbs = {};
+let _muzzleLight = null;
+let _muzzleT = 0;
 
 export function heroRenderAdapter(scene, registry, dt) {
   if (!_heroGroup) {
@@ -72,6 +74,10 @@ function buildHero(scene) {
   shadowBlob.position.y = 0.01;
   scene.add(shadowBlob);
 
+  // Muzzle flash point light — from game.html vfx.js
+  _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8);
+  scene.add(_muzzleLight);
+
   scene.add(heroGroup);
   _heroGroup = heroGroup;
   _shadowBlob = shadowBlob;
@@ -107,4 +113,21 @@ function updateHero(registry, dt) {
   _shadowBlob.visible = true;
   _shadowBlob.position.set(pos.x || 0, 0.01, pos.z || 0);
   _shadowBlob.material.opacity = Math.max(0, 0.28 - (pos.y || 0) * 0.06);
+
+  // Muzzle flash
+  if (_muzzleLight) {
+    _muzzleT -= dt;
+    const input = registry.byKind?.("input")?.[0];
+    const fd = input ? registry.facetData(input.id, "input-state") : null;
+    if (fd?.mouseHeld) { _muzzleT = 0.08; }
+    _muzzleLight.intensity = _muzzleT > 0 ? 2.0 : 0;
+    if (_muzzleT > 0) {
+      const yaw = fd?.yaw || 0;
+      _muzzleLight.position.set(
+        (pos.x || 0) - Math.sin(yaw) * 0.9,
+        (pos.y || 0) + 1.45,
+        (pos.z || 0) - Math.cos(yaw) * 0.9
+      );
+    }
+  }
 }
