@@ -34,7 +34,6 @@ html,body{margin:0;height:100%;background:#0b0d12;overflow:hidden}
 </script>
 <script type="module">
 import { boot } from "boot";
-import { initGame } from "./src/ankhor/game_init.js";
 
 try {
   // Loading bar animation
@@ -43,9 +42,7 @@ try {
 
   const ankhor = await boot({ canvas: document.getElementById("stage") });
   window.Ankhor = ankhor;
-
-  // Init full game from game.html's inline module
-  try { await initGame(ankhor); } catch(e) { console.warn("initGame:", e.message); }
+  document.getElementById("boot").textContent = "ankhor · live";
   document.getElementById("boot").textContent = "ankhor · live";
 
   // Hide loading screen
