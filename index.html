@@ -18,6 +18,19 @@ html,body{margin:0;height:100%;background:#0b0d12;overflow:hidden}
   <div id="loadBarWrap"><div id="loadBar"></div></div>
   <div id="loadHint">browser · three.js · wave combat</div>
 </div>
+<!-- Legacy globals — loaded synchronously so adapters can reference window.* -->
+<script src="./src/core/engine.js"></script>
+<script src="./src/core/event_bus.js"></script>
+<script src="./src/world/day_night.js"></script>
+<script src="./src/render/particle_system.js"></script>
+<script src="./src/render/camera_spine.js"></script>
+<script src="./src/world/world_data.js"></script>
+<script src="./src/combat/guns.js"></script>
+<script src="./src/combat/health.js"></script>
+<script src="./src/physics/physics.js"></script>
+<script src="./src/systems/registry.js"></script>
+<script src="./src/systems/inventory.js"></script>
+<script src="./src/render/vfx.js"></script>
 <canvas id="stage"></canvas>
 <div id="boot" style="position:fixed;top:8px;left:8px;color:#0f0;font:11px monospace;z-index:10;pointer-events:none">ankhor</div>
 <a href="./game.html" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(20,24,40,0.85);border:1px solid #4a8;border-radius:6px;padding:5px 12px;color:#9fc;font:12px monospace;text-decoration:none;">⇆ legacy game</a>
