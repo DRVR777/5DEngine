@@ -46,7 +46,6 @@ html,body{margin:0;height:100%;background:#0b0d12;overflow:hidden}
 <script src="./src/entities/entity.js"></script>
 <script src="./src/bridges/engine_bridge.js"></script>
 <script src="./src/bridges/engine_browser.js"></script>
-<script src="./src/ankhor/game_init.js"></script>
 <canvas id="stage"></canvas>
 <div id="boot" style="position:fixed;top:8px;left:8px;color:#0f0;font:11px monospace;z-index:10;pointer-events:none">ankhor</div>
 <a href="./game.html" style="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(20,24,40,0.85);border:1px solid #4a8;border-radius:6px;padding:5px 12px;color:#9fc;font:12px monospace;text-decoration:none;">⇆ legacy game</a>
@@ -56,6 +55,7 @@ html,body{margin:0;height:100%;background:#0b0d12;overflow:hidden}
 </script>
 <script type="module">
 import { boot } from "boot";
+import { initGame } from "./src/ankhor/game_init.js";
 
 try {
   // Loading bar animation
@@ -64,6 +64,9 @@ try {
 
   const ankhor = await boot({ canvas: document.getElementById("stage") });
   window.Ankhor = ankhor;
+
+  // Init full game from game.html's inline module
+  try { await initGame(ankhor); } catch(e) { console.warn("initGame:", e.message); }
   document.getElementById("boot").textContent = "ankhor · live";
 
   // Hide loading screen

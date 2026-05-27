@@ -1,23 +1,4 @@
-
-(function(){
-  var s = document.createElement("script");
-  s.src = "/socket.io/socket.io.js";   // served by game_server.js
-  s.onerror = function() {
-    var s2 = document.createElement("script");
-    s2.src = "https://cdn.socket.io/4.7.5/socket.io.min.js";
-    s2.onerror = function() {};   // silent fail when offline
-    document.head.appendChild(s2);
-  };
-  document.head.appendChild(s);
-})();
-</script>
-<script type="importmap">
-{ "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
-} }
-</script>
-<script type="module">
+export async function initGame(ankhor) {
 /*
   ════════════════════════════════════════════════════════════════════════════
   5DEngine — main module entry point
@@ -2342,4 +2323,4 @@ mountLoadCheckOverlay({
 
 // Pseudocode: report uncaught runtime errors to server artifacts for the agent loop.
 mountRuntimeErrorReporter();
-
+}
