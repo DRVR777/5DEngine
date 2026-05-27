@@ -76,6 +76,9 @@ export function envRenderAdapter(scene, registry, dt) {
   if (window.CameraSpine?.tick) window.CameraSpine.tick(dt);
   if (window.GTAGuns?.tick) window.GTAGuns.tick(dt);
   if (window.GTAHealth?.tick) window.GTAHealth.tick(dt);
+  if (window.EventBus?.tick) window.EventBus.tick(dt);
+  if (window.GTAPhysics?.tick) window.GTAPhysics.tick(dt);
+  if (window.GTAInventory?.tick) window.GTAInventory.tick(dt);
 
   // Day-night sky colors
   if (!_skyUniforms) return;
