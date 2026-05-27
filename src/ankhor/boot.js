@@ -132,9 +132,9 @@ export async function boot({ canvas, dataDir = "./data/", rootId = "root", onRea
     // or render call would black-screen the whole engine otherwise.
     try { registry.tick(dt); }
     catch (e) { console.error("[boot] registry.tick error (non-fatal):", e); }
-    try { envRenderAdapter(scene, registry, dt); }
+    try { console.log("[boot] calling envRenderAdapter..."); envRenderAdapter(scene, registry, dt); console.log("[boot] envRenderAdapter OK"); }
     catch (e) { console.error("[boot] envAdapter error (non-fatal):", e); }
-    try { heroRenderAdapter(scene, registry, dt); }
+    try { console.log("[boot] calling heroRenderAdapter..."); heroRenderAdapter(scene, registry, dt); console.log("[boot] heroRenderAdapter OK"); }
     catch (e) { console.error("[boot] heroAdapter error (non-fatal):", e); }
     try { updateCamera(cam, cp, registry, now); }
     catch (e) { console.error("[boot] updateCamera error (non-fatal):", e); }
