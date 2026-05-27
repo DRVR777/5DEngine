@@ -10,6 +10,7 @@
     { "id": "hero/main", "kind": "hero", "name": "hero",
       "facets": [
         { "name": "position",          "data": { "x": 0, "y": 0, "z": 0 } },
+        { "name": "mesh",              "data": {} },
         { "name": "health",            "data": { "hp": 100, "maxHp": 100 } },
         { "name": "hero-broadcaster",  "data": {} },
         { "name": "hero-input-move",   "data": {} },
