@@ -49,11 +49,27 @@ export function envRenderAdapter(scene, registry, dt) {
     mountPickupMeshes({ THREE, scene, pickups });
     initVfx(THREE, scene, null);
     _init = true;
+
+    // Init DayNight with scene lights
+    if (window.DayNight && window.DayNight.init) {
+      const sun = scene.children.find(c => c.isDirectionalLight);
+      const amb = scene.children.find(c => c.isAmbientLight);
+      window.DayNight.init({ scene, sunLight: sun || null, ambLight: amb || null, renderer: null, speed: 1, startHour: 8 });
+    }
+    // Init CameraSpine
+    if (window.CameraSpine && window.CameraSpine.init) {
+      window.CameraSpine.init({ camDist: 6, camDistMax: 18, camDistMin: 1.5 });
+    }
     window._scene = scene;
   }
 
   // VFX tick — updates particles, casings, damage numbers, shockwaves
   tickVfx(dt);
+
+  // DayNight tick — from game.html global
+  if (window.DayNight && window.DayNight.tick) window.DayNight.tick(dt);
+  // CameraSpine tick
+  if (window.CameraSpine && window.CameraSpine.tick) window.CameraSpine.tick(dt);
 
   // Day-night sky colors
   if (!_skyUniforms) return;
