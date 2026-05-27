@@ -1,0 +1,19 @@
+Look at these two game screenshots with EXTREME precision. Do not give general answers.
+
+For EACH image, describe the HERO character specifically:
+- Body shape (blocky, smooth, round?)
+- Colors (shirt, pants, skin, head)
+- How many limbs? Arms? Legs?
+- Size relative to surroundings
+- Shadow underneath? Shape? Darkness?
+- Animation pose (standing, walking, arms swinging?)
+
+Are the two heroes IDENTICAL or DIFFERENT? If different, describe EXACTLY what differs.
+
+Also check:
+- Ground color/texture
+- Sky color
+- Any visible buildings or props
+- Any UI/HUD elements
+
+Be precise. Count things. Name colors. Measure proportions mentally.
