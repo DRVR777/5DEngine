@@ -37,6 +37,19 @@ function makeGroundTexture(size = 256) {
 }
 
 function buildEnvironment(scene) {
+  // Building definitions — from world_data.js
+  const buildings = [
+    { id: "shop",    color: 0xff6b6b, u0:  10, v0:  -4, u1:  16, v1:   4 },
+    { id: "tower",   color: 0x4ecdc4, u0: -16, v0:   6, u1: -10, v1:  12 },
+    { id: "house",   color: 0xffe66d, u0:  -6, v0: -14, u1:   0, v1:  -8 },
+    { id: "garage",  color: 0xa8dadc, u0:   6, v0:  10, u1:  12, v1:  16 },
+    { id: "diner",   color: 0xff9f1c, u0: -22, v0: -12, u1: -16, v1:  -6 },
+    { id: "server_room", color: 0x1a3a5c, u0: -38, v0:  -8, u1: -26, v1:   8 },
+    { id: "bank",    color: 0x9b5de5, u0:  18, v0:  12, u1:  24, v1:  18 },
+    { id: "park",    color: 0x80ed99, u0: -10, v0:  18, u1:  -2, v1:  26 },
+    { id: "studio",  color: 0xf72585, u0:  20, v0: -22, u1:  26, v1: -14 },
+  ];
+
   // Ground
   const groundMat = new THREE.MeshStandardMaterial({ map: makeGroundTexture(), roughness: 0.95 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
@@ -82,6 +95,23 @@ function buildEnvironment(scene) {
   sun.position.set(5, 10, 5);
   sun.name = "sun";
   scene.add(sun);
+
+  // Buildings — exact code from game.html mountEnvironment
+  for (const bldg of buildings) {
+    const { u0, v0, u1, v1 } = bldg;
+    const w = u1 - u0, d = v1 - v0;
+    const h = 4 + Math.random() * 6;
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshStandardMaterial({ color: bldg.color })
+    );
+    mesh.position.set((u0 + u1) / 2, h / 2, (v0 + v1) / 2);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.id = bldg.id;
+    mesh.name = "building-" + bldg.id;
+    scene.add(mesh);
+  }
 
   window._scene = scene;
 }
