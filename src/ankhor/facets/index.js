@@ -58,6 +58,9 @@ import ttl             from "./ttl.js";
 import enemyAiScaffold  from "./enemy_ai_scaffold.js";
 import enemyRegen       from "./enemy_regen.js";
 import enemyRobotEmp   from "./enemy_robot_emp.js";
+import ammoPickup       from "./ammo_pickup.js";
+import armorShard       from "./armor_shard.js";
+import coinDrop         from "./coin_drop.js";
 import enemyRobotPlasma from "./enemy_robot_plasma.js";
 import enemyPoisonerSpit from "./enemy_poisoner_spit.js";
 import enemySniper       from "./enemy_sniper.js";
@@ -133,6 +136,9 @@ export const FACET_HANDLERS = {
   "enemy-ai-scaffold":   enemyAiScaffold,
   "enemy-regen":         enemyRegen,
   "enemy-robot-emp":    enemyRobotEmp,
+  "ammo-pickup":        ammoPickup,
+  "armor-shard":        armorShard,
+  "coin-drop":          coinDrop,
   "enemy-robot-plasma": enemyRobotPlasma,
   "enemy-poisoner-spit": enemyPoisonerSpit,
   "enemy-sniper":        enemySniper,
