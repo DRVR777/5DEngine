@@ -22,9 +22,9 @@
       "http-request": 5,
       "database": 4,
       "agent-message": 4,
-      "arena-wall": 4,
       "ground": 1,
-      "smoke-particle": 62
+      "Mesh": 1,
+      "smoke-particle": 27
     },
     "hud": {
       "hp": true,
@@ -39,7 +39,7 @@
       "combo": false,
       "modeSwitch": false
     },
-    "children": 141
+    "children": 103
   },
   "legacy": {
     "entities": {
