@@ -19,8 +19,10 @@ html,body{margin:0;height:100%;background:#0b0d12;color:#cfc;font:13px/1.4 monos
 
 <!-- HUD -->
 <div id="hud" style="position:fixed;inset:0;pointer-events:none;z-index:100;font:16px monospace;color:#fff;">
-  <div id="hp" style="position:absolute;bottom:20px;left:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">HP 100</div>
-  <div id="ammo" style="position:absolute;bottom:20px;right:20px;background:rgba(0,0,0,0.6);padding:8px 14px;border-radius:4px;">60 / 60</div>
+  <div id="hp" style="position:absolute;top:8px;right:120px;font:bold 14px monospace;text-shadow:0 0 4px #000;">HP 100</div>
+  <div id="ammo" style="position:absolute;bottom:8px;left:8px;font:12px monospace;background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:3px;">pistol 60/60</div>
+  <div id="shots" style="position:absolute;bottom:8px;left:140px;font:11px monospace;color:#aaa;">shots: 0</div>
+  <div id="score" style="position:absolute;top:8px;right:8px;font:bold 14px monospace;color:#ffd700;text-shadow:0 0 4px #000;">$0</div>
   <div id="kills" style="position:absolute;top:30px;right:20px;color:#ff0;font:14px monospace;background:rgba(0,0,0,0.5);padding:4px 10px;border-radius:3px;">0 kills</div>
   <div id="weapon" style="position:absolute;bottom:60px;left:20px;color:#aaa;font:12px monospace;background:rgba(0,0,0,0.4);padding:4px 8px;border-radius:3px;">PISTOL</div>
   <div id="sprint" style="position:absolute;bottom:100px;left:20px;color:#0ff;font:12px monospace;background:rgba(0,0,0,0.4);padding:4px 8px;border-radius:3px;opacity:0;">SPRINT</div>
