@@ -1,0 +1,82 @@
+{
+  "ankhor": {
+    "entities": {
+      "AmbientLight": 1,
+      "DirectionalLight": 1,
+      "GridHelper": 1,
+      "barrel": 8,
+      "speed-orb": 3,
+      "health-pickup": 2,
+      "weapon-pickup": 3,
+      "armor-shard": 3,
+      "crate": 8,
+      "grenade-crate": 4,
+      "hazard-zone": 5,
+      "enemy": 9,
+      "hero": 1,
+      "vehicle": 1,
+      "npc": 2,
+      "screen": 2,
+      "server-process": 4,
+      "docker-container": 3,
+      "http-request": 5,
+      "database": 4,
+      "agent-message": 4,
+      "arena-wall": 4,
+      "ground": 1,
+      "smoke-particle": 62
+    },
+    "hud": {
+      "hp": true,
+      "ammo": true,
+      "kills": true,
+      "weapon": true,
+      "sprint": true,
+      "crosshair": true,
+      "muzzle": true,
+      "reload": true,
+      "minimap": true,
+      "combo": false,
+      "modeSwitch": false
+    },
+    "children": 141
+  },
+  "legacy": {
+    "entities": {
+      "Mesh": 62,
+      "PointLight": 1,
+      "AmbientLight": 1,
+      "DirectionalLight": 1,
+      "GridHelper": 1,
+      "Group": 28,
+      "SpotLight": 1,
+      "Object3D": 1
+    },
+    "hud": {
+      "hp": false,
+      "ammo": false,
+      "kills": false,
+      "weapon": false,
+      "sprint": false,
+      "crosshair": false,
+      "muzzle": false,
+      "reload": false,
+      "minimap": false,
+      "combo": false,
+      "modeSwitch": false
+    },
+    "children": 96
+  },
+  "missingHud": [],
+  "extraHud": [
+    "hp",
+    "ammo",
+    "kills",
+    "weapon",
+    "sprint",
+    "crosshair",
+    "muzzle",
+    "reload",
+    "minimap"
+  ]
+}

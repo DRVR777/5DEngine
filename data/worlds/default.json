@@ -148,7 +148,6 @@
     { "ref": "spawns/input" },
     { "ref": "spawns/hud" },
     { "ref": "spawns/wave_spawner" },
-    { "ref": "spawns/arena_walls" },
     { "ref": "spawns/buildings" },
     { "ref": "spawns/ground" },
     { "ref": "spawns/legacy_systems" }
