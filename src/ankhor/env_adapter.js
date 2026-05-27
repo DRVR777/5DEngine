@@ -50,16 +50,20 @@ export function envRenderAdapter(scene, registry, dt) {
     initVfx(THREE, scene, null);
     _init = true;
 
-    // Init DayNight with scene lights
-    if (window.DayNight && window.DayNight.init) {
+    // Init DayNight
+    if (window.DayNight?.init) {
       const sun = scene.children.find(c => c.isDirectionalLight);
       const amb = scene.children.find(c => c.isAmbientLight);
-      window.DayNight.init({ scene, sunLight: sun || null, ambLight: amb || null, renderer: null, speed: 1, startHour: 8 });
+      window.DayNight.init({ scene, sunLight: sun, ambLight: amb, renderer: null, speed: 1, startHour: 8 });
     }
     // Init CameraSpine
-    if (window.CameraSpine && window.CameraSpine.init) {
+    if (window.CameraSpine?.init) {
       window.CameraSpine.init({ camDist: 6, camDistMax: 18, camDistMin: 1.5 });
     }
+    // Init Gun system
+    if (window.GTAGuns?.init) { window.GTAGuns.init(); }
+    // Init Health system
+    if (window.GTAHealth?.init) { window.GTAHealth.init({ maxHp: 100, regenRate: 5, regenDelay: 5 }); }
     window._scene = scene;
   }
 
@@ -69,7 +73,9 @@ export function envRenderAdapter(scene, registry, dt) {
   // DayNight tick — from game.html global
   if (window.DayNight && window.DayNight.tick) window.DayNight.tick(dt);
   // CameraSpine tick
-  if (window.CameraSpine && window.CameraSpine.tick) window.CameraSpine.tick(dt);
+  if (window.CameraSpine?.tick) window.CameraSpine.tick(dt);
+  if (window.GTAGuns?.tick) window.GTAGuns.tick(dt);
+  if (window.GTAHealth?.tick) window.GTAHealth.tick(dt);
 
   // Day-night sky colors
   if (!_skyUniforms) return;
