@@ -11,6 +11,9 @@ let _hero, _muzzleLight, _muzzleT;
 
 export function heroRenderAdapter(scene, registry, dt) {
   if (!_hero) {
+    // Hide mesh-spec capsule hero (mesh handler creates it from tuning)
+    const exist = scene.getObjectByName("hero/main");
+    if (exist) exist.visible = false;
     _hero = mountHeroMesh({ THREE, scene });
     _muzzleLight = new THREE.PointLight(0xffcc44, 0, 8);
     scene.add(_muzzleLight);
