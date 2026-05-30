@@ -25,11 +25,23 @@ import ssl
 import uuid
 import time
 import json
+import base64
 import threading
 import platform
 import socket as _socket
 import urllib.request
 import concurrent.futures
+
+# ── Security config (CRYPT_ANALYST_20260322 patch) ────────────────────────────
+# VERIFY_SIGS=0 (default): soft mode — log warnings but relay any frame
+# VERIFY_SIGS=1: hard mode — require identity registration, block impersonation
+VERIFY_SIGS = os.environ.get("VERIFY_SIGS", "0") == "1"
+
+# ── Pubkey cache: sid → { node_id, pubkey_b64, registered_at } ───────────────
+# Populated by "register_identity" event (once per connection).
+# Prevents impersonation: a client can only relay under their registered node_id.
+# Ed25519 signature verification happens in the receiving browser (WebCrypto).
+_pubkey_cache = {}
 
 # Force UTF-8 output so Unicode banners work on Windows consoles and in
 # subprocess captures (pytest, PyInstaller, etc.) regardless of locale.
@@ -71,6 +83,68 @@ def handle_preflight(path):
 
 # sid → { id, name, ip, pos, last_seen }
 _players = {}
+
+# ── SocketIO security handlers ────────────────────────────────────────────────
+
+@socketio.on("register_identity")
+def handle_register_identity(data):
+    """
+    Browser calls this once on connect with its Ed25519 identity.
+    Stores node_id + pubkey for anti-impersonation checks in relay.
+    CRYPT_ANALYST_20260322 security patch.
+    """
+    node_id = data.get("node_id", "")
+    pubkey  = data.get("pubkey_b64", "")
+    if not node_id or not pubkey:
+        return
+    try:
+        pk_bytes = base64.b64decode(pubkey)
+        if len(pk_bytes) != 32:
+            return  # Ed25519 verifying keys are exactly 32 bytes
+    except Exception:
+        return
+    _pubkey_cache[request.sid] = {
+        "node_id": node_id, "pubkey_b64": pubkey, "registered_at": time.time()
+    }
+    if VERIFY_SIGS:
+        print(f"[security] Identity registered: {node_id} (sid={request.sid[:8]})")
+
+
+@socketio.on("bridge_frame")
+def handle_bridge_frame_secure(frame):
+    """
+    STATELESS RELAY — Never interprets payload. Only forwards signed blobs.
+    Anti-impersonation check: claimed node_id must match registered identity.
+    CRYPT_ANALYST_20260322 security patch (replaces old bridge_frame handler).
+    """
+    channel = frame.get("channel")
+    payload = frame.get("payload", "")
+    node_id = frame.get("_node_id") or frame.get("node_id", "")
+
+    if channel is None or payload is None:
+        return  # Malformed — drop silently
+
+    cached = _pubkey_cache.get(request.sid)
+    if cached and node_id and node_id != cached["node_id"]:
+        if VERIFY_SIGS:
+            print(f"[security] IMPERSONATION blocked: sid={request.sid[:8]} "
+                  f"claims {node_id} != registered {cached['node_id']}")
+            return
+        else:
+            print(f"[security] WARN impersonation: {node_id} != {cached.get('node_id')}")
+
+    if VERIFY_SIGS and not cached:
+        print(f"[security] UNREGISTERED relay attempt on ch{channel}")
+        return
+
+    # Soft mode metrics: log unsigned frames on important channels
+    if not VERIFY_SIGS:
+        has_sig = bool(frame.get("_epoch_sig") or frame.get("_mac"))
+        if not has_sig and channel in (1, 2, 4):
+            print(f"[security] WARN unsigned frame ch{channel} from {node_id or 'unknown'}")
+
+    # RELAY only — never unpack or interpret payload
+    emit("bridge_frame", frame, broadcast=True, include_self=False)
 
 # ip → set of friend ips (cleared on server restart; session-scoped)
 _friend_list = {}
@@ -299,6 +373,8 @@ def on_disconnect():
     if p:
         emit("mp_player_left", {"id": p["id"]}, broadcast=True)
         print(f"[-] {p['id']} left   ({len(_players)} online)")
+    # Clean up pubkey cache (CRYPT_ANALYST_20260322 security patch)
+    _pubkey_cache.pop(request.sid, None)
 
 
 # ── SocketIO: game events ─────────────────────────────────────────────────────

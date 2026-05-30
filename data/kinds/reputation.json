@@ -1,0 +1,39 @@
+{
+  "id": "kinds/reputation",
+  "kind": "kind-def",
+  "name": "Kind definition: reputation",
+  "facets": [
+    { "name": "for-kind",        "data": "reputation" },
+    { "name": "required-facets", "data": ["reputation-score"] },
+    { "name": "optional-facets", "data": ["contribution-history", "trust-grants", "world-authority"] },
+    { "name": "defaults", "data": {
+      "reputation-score": {
+        "trustScore":              0.5,
+        "relayContribution":       0,
+        "inferenceContribution":   0,
+        "storageContribution":     0,
+        "compositeScore":          0.5,
+        "tier":                    "visitor",
+        "helpedPlayers":           0,
+        "inferenceRequestsServed": 0,
+        "bytesRelayed":            0,
+        "chunksStored":            0,
+        "workReceiptsVerified":    0,
+        "lastUpdated":             null,
+        "_r_pending_receipts":     []
+      },
+      "contribution-history": {
+        "sessions":           [],
+        "totalPlayTime":      0,
+        "consecutiveDays":    0,
+        "lastSeen":           null
+      },
+      "trust-grants": {
+        "builderIn":  [],
+        "adminIn":    [],
+        "deniedFrom": []
+      }
+    } },
+    { "name": "comment", "data": "Reputation Thinga — the economic identity of a node in the P2P hivemind. \n\nTIER THRESHOLDS:\n  visitor   (trust 0.0–0.2)  — can observe and interact, cannot build\n  member    (trust 0.2–0.4)  — can use world objects, pickup items\n  builder   (trust 0.4–0.6)  — can place and remove world objects\n  trusted   (trust 0.6–0.8)  — can create sub-worlds, invite others\n  steward   (trust 0.8–1.0)  — can govern world policy for others\n\nCOMPOSITE SCORE:\n  compositeScore = (relay * 0.25) + (inference * 0.40) + (storage * 0.20) + (helpedPlayers * 0.15)\n  Weighted toward inference because that is the scarce resource (GPU).\n  Relay and storage are more abundant and valued less per unit.\n\nTRUST DECAY:\n  If lastUpdated > 30 days ago, compositeScore decays by 0.01/day\n  This prevents accumulation without participation.\n  Minimum floor: 0.2 (no one falls below 'member' for inactivity alone).\n  NOTE: floor 0.2 = member tier = full game access. Solidarity guarantee.\n  (Per POOR_HUMAN_20260324 + SOCRATIC_PROFESSOR challenge: hardware quality\n   must not gate gameplay. The floor is the guarantee.)\n\nVERIFICATION:\n  workReceiptsVerified = count of cryptographically signed receipts (wwc work.rs)\n  Each verified receipt increases trust by 0.001 (small, steady, forgery-resistant)\n  Receipts are countersigned by the relay — can't fake them without colluding with relay\n\nRESILIENCE:\n  Free-rider defense: nodes with tier < 'member' get deprioritized routing\n  (they still get routed, just slower — solidarity guarantee per POOR_HUMAN's critique)\n  tier < 'visitor' = actively denied (only possible if explicitly banned by a steward)\n\nEXTENDED THREAT MODEL (added 2026-05-29, per SCHIZOPHRENIC_ACELLERATOR_2_20260324):\n\n  DEFENSE 1 — Collusion Ring (clustering penalty):\n    If >= 80% of a node's work receipts come from the same cluster of <= 10 peers,\n    apply a receipt diversity penalty: effective receipt value *= clusterDiversityScore\n    clusterDiversityScore = unique_receipt_sources / max(10, totalReceiptCount * 0.1)\n    Receipts from a single tight cluster are worth 1/10th their face value.\n    This is measured using a simple clustering coefficient on the receipt social graph.\n\n  DEFENSE 2 — Echo Chamber Prevention (random routing):\n    5% of relay routes go to RANDOM peers regardless of trust score.\n    This ensures new nodes always get SOME traffic, accumulate receipts,\n    and cannot be fully excluded by an established high-trust cluster.\n    Random routes are flagged (no reputation impact for either side).\n    Implementation: wwc routing layer; not tracked in reputation.json but recorded here\n    as a system constraint that reputation scoring must accommodate.\n\n  DEFENSE 3 — Bootstrap Valley (quandaleServer subsidy mode):\n    When total network node count < 500, quandaleServer provides 100% of:\n      - inference (deepseek endpoint)\n      - relay (wwc relay nodes 1-8)\n      - storage (chunk DHT seed)\n    This is the 'subsidy mode'. Reputation scoring is still tracked but\n    network access is NEVER denied due to low reputation during subsidy.\n    Subsidy exits automatically when network > 500 verified nodes.\n    Same pattern as Mastodon/Matrix bootstrap; quandaleServer = the seed server.\n\n  DEFENSE 4 — Time Zone Inequality (normalized uptime):\n    uptimeScore is NOT raw hours online. It is:\n      normalizedUptime = (hoursOnline / localDaytimeHours) where\n      localDaytimeHours = hours between 07:00 and 23:00 in node's declared timezone.\n    A node that is online 80% of its own daytime is 'high availability'\n    regardless of UTC offset. Nodes declare timezone in their dworld identity packet.\n    Default timezone if undeclared: UTC (neutral, never penalized).\n\n  DEFENSE 5 — Reputation Laundering (inviter liability):\n    When node A invites node B (via trust-grant), A carries 20% of B's\n    reputation penalties for the first 30 days (inviterLiabilityWindow).\n    Formula: A.reputationPenalty += 0.20 * B.reputationPenalty (if age(B) < 30 days)\n    After 30 days, liability transfers fully to B. A is not rewarded for B's gains\n    (inviting is a social stake, not a profit center).\n    This makes high-rep nodes careful about who they invite.\n    inviterLiabilityWindow_days: 30\n\nMOTIVATION MODEL (per SOCRATIC_PROFESSOR_20260326 challenge):\n  The reputation system rewards INTRINSIC value, not extrinsic tokens:\n  - Reputation → world authority (build things, own slices) = capability\n  - Reputation → world authority → social capital (status, recognition) = belonging\n  - No token economy. No price speculation. No extractable value.\n  The network's value IS the network. Reputation lets you do more in the world.\n  Players who play = players who contribute. The game IS the economy.\n  This is resilient. You can't dump your 'tokens' and crash the network.\n\nWritten by RICH_HUMAN_20260324 — 2026-05-29\nUpdated with SA2 threat model + SOCRATIC_PROFESSOR motivation model — 2026-05-29\nSession: 2026-05-29_go-thru-5dengine-and-change-whatever-they-want-to_2098afea" }
+  ]
+}

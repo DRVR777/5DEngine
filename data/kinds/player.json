@@ -1,0 +1,38 @@
+{
+  "id": "kinds/player",
+  "kind": "kind-def",
+  "name": "Kind definition: player",
+  "comment": "A human player entity. Spawned by genesis.js at first boot. Linked to a local-agent Thinga via the shared peerId in the identity facet. The player is the HUMAN presence; the agent is the AI companion. Both share a peerId but are independent Thingas.",
+  "facets": [
+    { "name": "for-kind",        "data": "player" },
+    { "name": "required-facets", "data": ["identity", "position", "health", "player-profile"] },
+    { "name": "optional-facets", "data": [
+      "world-sync",
+      "ghost",
+      "velocity",
+      "inventory",
+      "weapon",
+      "status-effects",
+      "economy",
+      "player-profile",
+      "mesh"
+    ]},
+    { "name": "defaults", "data": {
+      "position":       { "x": 0, "y": 0, "z": 0, "heading": 0 },
+      "health":         { "hp": 100, "maxHp": 100, "armor": 0 },
+      "world-sync":     { "ownership": "local", "syncFrequency": "high", "lastSyncAt": 0, "pendingDiffs": 0 },
+      "velocity":       { "vx": 0, "vy": 0, "vz": 0, "speed": 0, "isGrounded": true },
+      "inventory":      { "slots": [], "equippedSlot": -1, "maxSlots": 12 },
+      "economy":        { "balance": 0, "totalEarned": 0, "totalSpent": 0, "transactions": [] }
+    }},
+    { "name": "identity-facet-schema", "data": {
+      "playerName": "string",
+      "peerId":     "string|null",
+      "agentName":  "string|null",
+      "type":       "human|anonymous|remote"
+    }},
+    { "name": "status",  "data": "active" },
+    { "name": "genesis", "data": "2026-05-29" },
+    { "name": "author",  "data": "GENESIS_WRITER (session 2098afea)" }
+  ]
+}

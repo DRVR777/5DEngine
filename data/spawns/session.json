@@ -1,0 +1,22 @@
+{
+  "id": "spawns/session",
+  "kind": "spawn-set",
+  "name": "Session Spawns",
+  "comment": "Spawns the singleton multiplayer session manager. peerId is empty at spawn time — index.html injects the real dworld:// identity before the first tick.",
+  "facets": [{ "name": "items", "data": [
+    {
+      "id":   "session/main",
+      "kind": "session",
+      "name": "Multiplayer Session",
+      "facets": [
+        { "name": "net-sync", "data": {
+          "peerId":    "",
+          "sessionId": "",
+          "isHost":    false,
+          "peerCount": 1,
+          "latency":   {}
+        }}
+      ]
+    }
+  ]}]
+}

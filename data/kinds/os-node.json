@@ -1,0 +1,53 @@
+{
+  "id": "kind-def/os-node",
+  "kind": "kind-def",
+  "name": "os-node kind definition — represents a device or service in the P2P mesh",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "os-node"
+    },
+    {
+      "name": "required-facets",
+      "data": ["os-node", "dworld-identity"]
+    },
+    {
+      "name": "optional-facets",
+      "data": ["reputation", "net-sig", "compute-capability", "ai-agent", "service-status"]
+    },
+    {
+      "name": "defaults",
+      "data": {
+        "os-node": {
+          "node_id": "",
+          "device_type": "pc",
+          "services": [],
+          "online": false,
+          "ip_hint": null,
+          "relay_port": null,
+          "platform": "browser",
+          "wwc_version": "0.0.0",
+          "joined_at": 0,
+          "last_heartbeat": 0
+        },
+        "dworld-identity": {
+          "node_id": "",
+          "game_pubkey_hex": "",
+          "net_pubkey_hex": "",
+          "display_name": "node",
+          "trust_scope": "public",
+          "created_at": 0
+        },
+        "compute-capability": {
+          "can_infer": false,
+          "max_tokens_per_session": 0,
+          "model_whitelist": [],
+          "scope": "none",
+          "cap_token": null,
+          "cap_sig": null
+        }
+      }
+    }
+  ],
+  "children": []
+}

@@ -29,6 +29,15 @@ const KIND_NAMES = [
   "ground",
   // Legacy bridge — one Thinga per hosted mount* from game.html
   "legacy-system",
+  // Multiplayer / network kinds
+  "remote-player",  // a peer's hero entity, managed by net-sync facet
+  "session",        // multiplayer session (host, peers, ping map)
+  "lobby",          // pre-game matchmaking room
+  // Genesis / identity kinds (added 2026-05-29, GENESIS_WRITER session 2098afea)
+  "player",         // human player entity (spawned by genesis.js with identity facet)
+  "local-agent",    // node AI companion (per Node AI Identity Doctrine v1.0.0)
+  "relay-node",     // worldWideComms relay peer visible in the world
+  "terrain-chunk",  // downloadable global map segment (content-addressed)
   // Composition kinds — everything-is-a-Thinga architecture
   "root", "world", "kind-def", "spawn-set",
   // Meta kinds

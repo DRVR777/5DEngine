@@ -1,0 +1,20 @@
+{
+  "id": "kinds/session",
+  "kind": "kind-def",
+  "name": "session kind-def",
+  "comment": "Singleton multiplayer session manager. Carries the net-sync facet which drives all P2P state. Spawned once by spawns/session.json. The peerId is injected by index.html boot sequence from localStorage dworld_peer_id.",
+  "facets": [
+    { "name": "for-kind",        "data": "session" },
+    { "name": "required-facets", "data": ["net-sync"] },
+    { "name": "optional-facets", "data": [] },
+    { "name": "defaults", "data": {
+      "net-sync": {
+        "peerId":    "",
+        "sessionId": "",
+        "isHost":    false,
+        "peerCount": 1,
+        "latency":   {}
+      }
+    }}
+  ]
+}

@@ -21,6 +21,8 @@ const HERO_CONSUMERS = [
   "chase-target",
   "attack-target",
   "enemy-shoot",
+  "enemy-ai-scaffold",
+  "footstep-sound",
 ];
 
 export default {

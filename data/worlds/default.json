@@ -75,6 +75,8 @@
     { "ref": "kinds/arena_wall" },
     { "ref": "kinds/ground" },
     { "ref": "kinds/legacy_system" },
+    { "ref": "kinds/remote_player" },
+    { "ref": "kinds/session" },
     { "ref": "kinds/input" },
     { "ref": "kinds/hud" },
 
@@ -150,6 +152,7 @@
     { "ref": "spawns/wave_spawner" },
     { "ref": "spawns/buildings" },
     { "ref": "spawns/ground" },
-    { "ref": "spawns/legacy_systems" }
+    { "ref": "spawns/legacy_systems" },
+    { "ref": "spawns/session" }
   ]
 }

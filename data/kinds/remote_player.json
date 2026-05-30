@@ -1,0 +1,17 @@
+{
+  "id": "kinds/remote_player",
+  "kind": "kind-def",
+  "name": "remote-player kind-def",
+  "comment": "A remote player in the multiplayer session. Managed entirely by net-sync facet on the session Thinga — spawned when first STATE packet arrives from a new peer, despawned after 8s timeout. Never manually instantiated.",
+  "facets": [
+    { "name": "for-kind",        "data": "remote-player" },
+    { "name": "required-facets", "data": ["position", "health-display", "remote-player"] },
+    { "name": "optional-facets", "data": ["weapon-ammo", "remote-player-mesh"] },
+    { "name": "defaults", "data": {
+      "position":           { "x": 0, "y": 0, "z": 0, "rotY": 0 },
+      "health-display":     { "hp": 100, "armor": 0 },
+      "remote-player":      { "peerId": "", "lastSeen": 0, "latency": 0 },
+      "weapon-ammo":        { "weapon": "pistol", "ammo": 30 }
+    }}
+  ]
+}

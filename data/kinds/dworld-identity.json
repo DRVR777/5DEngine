@@ -1,0 +1,36 @@
+{
+  "id": "kind-def/dworld-identity",
+  "kind": "kind-def",
+  "name": "dworld-identity kind definition",
+  "facets": [
+    {
+      "name": "for-kind",
+      "data": "dworld-identity"
+    },
+    {
+      "name": "required-facets",
+      "data": ["dworld-identity"]
+    },
+    {
+      "name": "optional-facets",
+      "data": ["reputation", "net-sig"]
+    },
+    {
+      "name": "defaults",
+      "data": {
+        "dworld-identity": {
+          "node_id": "",
+          "game_pubkey_hex": "",
+          "net_pubkey_hex": "",
+          "display_name": "anonymous",
+          "session_epoch": 0,
+          "last_seen_ts": 0,
+          "kind": "player",
+          "trust_scope": "public",
+          "created_at": 0
+        }
+      }
+    }
+  ],
+  "children": []
+}

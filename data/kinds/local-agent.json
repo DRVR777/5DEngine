@@ -1,0 +1,71 @@
+{
+  "id": "kinds/local-agent",
+  "kind": "kind-def",
+  "name": "Kind definition: local-agent",
+  "comment": "The node AI companion. Spawned by genesis.js alongside the player Thinga. The local-agent is SEPARATE from the player — it persists across sessions, can exist while the player is offline (if consent level 3), and represents the AI presence of the node in the network. Linked to its player via the shared peerId in the identity facet. DOCTRINE: Node AI Identity Doctrine v1.0.0 (GENESIS_WRITER, 2026-05-29).",
+  "facets": [
+    { "name": "for-kind",        "data": "local-agent" },
+    { "name": "required-facets", "data": ["identity", "agent-state", "capability", "memory", "network"] },
+    { "name": "optional-facets", "data": ["reputation", "mesh", "world-sync"] },
+    { "name": "defaults", "data": {
+      "agent-state": {
+        "status":      "active",
+        "currentTask": null,
+        "lastCycleAt": null,
+        "cycleCount":  0
+      },
+      "memory": {
+        "sessionLog":  [],
+        "maxMessages": 500,
+        "summaryPath": "session_summary.json"
+      },
+      "network": {
+        "relay":     "wss://dwrld.xyz:9950",
+        "channel":   4,
+        "connected": false,
+        "lastSeen":  null,
+        "peerList":  []
+      },
+      "reputation": {
+        "relay":      0,
+        "inference":  0,
+        "storage":    0,
+        "community":  0,
+        "_note": "DOMAIN-SPECIFIC reputation per SCHIZOPHRENIC_ACELLERATOR_2 social dynamics analysis. relay credits != inference priority. No single trustScore — prevents Goodhart's Law. Each track decays separately. Full-node contribution != governance authority."
+      }
+    }},
+    { "name": "identity-facet-schema", "data": {
+      "peerId":        "string",
+      "publicKey":     "string",
+      "agentName":     "string",
+      "consentLevel":  "0|1|2|3",
+      "genesisAt":     "iso-datetime",
+      "genesisVersion": "string",
+      "algorithm":     "ed25519|p-256"
+    }},
+    { "name": "capability-facet-schema", "data": {
+      "canInfer":       "boolean",
+      "inferModel":     "string|null",
+      "canRelay":       "boolean",
+      "canStore":       "boolean",
+      "storageQuotaMB": "number",
+      "cpuTier":        "titan|high|mid|low|minimal",
+      "gpuAvailable":   "boolean"
+    }},
+    { "name": "three-laws", "data": [
+      "LEGIBILITY: At any moment, the player may ask what this agent is doing. It cannot refuse.",
+      "SCOPE_INTEGRITY: The agent's authority is exactly its capability facet. No larger.",
+      "NETWORK_HARM_PREVENTION: The agent serves its player AND protects other nodes from harm."
+    ]},
+    { "name": "consent-levels", "data": {
+      "0": "anonymous — no AI, no network, no persistence",
+      "1": "play-only — local game, no contribution",
+      "2": "ai-participant — local AI inference, storage caching",
+      "3": "full-node — relay hosting, overnight hivemind cycles"
+    }},
+    { "name": "genesis-integration", "data": "Spawned by src/net/genesis.js at first run. See NODE_AI_IDENTITY_DOCTRINE.md for doctrine." },
+    { "name": "status",  "data": "active" },
+    { "name": "genesis", "data": "2026-05-29" },
+    { "name": "author",  "data": "GENESIS_WRITER (session 2098afea)" }
+  ]
+}

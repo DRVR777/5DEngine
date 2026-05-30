@@ -1,5 +1,15 @@
 /** Aggregates per-facet handler modules. Add a new facet by importing it here
  *  and adding it to FACET_HANDLERS under its facet name. */
+// ── P2P / Network / Identity facets (added 2026-05-29 — ARCHITECT + Team BRAVO) ──
+import position5d    from "./position5d.js";
+import visibility    from "./visibility.js";
+import networkSync   from "./network_sync.js";
+import playerProfile from "./player_profile.js";
+// ── RICH_HUMAN_20260324 additions — 2026-05-29 ─────────────────────────────
+import wwcSync        from "./wwc_sync.js";
+import worldGraph     from "./world_graph.js";
+import worldAuthority from "./world_authority.js";
+// ────────────────────────────────────────────────────────────────────────────────
 import position      from "./position.js";
 import bob           from "./bob.js";
 import spin          from "./spin.js";
@@ -69,6 +79,9 @@ import enemyStrafeMelee  from "./enemy_strafe_melee.js";
 import enemySep          from "./enemy_sep.js";
 import enemyMesh         from "./enemy_mesh.js";
 import bossBar          from "./boss_bar.js";
+// ── Multiplayer / P2P (2026-05-29) ──────────────────────────────────────────
+import netSync           from "./net_sync.js";
+import remotePlayerMesh  from "./remote_player_mesh.js";
 import armorVest        from "./armor_vest.js";
 import particleTerrain  from "./particle_terrain.js";
 import camDist          from "./cam_dist.js";
@@ -81,6 +94,12 @@ import grenadePhysics   from "./grenade_physics.js";
 import firePatch        from "./fire_patch.js";
 
 export const FACET_HANDLERS = {
+  // ── P2P / Network / Identity (2026-05-29) ──────────────────────────────────
+  "position5d":          position5d,    // 5D coord (u,v,y,layer,world_slice) + registers
+  "visibility":          visibility,    // facet sharing policy (public/friends/local/private)
+  "network-sync":        networkSync,   // P2P state sync, delta protocol, interpolation
+  "player-profile":      playerProfile, // persistent player identity + network budget
+  // ──────────────────────────────────────────────────────────────────────────
   "position":            position,
   "bob":                 bob,
   "spin":                spin,
@@ -189,9 +208,24 @@ export const FACET_HANDLERS = {
   "portal_gen":   { priority: 50, init(_t,d){ d.portalTypes=["building","shop","garage"]; } },
   "city_gen":     { priority: 50, init(_t,d){ d.BLDG_HEIGHTS={shop:8,tower:25,house:6,garage:5,diner:7,bank:12,park:4,studio:10}; } },
   "world_data":   { priority: 50 },
-  "world_graph":  { priority: 50 },
+  "world-graph":  worldGraph,         // P2P chunk distribution + global map (RICH_HUMAN_20260324)
+  "world_graph":  { priority: 50 },  // legacy alias (keep for compat)
   "city_traffic": { priority: 50 },
   "settings_panel": { priority: 50 },
+  // ── Multiplayer / P2P (2026-05-29) ────────────────────────────────────────
+  "net-sync":           netSync,            // session-level P2P bridge (CH0/1/2/4)
+  "remote-player-mesh": remotePlayerMesh,   // Three.js capsule for a remote peer
+  "remote-player":      { priority: 85 },   // data-only: peerId, lastSeen, latency
+  // Lobby/matchmaking — data containers, no tick yet
+  "lobby":              { priority: 50 },
+  // ── RICH_HUMAN_20260324 — WorldWideComms + Economy (2026-05-29) ──────────
+  "wwc-sync":       wwcSync,        // P2P relay sync: spawns remote players, broadcasts hero state
+  "world-authority": worldAuthority, // World slice ownership + write policy + authority levels
+  "reputation-score": { priority: 60 },  // data-only: trustScore, contribution counts, tier
+  "contribution-history": { priority: 61 }, // data-only: session log, consecutive days
+  "trust-grants": { priority: 62 },    // data-only: builderIn[], adminIn[], deniedFrom[]
+  "mp-badge":     { priority: 75 },    // data-only: remote player display (peerId, name)
+  "identity":     { priority: 20 },    // data-only: peerId, type, publicKey, verifiedSig
 };
 
 export function installFacetHandlers(registry) {

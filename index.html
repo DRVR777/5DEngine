@@ -40,9 +40,43 @@ try {
   const loadBar = document.getElementById("loadBar");
   if (loadBar) loadBar.style.width = "30%";
 
+  // ── dworld:// identity (P2P peer ID) ──────────────────────────────────────
+  // Persistent across sessions via localStorage. In production: replace with
+  // a real Ed25519 keypair from worldWideComms identity.rs.
+  let peerId = localStorage.getItem("dworld_peer_id");
+  if (!peerId) {
+    peerId = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem("dworld_peer_id", peerId);
+  }
+  console.info("[ankhor] peerId:", peerId.slice(0, 8) + "…");
+
+  // ── Optional socket.io for multiplayer ────────────────────────────────────
+  // Falls back gracefully to offline/solo if server isn't available.
+  if (typeof io !== "undefined") {
+    try {
+      window._socket = io({ transports: ["websocket"], timeout: 3000 });
+      window._socket.on("connect",    () => console.info("[net] socket connected:", window._socket.id));
+      window._socket.on("disconnect", () => console.info("[net] socket disconnected"));
+      window._socket.on("connect_error", (e) => console.info("[net] socket offline:", e.message));
+    } catch(netErr) {
+      console.info("[net] socket init failed — solo mode:", netErr.message);
+    }
+  }
+
   const ankhor = await boot({ canvas: document.getElementById("stage") });
   window.Ankhor = ankhor;
   document.getElementById("boot").textContent = "ankhor · live";
+
+  // ── Inject peerId into session Thinga ─────────────────────────────────────
+  const sessions = ankhor.byKind("session");
+  if (sessions.length) {
+    const netData = ankhor.facetData(sessions[0].id, "net-sync");
+    if (netData) {
+      netData.peerId = peerId;
+      console.info("[ankhor] session/main peerId set");
+    }
+  }
 
   // Input adapter — keyboard + mouse
   const keys = {}; let yaw=0,pitch=0,mouseHeld=false;
